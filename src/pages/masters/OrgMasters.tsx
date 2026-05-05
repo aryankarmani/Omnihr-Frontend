@@ -1,15 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Building2, Plus, Save, MapPin, Trash2, Users, Briefcase, X } from 'lucide-react';
 import toast from 'react-hot-toast';
-import axios from 'axios';
-
-// API helper
-const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3001/api', // Backend URL
-    headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-    }
-});
+import api from '../../utils/api';
 
 export default function OrgMasters() {
     const [activeTab, setActiveTab] = useState('company');

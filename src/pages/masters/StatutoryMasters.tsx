@@ -1,12 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BadgeIndianRupee, Scale, School, Save, Plus, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import axios from 'axios';
-
-const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3001/api',
-    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-});
+import api from '../../utils/api';
 
 export default function StatutoryMasters() {
     const [activeTab, setActiveTab] = useState('components');

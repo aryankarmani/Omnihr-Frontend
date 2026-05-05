@@ -53,12 +53,47 @@ export default function Attendance() {
             try {
                 const year = selectedMonth.getFullYear();
                 const month = selectedMonth.getMonth() + 1;
-                const [historyRes, statsRes] = await Promise.all([
-                    api.get(`/attendance/history?year=${year}&month=${month}`),
-                    api.get(`/attendance/stats?year=${year}&month=${month}`)
-                ]);
-                setAttendanceHistory(historyRes.data);
-                setStats(statsRes.data);
+                const historyRes = await api.get(`/attendance/history?year=${year}&month=${month}`);
+                const historyData = historyRes.data;
+                setAttendanceHistory(historyData);
+
+                // Frontend-side calculation of stats
+                const newStats = {
+                    present: 0,
+                    absent: 0,
+                    late: 0,
+                    holiday: 0
+                };
+
+                const daysInMonth = new Date(year, month, 0).getDate();
+                const today = new Date();
+                const isCurrentMonth = today.getFullYear() === year && today.getMonth() + 1 === month;
+                const endDay = isCurrentMonth ? today.getDate() : daysInMonth;
+
+                // Calculate stats up to 'today' for the current month, or the whole month for past months
+                for (let d = 1; d <= endDay; d++) {
+                    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                    const log = historyData.find((l: any) => l.date === dateStr);
+                    const dayOfWeek = new Date(year, month - 1, d).getDay();
+                    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+                    if (log) {
+                        if (log.status === 'Present') {
+                            newStats.present++;
+                        } else if (log.status === 'Late') {
+                            newStats.present++;
+                            newStats.late++;
+                        } else if (log.status === 'Absent') {
+                            newStats.absent++;
+                        } else if (log.status === 'Holiday') {
+                            newStats.holiday++;
+                        }
+                    } else if (!isWeekend && !(isCurrentMonth && d === today.getDate())) {
+                        // Days with no log are counted as absent (excluding weekends and today)
+                        newStats.absent++;
+                    }
+                }
+                setStats(newStats);
             } catch (error) {
                 console.error("Failed to fetch history:", error);
             } finally {
@@ -85,12 +120,30 @@ export default function Attendance() {
             // Refresh history for the current month
             const year = selectedMonth.getFullYear();
             const month = selectedMonth.getMonth() + 1;
-            const [historyRes, statsRes] = await Promise.all([
-                api.get(`/attendance/history?year=${year}&month=${month}`),
-                api.get(`/attendance/stats?year=${year}&month=${month}`)
-            ]);
-            setAttendanceHistory(historyRes.data);
-            setStats(statsRes.data);
+            const historyRes = await api.get(`/attendance/history?year=${year}&month=${month}`);
+            const historyData = historyRes.data;
+            setAttendanceHistory(historyData);
+
+            // Recalculate stats locally
+            const newStats = { present: 0, absent: 0, late: 0, holiday: 0 };
+            const daysInMonth = new Date(year, month, 0).getDate();
+            const today = new Date();
+            const endDay = (today.getFullYear() === year && today.getMonth() + 1 === month) ? today.getDate() : daysInMonth;
+
+            for (let d = 1; d <= endDay; d++) {
+                const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const log = historyData.find((l: any) => l.date === dateStr);
+                const isWeekend = new Date(year, month - 1, d).getDay() === 0 || new Date(year, month - 1, d).getDay() === 6;
+                if (log) {
+                    if (log.status === 'Present') newStats.present++;
+                    else if (log.status === 'Absent') newStats.absent++;
+                    else if (log.status === 'Late') newStats.late++;
+                    else if (log.status === 'Holiday') newStats.holiday++;
+                } else if (!isWeekend && !((today.getFullYear() === year && today.getMonth() + 1 === month) && d === today.getDate())) {
+                    newStats.absent++;
+                }
+            }
+            setStats(newStats);
         } catch (error: any) {
             toast.error(error.response?.data?.message || 'Error during punch toggle');
         }

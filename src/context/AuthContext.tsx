@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import api from '../utils/api';
 
 // Define available roles
 export type UserRole = 'HR_ADMIN' | 'EMPLOYEE' | 'MANAGER';
@@ -42,19 +43,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             setError(null);
             setIsLoading(true);
-            const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-            
-            const response = await fetch(`${baseURL}/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Login failed');
-            }
+            const res = await api.post('/auth/login', { email, password });
+            const data = res.data;
 
             const { token, user: userData } = data;
 

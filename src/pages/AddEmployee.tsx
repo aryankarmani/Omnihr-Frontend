@@ -38,6 +38,45 @@ export default function AddEmployee() {
     };
 
     const handleNext = async () => {
+        // STEP 1 VALIDATION
+        if (currentStep === 1) {
+            if (!formData.firstName || !formData.lastName || !formData.email || !formData.title || !formData.department) {
+                toast.error('Please fill in all required fields');
+                return;
+            }
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(formData.email)) {
+                toast.error('Please enter a valid email address');
+                return;
+            }
+            if (formData.phone && !/^\d{10}$/.test(formData.phone.replace(/\D/g, ''))) {
+                toast.error('Phone number must be 10 digits');
+                return;
+            }
+        }
+
+        // STEP 2 VALIDATION
+        if (currentStep === 2) {
+            const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+            if (formData.pan && !panRegex.test(formData.pan.toUpperCase())) {
+                toast.error('Invalid PAN Number format (e.g. ABCDE1234F)');
+                return;
+            }
+            if (formData.aadhaar && !/^\d{12}$/.test(formData.aadhaar.replace(/\s/g, ''))) {
+                toast.error('Aadhaar Number must be 12 digits');
+                return;
+            }
+            const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+            if (formData.ifsc && !ifscRegex.test(formData.ifsc.toUpperCase())) {
+                toast.error('Invalid IFSC Code format');
+                return;
+            }
+            if (formData.accountNumber && !/^\d{9,18}$/.test(formData.accountNumber)) {
+                toast.error('Invalid Account Number');
+                return;
+            }
+        }
+
         if (currentStep < 3) {
             setCurrentStep(c => c + 1);
         } else {
@@ -113,74 +152,79 @@ export default function AddEmployee() {
                     {currentStep === 1 && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 uppercase">First Name</label>
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">First Name *</label>
                                 <input
                                     name="firstName"
                                     value={formData.firstName}
                                     onChange={handleInputChange}
                                     type="text"
-                                    className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-800 dark:text-white"
+                                    className="w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
                                     placeholder="John"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 uppercase">Last Name</label>
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Last Name *</label>
                                 <input
                                     name="lastName"
                                     value={formData.lastName}
                                     onChange={handleInputChange}
                                     type="text"
-                                    className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-800 dark:text-white"
+                                    className="w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
                                     placeholder="Doe"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 uppercase">Email Address</label>
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Email Address *</label>
                                 <input
                                     name="email"
                                     value={formData.email}
                                     onChange={handleInputChange}
                                     type="email"
-                                    className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-800 dark:text-white"
+                                    className="w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
                                     placeholder="john.doe@encalm.com"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 uppercase">Phone Number</label>
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Phone Number</label>
                                 <input
                                     name="phone"
                                     value={formData.phone}
                                     onChange={handleInputChange}
                                     type="tel"
-                                    className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-800 dark:text-white"
+                                    className="w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
                                     placeholder="+91 98765 43210"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 uppercase">Department</label>
-                                <select
-                                    name="department"
-                                    value={formData.department}
-                                    onChange={handleInputChange}
-                                    className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-800 dark:text-white"
-                                >
-                                    <option value="">Select Department</option>
-                                    <option value="Engineering">Engineering</option>
-                                    <option value="Design">Design</option>
-                                    <option value="Product">Product</option>
-                                    <option value="Sales">Sales</option>
-                                    <option value="HR">HR</option>
-                                    <option value="Operations">Operations</option>
-                                </select>
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Department *</label>
+                                <div className="relative group/select">
+                                    <select
+                                        name="department"
+                                        value={formData.department}
+                                        onChange={handleInputChange}
+                                        className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
+                                    >
+                                        <option value="" className="dark:bg-brand-900">Select Department</option>
+                                        <option value="Engineering" className="dark:bg-brand-900">Engineering</option>
+                                        <option value="Design" className="dark:bg-brand-900">Design</option>
+                                        <option value="Product" className="dark:bg-brand-900">Product</option>
+                                        <option value="Sales" className="dark:bg-brand-900">Sales</option>
+                                        <option value="HR" className="dark:bg-brand-900">HR</option>
+                                        <option value="Operations" className="dark:bg-brand-900">Operations</option>
+                                    </select>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover/select:text-brand-500 transition-colors">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
+                                    </div>
+                                </div>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 uppercase">Role / Designation</label>
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Role / Designation *</label>
                                 <input
                                     name="title"
                                     value={formData.title}
                                     onChange={handleInputChange}
                                     type="text"
-                                    className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-800 dark:text-white"
+                                    className="w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
                                     placeholder="e.g. Senior Developer"
                                 />
                             </div>
@@ -193,45 +237,45 @@ export default function AddEmployee() {
                                 <h3 className="font-bold text-gray-800 dark:text-white border-b border-gray-100 dark:border-white/10 pb-2">Statutory Details</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-gray-500 uppercase">PAN Number</label>
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">PAN Number</label>
                                         <input
                                             name="pan"
                                             value={formData.pan}
                                             onChange={handleInputChange}
                                             type="text"
-                                            className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-800 dark:text-white uppercase font-mono"
+                                            className="w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all uppercase placeholder:normal-case placeholder:text-gray-400 dark:placeholder:text-gray-600"
                                             placeholder="ABCDE1234F"
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-gray-500 uppercase">Aadhaar Number</label>
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Aadhaar Number</label>
                                         <input
                                             name="aadhaar"
                                             value={formData.aadhaar}
                                             onChange={handleInputChange}
                                             type="text"
-                                            className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-800 dark:text-white font-mono"
+                                            className="w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
                                             placeholder="XXXX XXXX XXXX"
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-gray-500 uppercase">UAN (PF)</label>
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">UAN (PF)</label>
                                         <input
                                             name="uan"
                                             value={formData.uan}
                                             onChange={handleInputChange}
                                             type="text"
-                                            className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-800 dark:text-white"
+                                            className="w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-gray-500 uppercase">ESIC Number</label>
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">ESIC Number</label>
                                         <input
                                             name="esic"
                                             value={formData.esic}
                                             onChange={handleInputChange}
                                             type="text"
-                                            className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-800 dark:text-white"
+                                            className="w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
                                         />
                                     </div>
                                 </div>
@@ -241,35 +285,36 @@ export default function AddEmployee() {
                                 <h3 className="font-bold text-gray-800 dark:text-white border-b border-gray-100 dark:border-white/10 pb-2">Bank Details</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-gray-500 uppercase">Bank Name</label>
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Bank Name</label>
                                         <input
                                             name="bankName"
                                             value={formData.bankName}
                                             onChange={handleInputChange}
                                             type="text"
-                                            className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-800 dark:text-white"
+                                            className="w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
                                             placeholder="e.g. HDFC Bank"
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-gray-500 uppercase">IFSC Code</label>
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">IFSC Code</label>
                                         <input
                                             name="ifsc"
                                             value={formData.ifsc}
                                             onChange={handleInputChange}
                                             type="text"
-                                            className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-800 dark:text-white uppercase font-mono"
+                                            className="w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all uppercase placeholder:normal-case placeholder:text-gray-400 dark:placeholder:text-gray-600"
                                             placeholder="HDFC0001234"
                                         />
                                     </div>
                                     <div className="space-y-2 md:col-span-2">
-                                        <label className="text-xs font-bold text-gray-500 uppercase">Account Number</label>
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Account Number</label>
                                         <input
                                             name="accountNumber"
                                             value={formData.accountNumber}
                                             onChange={handleInputChange}
                                             type="text"
-                                            className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-800 dark:text-white font-mono tracking-wider"
+                                            className="w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all tracking-wider placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                                            placeholder="Enter 9-18 digit account number"
                                         />
                                     </div>
                                 </div>

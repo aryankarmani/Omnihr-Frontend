@@ -1,6 +1,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send } from 'lucide-react';
+import api from '../utils/api';
 
 interface Message {
     id: number;
@@ -46,13 +47,8 @@ export default function ChatWidget() {
         setLoading(true);
 
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/chat`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: userMsg.text, userId: 1 }) // Demo userId
-            });
-
-            const data = await response.json();
+            const response = await api.post('/chat', { message: userMsg.text, userId: 1 });
+            const data = response.data;
             const botMsg: Message = {
                 id: Date.now() + 1,
                 text: data.reply || "Sorry, I didn't get that.",

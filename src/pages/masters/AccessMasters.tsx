@@ -1,12 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Shield, Plus, Edit2, Check, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
-import axios from 'axios';
-
-const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3001/api',
-    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-});
+import api from '../../utils/api';
 
 export default function AccessMasters() {
     const [roles, setRoles] = useState<any[]>([]);

@@ -1,42 +1,82 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useRBAC } from '../hooks/useRBAC';
 import { ArrowLeft, User, FileText, CreditCard, Download, Upload, Briefcase, Save, X, Edit, Printer, Loader2 } from 'lucide-react';
 import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 
 export default function EmployeeProfile() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const { hasPermission } = useRBAC();
+    
+    const queryParams = new URLSearchParams(location.search);
+    const initialEditMode = queryParams.get('edit') === 'true';
+
     const [activeTab, setActiveTab] = useState<'personal' | 'statutory' | 'documents'>('statutory');
-    const [isEditing, setIsEditing] = useState(false);
+    const [isEditing, setIsEditing] = useState(initialEditMode);
     const [showPayslip, setShowPayslip] = useState(false);
     const [showIDCard, setShowIDCard] = useState(false);
     const [loading, setLoading] = useState(true);
 
     // Employee State
     const [employee, setEmployee] = useState<any>(null);
+    const [errors, setErrors] = useState<Record<string, string>>({});
+
+    const fetchEmployee = async () => {
+        try {
+            const endpoint = id ? `/employee/${id}` : '/employee/me';
+            const res = await api.get(endpoint);
+            setEmployee(res.data);
+            setErrors({});
+        } catch (error) {
+            console.error('Error fetching employee:', error);
+            toast.error('Failed to load employee profile');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchEmployee = async () => {
-            try {
-                const endpoint = id ? `/employee/${id}` : '/employee/me';
-                const res = await api.get(endpoint);
-                setEmployee(res.data);
-            } catch (error) {
-                console.error('Error fetching employee:', error);
-                toast.error('Failed to load employee profile');
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchEmployee();
     }, [id]);
 
+    const handleCancel = () => {
+        fetchEmployee();
+        setIsEditing(false);
+    };
+
+    const validate = () => {
+        const newErrors: Record<string, string> = {};
+        const p = employee?.employeeProfile?.statutory || {};
+        const b = employee?.employeeProfile?.bank || {};
+        const pd = employee?.employeeProfile || {};
+
+        if (pd.phone && !/^\d{10}$/.test(pd.phone)) newErrors.phone = "Phone must be 10 digits";
+        if (pd.bloodGroup && !/^(A|B|AB|O)[+-]$/i.test(pd.bloodGroup)) newErrors.bloodGroup = "Invalid Blood Group (e.g. A+, O-)";
+        if (isEditing && !pd.address) newErrors.address = "Address is required";
+        if (isEditing && !pd.dob) newErrors.dob = "Date of Birth is required";
+
+        if (p.uan && !/^\d{12}$/.test(p.uan)) newErrors.uan = "UAN must be 12 digits";
+        if (p.esic && !/^\d{17}$/.test(p.esic)) newErrors.esic = "ESIC must be 17 digits";
+        if (p.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i.test(p.pan)) newErrors.pan = "Invalid PAN (e.g. ABCDE1234F)";
+        if (p.aadhaar && !/^\d{12}$/.test(p.aadhaar)) newErrors.aadhaar = "Aadhaar must be 12 digits";
+
+        if (b.accountNumber && !/^\d{9,18}$/.test(b.accountNumber)) newErrors.accountNumber = "Invalid Account Number";
+        if (b.ifsc && !/^[A-Z]{4}0[A-Z0-9]{6}$/i.test(b.ifsc)) newErrors.ifsc = "Invalid IFSC Code";
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
     const handleSave = async () => {
+        if (!validate()) {
+            toast.error('Please fix validation errors');
+            return;
+        }
         try {
             const profileData = {
                 phone: employee.employeeProfile?.phone,
@@ -46,6 +86,7 @@ export default function EmployeeProfile() {
                 location: employee.employeeProfile?.location,
                 department: employee.employeeProfile?.department,
                 title: employee.employeeProfile?.title,
+                status: employee.employeeProfile?.status || 'Active',
                 // Statutory
                 uan: employee.employeeProfile?.statutory?.uan,
                 pfNumber: employee.employeeProfile?.statutory?.pfNumber,
@@ -55,7 +96,10 @@ export default function EmployeeProfile() {
                 // Bank
                 bankName: employee.employeeProfile?.bank?.bankName,
                 accountNumber: employee.employeeProfile?.bank?.accountNumber,
-                ifsc: employee.employeeProfile?.bank?.ifsc
+                ifsc: employee.employeeProfile?.bank?.ifsc,
+                // User
+                name: employee.name,
+                email: employee.email
             };
 
             await api.put(`/employee/${id}`, profileData);
@@ -68,22 +112,31 @@ export default function EmployeeProfile() {
     };
 
     const handleInputChange = (field: string, value: string) => {
+        if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
+        if (field === 'name' || field === 'email') {
+            setEmployee((prev: any) => ({
+                ...prev,
+                [field]: value
+            }));
+            return;
+        }
         setEmployee((prev: any) => ({
             ...prev,
             employeeProfile: {
-                ...prev.employeeProfile,
+                ...(prev?.employeeProfile || {}),
                 [field]: value
             }
         }));
     };
 
     const handleStatutoryChange = (field: string, value: string) => {
+        if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
         setEmployee((prev: any) => ({
             ...prev,
             employeeProfile: {
-                ...prev.employeeProfile,
+                ...(prev?.employeeProfile || {}),
                 statutory: {
-                    ...prev.employeeProfile.statutory,
+                    ...(prev?.employeeProfile?.statutory || {}),
                     [field]: value
                 }
             }
@@ -91,16 +144,47 @@ export default function EmployeeProfile() {
     };
 
     const handleBankChange = (field: string, value: string) => {
+        if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
         setEmployee((prev: any) => ({
             ...prev,
             employeeProfile: {
-                ...prev.employeeProfile,
+                ...(prev?.employeeProfile || {}),
                 bank: {
-                    ...prev.employeeProfile.bank,
+                    ...(prev?.employeeProfile?.bank || {}),
                     [field]: value
                 }
             }
         }));
+    };
+
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const newDoc = {
+                name: file.name,
+                uploadedAt: new Date().toISOString(),
+                // url: '' // Backend will provide this later
+            };
+            setEmployee((prev: any) => ({
+                ...prev,
+                employeeProfile: {
+                    ...(prev?.employeeProfile || {}),
+                    documents: [...(prev?.employeeProfile?.documents || []), newDoc]
+                }
+            }));
+            toast.success(`${file.name} uploaded successfully! Save changes to persist.`);
+            setIsEditing(true);
+        }
+    };
+
+    const handleDownload = (doc: any) => {
+        if (doc.url) {
+            // If backend provides a real URL, open it to trigger download
+            window.open(doc.url, '_blank');
+        } else {
+            // Fallback for documents that don't have a URL yet
+            toast(`Download link for ${doc.name} will be provided by backend`);
+        }
     };
 
     if (loading) {
@@ -144,7 +228,19 @@ export default function EmployeeProfile() {
                         {employee.name.split(' ').map((n: any) => n[0]).join('')}
                     </div>
                     <div className="text-center md:text-left flex-1">
-                        <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">{employee.name}</h1>
+                        {isEditing ? (
+                            <div className="space-y-2 mb-4">
+                                <label className="text-[10px] font-black text-brand-600 uppercase tracking-widest">Full Name</label>
+                                <input
+                                    type="text"
+                                    value={employee.name}
+                                    onChange={(e) => handleInputChange('name', e.target.value)}
+                                    className="w-full text-2xl font-bold bg-brand-50 dark:bg-white/5 border border-brand-200 dark:border-white/10 rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-brand-500/50"
+                                />
+                            </div>
+                        ) : (
+                            <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">{employee.name}</h1>
+                        )}
                         <p className="text-lg text-brand-600 dark:text-brand-400 font-medium mb-4">{profile.title || 'Employee'} • {profile.department || 'N/A'}</p>
                         <div className="flex flex-wrap justify-center md:justify-start gap-4">
                             <span className="px-3 py-1 bg-gray-100 dark:bg-white/10 rounded-lg text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2">
@@ -158,7 +254,7 @@ export default function EmployeeProfile() {
                     <div className="flex gap-3">
                         {isEditing ? (
                             <>
-                                <button onClick={() => setIsEditing(false)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all font-bold">
+                                <button onClick={handleCancel} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all font-bold">
                                     Cancel
                                 </button>
                                 <button onClick={handleSave} className="px-4 py-2 bg-brand-600 text-white rounded-xl shadow-lg shadow-brand-500/20 hover:bg-brand-700 transition-all font-bold flex items-center gap-2">
@@ -199,20 +295,24 @@ export default function EmployeeProfile() {
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {[
-                                    { label: 'UAN (Provident Fund)', key: 'uan' },
-                                    { label: 'ESIC Number', key: 'esic' },
-                                    { label: 'PAN Number', key: 'pan' },
-                                    { label: 'Aadhaar Number', key: 'aadhaar' },
+                                    { label: 'UAN (Provident Fund)', key: 'uan', placeholder: '12-digit UAN' },
+                                    { label: 'ESIC Number', key: 'esic', placeholder: '17-digit ESIC Number' },
+                                    { label: 'PAN Number', key: 'pan', placeholder: 'e.g. ABCDE1234F' },
+                                    { label: 'Aadhaar Number', key: 'aadhaar', placeholder: '12-digit Aadhaar Number' },
                                 ].map((field) => (
                                     <div key={field.key} className="space-y-1">
                                         <label className="text-xs font-bold text-gray-400 uppercase">{field.label}</label>
                                         {isEditing ? (
-                                            <input
-                                                type="text"
-                                                value={(statutory as any)[field.key] || ''}
-                                                onChange={(e) => handleStatutoryChange(field.key, e.target.value)}
-                                                className="w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-brand-500/50 outline-none"
-                                            />
+                                            <>
+                                                <input
+                                                    type="text"
+                                                    placeholder={field.placeholder}
+                                                    value={(statutory as any)[field.key] || ''}
+                                                    onChange={(e) => handleStatutoryChange(field.key, e.target.value)}
+                                                    className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors[field.key] ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg focus:ring-2 focus:ring-brand-500/50 outline-none`}
+                                                />
+                                                {errors[field.key] && <p className="text-red-500 text-xs mt-1">{errors[field.key]}</p>}
+                                            </>
                                         ) : (
                                             <p className="font-semibold text-gray-800 dark:text-gray-200 text-lg">{(statutory as any)[field.key] || 'N/A'}</p>
                                         )}
@@ -241,19 +341,23 @@ export default function EmployeeProfile() {
                                         <label className="text-xs font-bold text-gray-400 uppercase">Account Number</label>
                                         <input
                                             type="text"
+                                            placeholder="9 to 18 digits"
                                             value={bank.accountNumber || ''}
                                             onChange={(e) => handleBankChange('accountNumber', e.target.value)}
-                                            className="w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-brand-500/50 outline-none"
+                                            className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.accountNumber ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg focus:ring-2 focus:ring-brand-500/50 outline-none`}
                                         />
+                                        {errors.accountNumber && <p className="text-red-500 text-xs mt-1">{errors.accountNumber}</p>}
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-xs font-bold text-gray-400 uppercase">IFSC Code</label>
                                         <input
                                             type="text"
+                                            placeholder="e.g. SBIN0123456"
                                             value={bank.ifsc || ''}
-                                            onChange={(e) => handleBankChange('ifsc', e.target.value)}
-                                            className="w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-brand-500/50 outline-none uppercase"
+                                            onChange={(e) => handleBankChange('ifsc', e.target.value.toUpperCase())}
+                                            className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.ifsc ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg focus:ring-2 focus:ring-brand-500/50 outline-none uppercase`}
                                         />
+                                        {errors.ifsc && <p className="text-red-500 text-xs mt-1">{errors.ifsc}</p>}
                                     </div>
                                 </div>
                             ) : (
@@ -282,9 +386,12 @@ export default function EmployeeProfile() {
                                     <FileText className="text-orange-500" /> Document Vault
                                 </h3>
                                 {hasPermission(['HR_ADMIN']) && (
-                                    <button className="flex items-center gap-2 text-sm font-medium text-brand-600 hover:bg-brand-50 px-3 py-1.5 rounded-lg transition-colors">
-                                        <Upload size={16} /> Upload New
-                                    </button>
+                                    <>
+                                        <input type="file" id="document-upload" className="hidden" onChange={handleFileUpload} />
+                                        <label htmlFor="document-upload" className="flex items-center gap-2 text-sm font-medium text-brand-600 hover:bg-brand-50 px-3 py-1.5 rounded-lg transition-colors cursor-pointer">
+                                            <Upload size={16} /> Upload New
+                                        </label>
+                                    </>
                                 )}
                             </div>
 
@@ -303,11 +410,19 @@ export default function EmployeeProfile() {
                                             </div>
                                             <div className="flex gap-2">
                                                 {isEditing && (
-                                                    <button className="p-2 text-gray-400 hover:text-red-600 transition-colors">
+                                                    <button onClick={() => {
+                                                        setEmployee((prev: any) => ({
+                                                            ...prev,
+                                                            employeeProfile: {
+                                                                ...(prev.employeeProfile || {}),
+                                                                documents: prev.employeeProfile.documents.filter((_: any, idx: number) => idx !== i)
+                                                            }
+                                                        }));
+                                                    }} className="p-2 text-gray-400 hover:text-red-600 transition-colors">
                                                         <X size={20} />
                                                     </button>
                                                 )}
-                                                <button className="p-2 text-gray-400 hover:text-brand-600 transition-colors">
+                                                <button onClick={() => handleDownload(doc)} className="p-2 text-gray-400 hover:text-brand-600 transition-colors">
                                                     <Download size={20} />
                                                 </button>
                                             </div>
@@ -325,35 +440,70 @@ export default function EmployeeProfile() {
 
                     {activeTab === 'personal' && (
                         <div className="bg-white dark:bg-brand-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-white/5 animate-fade-in-up">
-                            <h3 className="text-xl font-bold mb-6 text-gray-800 dark:text-white">Personal Information</h3>
+                            <h3 className="text-xl font-bold mb-6 text-gray-800 dark:text-white flex justify-between items-center">
+                                Personal Information
+                                {isEditing && (
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-bold text-gray-400 uppercase">Employment Status:</span>
+                                        <select 
+                                            value={profile.status || 'Active'}
+                                            onChange={(e) => handleInputChange('status', e.target.value)}
+                                            className="bg-brand-50 dark:bg-white/5 border border-brand-200 dark:border-white/10 rounded-lg px-3 py-1 text-xs font-bold text-brand-600 outline-none"
+                                        >
+                                            <option value="Active">Active</option>
+                                            <option value="Inactive">Inactive</option>
+                                        </select>
+                                    </div>
+                                )}
+                            </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-400 uppercase">Phone</label>
                                     {isEditing ? (
-                                        <input type="text" value={profile.phone || ''} onChange={(e) => handleInputChange('phone', e.target.value)} className="w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg outline-none" />
+                                        <>
+                                            <input type="text" value={profile.phone || ''} onChange={(e) => handleInputChange('phone', e.target.value)} className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.phone ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg outline-none`} />
+                                            {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+                                        </>
                                     ) : <p className="font-semibold">{profile.phone || 'N/A'}</p>}
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-400 uppercase">Email</label>
-                                    {/* Email logic is handled by User model, not Editable profile here easily for now */}
-                                    <p className="font-semibold text-gray-500">{employee.email}</p>
+                                    {isEditing ? (
+                                        <input 
+                                            type="email" 
+                                            value={employee.email} 
+                                            onChange={(e) => handleInputChange('email', e.target.value)} 
+                                            className="w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg outline-none" 
+                                        />
+                                    ) : (
+                                        <p className="font-semibold text-gray-800 dark:text-gray-200">{employee.email}</p>
+                                    )}
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-400 uppercase">Date of Birth</label>
                                     {isEditing ? (
-                                        <input type="date" value={profile.dob ? profile.dob.split('T')[0] : ''} onChange={(e) => handleInputChange('dob', e.target.value)} className="w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg outline-none" />
+                                        <>
+                                            <input type="date" value={profile.dob ? profile.dob.split('T')[0] : ''} onChange={(e) => handleInputChange('dob', e.target.value)} className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.dob ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg outline-none`} />
+                                            {errors.dob && <p className="text-red-500 text-xs mt-1">{errors.dob}</p>}
+                                        </>
                                     ) : <p className="font-semibold">{profile.dob ? new Date(profile.dob).toLocaleDateString() : 'N/A'}</p>}
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-400 uppercase">Blood Group</label>
                                     {isEditing ? (
-                                        <input type="text" value={profile.bloodGroup || ''} onChange={(e) => handleInputChange('bloodGroup', e.target.value)} className="w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg outline-none" />
+                                        <>
+                                            <input type="text" value={profile.bloodGroup || ''} onChange={(e) => handleInputChange('bloodGroup', e.target.value.toUpperCase())} className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.bloodGroup ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg outline-none uppercase`} />
+                                            {errors.bloodGroup && <p className="text-red-500 text-xs mt-1">{errors.bloodGroup}</p>}
+                                        </>
                                     ) : <p className="font-semibold">{profile.bloodGroup || 'N/A'}</p>}
                                 </div>
                                 <div className="space-y-1 md:col-span-2">
                                     <label className="text-xs font-bold text-gray-400 uppercase">Address</label>
                                     {isEditing ? (
-                                        <input type="text" value={profile.address || ''} onChange={(e) => handleInputChange('address', e.target.value)} className="w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg outline-none" />
+                                        <>
+                                            <input type="text" value={profile.address || ''} onChange={(e) => handleInputChange('address', e.target.value)} className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.address ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg outline-none`} />
+                                            {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
+                                        </>
                                     ) : <p className="font-semibold">{profile.address || 'N/A'}</p>}
                                 </div>
                                 <div className="space-y-1">
@@ -375,9 +525,9 @@ export default function EmployeeProfile() {
                                             ))}
                                         </div>
                                     ) : (
-                                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium inline-block mt-1 ${profile.status === 'Active'
-                                            ? 'bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400'
-                                            : 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400'
+                                        <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider shadow-sm transition-all hover:scale-105 ${profile.status === 'Active'
+                                            ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 dark:text-emerald-400'
+                                            : 'bg-rose-500/10 text-rose-600 border border-rose-500/20 dark:text-rose-400'
                                             }`}>
                                             {profile.status || 'Active'}
                                         </span>
@@ -413,50 +563,53 @@ export default function EmployeeProfile() {
 
             {/* Payslip Modal (Keep original UI logic, but ensure it uses the dynamic data) */}
             {showPayslip && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in overflow-y-auto">
-                    <div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden my-8">
-                        <div className="p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50 dark:bg-white/5">
+                <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden">
+                        
+                        {/* Header */}
+                        <div className="p-4 md:p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50 dark:bg-white/5 shrink-0">
                             <h3 className="text-xl font-bold font-mono text-gray-800 dark:text-white">Payslip Preview</h3>
-                            <button onClick={() => setShowPayslip(false)} className="bg-gray-200 dark:bg-white/10 p-2 rounded-full hover:bg-gray-300 transition-colors">
+                            <button onClick={() => setShowPayslip(false)} className="bg-gray-200 dark:bg-white/10 p-2 rounded-full hover:bg-gray-300 dark:hover:bg-white/20 transition-colors">
                                 <X size={20} className="text-gray-600 dark:text-gray-300" />
                             </button>
                         </div>
 
-                        <div className="p-8 bg-gray-100 dark:bg-white/5 overflow-x-auto flex justify-center">
-                            <div id="payslip-content" className="w-[210mm] min-w-[210mm] bg-white border border-gray-300 p-8 min-h-[297mm] shadow-lg relative text-gray-900">
-                                <div className="flex justify-between items-start border-b-2 border-brand-900 pb-6 mb-6">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-16 h-16 bg-brand-900 text-white flex items-center justify-center font-bold text-2xl rounded-lg">EH</div>
-                                        <div className="text-right">
-                                            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">EnCalm <span className="text-brand-600">HRX</span></h1>
+                        {/* Content (Scrollable if absolutely necessary, but designed to fit) */}
+                        <div className="p-4 md:p-6 bg-gray-100 dark:bg-brand-950 overflow-y-auto custom-scrollbar flex-1 flex justify-center items-start">
+                            <div id="payslip-content" className="w-full max-w-3xl bg-white border border-gray-200 p-6 md:p-8 shadow-sm rounded-xl relative text-gray-900 text-sm">
+                                <div className="flex justify-between items-start border-b-2 border-brand-900 pb-4 mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 md:w-14 md:h-14 bg-brand-900 text-white flex items-center justify-center font-bold text-xl rounded-lg">EH</div>
+                                        <div className="text-left">
+                                            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">EnCalm <span className="text-brand-600">HRX</span></h1>
                                         </div>
                                     </div>
-                                    <div className="mt-6 mb-2">
-                                        <p>EncalmIT Consultancy Pvt. Ltd.</p>
+                                    <div className="text-right text-xs text-gray-600">
+                                        <p className="font-bold text-gray-800">EncalmIT Consultancy Pvt. Ltd.</p>
                                         <p>Gurgaon, Haryana, India</p>
                                         <p>CIN: U12345HR2023PTC123456</p>
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-8 mb-8">
-                                    <div className="space-y-3">
-                                        <h4 className="font-bold text-gray-400 text-xs uppercase tracking-wider mb-2 border-b pb-1">Employee Details</h4>
-                                        <div className="grid grid-cols-3 gap-2 text-sm">
+                                <div className="grid grid-cols-2 gap-6 mb-6">
+                                    <div className="space-y-2">
+                                        <h4 className="font-bold text-brand-600 text-[10px] uppercase tracking-wider mb-1 border-b border-gray-100 pb-1">Employee Details</h4>
+                                        <div className="grid grid-cols-3 gap-1 text-xs">
                                             <span className="text-gray-500 font-medium">Name:</span>
                                             <span className="col-span-2 font-bold">{employee.name}</span>
                                             <span className="text-gray-500 font-medium">Employee ID:</span>
                                             <span className="col-span-2 font-bold">{employee.id}</span>
                                             <span className="text-gray-500 font-medium">Designation:</span>
-                                            <span className="col-span-2 font-bold">{profile.title || 'N/A'}</span>
+                                            <span className="col-span-2 font-bold truncate">{profile.title || 'N/A'}</span>
                                             <span className="text-gray-500 font-medium">Department:</span>
-                                            <span className="col-span-2 font-bold">{profile.department || 'N/A'}</span>
+                                            <span className="col-span-2 font-bold truncate">{profile.department || 'N/A'}</span>
                                         </div>
                                     </div>
-                                    <div className="space-y-3">
-                                        <h4 className="font-bold text-gray-400 text-xs uppercase tracking-wider mb-2 border-b pb-1">Bank & Pan Details</h4>
-                                        <div className="grid grid-cols-3 gap-2 text-sm">
+                                    <div className="space-y-2">
+                                        <h4 className="font-bold text-brand-600 text-[10px] uppercase tracking-wider mb-1 border-b border-gray-100 pb-1">Bank & Pan Details</h4>
+                                        <div className="grid grid-cols-3 gap-1 text-xs">
                                             <span className="text-gray-500 font-medium">Bank Name:</span>
-                                            <span className="col-span-2 font-bold">{bank.bankName || 'N/A'}</span>
+                                            <span className="col-span-2 font-bold truncate">{bank.bankName || 'N/A'}</span>
                                             <span className="text-gray-500 font-medium">Account No:</span>
                                             <span className="col-span-2 font-bold">XXXX{(bank.accountNumber || '').slice(-4)}</span>
                                             <span className="text-gray-500 font-medium">PAN Number:</span>
@@ -467,70 +620,104 @@ export default function EmployeeProfile() {
                                     </div>
                                 </div>
 
-                                <div className="border border-gray-200 rounded-sm mb-8">
-                                    <div className="grid grid-cols-2 bg-gray-100 border-b border-gray-200">
-                                        <div className="p-3 font-bold text-gray-700 text-sm uppercase text-center border-r border-gray-200">Earnings</div>
-                                        <div className="p-3 font-bold text-gray-700 text-sm uppercase text-center">Deductions</div>
+                                <div className="border border-gray-200 rounded-lg overflow-hidden mb-6">
+                                    <div className="grid grid-cols-2 bg-gray-50 border-b border-gray-200">
+                                        <div className="p-2 font-bold text-gray-700 text-xs uppercase text-center border-r border-gray-200">Earnings</div>
+                                        <div className="p-2 font-bold text-gray-700 text-xs uppercase text-center">Deductions</div>
                                     </div>
-                                    <div className="grid grid-cols-2 text-sm min-h-[200px]">
+                                    <div className="grid grid-cols-2 text-xs min-h-[120px]">
                                         <div className="border-r border-gray-200 p-0">
-                                            <div className="flex justify-between p-3 border-b border-gray-100">
+                                            <div className="flex justify-between p-2 md:p-3 border-b border-gray-50">
                                                 <span className="text-gray-600">Basic Salary</span>
                                                 <span className="font-semibold">₹ 0.00</span>
                                             </div>
-                                            <div className="flex justify-between p-3 italic text-gray-400">
+                                            <div className="flex justify-between p-2 md:p-3 italic text-gray-400">
                                                 <span>Salary structure pending setup...</span>
                                             </div>
                                         </div>
                                         <div className="p-0">
-                                            <div className="flex justify-between p-3 border-b border-gray-100">
+                                            <div className="flex justify-between p-2 md:p-3 border-b border-gray-50">
                                                 <span className="text-gray-600">Total Deductions</span>
                                                 <span className="font-bold text-red-700">₹ 0.00</span>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                
-                                <div className="text-center text-xs text-gray-400 mt-auto pt-8 border-t border-gray-100">
+
+                                <div className="text-center text-[10px] text-gray-400 mt-4 pt-4 border-t border-gray-100">
                                     <p>This is a computer-generated document and does not require a signature.</p>
                                     <p className="mt-1">Generated on {new Date().toLocaleDateString()}</p>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div className="p-6 border-t border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 flex justify-center">
-                        <button
-                            onClick={() => {
-                                const input = document.getElementById('payslip-content');
-                                if (input) {
-                                    html2canvas(input, { scale: 2 }).then((canvas) => {
+                        {/* Footer Buttons */}
+                        <div className="p-4 border-t border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 flex justify-end gap-3 shrink-0">
+                            <button
+                                onClick={() => setShowPayslip(false)}
+                                className="px-6 py-2.5 bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-300 dark:hover:bg-white/20 transition-colors"
+                            >
+                                Back
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    const input = document.getElementById('payslip-content');
+                                    if (!input) {
+                                        toast.error("Could not find payslip content");
+                                        return;
+                                    }
+                                    
+                                    try {
+                                        const toastId = toast.loading("Generating PDF...");
+                                        const canvas = await html2canvas(input, { 
+                                            scale: 2,
+                                            useCORS: true,
+                                            allowTaint: true,
+                                            backgroundColor: '#ffffff',
+                                            onclone: (clonedDoc) => {
+                                                const elements = clonedDoc.querySelectorAll('*');
+                                                elements.forEach((el) => {
+                                                    const HTMLElement = el as HTMLElement;
+                                                    const style = window.getComputedStyle(HTMLElement);
+                                                    if (style.color.includes('oklch')) HTMLElement.style.color = '#000000';
+                                                    if (style.backgroundColor.includes('oklch')) HTMLElement.style.backgroundColor = '#ffffff';
+                                                    if (style.borderColor.includes('oklch')) HTMLElement.style.borderColor = '#e5e7eb';
+                                                });
+                                            }
+                                        });
+                                        
                                         const imgData = canvas.toDataURL('image/png');
                                         const pdf = new jsPDF('p', 'mm', 'a4');
                                         const pdfWidth = pdf.internal.pageSize.getWidth();
                                         const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+                                        
                                         pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-                                        pdf.save(`Payslip_${employee.name}.pdf`);
-                                    });
-                                }
-                            }}
-                            className="flex items-center gap-2 px-6 py-3 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 transition-colors shadow-lg shadow-brand-500/20"
-                        >
-                            <Download size={20} /> Download PDF
-                        </button>
+                                        pdf.save(`Payslip_${employee.name}_${new Date().toLocaleDateString()}.pdf`);
+                                        
+                                        toast.success("PDF Downloaded", { id: toastId });
+                                    } catch (err) {
+                                        console.error("PDF Export Error:", err);
+                                        toast.error("Failed to generate PDF");
+                                    }
+                                }}
+                                className="flex items-center gap-2 px-6 py-2.5 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 transition-colors shadow-lg shadow-brand-500/20"
+                            >
+                                <Download size={18} /> Download PDF
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
 
             {/* ID Card Modal (Keep original UI logic, with dynamic data) */}
             {showIDCard && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in">
+                <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/80 backdrop-blur-md p-4 animate-fade-in">
                     <div className="relative">
                         <button onClick={() => setShowIDCard(false)} className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors">
                             <X size={24} />
                         </button>
 
-                        <div className="w-[320px] h-[500px] bg-white rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden relative flex flex-col">
+                        <div id="id-card-container" className="w-[320px] h-[500px] bg-white rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden relative flex flex-col">
                             <div className="absolute top-0 inset-x-0 h-48 bg-gradient-to-br from-brand-800 to-brand-600 rounded-b-[50px] z-0"></div>
                             <div className="mx-auto w-16 h-3 bg-white/20 rounded-full mt-4 relative z-10 backdrop-blur-sm"></div>
                             <div className="flex justify-between items-start mb-6 px-6 pt-4 relative z-10">
@@ -539,7 +726,7 @@ export default function EmployeeProfile() {
                             </div>
                             <div className="relative z-10 mx-auto mt-6">
                                 <div className="w-32 h-32 rounded-full border-4 border-white shadow-lg overflow-hidden bg-brand-600 flex items-center justify-center text-white font-bold text-4xl">
-                                    {employee.name.split(' ').map((n:any) => n[0]).join('')}
+                                    {employee.name.split(' ').map((n: any) => n[0]).join('')}
                                 </div>
                             </div>
                             <div className="text-center mt-4 flex-1 flex flex-col items-center">
@@ -567,7 +754,26 @@ export default function EmployeeProfile() {
                             </div>
                         </div>
                         <div className="flex justify-center mt-6">
-                            <button className="flex items-center gap-2 px-6 py-2 bg-white text-gray-800 font-bold rounded-full shadow-lg hover:bg-gray-100 transition-colors">
+                            <button 
+                                onClick={() => {
+                                    const printContent = document.getElementById('id-card-container');
+                                    const WindowPrt = window.open('', '', 'left=0,top=0,width=800,height=900,toolbar=0,scrollbars=0,status=0');
+                                    if (WindowPrt && printContent) {
+                                        WindowPrt.document.write('<html><head><title>Print ID Card</title>');
+                                        WindowPrt.document.write('<script src="https://cdn.tailwindcss.com"></script>');
+                                        WindowPrt.document.write('</head><body>');
+                                        WindowPrt.document.write(printContent.innerHTML);
+                                        WindowPrt.document.write('</body></html>');
+                                        WindowPrt.document.close();
+                                        WindowPrt.focus();
+                                        setTimeout(() => {
+                                            WindowPrt.print();
+                                            WindowPrt.close();
+                                        }, 500);
+                                    }
+                                }}
+                                className="flex items-center gap-2 px-6 py-2 bg-white text-gray-800 font-bold rounded-full shadow-lg hover:bg-gray-100 transition-colors"
+                            >
                                 <Printer size={18} /> Print
                             </button>
                         </div>

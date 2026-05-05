@@ -1,5 +1,4 @@
 import { AlertCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import HeadcountStats from './HeadcountStats';
 import LiveAttendance from './LiveAttendance';
 
@@ -42,7 +41,7 @@ export default function AdminDashboard({ navigate, stats, attendanceData, pendin
             </div>
 
             {/* Key Metrics Widgets */}
-            <HeadcountStats {...stats} />
+            <HeadcountStats {...stats} navigate={navigate} />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Live Attendance Chart */}
@@ -53,12 +52,12 @@ export default function AdminDashboard({ navigate, stats, attendanceData, pendin
                 {/* Pending Approvals */}
                 <div className="lg:col-span-1 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-6 md:p-8 rounded-3xl border border-gray-100/50 dark:border-gray-700/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300 h-96 flex flex-col pt-7">
                     <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-gray-900 to-gray-600 dark:from-white dark:to-gray-300">Pending Approvals</h3>
+                        <h3 className="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-gray-900 to-gray-600 dark:from-white dark:to-gray-300">Leave Approvals</h3>
                         <span className="bg-brand-100 dark:bg-brand-500/20 text-brand-700 dark:text-brand-400 text-xs font-bold px-2.5 py-1 rounded-full">{pendingApprovals.length}</span>
                     </div>
                     <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-1">
                         {pendingApprovals.length === 0 ? (
-                            <p className="text-sm text-gray-500 dark:text-gray-400">No pending approvals.</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">No Leave approvals.</p>
                         ) : (
                             pendingApprovals.map((approval) => (
                                 <div key={approval.id} className="group flex items-center gap-4 p-4 hover:bg-white dark:hover:bg-gray-700/50 rounded-2xl border border-transparent hover:border-gray-100 dark:hover:border-gray-600 hover:shadow-sm transition-all duration-200 cursor-pointer">
@@ -69,8 +68,8 @@ export default function AdminDashboard({ navigate, stats, attendanceData, pendin
                                         <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100">{approval.userName}</h4>
                                         <p className="text-xs font-medium text-gray-500 mt-0.5">{approval.type} • <span className="text-brand-600 dark:text-brand-400 font-semibold">{approval.duration} days</span></p>
                                     </div>
-                                    <button 
-                                        onClick={() => navigate('/leave')}
+                                    <button
+                                        onClick={() => navigate('/leave', { state: { activeTab: 'APPROVALS' } })}
                                         className="text-xs font-bold text-brand-600 dark:text-brand-400 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 dark:bg-brand-500/10 dark:hover:bg-brand-500/20 px-3.5 py-2 rounded-xl transition-colors"
                                     >
                                         Review
@@ -115,9 +114,9 @@ export default function AdminDashboard({ navigate, stats, attendanceData, pendin
                                         </td>
                                         <td className="py-4 px-8 text-gray-500 dark:text-gray-400 font-medium">{emp.role}</td>
                                         <td className="py-4 px-8">
-                                            <span className={`px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm ${emp.status === 'Inactive'
-                                                ? 'bg-red-50 text-red-700 border border-red-100 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'
-                                                : 'bg-green-50 text-green-700 border border-green-100 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20'
+                                            <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm ${emp.status === 'Inactive'
+                                                ? 'bg-rose-500/10 text-rose-600 border border-rose-500/20 dark:text-rose-400'
+                                                : 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 dark:text-emerald-400'
                                                 }`}>
                                                 {emp.status}
                                             </span>

@@ -1,24 +1,31 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { FileText, TrendingUp, Users, DollarSign, Calendar } from 'lucide-react';
-
-const ATTENDANCE_DATA = [
-    { name: 'Mon', present: 85, absent: 5, late: 10 },
-    { name: 'Tue', present: 88, absent: 2, late: 10 },
-    { name: 'Wed', present: 90, absent: 5, late: 5 },
-    { name: 'Thu', present: 82, absent: 8, late: 10 },
-    { name: 'Fri', present: 85, absent: 5, late: 10 },
-];
-
-const PAYROLL_DATA = [
-    { name: 'Engineering', value: 450000 },
-    { name: 'Sales', value: 320000 },
-    { name: 'Marketing', value: 210000 },
-    { name: 'HR', value: 150000 },
-];
+import { useEffect, useState } from 'react';
+import api from '../utils/api';
 
 const COLORS = ['#8b5cf6', '#3b82f6', '#ec4899', '#f97316'];
 
 export default function Reports() {
+    const [attendanceData, setAttendanceData] = useState<any[]>([]);
+    const [payrollData, setPayrollData] = useState<any[]>([]);
+    const [stats, setStats] = useState<any>({});
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const res1 = await api.get('/reports/dashboard');
+                const res2 = await api.get('/reports/attendance');
+                const res3 = await api.get('/reports/payroll');
+
+                setStats(res1.data || {});
+                setAttendanceData(res2.data?.data || res2.data || []);
+                setPayrollData(res3.data?.data || res3.data || []);
+            } catch (err) {
+                console.error('Reports API error:', err);
+            }
+        };
+
+        fetchData();
+    }, []);
     return (
         <div className="animate-fade-in-up pb-8">
             <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Reports & Analytics</h2>
@@ -30,14 +37,14 @@ export default function Reports() {
                     <div className="flex justify-between items-start">
                         <div>
                             <p className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase">Total Payroll</p>
-                            <h3 className="text-2xl font-bold text-gray-800 dark:text-white mt-1">₹ 12,40,000</h3>
+                            <h3 className="text-2xl font-bold text-gray-800 dark:text-white mt-1">₹ {stats?.totalPayroll || 0}</h3>
                         </div>
                         <div className="w-10 h-10 bg-green-100 text-green-600 rounded-xl flex items-center justify-center">
                             <DollarSign size={20} />
                         </div>
                     </div>
                     <div className="mt-4 flex items-center gap-1 text-xs font-medium text-green-600">
-                        <TrendingUp size={14} /> +12% from last month
+                        <TrendingUp size={14} /> {stats?.payrollGrowth || '0%'} from last month
                     </div>
                 </div>
 
@@ -45,14 +52,14 @@ export default function Reports() {
                     <div className="flex justify-between items-start">
                         <div>
                             <p className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase">Avg. Attendance</p>
-                            <h3 className="text-2xl font-bold text-gray-800 dark:text-white mt-1">92%</h3>
+                            <h3 className="text-2xl font-bold text-gray-800 dark:text-white mt-1">{stats?.avgAttendance || 0}%</h3>
                         </div>
                         <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center">
                             <Users size={20} />
                         </div>
                     </div>
                     <div className="mt-4 flex items-center gap-1 text-xs font-medium text-blue-600">
-                        <TrendingUp size={14} /> Stable trend
+                        <TrendingUp size={14} /> {stats?.attendanceTrend || 'No data'}
                     </div>
                 </div>
 
@@ -60,14 +67,14 @@ export default function Reports() {
                     <div className="flex justify-between items-start">
                         <div>
                             <p className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase">Pending Leaves</p>
-                            <h3 className="text-2xl font-bold text-gray-800 dark:text-white mt-1">14</h3>
+                            <h3 className="text-2xl font-bold text-gray-800 dark:text-white mt-1">{stats?.pendingLeaves || 0}</h3>
                         </div>
                         <div className="w-10 h-10 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center">
                             <Calendar size={20} />
                         </div>
                     </div>
                     <div className="mt-4 text-xs font-medium text-orange-600">
-                        Requires Attention
+                        {stats?.leaveStatus || 'No data'}
                     </div>
                 </div>
             </div>
@@ -79,7 +86,7 @@ export default function Reports() {
                     <h3 className="font-bold text-gray-800 dark:text-white mb-6">Weekly Attendance</h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={ATTENDANCE_DATA}>
+                            <BarChart data={attendanceData}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 12 }} dy={10} />
                                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 12 }} />
@@ -102,7 +109,7 @@ export default function Reports() {
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
-                                    data={PAYROLL_DATA}
+                                    data={payrollData}
                                     cx="50%"
                                     cy="50%"
                                     innerRadius={60}
@@ -110,7 +117,7 @@ export default function Reports() {
                                     paddingAngle={5}
                                     dataKey="value"
                                 >
-                                    {PAYROLL_DATA.map((_, index) => (
+                                    {Array.isArray(payrollData) && payrollData.map((_, index) => (
                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                     ))}
                                 </Pie>
@@ -118,7 +125,7 @@ export default function Reports() {
                             </PieChart>
                         </ResponsiveContainer>
                         <div className="space-y-2 ml-4">
-                            {PAYROLL_DATA.map((entry, index) => (
+                            {Array.isArray(payrollData) && payrollData.map((entry, index) => (
                                 <div key={entry.name} className="flex items-center gap-2">
                                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index] }}></div>
                                     <span className="text-xs text-gray-500 dark:text-gray-400">{entry.name}</span>
@@ -136,17 +143,26 @@ export default function Reports() {
                 <div className="relative z-10">
                     <h3 className="text-xl font-bold mb-4">Generate Reports</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="bg-white/10 hover:bg-white/20 transition-colors p-4 rounded-xl cursor-pointer backdrop-blur-sm border border-white/10">
+                        <div
+                            onClick={() => window.open(`${api.defaults.baseURL}/reports/monthly-attendance`)}
+                            className="bg-white/10 hover:bg-white/20 transition-colors p-4 rounded-xl cursor-pointer backdrop-blur-sm border border-white/10"
+                        >
                             <FileText size={24} className="mb-3 opacity-80" />
                             <h4 className="font-bold text-sm">Monthly Attendance</h4>
                             <p className="text-xs opacity-70 mt-1">Download CSV</p>
                         </div>
-                        <div className="bg-white/10 hover:bg-white/20 transition-colors p-4 rounded-xl cursor-pointer backdrop-blur-sm border border-white/10">
+                        <div
+                            onClick={() => window.open(`${api.defaults.baseURL}/reports/salary-register`)}
+                            className="bg-white/10 hover:bg-white/20 transition-colors p-4 rounded-xl cursor-pointer backdrop-blur-sm border border-white/10"
+                        >
                             <DollarSign size={24} className="mb-3 opacity-80" />
                             <h4 className="font-bold text-sm">Salary Register</h4>
                             <p className="text-xs opacity-70 mt-1">Download PDF</p>
                         </div>
-                        <div className="bg-white/10 hover:bg-white/20 transition-colors p-4 rounded-xl cursor-pointer backdrop-blur-sm border border-white/10">
+                        <div
+                            onClick={() => window.open(`${api.defaults.baseURL}/reports/leave-balance`)}
+                            className="bg-white/10 hover:bg-white/20 transition-colors p-4 rounded-xl cursor-pointer backdrop-blur-sm border border-white/10"
+                        >
                             <Calendar size={24} className="mb-3 opacity-80" />
                             <h4 className="font-bold text-sm">Leave Balance</h4>
                             <p className="text-xs opacity-70 mt-1">Export Excel</p>

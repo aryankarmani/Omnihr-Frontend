@@ -3,6 +3,8 @@ import { Toaster } from 'react-hot-toast';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import SignIn from './pages/SignIn';
+import SignUp from './pages/SignUp';
+import ForgotPassword from './pages/ForgotPassword';
 import Layout from './components/Layout';
 import DashboardHome from './pages/DashboardHome';
 import EmployeeList from './pages/EmployeeList';
@@ -12,11 +14,14 @@ import Attendance from './pages/Attendance';
 import Leave from './pages/Leave';
 import Team from './pages/Team';
 import Reports from './pages/Reports';
+import LeaveToday from './pages/LeaveToday';
 import MastersLayout from './pages/masters/MastersLayout';
 import OrgMasters from './pages/masters/OrgMasters';
 import StatutoryMasters from './pages/masters/StatutoryMasters';
 import AttendanceMasters from './pages/masters/AttendanceMasters';
 import AccessMasters from './pages/masters/AccessMasters';
+import EmployeeAttendanceList from './pages/EmployeeAttendanceList';
+import EmployeeAttendanceView from './pages/EmployeeAttendanceView';
 
 
 function AppContent() {
@@ -39,6 +44,8 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<Navigate to="/signin" replace />} />
           <Route path="/signin" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <SignIn />} />
+          <Route path="/signup" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <SignUp />} />
+          <Route path="/forgot-password" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <ForgotPassword />} />
 
           {/* Dashboard Route */}
           <Route path="/dashboard" element={
@@ -61,7 +68,7 @@ function AppContent() {
               <Navigate to="/signin" replace />
             )
           } />
-          
+
           <Route path="/employee/add" element={
             isAuthenticated ? (
               <Layout>
@@ -91,6 +98,28 @@ function AppContent() {
             isAuthenticated ? (
               <Layout>
                 <Attendance />
+              </Layout>
+            ) : (
+              <Navigate to="/signin" replace />
+            )
+          } />
+
+          {/* Employee Attendance List (Admin Only) */}
+          <Route path="/employee-attendance" element={
+            isAuthenticated ? (
+              <Layout>
+                <EmployeeAttendanceList />
+              </Layout>
+            ) : (
+              <Navigate to="/signin" replace />
+            )
+          } />
+
+          {/* Employee Attendance View */}
+          <Route path="/employee-attendance/:id" element={
+            isAuthenticated ? (
+              <Layout>
+                <EmployeeAttendanceView />
               </Layout>
             ) : (
               <Navigate to="/signin" replace />
@@ -139,6 +168,17 @@ function AppContent() {
             isAuthenticated ? (
               <Layout>
                 <Reports />
+              </Layout>
+            ) : (
+              <Navigate to="/signin" replace />
+            )
+          } />
+
+          {/* Leave Today Route */}
+          <Route path="/leave-today" element={
+            isAuthenticated ? (
+              <Layout>
+                <LeaveToday />
               </Layout>
             ) : (
               <Navigate to="/signin" replace />
