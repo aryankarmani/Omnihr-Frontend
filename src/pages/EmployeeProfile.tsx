@@ -54,6 +54,11 @@ export default function EmployeeProfile() {
         const p = employee?.employeeProfile?.statutory || {};
         const b = employee?.employeeProfile?.bank || {};
         const pd = employee?.employeeProfile || {};
+        if (!employee.email) {
+        newErrors.email = "Email is required";
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(employee.email)) {
+         newErrors.email = "Invalid email format";
+        }
 
         if (pd.phone && !/^\d{10}$/.test(pd.phone)) newErrors.phone = "Phone must be 10 digits";
         if (pd.bloodGroup && !/^(A|B|AB|O)[+-]$/i.test(pd.bloodGroup)) newErrors.bloodGroup = "Invalid Blood Group (e.g. A+, O-)";
@@ -160,6 +165,11 @@ export default function EmployeeProfile() {
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+             if (file.type !== "application/pdf") {
+            toast.error("Only PDF allowed");
+             return;
+            }
+
             const newDoc = {
                 name: file.name,
                 uploadedAt: new Date().toISOString(),
@@ -387,7 +397,7 @@ export default function EmployeeProfile() {
                                 </h3>
                                 {hasPermission(['HR_ADMIN']) && (
                                     <>
-                                        <input type="file" id="document-upload" className="hidden" onChange={handleFileUpload} />
+                                        <input type="file" id="document-upload" className="hidden" accept='.pdf' onChange ={handleFileUpload} />
                                         <label htmlFor="document-upload" className="flex items-center gap-2 text-sm font-medium text-brand-600 hover:bg-brand-50 px-3 py-1.5 rounded-lg transition-colors cursor-pointer">
                                             <Upload size={16} /> Upload New
                                         </label>
@@ -469,12 +479,20 @@ export default function EmployeeProfile() {
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-400 uppercase">Email</label>
                                     {isEditing ? (
-                                        <input 
-                                            type="email" 
-                                            value={employee.email} 
-                                            onChange={(e) => handleInputChange('email', e.target.value)} 
-                                            className="w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg outline-none" 
-                                        />
+                                        <>
+    <input 
+        type="email" 
+        value={employee.email} 
+        onChange={(e) => handleInputChange('email', e.target.value)} 
+        className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${
+            errors.email ? 'border-red-500' : 'border-gray-200 dark:border-white/10'
+        } rounded-lg outline-none`} 
+    />
+
+    {errors.email && (
+        <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+    )}
+</>
                                     ) : (
                                         <p className="font-semibold text-gray-800 dark:text-gray-200">{employee.email}</p>
                                     )}
@@ -545,13 +563,13 @@ export default function EmployeeProfile() {
                         <div className="space-y-3">
                             <button
                                 onClick={() => setShowPayslip(true)}
-                                className="w-full py-2.5 px-4 bg-brand-50 dark:bg-white/5 text-brand-700 dark:text-brand-300 rounded-xl text-sm font-medium hover:bg-brand-100 transition-colors text-left flex items-center gap-3"
+                                className="w-full py-2.5 px-4 bg-brand-50 dark:bg-white/5 text-brand-700 dark:text-brand-300 rounded-xl text-sm font-medium hover:bg-brand-700 hover:text-white transition-colors text-left flex items-center gap-3"
                             >
                                 <FileText size={16} /> Generate Payslip
                             </button>
                             <button
                                 onClick={() => setShowIDCard(true)}
-                                className="w-full py-2.5 px-4 bg-brand-50 dark:bg-white/5 text-brand-700 dark:text-brand-300 rounded-xl text-sm font-medium hover:bg-brand-100 transition-colors text-left flex items-center gap-3"
+                                className="w-full py-2.5 px-4 bg-brand-50 dark:bg-white/5 text-brand-700 dark:text-brand-300 rounded-xl text-sm font-medium hover:bg-brand-700 hover:text-white transition-colors text-left flex items-center gap-3"
                             >
                                 <User size={16} /> ID Card Preview
                             </button>

@@ -414,7 +414,7 @@ export default function Leave() {
 
             {/* Apply Leave Modal */}
             {showApplyModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
+                <div className="fixed inset-0 z-50 flex items-start pt-20 justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
                     <div className="bg-white dark:bg-brand-900 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden relative">
                         {/* Modal Header */}
                         <div className="bg-brand-600 p-6 text-white relative overflow-hidden">

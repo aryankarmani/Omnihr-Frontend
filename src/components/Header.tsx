@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useEffect } from 'react';
 import api from '../utils/api';
-
+import { useNavigate } from 'react-router-dom';
 interface HeaderProps {
     onMenuClick: () => void;
 }
@@ -16,6 +16,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
     const [loading, setLoading] = useState(false);
     const { theme, toggleTheme } = useTheme();
     const { user } = useAuth();
+    const navigate = useNavigate();
     const fetchNotifications = async () => {
         setLoading(true);
         try {
@@ -29,7 +30,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
     useEffect(() => {
         fetchNotifications();
-    }, []);
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, []);
 
     return (
         <>
@@ -71,8 +73,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
                     </button>
 
                     {user && (
-                        <div className="flex items-center gap-3 pl-2 md:pl-4 border-l border-gray-200 ml-2">
-                            <div className="text-right hidden md:block">
+                         <div 
+                            onClick={() => navigate('/profile')}                         className="flex items-center gap-3 pl-2 md:pl-4 border-l border-gray-200 ml-2 cursor-pointer"
+  >
+                                <div className="text-right hidden md:block">
                                 <p className="text-sm font-bold text-gray-800 dark:text-gray-100">{user.name}</p>
                                 <p className="text-xs text-gray-500 capitalize">{user.role?.toLowerCase().replace('_', ' ') || 'User'}</p>
                             </div>
