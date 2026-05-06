@@ -105,7 +105,7 @@ export default function AdminDashboard({ navigate, stats, attendanceData, pendin
                             </thead>
                             <tbody className="text-sm divide-y divide-gray-50/80 dark:divide-gray-700/50">
                                 {employees.map((emp) => (
-                                    <tr key={emp.id} className="group hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
+                                    <tr key={emp.id} onClick={() => navigate(`/employee/${emp.id}`)} className="group hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors cursor-pointer">
                                         <td className="py-4 px-8 flex items-center gap-4">
                                             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 flex-shrink-0 flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300 shadow-inner group-hover:scale-105 transition-transform">
                                                 {emp.name.split(' ').map((n: string) => n[0]).join('')}

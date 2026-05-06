@@ -45,6 +45,7 @@ export default function EmployeeAttendanceView() {
     late: 0,
     holiday: 0
   });
+  const [joiningDate, setJoiningDate] = useState<Date | null>(null);
 
   const [attendanceHistory, setAttendanceHistory] = useState<DailyLog[]>([]);
 
@@ -53,6 +54,7 @@ export default function EmployeeAttendanceView() {
     setAttendanceHistory([]);
     setStats({ present: 0, absent: 0, late: 0, holiday: 0 });
     setEmployeeName('');
+    setJoiningDate(null);
   }, [id]);
 
   // Fetch attendance data
@@ -69,11 +71,15 @@ export default function EmployeeAttendanceView() {
         );
         const historyData: DailyLog[] = res.data;
         setAttendanceHistory(historyData);
-
-        // Fetch employee details to get the real name
+        let effectiveJoiningDate = joiningDate;
         try {
           const empRes = await api.get(`/employee/${id}`);
           setEmployeeName(empRes.data.name);
+          const jd = empRes.data.employeeProfile?.joiningDate || empRes.data.createdAt;
+          if (jd) {
+            effectiveJoiningDate = new Date(jd);
+            setJoiningDate(effectiveJoiningDate);
+          }
         } catch (err) {
           setEmployeeName(`Employee #${id}`);
         }
@@ -87,11 +93,18 @@ export default function EmployeeAttendanceView() {
         const endDay = isCurrentMonth ? today.getDate() : daysInMonth;
 
         for (let d = 1; d <= endDay; d++) {
+          const currentLoopDate = new Date(year, month - 1, d);
           const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+          if (effectiveJoiningDate) {
+            const jdCopy = new Date(effectiveJoiningDate);
+            jdCopy.setHours(0, 0, 0, 0);
+            if (currentLoopDate < jdCopy) continue;
+          }
+
           const log = historyData.find((l) => l.date === dateStr);
           const isWeekend =
-            new Date(year, month - 1, d).getDay() === 0 ||
-            new Date(year, month - 1, d).getDay() === 6;
+            currentLoopDate.getDay() === 0 ||
+            currentLoopDate.getDay() === 6;
 
           if (log) {
             if (log.status === 'Present') {
@@ -163,14 +176,19 @@ export default function EmployeeAttendanceView() {
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const log = attendanceHistory.find((d) => d.date === dateStr);
-      const isWeekend =
-        new Date(year, month, day).getDay() === 0 ||
-        new Date(year, month, day).getDay() === 6;
+      const currentLoopDate = new Date(year, month, day);
+      const isWeekend = currentLoopDate.getDay() === 0 || currentLoopDate.getDay() === 6;
+      const isBeforeJoining = joiningDate && currentLoopDate < new Date(new Date(joiningDate).setHours(0, 0, 0, 0));
+
       const displayStatus: AttendanceStatus = log
         ? log.status
         : isWeekend
-        ? 'Weekend'
-        : 'Absent';
+          ? 'Weekend'
+          : isBeforeJoining
+            ? 'Weekend'
+            : 'Absent';
+
+      const statusLabel = isBeforeJoining ? '-' : displayStatus;
       const isToday =
         day === new Date().getDate() &&
         month === new Date().getMonth() &&
@@ -179,27 +197,25 @@ export default function EmployeeAttendanceView() {
       days.push(
         <div
           key={day}
-          className={`h-24 p-2 rounded-xl border transition-shadow hover:shadow-md ${
-            isToday
+          className={`h-24 p-2 rounded-xl border transition-shadow hover:shadow-md cursor-pointer ${isToday
               ? 'border-brand-500 ring-1 ring-brand-500'
               : 'border-gray-100 dark:border-white/10'
-          } bg-white dark:bg-brand-800`}
+            } bg-white dark:bg-brand-800`}
         >
           {/* Day number + Status badge */}
           <div className="flex justify-between items-start">
             <span
-              className={`text-sm font-semibold ${
-                isToday
+              className={`text-sm font-semibold ${isToday
                   ? 'text-brand-600 dark:text-brand-400'
                   : 'text-gray-700 dark:text-gray-300'
-              }`}
+                }`}
             >
               {day}
             </span>
             <span
               className={`text-[10px] px-1.5 py-0.5 rounded-full ${getStatusColor(displayStatus)}`}
             >
-              {displayStatus}
+              {statusLabel}
             </span>
           </div>
 
@@ -218,10 +234,10 @@ export default function EmployeeAttendanceView() {
                 <LogOut size={10} />
                 {log.outTime
                   ? new Date(log.outTime).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      hour12: false
-                    })
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                  })
                   : '--:--'}
               </div>
             </div>

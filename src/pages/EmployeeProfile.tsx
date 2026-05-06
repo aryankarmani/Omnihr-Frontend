@@ -243,9 +243,7 @@ export default function EmployeeProfile() {
                         )}
                         <p className="text-lg text-brand-600 dark:text-brand-400 font-medium mb-4">{profile.title || 'Employee'} • {profile.department || 'N/A'}</p>
                         <div className="flex flex-wrap justify-center md:justify-start gap-4">
-                            <span className="px-3 py-1 bg-gray-100 dark:bg-white/10 rounded-lg text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2">
-                                <Briefcase size={16} /> ID: {employee.id}
-                            </span>
+
                             <span className="px-3 py-1 bg-gray-100 dark:bg-white/10 rounded-lg text-sm text-gray-600 dark:text-gray-300">
                                 {profile.location || 'N/A'}
                             </span>
@@ -597,8 +595,7 @@ export default function EmployeeProfile() {
                                         <div className="grid grid-cols-3 gap-1 text-xs">
                                             <span className="text-gray-500 font-medium">Name:</span>
                                             <span className="col-span-2 font-bold">{employee.name}</span>
-                                            <span className="text-gray-500 font-medium">Employee ID:</span>
-                                            <span className="col-span-2 font-bold">{employee.id}</span>
+
                                             <span className="text-gray-500 font-medium">Designation:</span>
                                             <span className="col-span-2 font-bold truncate">{profile.title || 'N/A'}</span>
                                             <span className="text-gray-500 font-medium">Department:</span>
@@ -735,8 +732,8 @@ export default function EmployeeProfile() {
                                 <div className="w-12 h-1 bg-brand-200 rounded-full my-4"></div>
                                 <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-left text-sm w-full px-10">
                                     <div>
-                                        <p className="text-xs text-gray-400 uppercase font-bold">Emp ID</p>
-                                        <p className="font-semibold text-gray-700">{employee.id}</p>
+                                        <p className="text-xs text-gray-400 uppercase font-bold">Role / Title</p>
+                                        <p className="font-semibold text-gray-700 truncate">{profile.title || 'Employee'}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-gray-400 uppercase font-bold">Blood Group</p>

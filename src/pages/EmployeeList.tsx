@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Filter, Plus, MoreVertical, FileText, User, MapPin, Mail, Phone, Loader2, Edit, Trash2, LayoutGrid, List } from 'lucide-react';
+import { Search, Filter, Plus, MoreVertical, FileText, User, MapPin, Mail, Phone, Loader2, Edit, Trash2, LayoutGrid, List, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
@@ -23,7 +23,13 @@ export default function EmployeeList() {
         status: 'All'
     });
     const [loading, setLoading] = useState(true);
-    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+        return (localStorage.getItem('employeeViewMode') as 'grid' | 'list') || 'grid';
+    });
+
+    useEffect(() => {
+        localStorage.setItem('employeeViewMode', viewMode);
+    }, [viewMode]);
 
     // Employee State
     const [employees, setEmployees] = useState<any[]>([]);
@@ -62,7 +68,7 @@ export default function EmployeeList() {
         accountNumber: ''
     });
 
-    const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
+    const [selectedEmployeeForActions, setSelectedEmployeeForActions] = useState<any>(null);
     const [employeeToDelete, setEmployeeToDelete] = useState<any>(null);
 
     // Filter Logic
@@ -72,7 +78,8 @@ export default function EmployeeList() {
         return (
             (!appliedFilters.name ||
                 emp.name.toLowerCase().includes(appliedFilters.name.toLowerCase()) ||
-                emp.id.toString().includes(appliedFilters.name)) &&
+                emp.email.toLowerCase().includes(appliedFilters.name.toLowerCase()) ||
+                (profile.title || '').toLowerCase().includes(appliedFilters.name.toLowerCase())) &&
             (!appliedFilters.email || emp.email.toLowerCase().includes(appliedFilters.email.toLowerCase())) &&
             (!appliedFilters.role || (profile.title || '').toLowerCase().includes(appliedFilters.role.toLowerCase())) &&
             (!appliedFilters.location || (profile.location || '').toLowerCase().includes(appliedFilters.location.toLowerCase())) &&
@@ -86,7 +93,7 @@ export default function EmployeeList() {
 
     const handleAddEmployee = (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         // Basic Validation
         if (!newEmployee.name || !newEmployee.email || !newEmployee.role) {
             toast.error('Please fill in all required fields');
@@ -99,7 +106,7 @@ export default function EmployeeList() {
             return;
         }
 
-        if (newEmployee.phone && !/^\d{10}$/.test(newEmployee.phone.replace(/\D/g,''))) {
+        if (newEmployee.phone && !/^\d{10}$/.test(newEmployee.phone.replace(/\D/g, ''))) {
             toast.error('Phone number must be 10 digits');
             return;
         }
@@ -159,7 +166,7 @@ export default function EmployeeList() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                     <input
                         type="text"
-                        placeholder="Search by name, email, or ID..."
+                        placeholder="Search by name, email or role..."
                         value={filters.name}
                         onChange={(e) => {
                             const val = e.target.value;
@@ -174,16 +181,16 @@ export default function EmployeeList() {
                     <div className="flex bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-1">
                         <button
                             onClick={() => setViewMode('grid')}
-                            className={`p-2 rounded-xl transition-all ${viewMode === 'grid' 
-                                ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20' 
+                            className={`p-2 rounded-xl transition-all ${viewMode === 'grid'
+                                ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20'
                                 : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}
                         >
                             <LayoutGrid size={20} />
                         </button>
                         <button
                             onClick={() => setViewMode('list')}
-                            className={`p-2 rounded-xl transition-all ${viewMode === 'list' 
-                                ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20' 
+                            className={`p-2 rounded-xl transition-all ${viewMode === 'list'
+                                ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20'
                                 : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}
                         >
                             <List size={20} />
@@ -243,7 +250,11 @@ export default function EmployeeList() {
                             const avatarColor = colors[index % colors.length];
 
                             return (
-                                <div key={emp.id} className="bg-white dark:bg-brand-900 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+                                <div
+                                    key={emp.id}
+                                    onClick={() => handleViewProfile(emp.id)}
+                                    className="bg-white dark:bg-brand-900 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-2xl hover:shadow-brand-500/10 transition-all duration-300 group relative overflow-hidden cursor-pointer hover:-translate-y-1.5 hover:border-brand-500/30"
+                                >
                                     {/* Status Stripe */}
                                     <div className={`absolute top-0 left-0 w-1 h-full ${status === 'Active' ? 'bg-green-500' : 'bg-red-500'}`}></div>
 
@@ -259,29 +270,12 @@ export default function EmployeeList() {
                                                 </div>
                                             </div>
                                             <div className="relative">
-                                                <button 
-                                                    onClick={(e) => { e.stopPropagation(); setActiveDropdown(activeDropdown === emp.id ? null : emp.id); }}
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); setSelectedEmployeeForActions(emp); }}
                                                     className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-white/5"
                                                 >
                                                     <MoreVertical size={20} />
                                                 </button>
-                                                
-                                                {activeDropdown === emp.id && (
-                                                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-brand-900 rounded-xl shadow-xl border border-gray-100 dark:border-white/10 overflow-hidden z-20 animate-fade-in-up">
-                                                        <button 
-                                                            onClick={() => { setActiveDropdown(null); navigate(`/employee/${emp.id}?edit=true`); }}
-                                                            className="w-full text-left px-4 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors flex items-center gap-2"
-                                                        >
-                                                            <Edit size={16} /> Edit Profile
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => { setActiveDropdown(null); setEmployeeToDelete(emp); }}
-                                                            className="w-full text-left px-4 py-3 text-sm font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors flex items-center gap-2 border-t border-gray-100 dark:border-white/5"
-                                                        >
-                                                            <Trash2 size={16} /> Delete Employee
-                                                        </button>
-                                                    </div>
-                                                )}
                                             </div>
                                         </div>
 
@@ -309,16 +303,17 @@ export default function EmployeeList() {
                                             </span>
 
                                             {status === 'Inactive' ? (
-                                                <button className="text-sm font-medium text-red-500 hover:text-red-600 hover:underline">
+                                                <button
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="text-sm font-medium text-red-500 hover:text-red-600 hover:underline"
+                                                >
                                                     Process F&F
                                                 </button>
                                             ) : (
-                                                <button
-                                                    onClick={() => handleViewProfile(emp.id)}
-                                                    className="text-sm font-medium text-brand-600 dark:text-brand-400 hover:text-brand-700 hover:underline flex items-center gap-1"
-                                                >
-                                                    View Profile
-                                                </button>
+                                                <div className="flex items-center gap-1 text-sm font-bold text-brand-600 dark:text-brand-400 group-hover:text-brand-700 dark:group-hover:text-brand-300 transition-colors">
+                                                    <span>View Profile</span>
+                                                    <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                                                </div>
                                             )}
                                         </div>
                                     </div>
@@ -347,7 +342,11 @@ export default function EmployeeList() {
                                         const avatarColor = colors[index % colors.length];
 
                                         return (
-                                            <tr key={emp.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
+                                            <tr
+                                                key={emp.id}
+                                                onClick={() => handleViewProfile(emp.id)}
+                                                className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group cursor-pointer"
+                                            >
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
                                                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md ${avatarColor}`}>
@@ -355,7 +354,7 @@ export default function EmployeeList() {
                                                         </div>
                                                         <div>
                                                             <div className="font-bold text-gray-800 dark:text-white">{emp.name}</div>
-                                                            <div className="text-xs text-gray-500 dark:text-gray-400">ID: #{emp.id}</div>
+
                                                         </div>
                                                     </div>
                                                 </td>
@@ -376,35 +375,12 @@ export default function EmployeeList() {
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
                                                     <div className="relative inline-block">
-                                                        <button 
-                                                            onClick={(e) => { e.stopPropagation(); setActiveDropdown(activeDropdown === emp.id ? null : emp.id); }}
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); setSelectedEmployeeForActions(emp); }}
                                                             className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-white/5"
                                                         >
                                                             <MoreVertical size={18} />
                                                         </button>
-                                                        
-                                                        {activeDropdown === emp.id && (
-                                                            <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-brand-900 rounded-xl shadow-xl border border-gray-100 dark:border-white/10 overflow-hidden z-20 animate-fade-in-up">
-                                                                <button 
-                                                                    onClick={() => { setActiveDropdown(null); navigate(`/employee/${emp.id}?edit=true`); }}
-                                                                    className="w-full text-left px-4 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors flex items-center gap-2"
-                                                                >
-                                                                    <Edit size={14} /> Edit Profile
-                                                                </button>
-                                                                <button 
-                                                                    onClick={() => { setActiveDropdown(null); handleViewProfile(emp.id); }}
-                                                                    className="w-full text-left px-4 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors flex items-center gap-2 border-t border-gray-100 dark:border-white/5"
-                                                                >
-                                                                    <User size={14} /> View Profile
-                                                                </button>
-                                                                <button 
-                                                                    onClick={() => { setActiveDropdown(null); setEmployeeToDelete(emp); }}
-                                                                    className="w-full text-left px-4 py-3 text-sm font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors flex items-center gap-2 border-t border-gray-100 dark:border-white/5"
-                                                                >
-                                                                    <Trash2 size={14} /> Delete Employee
-                                                                </button>
-                                                            </div>
-                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>
@@ -417,8 +393,8 @@ export default function EmployeeList() {
                 )
             )}
 
-            {activeDropdown && (
-                <div className="fixed inset-0 z-10" onClick={() => setActiveDropdown(null)} />
+            {selectedEmployeeForActions && (
+                <div className="fixed inset-0 z-10" onClick={() => setSelectedEmployeeForActions(null)} />
             )}
 
             {/* Delete Confirmation Modal */}
@@ -434,13 +410,13 @@ export default function EmployeeList() {
                             Are you sure you want to delete <span className="font-bold text-gray-700 dark:text-gray-200">{employeeToDelete.name}</span>? This action cannot be undone and will permanently remove all associated data.
                         </p>
                         <div className="flex gap-4">
-                            <button 
+                            <button
                                 onClick={() => setEmployeeToDelete(null)}
                                 className="flex-1 py-3 px-4 bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-white/10 transition-colors"
                             >
                                 Cancel
                             </button>
-                            <button 
+                            <button
                                 onClick={async () => {
                                     try {
                                         // Attempt to delete from backend database
@@ -745,6 +721,85 @@ export default function EmployeeList() {
                                         Apply Filters
                                     </button>
 
+                                </div>
+                            </div>
+                        </div>
+                    </div>,
+                    document.body
+                )
+            }
+
+            {selectedEmployeeForActions &&
+                createPortal(
+                    <div className="fixed inset-0 z-[999999]">
+                        {/* Overlay */}
+                        <div
+                            className="absolute inset-0 bg-black/40 backdrop-blur-md animate-fade-in"
+                            onClick={() => setSelectedEmployeeForActions(null)}
+                        />
+
+                        {/* Drawer */}
+                        <div className="absolute right-0 top-0 w-full max-w-sm h-full bg-white dark:bg-brand-900 shadow-2xl animate-slide-in-right">
+                            <div className="flex flex-col h-full">
+                                {/* Header with Employee Summary */}
+                                <div className="p-8 border-b border-gray-100 dark:border-white/5 bg-gradient-to-br from-brand-500/5 to-transparent">
+                                    <div className="flex justify-between items-start mb-6">
+                                        <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-white font-bold text-2xl shadow-xl bg-brand-500">
+                                            {selectedEmployeeForActions.name.split(' ').map((n: string) => n[0]).join('')}
+                                        </div>
+                                        <button
+                                            onClick={() => setSelectedEmployeeForActions(null)}
+                                            className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-xl transition-colors text-gray-400"
+                                        >
+                                            <Plus size={24} className="rotate-45" />
+                                        </button>
+                                    </div>
+                                    <h3 className="text-2xl font-black text-gray-800 dark:text-white tracking-tight">{selectedEmployeeForActions.name}</h3>
+                                    <p className="text-brand-500 dark:text-brand-400 font-bold uppercase text-xs tracking-widest mt-1">
+                                        {selectedEmployeeForActions.employeeProfile?.title || 'Employee'}
+                                    </p>
+                                </div>
+
+                                {/* Action List */}
+                                <div className="flex-1 p-6 space-y-3">
+                                    <button
+                                        onClick={() => { navigate(`/employee/${selectedEmployeeForActions.id}`); setSelectedEmployeeForActions(null); }}
+                                        className="w-full flex items-center gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent hover:border-brand-500/30 hover:bg-white dark:hover:bg-brand-500/10 transition-all group"
+                                    >
+                                        <div className="p-3 bg-white dark:bg-brand-900 rounded-xl text-brand-500 shadow-sm group-hover:scale-110 transition-transform">
+                                            <User size={20} />
+                                        </div>
+                                        <div className="text-left">
+                                            <p className="font-bold text-gray-800 dark:text-white">View Full Profile</p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">Detailed overview and history</p>
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        onClick={() => { navigate(`/employee/${selectedEmployeeForActions.id}?edit=true`); setSelectedEmployeeForActions(null); }}
+                                        className="w-full flex items-center gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent hover:border-brand-500/30 hover:bg-white dark:hover:bg-brand-500/10 transition-all group"
+                                    >
+                                        <div className="p-3 bg-white dark:bg-brand-900 rounded-xl text-blue-500 shadow-sm group-hover:scale-110 transition-transform">
+                                            <Edit size={20} />
+                                        </div>
+                                        <div className="text-left">
+                                            <p className="font-bold text-gray-800 dark:text-white">Edit Profile</p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">Modify employee information</p>
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        onClick={() => { setEmployeeToDelete(selectedEmployeeForActions); setSelectedEmployeeForActions(null); }}
+                                        className="w-full flex items-center gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent hover:border-red-500/30 hover:bg-white dark:hover:bg-red-500/10 transition-all group"
+                                    >
+                                        <div className="p-3 bg-white dark:bg-brand-900 rounded-xl text-red-500 shadow-sm group-hover:scale-110 transition-transform">
+                                            <Trash2 size={20} />
+                                        </div>
+                                        <div className="text-left">
+                                            <p className="font-bold text-red-600">Delete Employee</p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">Permanently remove from system</p>
+                                        </div>
+                                    </button>
                                 </div>
                             </div>
                         </div>
