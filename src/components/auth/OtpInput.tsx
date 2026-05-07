@@ -46,7 +46,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({ length = 6, onComplete }) =>
         <input
           key={index}
           type="text"
-          ref={(el) => (inputs.current[index] = el)}
+          ref={(el) => { inputs.current[index] = el; }}
           value={data}
           onChange={(e) => handleChange(e.target, index)}
           onKeyDown={(e) => handleKeyDown(e, index)}

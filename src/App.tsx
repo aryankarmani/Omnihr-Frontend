@@ -15,6 +15,7 @@ import Leave from './pages/Leave';
 import Team from './pages/Team';
 import Reports from './pages/Reports';
 import LeaveToday from './pages/LeaveToday';
+import NewJoiners from './pages/NewJoiners';
 import MastersLayout from './pages/masters/MastersLayout';
 import OrgMasters from './pages/masters/OrgMasters';
 import StatutoryMasters from './pages/masters/StatutoryMasters';
@@ -179,6 +180,17 @@ function AppContent() {
             isAuthenticated ? (
               <Layout>
                 <LeaveToday />
+              </Layout>
+            ) : (
+              <Navigate to="/signin" replace />
+            )
+          } />
+
+          {/* New Joiners Route */}
+          <Route path="/new-joiners" element={
+            isAuthenticated ? (
+              <Layout>
+                <NewJoiners />
               </Layout>
             ) : (
               <Navigate to="/signin" replace />

@@ -10,9 +10,9 @@ interface HeadcountStatsProps {
 
 export default function HeadcountStats({ headcount, onLeaveToday, newJoiners, avgAttendance, navigate }: HeadcountStatsProps) {
     const stats = [
-        { label: 'Total Headcount', value: headcount, icon: Users, color: 'text-brand-500', bg: 'bg-brand-50', path: '/attendance' },
+        { label: 'Total Headcount', value: headcount, icon: Users, color: 'text-brand-500', bg: 'bg-brand-50', path: '/employee' },
         { label: 'On Leave Today', value: onLeaveToday, icon: UserMinus, color: 'text-orange-500', bg: 'bg-orange-50', path: '/leave-today' },
-        { label: 'New Joiners', value: newJoiners, icon: UserCheck, color: 'text-green-500', bg: 'bg-green-50', path: '/employee' },
+        { label: 'New Joiners', value: newJoiners, icon: UserCheck, color: 'text-green-500', bg: 'bg-green-50', path: '/new-joiners' },
         { label: 'Avg Attendance', value: `${avgAttendance}%`, icon: Clock, color: 'text-blue-500', bg: 'bg-blue-50', path: '/reports' },
     ];
 

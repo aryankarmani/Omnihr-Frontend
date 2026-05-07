@@ -4,6 +4,7 @@ import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, XCircle, Loa
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import { createPortal } from 'react-dom';
 
 const HOLIDAYS = [
     { date: '2025-12-25', name: 'Christmas Day' },
@@ -153,8 +154,10 @@ export default function Leave() {
         for (let day = 1; day <= daysInMonth; day++) {
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             const status = getDateStatus(dateStr);
-            const isToday = new Date().toDateString() === new Date(year, month, day).toDateString();
-            const isSelected = selectedDate?.toDateString() === new Date(year, month, day).toDateString();
+            const dayDate = new Date(year, month, day);
+            const isToday = new Date().toDateString() === dayDate.toDateString();
+            const isPast = dayDate < new Date(new Date().setHours(0, 0, 0, 0));
+            const isSelected = selectedDate?.toDateString() === dayDate.toDateString();
 
             let bgClass = "bg-white dark:bg-brand-800";
             let statusBadge = null;
@@ -166,20 +169,33 @@ export default function Leave() {
                 const isApproved = status.status === 'APPROVED' || status.status === 'Approved';
                 bgClass = isApproved ? "bg-green-50 dark:bg-green-900/20 border-green-200" : "bg-orange-50 dark:bg-orange-900/20 border-orange-200";
                 statusBadge = <span className={`text-[10px] px-1.5 rounded w-full block text-center mt-1 ${isApproved ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>{status.label}</span>;
+            } else if (isPast) {
+                bgClass = "bg-gray-50/50 dark:bg-white/5 opacity-60 grayscale-[0.5]";
             }
 
             dayCells.push(
                 <div
                     key={day}
-                    onClick={() => { setSelectedDate(new Date(year, month, day)); if (!status) { setFromDate(dateStr); setToDate(dateStr); setShowApplyModal(true); } }}
-                    className={`h-20 sm:h-24 p-2 rounded-xl border transition-all cursor-pointer relative group ${bgClass} ${isSelected ? 'ring-2 ring-brand-500 z-10' : 'border-gray-100 dark:border-white/10 hover:border-brand-300'}`}
+                    onClick={() => { 
+                        if (isPast && !status) {
+                            toast.error('Cannot apply for leave on past dates');
+                            return;
+                        }
+                        setSelectedDate(dayDate); 
+                        if (!status) { 
+                            setFromDate(dateStr); 
+                            setToDate(dateStr); 
+                            setShowApplyModal(true); 
+                        } 
+                    }}
+                    className={`h-20 sm:h-24 p-2 rounded-xl border transition-all relative group ${bgClass} ${isSelected ? 'ring-2 ring-brand-500 z-10' : 'border-gray-100 dark:border-white/10'} ${!isPast || status ? 'cursor-pointer hover:border-brand-300' : 'cursor-not-allowed'}`}
                 >
                     <div className="flex justify-between items-start">
                         <span className={`text-sm font-semibold ${isToday ? 'bg-brand-500 text-white w-6 h-6 rounded-full flex items-center justify-center -ml-1 -mt-1 shadow-md' : 'text-gray-700 dark:text-gray-300'}`}>{day}</span>
                     </div>
                     {statusBadge}
 
-                    {!status && (
+                    {!status && !isPast && (
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-white/50 dark:bg-black/50 backdrop-blur-[1px] rounded-xl">
                             <Plus size={20} className="text-brand-600 font-bold" />
                         </div>
@@ -223,7 +239,7 @@ export default function Leave() {
                 {leaveBalances.map((bal) => {
                     const style = getLeaveTypeStyle(bal.code);
                     return (
-                        <div key={bal.code} className="bg-white dark:bg-brand-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 relative overflow-hidden group">
+                        <div key={bal.code} onClick={() => { setLeaveType(bal.code); setShowApplyModal(true); }} className="bg-white dark:bg-brand-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 relative overflow-hidden group cursor-pointer">
                             <div className={`absolute top-0 right-0 w-24 h-24 ${style.bg} rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:scale-110 transition-transform duration-500`}></div>
 
                             <div className="flex justify-between items-start relative z-10">
@@ -373,11 +389,11 @@ export default function Leave() {
                                                 "{l.reason}"
                                             </td>
                                             <td className="py-5 px-4">
-                                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm ${l.status === 'APPROVED' 
-                                                    ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' 
-                                                    : l.status === 'REJECTED' 
-                                                    ? 'bg-rose-500/10 text-rose-600 border border-rose-500/20' 
-                                                    : 'bg-amber-500/10 text-amber-600 border border-amber-500/20'}`}>
+                                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm ${l.status === 'APPROVED'
+                                                    ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
+                                                    : l.status === 'REJECTED'
+                                                        ? 'bg-rose-500/10 text-rose-600 border border-rose-500/20'
+                                                        : 'bg-amber-500/10 text-amber-600 border border-amber-500/20'}`}>
                                                     {l.status}
                                                 </span>
                                             </td>
@@ -413,9 +429,9 @@ export default function Leave() {
             )}
 
             {/* Apply Leave Modal */}
-            {showApplyModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
-                    <div className="bg-white dark:bg-brand-900 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden relative">
+            {showApplyModal && createPortal(
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-white dark:bg-brand-900 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden relative border border-gray-100 dark:border-white/10">
                         {/* Modal Header */}
                         <div className="bg-brand-600 p-6 text-white relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
@@ -435,12 +451,12 @@ export default function Leave() {
                                     <select
                                         value={leaveType}
                                         onChange={(e) => setLeaveType(e.target.value)}
-                                        className="w-full px-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none"
+                                        className="w-full px-4 py-2 bg-gray-50 dark:bg-brand-800 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-800 dark:text-white transition-all cursor-pointer"
                                         required
                                     >
-                                        <option value="CL">Casual Leave (CL)</option>
-                                        <option value="EL">Earned Leave (EL)</option>
-                                        <option value="SL">Sick Leave (SL)</option>
+                                        <option value="CL" className="bg-white dark:bg-brand-800 text-gray-900 dark:text-white">Casual Leave (CL)</option>
+                                        <option value="EL" className="bg-white dark:bg-brand-800 text-gray-900 dark:text-white">Earned Leave (EL)</option>
+                                        <option value="SL" className="bg-white dark:bg-brand-800 text-gray-900 dark:text-white">Sick Leave (SL)</option>
                                     </select>
                                 </div>
                                 <div className="space-y-1.5">
@@ -450,7 +466,7 @@ export default function Leave() {
                                         placeholder="Vacation, Personal..."
                                         value={reason}
                                         onChange={(e) => setReason(e.target.value)}
-                                        className="w-full px-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none"
+                                        className="w-full px-4 py-2 bg-gray-50 dark:bg-brand-800 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-800 dark:text-white transition-all"
                                         required
                                     />
                                 </div>
@@ -461,9 +477,10 @@ export default function Leave() {
                                     <label className="text-xs font-bold text-gray-500 uppercase">From Date</label>
                                     <input
                                         type="date"
+                                        min={new Date().toISOString().split('T')[0]}
                                         value={fromDate}
                                         onChange={(e) => setFromDate(e.target.value)}
-                                        className="w-full px-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-700 dark:text-gray-300"
+                                        className="w-full px-4 py-2 bg-gray-50 dark:bg-brand-800 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-700 dark:text-gray-300 transition-all"
                                         required
                                     />
                                 </div>
@@ -471,9 +488,10 @@ export default function Leave() {
                                     <label className="text-xs font-bold text-gray-500 uppercase">To Date</label>
                                     <input
                                         type="date"
+                                        min={fromDate || new Date().toISOString().split('T')[0]}
                                         value={toDate}
                                         onChange={(e) => setToDate(e.target.value)}
-                                        className="w-full px-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-700 dark:text-gray-300"
+                                        className="w-full px-4 py-2 bg-gray-50 dark:bg-brand-800 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-700 dark:text-gray-300 transition-all"
                                         required
                                     />
                                 </div>
@@ -498,7 +516,8 @@ export default function Leave() {
                             </div>
                         </form>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );
