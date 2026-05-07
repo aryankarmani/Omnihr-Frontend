@@ -30,6 +30,15 @@ export default function AttendanceMasters() {
             toast.success("Shift saved!");
         } catch (e) { toast.error("Failed to save shift"); }
     };
+    const deleteShift = async (id: number) => {
+    try {
+        await api.delete(`/masters/shifts/${id}`);
+        fetchShifts();
+        toast.success("Shift deleted!");
+    } catch (e) {
+        toast.error("Failed to delete shift");
+    }
+};
 
     const savePolicy = async () => {
         try {
