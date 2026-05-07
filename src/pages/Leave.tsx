@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, XCircle, Loader2, CheckCircle, XIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, XCircle, Loader2, CheckCircle, XIcon, Search, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
@@ -30,6 +30,21 @@ export default function Leave() {
     const [leaveBalances, setLeaveBalances] = useState<any[]>([]);
     const [leaveHistory, setLeaveHistory] = useState<any[]>([]);
     const [allLeaves, setAllLeaves] = useState<any[]>([]);
+    const [showFilterDrawer, setShowFilterDrawer] = useState(false);
+    const [filters, setFilters] = useState({
+        name: '',
+        leaveType: 'All',
+        status: 'All',
+        startDate: '',
+        endDate: ''
+    });
+    const [appliedFilters, setAppliedFilters] = useState({
+        name: '',
+        leaveType: 'All',
+        status: 'All',
+        startDate: '',
+        endDate: ''
+    });
 
     // Form State
     const [leaveType, setLeaveType] = useState('CL');
@@ -100,6 +115,27 @@ export default function Leave() {
             toast.error(error.response?.data?.message || `Failed to ${status.toLowerCase()} leave`);
         }
     };
+
+    // Filter Logic for Approvals
+    const filteredLeaves = allLeaves.filter(l => {
+        const matchesName = !appliedFilters.name ||
+            l.user?.name.toLowerCase().includes(appliedFilters.name.toLowerCase());
+        const matchesType = appliedFilters.leaveType === 'All' ||
+            l.leaveType?.code === appliedFilters.leaveType;
+        const matchesStatus = appliedFilters.status === 'All' ||
+            l.status === appliedFilters.status;
+
+        // Date range filtering
+        const leaveStart = new Date(l.startDate);
+        const leaveEnd = new Date(l.endDate);
+
+        const matchesStart = !appliedFilters.startDate ||
+            leaveStart >= new Date(appliedFilters.startDate);
+        const matchesEnd = !appliedFilters.endDate ||
+            leaveEnd <= new Date(appliedFilters.endDate);
+
+        return matchesName && matchesType && matchesStatus && matchesStart && matchesEnd;
+    });
 
     // Helper to check if a date string matches a leave or holiday
     const getDateStatus = (dateStr: string) => {
@@ -176,17 +212,17 @@ export default function Leave() {
             dayCells.push(
                 <div
                     key={day}
-                    onClick={() => { 
+                    onClick={() => {
                         if (isPast && !status) {
                             toast.error('Cannot apply for leave on past dates');
                             return;
                         }
-                        setSelectedDate(dayDate); 
-                        if (!status) { 
-                            setFromDate(dateStr); 
-                            setToDate(dateStr); 
-                            setShowApplyModal(true); 
-                        } 
+                        setSelectedDate(dayDate);
+                        if (!status) {
+                            setFromDate(dateStr);
+                            setToDate(dateStr);
+                            setShowApplyModal(true);
+                        }
                     }}
                     className={`h-20 sm:h-24 p-2 rounded-xl border transition-all relative group ${bgClass} ${isSelected ? 'ring-2 ring-brand-500 z-10' : 'border-gray-100 dark:border-white/10'} ${!isPast || status ? 'cursor-pointer hover:border-brand-300' : 'cursor-not-allowed'}`}
                 >
@@ -221,10 +257,14 @@ export default function Leave() {
         <div className="animate-fade-in-up pb-8 relative">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Leave Management</h2>
-                    <p className="text-gray-500 dark:text-gray-400">View balances and plan your holidays.</p>
+                    <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+                        {activeTab === 'APPROVALS' ? 'Leave Approvals' : 'My Leave'}
+                    </h2>
+                    <p className="text-gray-500 dark:text-gray-400">
+                        {activeTab === 'APPROVALS' ? 'Review and manage employee leave requests.' : 'View balances and plan your holidays.'}
+                    </p>
                 </div>
-                {!isHrAdmin && (
+                {activeTab === 'MY_LEAVE' && (
                     <button
                         onClick={() => setShowApplyModal(true)}
                         className="flex items-center gap-2 px-5 py-2.5 bg-brand-600 text-white rounded-xl shadow-lg shadow-brand-500/20 hover:bg-brand-700 active:scale-95 transition-all"
@@ -234,54 +274,34 @@ export default function Leave() {
                 )}
             </div>
 
-            {/* Balances Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                {leaveBalances.map((bal) => {
-                    const style = getLeaveTypeStyle(bal.code);
-                    return (
-                        <div key={bal.code} onClick={() => { setLeaveType(bal.code); setShowApplyModal(true); }} className="bg-white dark:bg-brand-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 relative overflow-hidden group cursor-pointer">
-                            <div className={`absolute top-0 right-0 w-24 h-24 ${style.bg} rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:scale-110 transition-transform duration-500`}></div>
+            {/* Balances Cards - Only show in My Leave view */}
+            {activeTab === 'MY_LEAVE' && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    {leaveBalances.map((bal) => {
+                        const style = getLeaveTypeStyle(bal.code);
+                        return (
+                            <div key={bal.code} onClick={() => { setLeaveType(bal.code); setShowApplyModal(true); }} className="bg-white dark:bg-brand-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 relative overflow-hidden group cursor-pointer">
+                                <div className={`absolute top-0 right-0 w-24 h-24 ${style.bg} rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:scale-110 transition-transform duration-500`}></div>
 
-                            <div className="flex justify-between items-start relative z-10">
-                                <div>
-                                    <h3 className="text-gray-500 dark:text-gray-400 text-sm font-bold uppercase">{bal.name}</h3>
-                                    <div className="mt-2 flex items-baseline gap-1">
-                                        <span className={`text-4xl font-bold ${style.color}`}>{bal.balance}</span>
-                                        <span className="text-gray-400 text-sm">/ {bal.total}</span>
+                                <div className="flex justify-between items-start relative z-10">
+                                    <div>
+                                        <h3 className="text-gray-800 dark:text-white text-sm font-bold uppercase opacity-90">{bal.name}</h3>
+                                        <div className="mt-2 flex items-baseline gap-1">
+                                            <span className={`text-4xl font-bold ${style.color}`}>{bal.balance}</span>
+                                            <span className="text-gray-500 dark:text-white/80 text-sm">/ {bal.total}</span>
+                                        </div>
+                                    </div>
+                                    <div className={`p-3 rounded-xl ${style.bg} ${style.color}`}>
+                                        <CalendarIcon size={24} />
                                     </div>
                                 </div>
-                                <div className={`w-10 h-10 ${style.bg} ${style.darkBg} rounded-xl flex items-center justify-center ${style.color}`}>
-                                    <CalendarIcon size={20} />
+
+                                <div className="mt-4 h-1.5 w-full bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden relative z-10">
+                                    <div className={`h-full rounded-full ${style.color.replace('text', 'bg')}`} style={{ width: `${(bal.balance / bal.total) * 100}%` }}></div>
                                 </div>
                             </div>
-
-                            {/* Progress Bar */}
-                            <div className="mt-4 h-1.5 w-full bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
-                                <div className={`h-full rounded-full ${style.color.replace('text', 'bg')}`} style={{ width: `${(bal.balance / bal.total) * 100}%` }}></div>
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
-
-            {/* Tab System for HR_ADMIN */}
-            {isHrAdmin && (
-                <div className="flex items-center gap-2 mb-6 bg-gray-50 dark:bg-white/5 p-1 rounded-2xl w-fit">
-                    <button
-                        onClick={() => setActiveTab('MY_LEAVE')}
-                        className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${activeTab === 'MY_LEAVE' ? 'bg-white dark:bg-brand-600 text-brand-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                        My Calendar
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('APPROVALS')}
-                        className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${activeTab === 'APPROVALS' ? 'bg-white dark:bg-brand-600 text-brand-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                        Leave Approvals
-                        <span className="ml-2 bg-brand-100 dark:bg-brand-500 text-brand-700 dark:text-white px-2 py-0.5 rounded-full text-[10px]">
-                            {allLeaves.filter(l => l.status === 'PENDING').length}
-                        </span>
-                    </button>
+                        );
+                    })}
                 </div>
             )}
 
@@ -311,7 +331,7 @@ export default function Leave() {
                     <div className="space-y-6">
                         <div className="bg-white dark:bg-brand-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-white/5">
                             <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4">My Leave History</h3>
-                            <div className="space-y-4">
+                            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                                 {leaveHistory.length > 0 ? leaveHistory.map(leave => {
                                     const isApproved = leave.status === 'APPROVED' || leave.status === 'Approved';
                                     return (
@@ -352,7 +372,52 @@ export default function Leave() {
                 </div>
             ) : (
                 <div className="bg-white dark:bg-brand-900 rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100 dark:border-white/5 min-h-[400px]">
-                    <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-6">Leave Requests Overview</h3>
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                        <h3 className="text-xl font-bold text-gray-800 dark:text-white">Leave Requests Overview</h3>
+
+                        <div className="flex items-center gap-3 w-full md:w-auto">
+                            <div className="relative flex-1 md:w-64">
+                                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Search employee..."
+                                    value={filters.name}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setFilters({ ...filters, name: val });
+                                        setAppliedFilters({ ...appliedFilters, name: val });
+                                    }}
+                                    className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-sm text-gray-800 dark:text-white"
+                                />
+                            </div>
+                            <div className="relative group/dropdown hidden sm:block">
+                                <select
+                                    value={filters.status}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setFilters({ ...filters, status: val });
+                                        setAppliedFilters({ ...appliedFilters, status: val });
+                                    }}
+                                    className="appearance-none px-4 py-2 bg-brand-600 dark:bg-brand-600/20 border-2 border-brand-500/50 rounded-xl text-white text-sm font-bold cursor-pointer transition-all hover:bg-brand-700 hover:border-brand-400 shadow-lg shadow-brand-500/20 focus:ring-4 focus:ring-brand-500/20 outline-none w-32 pr-8"
+                                >
+                                    <option value="All" className="bg-white dark:bg-brand-900 text-gray-900 dark:text-white font-bold">All Status</option>
+                                    <option value="PENDING" className="bg-white dark:bg-brand-900 text-gray-900 dark:text-white font-bold">Pending</option>
+                                    <option value="APPROVED" className="bg-white dark:bg-brand-900 text-gray-900 dark:text-white font-bold">Approved</option>
+                                    <option value="REJECTED" className="bg-white dark:bg-brand-900 text-gray-900 dark:text-white font-bold">Rejected</option>
+                                </select>
+                                <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-white transition-transform group-hover/dropdown:scale-110">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setShowFilterDrawer(true)}
+                                className="p-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-brand-500 hover:text-white transition-all shadow-sm flex items-center justify-center"
+                            >
+                                <Filter size={18} />
+                            </button>
+                        </div>
+                    </div>
+
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
@@ -366,8 +431,8 @@ export default function Leave() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50 dark:divide-white/5 font-medium">
-                                {allLeaves.length > 0 ? (
-                                    allLeaves.map(l => (
+                                {filteredLeaves.length > 0 ? (
+                                    filteredLeaves.map(l => (
                                         <tr key={l.id} className="hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
                                             <td className="py-5 px-4">
                                                 <div className="flex items-center gap-3">
@@ -419,7 +484,7 @@ export default function Leave() {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan={6} className="py-12 text-center text-gray-500 italic">No leave requests found in the system.</td>
+                                        <td colSpan={6} className="py-12 text-center text-gray-500 italic">No leave requests found matching your search.</td>
                                     </tr>
                                 )}
                             </tbody>
@@ -427,12 +492,9 @@ export default function Leave() {
                     </div>
                 </div>
             )}
-
-            {/* Apply Leave Modal */}
             {showApplyModal && createPortal(
                 <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
                     <div className="bg-white dark:bg-brand-900 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden relative border border-gray-100 dark:border-white/10">
-                        {/* Modal Header */}
                         <div className="bg-brand-600 p-6 text-white relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
                             <div className="relative z-10 flex justify-between items-center">
@@ -519,6 +581,129 @@ export default function Leave() {
                 </div>,
                 document.body
             )}
+            {showFilterDrawer &&
+                createPortal(
+                    <div className="fixed inset-0 z-[999999]">
+                        {/* Overlay */}
+                        <div
+                            className="absolute inset-0 bg-black/40 backdrop-blur-md"
+                            onClick={() => setShowFilterDrawer(false)}
+                        />
+
+                        {/* Drawer */}
+                        <div className="absolute right-0 top-0 w-full max-w-md h-full bg-white dark:bg-brand-900 shadow-2xl animate-slide-in-right">
+                            <div className="flex flex-col justify-between h-full p-6">
+                                {/* TOP */}
+                                <div>
+                                    <div className="flex justify-between items-center mb-8">
+                                        <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                                            Advanced Search
+                                        </h2>
+                                        <button 
+                                            onClick={() => setShowFilterDrawer(false)}
+                                            className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-xl transition-colors text-gray-400"
+                                        >
+                                            <XCircle size={20} />
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-5">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Employee Name</label>
+                                            <input
+                                                type="text"
+                                                placeholder="Search name..."
+                                                value={filters.name}
+                                                onChange={(e) => setFilters({ ...filters, name: e.target.value })}
+                                                className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:ring-2 focus:ring-brand-500/50 outline-none transition-all text-gray-800 dark:text-white"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Leave Type</label>
+                                            <select
+                                                value={filters.leaveType}
+                                                onChange={(e) => setFilters({ ...filters, leaveType: e.target.value })}
+                                                className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:ring-2 focus:ring-brand-500/50 outline-none transition-all text-gray-800 dark:text-white cursor-pointer"
+                                            >
+                                                <option value="All" className="dark:bg-brand-900">All Types</option>
+                                                <option value="CL" className="dark:bg-brand-900">Casual Leave (CL)</option>
+                                                <option value="EL" className="dark:bg-brand-900">Earned Leave (EL)</option>
+                                                <option value="SL" className="dark:bg-brand-900">Sick Leave (SL)</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Status</label>
+                                            <select
+                                                value={filters.status}
+                                                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                                                className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:ring-2 focus:ring-brand-500/50 outline-none transition-all text-gray-800 dark:text-white cursor-pointer"
+                                            >
+                                                <option value="All" className="dark:bg-brand-900">All Status</option>
+                                                <option value="PENDING" className="dark:bg-brand-900">Pending</option>
+                                                <option value="APPROVED" className="dark:bg-brand-900">Approved</option>
+                                                <option value="REJECTED" className="dark:bg-brand-900">Rejected</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">From Date</label>
+                                                <input
+                                                    type="date"
+                                                    value={filters.startDate}
+                                                    onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+                                                    className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:ring-2 focus:ring-brand-500/50 outline-none transition-all text-gray-700 dark:text-gray-300"
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">To Date</label>
+                                                <input
+                                                    type="date"
+                                                    value={filters.endDate}
+                                                    onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+                                                    className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:ring-2 focus:ring-brand-500/50 outline-none transition-all text-gray-700 dark:text-gray-300"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* BUTTONS */}
+                                <div className="flex gap-3 pt-6 border-t border-gray-100 dark:border-white/5">
+                                    <button
+                                        onClick={() => {
+                                            const reset = {
+                                                name: '',
+                                                leaveType: 'All',
+                                                status: 'All',
+                                                startDate: '',
+                                                endDate: ''
+                                            };
+                                            setFilters(reset);
+                                            setAppliedFilters(reset);
+                                        }}
+                                        className="flex-1 py-3 rounded-xl bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-white font-bold hover:bg-gray-300 dark:hover:bg-white/20 transition-colors"
+                                    >
+                                        Clear
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setAppliedFilters(filters);
+                                            setShowFilterDrawer(false);
+                                        }}
+                                        className="flex-1 py-3 rounded-xl bg-brand-600 text-white font-bold hover:bg-brand-700 shadow-lg shadow-brand-500/20 transition-all active:scale-95"
+                                    >
+                                        Apply Search
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>,
+                    document.body
+                )
+            }
         </div>
     );
 }

@@ -636,7 +636,7 @@ export default function EmployeeList() {
                                 {/* TOP */}
                                 <div>
                                     <h2 className="text-xl font-bold mb-6 text-gray-800 dark:text-white">
-                                        Advanced Filters
+                                        Advanced Search
                                     </h2>
 
                                     <div className="space-y-4">
