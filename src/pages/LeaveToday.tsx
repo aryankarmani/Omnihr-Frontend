@@ -307,7 +307,7 @@ export default function LeaveToday() {
                 )
             )}
 
-            {/* Advanced Filter Drawer */}
+            {/* Advanced Search Drawer */}
             {showFilterDrawer && createPortal(
                 <div className="fixed inset-0 z-[999999]">
                     <div 
@@ -317,7 +317,7 @@ export default function LeaveToday() {
                     <div className="absolute right-0 top-0 w-full max-w-md h-full bg-white dark:bg-brand-900 shadow-2xl animate-slide-in-right">
                         <div className="flex flex-col justify-between h-full p-6">
                             <div>
-                                <h2 className="text-xl font-bold mb-6 text-gray-800 dark:text-white">Advanced Filters</h2>
+                                <h2 className="text-xl font-bold mb-6 text-gray-800 dark:text-white">Advanced Search</h2>
                                 <div className="space-y-4">
                                     <input 
                                         type="text"
