@@ -52,7 +52,7 @@ export default function AdminDashboard({ navigate, stats, attendanceData, pendin
                 {/* Pending Approvals */}
                 <div className="lg:col-span-1 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-6 md:p-8 rounded-3xl border border-gray-100/50 dark:border-gray-700/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300 h-96 flex flex-col pt-7">
                     <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-gray-900 to-gray-600 dark:from-white dark:to-gray-300">Leave Approvals</h3>
+                        <h3 className="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-gray-900 to-gray-600 dark:from-white dark:to-gray-300">Pending Leaves</h3>
                         <span className="bg-brand-100 dark:bg-brand-500/20 text-brand-700 dark:text-brand-400 text-xs font-bold px-2.5 py-1 rounded-full">{pendingApprovals.length}</span>
                     </div>
                     <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-1">

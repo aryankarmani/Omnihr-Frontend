@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, ChevronRight, Upload, FileText, User, CreditCard, Loader2 } from 'lucide-react';
+import { ArrowLeft, Check, ChevronRight, Upload, FileText, User, CreditCard, Loader2, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 
@@ -25,7 +25,12 @@ export default function AddEmployee() {
         accountNumber: '',
         joiningDate: new Date().toISOString().split('T')[0]
     });
-
+     const [selectedDoc, setSelectedDoc] = useState(null);
+    const [documents, setDocuments] = useState({
+     aadhaar: null,
+    pan: null,
+    degree: null,
+});
     const steps = [
         { id: 1, title: 'Personal Details', icon: User },
         { id: 2, title: 'Statutory Info', icon: CreditCard },
@@ -56,27 +61,87 @@ export default function AddEmployee() {
         }
 
         // STEP 2 VALIDATION
-        if (currentStep === 2) {
-            const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
-            if (formData.pan && !panRegex.test(formData.pan.toUpperCase())) {
-                toast.error('Invalid PAN Number format (e.g. ABCDE1234F)');
-                return;
-            }
-            if (formData.aadhaar && !/^\d{12}$/.test(formData.aadhaar.replace(/\s/g, ''))) {
-                toast.error('Aadhaar Number must be 12 digits');
-                return;
-            }
-            const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
-            if (formData.ifsc && !ifscRegex.test(formData.ifsc.toUpperCase())) {
-                toast.error('Invalid IFSC Code format');
-                return;
-            }
-            if (formData.accountNumber && !/^\d{9,18}$/.test(formData.accountNumber)) {
-                toast.error('Invalid Account Number');
-                return;
-            }
-        }
+       if (currentStep === 2) {
 
+    const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+    if (!formData.pan) {
+        toast.error('PAN is required');
+        return;
+    }
+    if (!panRegex.test(formData.pan.trim().toUpperCase())) {
+        toast.error('Invalid PAN Number format (e.g. ABCDE1234F)');
+        return;
+    }
+
+    if (!formData.aadhaar) {
+        toast.error('Aadhaar is required');
+        return;
+    }
+    if (!/^\d{12}$/.test(formData.aadhaar.replace(/\s/g, ''))) {
+        toast.error('Aadhaar Number must be 12 digits');
+        return;
+    }
+
+    const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+    if (!formData.ifsc) {
+        toast.error('IFSC is required');
+        return;
+    }
+    if (!ifscRegex.test(formData.ifsc.trim().toUpperCase())) {
+        toast.error('Invalid IFSC Code format (e.g. SBIN0001234)');
+        return;
+    }
+
+    if (!formData.accountNumber) {
+        toast.error('Account Number is required');
+        return;
+    }
+    if (!/^\d{9,18}$/.test(formData.accountNumber.trim())) {
+        toast.error('Account Number must be 9–18 digits');
+        return;
+    }
+    const uan = formData.uan.replace(/\s/g, '');
+
+if (!formData.uan) {
+    toast.error('UAN is required');
+    return;
+}
+if (!/^\d{12}$/.test(uan)) {
+    toast.error('UAN must be 12 digits');
+    return;
+
+}
+const esic = formData.esic.replace(/\s/g, '');
+
+if (!formData.esic) {
+    toast.error('ESIC is required');
+    return;
+}
+if (!/^\d{10}$/.test(esic)) {
+    toast.error('ESIC must be 10 digits');
+    return;
+}
+const bankName = formData.bankName.trim();
+
+if (!bankName) {
+    toast.error('Bank Name is required');
+    return;
+}
+
+// allows only letters & spaces (2–50 chars)
+if (!/^[A-Za-z\s]{2,50}$/.test(bankName)) {
+    toast.error('Bank Name must contain only letters (2-50 characters)');
+    return;
+}
+   
+       }
+           // STEP 3 VALIDATION
+       if (currentStep === 3) {
+    if (!documents.aadhaar || !documents.pan || !documents.degree) {
+        toast.error('Please upload all required documents');
+        return;
+    }
+}
         if (currentStep < 3) {
             setCurrentStep(c => c + 1);
         } else {
@@ -154,45 +219,49 @@ export default function AddEmployee() {
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">First Name *</label>
                                 <input
+                                 autoComplete="new-password"
                                     name="firstName"
                                     value={formData.firstName}
                                     onChange={handleInputChange}
                                     type="text"
-                                    className="w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
-                                    placeholder="John"
+                                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
+                                    placeholder="First"
                                 />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Last Name *</label>
                                 <input
+                                    autoComplete="new-password"
                                     name="lastName"
                                     value={formData.lastName}
                                     onChange={handleInputChange}
                                     type="text"
-                                    className="w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
-                                    placeholder="Doe"
+                                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
+                                    placeholder="Last"
                                 />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Email Address *</label>
                                 <input
+                                    autoComplete="new-password"
                                     name="email"
                                     value={formData.email}
                                     onChange={handleInputChange}
                                     type="email"
-                                    className="w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
-                                    placeholder="john.doe@encalm.com"
+                                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
+                                    placeholder="Enter your email"
                                 />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Phone Number</label>
                                 <input
+                                    autoComplete="off"
                                     name="phone"
                                     value={formData.phone}
                                     onChange={handleInputChange}
                                     type="tel"
-                                    className="w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
-                                    placeholder="+91 98765 43210"
+                              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"                      
+                                    placeholder="+91 "
                                 />
                             </div>
                             <div className="space-y-2">
@@ -202,9 +271,9 @@ export default function AddEmployee() {
                                         name="department"
                                         value={formData.department}
                                         onChange={handleInputChange}
-                                        className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
+                                        className="appearance-none w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all cursor-pointer"
                                     >
-                                        <option value="" className="dark:bg-brand-900">Select Department</option>
+                                        <option value="" className="dark:bg-brand-900 ">Select Department</option>
                                         <option value="Engineering" className="dark:bg-brand-900">Engineering</option>
                                         <option value="Design" className="dark:bg-brand-900">Design</option>
                                         <option value="Product" className="dark:bg-brand-900">Product</option>
@@ -220,11 +289,12 @@ export default function AddEmployee() {
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Role / Designation *</label>
                                 <input
+                                        autoComplete="off"
                                     name="title"
                                     value={formData.title}
                                     onChange={handleInputChange}
                                     type="text"
-                                    className="w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"                      
                                     placeholder="e.g. Senior Developer"
                                 />
                             </div>
@@ -239,43 +309,54 @@ export default function AddEmployee() {
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">PAN Number</label>
                                         <input
+                                            autoComplete="off"
                                             name="pan"
                                             value={formData.pan}
-                                            onChange={handleInputChange}
+                                            onChange={(e) => {
+                                          setFormData({
+                                           ...formData,
+                                           pan: e.target.value.toUpperCase()
+                                            });
+                                             }}
                                             type="text"
-                                            className="w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all uppercase placeholder:normal-case placeholder:text-gray-400 dark:placeholder:text-gray-600"
-                                            placeholder="ABCDE1234F"
+                                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
+                                            placeholder="E.g. ABCDE1234F"
                                         />
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Aadhaar Number</label>
                                         <input
+                                             autoComplete="off"
                                             name="aadhaar"
                                             value={formData.aadhaar}
                                             onChange={handleInputChange}
                                             type="text"
-                                            className="w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                             placeholder="XXXX XXXX XXXX"
                                         />
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">UAN (PF)</label>
                                         <input
+                                             autoComplete="off"
                                             name="uan"
                                             value={formData.uan}
                                             onChange={handleInputChange}
                                             type="text"
-                                            className="w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"                      
+                                            placeholder="Enter 12-digit UAN number"
                                         />
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">ESIC Number</label>
                                         <input
+                                            autoComplete="off"
                                             name="esic"
                                             value={formData.esic}
                                             onChange={handleInputChange}
                                             type="text"
-                                            className="w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
+                                            placeholder="Enter 10-digit ESIC number "
                                         />
                                     </div>
                                 </div>
@@ -287,33 +368,39 @@ export default function AddEmployee() {
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Bank Name</label>
                                         <input
+                                                autoComplete="off"
                                             name="bankName"
                                             value={formData.bankName}
                                             onChange={handleInputChange}
                                             type="text"
-                                            className="w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                             placeholder="e.g. HDFC Bank"
                                         />
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">IFSC Code</label>
                                         <input
+                                                autoComplete="off"
                                             name="ifsc"
                                             value={formData.ifsc}
                                             onChange={handleInputChange}
                                             type="text"
-                                            className="w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all uppercase placeholder:normal-case placeholder:text-gray-400 dark:placeholder:text-gray-600"
-                                            placeholder="HDFC0001234"
+                                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all uppercase placeholder:normal-case placeholder:text-gray-400 dark:placeholder:text-gray-400"
+                                            placeholder="Enter IFSC code"
                                         />
                                     </div>
                                     <div className="space-y-2 md:col-span-2">
                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Account Number</label>
                                         <input
                                             name="accountNumber"
+                                            autoComplete="off"
                                             value={formData.accountNumber}
-                                            onChange={handleInputChange}
-                                            type="text"
-                                            className="w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all tracking-wider placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                                            onChange={(e) => {
+                                            const value = e.target.value.replace(/\D/g, ""); // remove non-numbers
+                                            setFormData({ ...formData, accountNumber: value });
+                                             }}
+                                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
+
                                             placeholder="Enter 9-18 digit account number"
                                         />
                                     </div>
@@ -324,7 +411,8 @@ export default function AddEmployee() {
 
                     {currentStep === 3 && (
                         <div className="space-y-6 animate-fade-in">
-                            <div className="border-2 border-dashed border-gray-300 dark:border-white/20 rounded-3xl p-12 text-center group hover:border-brand-500 transition-colors cursor-pointer bg-gray-50 dark:bg-white/5">
+                            <div   onClick={() => document.getElementById('fileInput')?.click()}
+                            className="border-2 border-dashed border-gray-300 dark:border-white/20 rounded-3xl p-12 text-center group hover:border-brand-500 transition-colors cursor-pointer bg-gray-50 dark:bg-white/5">
                                 <div className="w-16 h-16 bg-brand-100 dark:bg-white/10 text-brand-600 dark:text-white rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                                     <Upload size={32} />
                                 </div>
@@ -332,17 +420,37 @@ export default function AddEmployee() {
                                 <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto">
                                     Files are currently simulated for this MVP. Drag and drop functionality coming soon.
                                 </p>
+                                <input
+                                    id="fileInput"
+                                    type="file"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                    if (!selectedDoc) return;
+
+                                   const file = e.target.files[0];
+                                if (file) {
+                                 setDocuments(prev => ({
+                                        ...prev,
+                                   [selectedDoc]: file
+                                          }));
+                                       }
+                                      }}
+                               />
                             </div>
 
                             <div className="space-y-4">
                                 <p className="text-sm font-bold text-gray-500 uppercase">Required Documents Checklist</p>
                                 {[
-                                    { name: 'Aadhaar Card', required: true },
-                                    { name: 'PAN Card', required: true },
-                                    { name: 'Highest Qualification Degree', required: true }
+                                    {key:'aadhaar', name: 'Aadhaar Card', required: true },
+                                    {key:'pan', name: 'PAN Card', required: true },
+                                    {key:'degree', name: 'Highest Qualification Degree', required: true }
                                 ].map((doc, i) => (
-                                    <div key={i} className="flex items-center justify-between p-4 bg-white dark:bg-brand-800 border border-gray-100 dark:border-white/5 rounded-xl">
-                                        <div className="flex items-center gap-3">
+                                 <div
+                                   key={i}
+                                   onClick={() => setSelectedDoc(doc.key)}
+                                   className={`flex items-center justify-between p-4 cursor-pointer border rounded-xl ${
+                                   selectedDoc === doc.key ? 'border-brand-500 bg-brand-100 dark:bg-brand-800' : ''
+}`}        >                               <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 bg-gray-100 dark:bg-white/10 rounded-lg flex items-center justify-center text-gray-500">
                                                 <FileText size={20} />
                                             </div>
@@ -350,9 +458,26 @@ export default function AddEmployee() {
                                                 <p className="font-semibold text-gray-800 dark:text-white">
                                                     {doc.name} {doc.required && <span className="text-red-500">*</span>}
                                                 </p>
-                                                <p className="text-xs text-brand-600 font-medium">Ready for capture</p>
+                                                <p className="text-xs text-brand-600 font-medium">
+                                                      {documents[doc.key] ? documents[doc.key].name : 'Ready for capture'}
+
+                                                </p>
                                             </div>
                                         </div>
+                                     {documents[doc.key] && (
+                            <Trash2
+                                 size={18}
+                                 className="text-red-500 cursor-pointer"
+                                 onClick={(e) => {
+                                 e.stopPropagation(); 
+                                 setDocuments(prev => ({
+                                  ...prev,
+                                 [doc.key]: null
+                                   }));
+                                }}
+                            
+                                />
+                                 )}
                                     </div>
                                 ))}
                             </div>
