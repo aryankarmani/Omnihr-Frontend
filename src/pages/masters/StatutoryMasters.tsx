@@ -133,15 +133,17 @@ export default function StatutoryMasters() {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {components.map(comp => (
                                 <div key={comp.id} className="group p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:shadow-md transition-all relative">
-                                    <button 
-                                        onClick={() => setItemToDelete({ id: comp.id, name: comp.name, type: 'salary-component' })}
-                                        className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    >
-                                        <Trash2 size={14} />
-                                    </button>
-                                    <div className="flex justify-between items-start mb-2">
-                                        <h4 className="font-bold text-gray-900 dark:text-white">{comp.name}</h4>
-                                        <span className={`text-[10px] px-2 py-1 rounded-full font-bold ${comp.type === 'EARNING' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>{comp.type}</span>
+                                    <div className="flex justify-between items-start mb-2 gap-2">
+                                        <h4 className="font-bold text-gray-900 dark:text-white flex-1">{comp.name}</h4>
+                                        <div className="flex items-center gap-2">
+                                            <span className={`text-[10px] px-2 py-1 rounded-full font-bold ${comp.type === 'EARNING' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>{comp.type}</span>
+                                            <button 
+                                                onClick={() => setItemToDelete({ id: comp.id, name: comp.name, type: 'salary-component' })}
+                                                className="p-1.5 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
                                     </div>
                                     <div className="space-y-1 text-xs text-gray-500 dark:text-gray-400">
                                         <div className="flex justify-between"><span>Taxability:</span> <span className="font-medium text-gray-700 dark:text-gray-300">{comp.taxability === 'FULLY_EXEMPT' ? 'Exempt' : comp.taxability === 'PARTIAL' ? 'Partial' : 'Taxable'}</span></div>

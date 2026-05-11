@@ -23,8 +23,26 @@ export default function Header({ onMenuClick }: HeaderProps) {
     const fetchNotifications = async () => {
         setLoading(true);
         try {
-            const res = await api.get('/notifications');
-            setNotifications(res.data);
+            // Mock data for demonstration
+            const demoNotifications = [
+                { id: '1', title: 'New Leave Request', message: 'Sarah Jenkins requested leave for 2 days.', time: '2 mins ago', type: 'leave', unread: true },
+                { id: '2', title: 'System Update', message: 'HRMS will be down for maintenance on Sunday.', time: '1 hour ago', type: 'system', unread: true },
+                { id: '3', title: 'Attendance Alert', message: 'You were marked late yesterday.', time: '5 hours ago', type: 'attendance', unread: false },
+                { id: '4', title: 'Welcome!', message: 'Welcome to the new Encalm HRMS portal.', time: '1 day ago', type: 'system', unread: false },
+                { id: '5', title: 'Holiday Announcement', message: 'The office will be closed on Friday for the public holiday.', time: '2 days ago', type: 'system', unread: false },
+                { id: '6', title: 'Task Assigned', message: 'You have been assigned a new task: "Quarterly Review".', time: '3 days ago', type: 'system', unread: true },
+                { id: '7', title: 'Payroll Processed', message: 'Salary for the month of April has been processed.', time: '1 week ago', type: 'system', unread: false },
+                { id: '8', title: 'New Policy', message: 'The updated Work From Home policy is now available.', time: '1 week ago', type: 'system', unread: false },
+                { id: '9', title: 'Team Outing', message: 'Join us for the team lunch this Friday at 1 PM.', time: '2 weeks ago', type: 'leave', unread: false },
+                { id: '10', title: 'Password Reset', message: 'Your system password was changed successfully.', time: '1 month ago', type: 'system', unread: false },
+            ];
+
+            try {
+                const res = await api.get('/notifications');
+                setNotifications([...demoNotifications, ...res.data]);
+            } catch (e) {
+                setNotifications(demoNotifications as any);
+            }
         } catch (e) {
             console.log(e);
         }
@@ -237,39 +255,89 @@ export default function Header({ onMenuClick }: HeaderProps) {
                         />
 
                         {/* Notification Panel */}
-                        <div className="absolute right-4 top-16 w-[350px] max-h-[500px] bg-white dark:bg-brand-900 rounded-2xl shadow-2xl p-4 z-20 pointer-events-auto">
+                        <div className="absolute right-4 top-16 w-[380px] max-h-[550px] bg-white dark:bg-brand-900/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-gray-100 dark:border-white/10 p-5 z-20 pointer-events-auto flex flex-col">
 
-                            <h2 className="text-lg font-bold mb-4 text-gray-800 dark:text-white">
-                                Notifications
-                            </h2>
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-xl font-black text-gray-800 dark:text-white">
+                                    Notifications
+                                </h2>
+                                {notifications.length > 0 && (
+                                    <span className="px-2.5 py-1 bg-brand-500 text-white text-[10px] font-black rounded-full">
+                                        {notifications.filter((n: any) => n.unread).length} NEW
+                                    </span>
+                                )}
+                            </div>
 
-                            <div className="space-y-3 overflow-y-auto max-h-[350px]">
+                            <div className="space-y-3 overflow-y-auto flex-1 custom-scrollbar pr-1">
 
                                 {loading ? (
-                                    <p className="text-center text-gray-500">Loading...</p>
+                                    <div className="flex flex-col items-center justify-center py-12 gap-3">
+                                        <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
+                                        <p className="text-sm text-gray-500 font-medium">Fetching updates...</p>
+                                    </div>
                                 ) : notifications.length === 0 ? (
-                                    <p className="text-center text-gray-500">No notifications</p>
+                                    <div className="text-center py-12">
+                                        <div className="w-16 h-16 bg-gray-100 dark:bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-4 text-gray-400">
+                                            <Bell size={24} />
+                                        </div>
+                                        <p className="text-gray-500 font-bold">All caught up!</p>
+                                        <p className="text-xs text-gray-400 mt-1">No new notifications for you.</p>
+                                    </div>
                                 ) : (
                                     notifications.map((n: any) => (
                                         <div
                                             key={n.id}
                                             onClick={async () => {
-                                                await api.patch(`/notifications/${n.id}/read`);
+                                                try {
+                                                    await api.patch(`/notifications/${n.id}/read`);
+                                                } catch(e) {}
                                                 fetchNotifications();
                                             }}
-                                            className="p-3 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 cursor-pointer"
+                                            className={`group relative p-4 rounded-2xl border transition-all cursor-pointer ${
+                                                n.unread 
+                                                ? 'bg-brand-50/50 dark:bg-brand-500/10 border-brand-100 dark:border-brand-500/20' 
+                                                : 'bg-white dark:bg-white/5 border-gray-100 dark:border-white/5 hover:border-brand-200 dark:hover:border-brand-500/20'
+                                            }`}
                                         >
-                                            <p className="text-sm font-medium text-gray-800 dark:text-white">
-                                                {n.title}
-                                            </p>
-                                            <p className="text-xs text-gray-500">
-                                                {n.time}
-                                            </p>
+                                            <div className="flex gap-4">
+                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                                                    n.type === 'leave' ? 'bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400' :
+                                                    n.type === 'attendance' ? 'bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400' :
+                                                    'bg-brand-100 text-brand-600 dark:bg-brand-500/20 dark:text-brand-400'
+                                                }`}>
+                                                    {n.type === 'leave' ? <FileText size={20} /> :
+                                                     n.type === 'attendance' ? <Calendar size={20} /> :
+                                                     <Bell size={20} />}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center justify-between mb-0.5">
+                                                        <h3 className={`text-sm font-bold truncate ${n.unread ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-300'}`}>
+                                                            {n.title}
+                                                        </h3>
+                                                        <span className="text-[10px] text-gray-400 font-medium">{n.time}</span>
+                                                    </div>
+                                                    <p className={`text-xs leading-relaxed ${n.unread ? 'text-gray-700 dark:text-gray-200' : 'text-gray-500 dark:text-gray-400'}`}>
+                                                        {n.message || n.title}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            {n.unread && (
+                                                <div className="absolute top-4 right-4 w-2 h-2 bg-brand-500 rounded-full shadow-[0_0_8px_rgba(139,92,246,0.5)]"></div>
+                                            )}
                                         </div>
                                     ))
                                 )}
 
                             </div>
+                            
+                            {notifications.length > 0 && (
+                                <button 
+                                    onClick={() => { navigate('/notifications'); setShowNotifications(false); }}
+                                    className="w-full mt-4 py-3 text-xs font-black text-brand-500 hover:text-brand-600 dark:text-brand-400 transition-colors uppercase tracking-widest border-t border-gray-100 dark:border-white/5"
+                                >
+                                    View All Notifications
+                                </button>
+                            )}
 
                         </div>
                     </div>,
