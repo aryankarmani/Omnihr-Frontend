@@ -16,14 +16,15 @@ export default function EmployeeProfile() {
     const queryParams = new URLSearchParams(location.search);
     const initialEditMode = queryParams.get('edit') === 'true';
 
-    const [activeTab, setActiveTab] = useState<'personal' | 'statutory' | 'documents'>('statutory');
+const [activeTab, setActiveTab] = useState<'personal' | 'statutory' | 'documents' | 'shiftRoster'>('statutory');
     const [isEditing, setIsEditing] = useState(initialEditMode);
-    const [showPayslip, setShowPayslip] = useState(false);
+const [showPayslip, setShowPayslip] = useState(false);
     const [showIDCard, setShowIDCard] = useState(false);
     const [loading, setLoading] = useState(true);
 
     // Employee State
     const [employee, setEmployee] = useState<any>(null);
+    const [shifts, setShifts] = useState<any[]>([]);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const fetchEmployee = async () => {
@@ -39,9 +40,19 @@ export default function EmployeeProfile() {
             setLoading(false);
         }
     };
+    const fetchShifts = async () => {
+    try {
+        const res = await api.get('/masters/shifts');
+        setShifts(res.data);
+    } catch (error) {
+        console.error('Error fetching shifts:', error);
+        toast.error('Failed to load shifts');
+    }
+};
 
     useEffect(() => {
         fetchEmployee();
+        fetchShifts();
     }, [id]);
 
     const handleCancel = () => {
@@ -92,6 +103,7 @@ export default function EmployeeProfile() {
                 department: employee.employeeProfile?.department,
                 title: employee.employeeProfile?.title,
                 status: employee.employeeProfile?.status || 'Active',
+                shiftId: employee.employeeProfile?.shiftId,
                 // Statutory
                 uan: employee.employeeProfile?.statutory?.uan,
                 pfNumber: employee.employeeProfile?.statutory?.pfNumber,
@@ -104,7 +116,8 @@ export default function EmployeeProfile() {
                 ifsc: employee.employeeProfile?.bank?.ifsc,
                 // User
                 name: employee.name,
-                email: employee.email
+                email: employee.email,
+                role: employee.role?.name || employee.role?.title || employee.role
             };
 
             await api.put(`/employee/${id}`, profileData);
@@ -118,8 +131,7 @@ export default function EmployeeProfile() {
 
     const handleInputChange = (field: string, value: string) => {
         if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
-        if (field === 'name' || field === 'email') {
-            setEmployee((prev: any) => ({
+    if (field === 'name' || field === 'email' || field === 'role') {            setEmployee((prev: any) => ({
                 ...prev,
                 [field]: value
             }));
@@ -251,8 +263,9 @@ export default function EmployeeProfile() {
                         ) : (
                             <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">{employee.name}</h1>
                         )}
-                        <p className="text-lg text-brand-600 dark:text-brand-400 font-medium mb-4">{profile.title || 'Employee'} • {profile.department || 'N/A'}</p>
-                        <div className="flex flex-wrap justify-center md:justify-start gap-4">
+<p className="text-lg text-brand-600 dark:text-brand-400 font-medium mb-4">
+    {employee.role?.name || employee.role?.title || employee.role || 'Employee'} • {profile.title || 'No Designation'}
+</p>                        <div className="flex flex-wrap justify-center md:justify-start gap-4">
                             <span className="px-3 py-1 bg-gray-100 dark:bg-white/10 rounded-lg text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2">
                                 <Briefcase size={16} /> ID: {employee.id}
                             </span>
@@ -282,14 +295,13 @@ export default function EmployeeProfile() {
 
             {/* Tabs */}
             <div className="flex gap-4 mb-6 border-b border-gray-200 dark:border-white/10 overflow-x-auto pb-1">
-                {['statutory', 'documents', 'personal'].map((tab) => (
-                    <button
+             {['statutory', 'documents', 'personal', 'shiftRoster'].map((tab) => (     <button
                         key={tab}
                         onClick={() => setActiveTab(tab as any)}
                         className={`pb-3 px-2 font-medium transition-all whitespace-nowrap capitalize ${activeTab === tab ? 'text-brand-600 border-b-2 border-brand-600' : 'text-gray-500 hover:text-gray-700'}`}
                     >
-                        {tab === 'statutory' ? 'Statutory & Bank Info' : tab === 'personal' ? 'Personal Details' : 'Document Vault'}
-                    </button>
+{tab === 'statutory' ? 'Statutory & Bank Info' : tab === 'personal' ? 'Personal Details' :tab === 'shiftRoster'
+    ? 'Shift & Roster' : 'Document Vault'}                    </button>
                 ))}
             </div>
 
@@ -506,6 +518,35 @@ export default function EmployeeProfile() {
                                         </>
                                     ) : <p className="font-semibold">{profile.dob ? new Date(profile.dob).toLocaleDateString() : 'N/A'}</p>}
                                 </div>
+                           <div className="space-y-1">
+    <label className="text-xs font-bold text-gray-400 uppercase">ROLE</label>
+    {isEditing && hasPermission(['HR_ADMIN']) ? (
+        <input
+            type="text"
+            value={employee.role?.name || employee.role?.title || employee.role || ''}
+            onChange={(e) => handleInputChange('role', e.target.value)}
+            className="w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg outline-none"
+        />
+    ) : (
+        <p className="font-semibold">
+            {employee.role?.name || employee.role?.title || employee.role || 'N/A'}
+        </p>
+    )}
+</div>
+
+<div className="space-y-1">
+    <label className="text-xs font-bold text-gray-400 uppercase">DESIGNATION</label>
+    {isEditing && hasPermission(['HR_ADMIN']) ? (
+        <input
+            type="text"
+            value={profile.title || ''}
+            onChange={(e) => handleInputChange('title', e.target.value)}
+            className="w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg outline-none"
+        />
+    ) : (
+        <p className="font-semibold">{profile.title || 'N/A'}</p>
+    )}
+</div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-400 uppercase">Blood Group</label>
                                     {isEditing ? (
@@ -553,7 +594,125 @@ export default function EmployeeProfile() {
                                 </div>
                             </div>
                         </div>
+                                    )}
+
+                    {activeTab === 'shiftRoster' && (
+                        <div className="bg-white dark:bg-brand-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-white/5 animate-fade-in-up">
+                            <h3 className="text-xl font-bold mb-6 text-gray-800 dark:text-white">
+                                Shift & Roster
+                            </h3>
+
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-gray-400 uppercase">
+                                    Assigned Shift
+                                </label>
+
+                                {isEditing && hasPermission(['HR_ADMIN']) ? (
+                                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    {shifts.map((shift: any) => (
+        <div
+            key={shift.id}
+            onClick={() => {
+                if (isEditing && hasPermission(['HR_ADMIN'])) {
+                    handleInputChange('shiftId', String(shift.id));
+                }
+            }}
+            className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                String(profile.shiftId) === String(shift.id)
+                    ? 'border-brand-400 ring-2 ring-brand-500/50 bg-brand-500/10'
+                    : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5'
+            }`}
+        >
+            
+
+            <div className="space-y-1 text-xs text-gray-500 dark:text-gray-300">
+        <div className="space-y-2 text-sm text-gray-700 dark:text-gray-200">
+
+    <h4 className="font-bold text-lg text-gray-800 dark:text-white">
+        {shift.name}
+    </h4>
+    <p className="flex justify-between">
+    <span className="font-semibold">Timing:</span>
+    <span>
+        {shift.startTime} - {shift.endTime}
+    </span>
+</p>
+   <p className="flex justify-between">
+    <span className="font-semibold">Break:</span>
+    <span>{shift.breakDuration} mins</span>
+</p>
+
+<p className="flex justify-between">
+    <span className="font-semibold">Grace Time:</span>
+    <span>{shift.graceTime} mins</span>
+</p>
+
+<p className="flex justify-between">
+    <span className="font-semibold">Night Shift:</span>
+    <span>{shift.isNightShift ? "Yes" : "No"}</span>
+</p>
+
+</div>
+
+               </div>
+            </div>
+        
+    ))}
+</div>
+                                ) : (
+                                   <div>
+    {(() => {
+        const assignedShift = shifts.find(
+            (s: any) => String(s.id) === String(profile.shiftId)
+        );
+
+        return assignedShift ? (
+            <div className="p-4 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 max-w-md">
+                
+                <h4 className="font-bold text-lg text-gray-800 dark:text-white mb-3">
+                    {assignedShift.name}
+                </h4>
+
+                <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
+                    
+                    
+
+                    <div className="flex justify-between">
+                        <span>Timing:</span>
+                        <span>
+                            {assignedShift.startTime} - {assignedShift.endTime}
+                        </span>
+                    </div>
+
+                    <div className="flex justify-between">
+                        <span>Break:</span>
+                        <span>{assignedShift.breakDuration} mins</span>
+                    </div>
+
+                    <div className="flex justify-between">
+                        <span>Grace Time:</span>
+                        <span>{assignedShift.graceTime} mins</span>
+                    </div>
+
+                    <div className="flex justify-between">
+                        <span>Night Shift:</span>
+                        <span>
+                            {assignedShift.isNightShift ? 'Yes' : 'No'}
+                        </span>
+                    </div>
+
+                </div>
+            </div>
+        ) : (
+            <p>No Shift Assigned</p>
+        );
+    })()}
+</div>
+                                )}
+                            </div>
+                        </div>
                     )}
+
                 </div>
 
                 {/* Sidebar / Quick Actions */}
@@ -617,7 +776,7 @@ export default function EmployeeProfile() {
                                             <span className="col-span-2 font-bold">{employee.name}</span>
                                             <span className="text-gray-500 font-medium">Employee ID:</span>
                                             <span className="col-span-2 font-bold">{employee.id}</span>
-                                            <span className="text-gray-500 font-medium">Designation:</span>
+                                            <span className="text-gray-500 font-medium">Role:</span>  //change to role
                                             <span className="col-span-2 font-bold truncate">{profile.title || 'N/A'}</span>
                                             <span className="text-gray-500 font-medium">Department:</span>
                                             <span className="col-span-2 font-bold truncate">{profile.department || 'N/A'}</span>
