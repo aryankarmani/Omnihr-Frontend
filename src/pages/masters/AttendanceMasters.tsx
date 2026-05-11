@@ -57,6 +57,15 @@ export default function AttendanceMasters() {
         } catch (e) { toast.error("Failed to add holiday"); }
         finally { setLoading(false); }
     };
+    const deleteShift = async (id: number) => {
+    try {
+        await api.delete(`/masters/shifts/${id}`);
+        fetchShifts();
+        toast.success("Shift deleted!");
+    } catch (e) {
+        toast.error("Failed to delete shift");
+    }
+};
 
     const savePolicy = async () => {
         try {
