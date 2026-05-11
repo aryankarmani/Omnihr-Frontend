@@ -23,6 +23,7 @@ import AttendanceMasters from './pages/masters/AttendanceMasters';
 import AccessMasters from './pages/masters/AccessMasters';
 import EmployeeAttendanceList from './pages/EmployeeAttendanceList';
 import EmployeeAttendanceView from './pages/EmployeeAttendanceView';
+import Notifications from './pages/Notifications';
 
 
 function AppContent() {
@@ -145,6 +146,16 @@ function AppContent() {
             isAuthenticated ? (
               <Layout>
                 <EmployeeProfile />
+              </Layout>
+            ) : (
+              <Navigate to="/signin" replace />
+            )
+          } />
+
+          <Route path="/notifications" element={
+            isAuthenticated ? (
+              <Layout>
+                <Notifications />
               </Layout>
             ) : (
               <Navigate to="/signin" replace />

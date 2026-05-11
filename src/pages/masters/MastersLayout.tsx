@@ -4,7 +4,7 @@ import { Building2, Landmark, CalendarClock, ShieldCheck } from 'lucide-react';
 const tabs = [
     { label: 'Organization', path: '/masters/org', icon: Building2 },
     { label: 'Statutory & Payroll', path: '/masters/statutory', icon: Landmark },
-    { label: 'Attendance & Leave', path: '/masters/attendance', icon: CalendarClock },
+    { label: 'Shifts & Holidays', path: '/masters/attendance', icon: CalendarClock },
     { label: 'Access Control', path: '/masters/access', icon: ShieldCheck },
 ];
 

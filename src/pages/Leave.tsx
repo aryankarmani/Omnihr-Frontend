@@ -6,11 +6,6 @@ import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { createPortal } from 'react-dom';
 
-const HOLIDAYS = [
-    { date: '2025-12-25', name: 'Christmas Day' },
-    { date: '2026-01-26', name: 'Republic Day' },
-];
-
 export default function Leave() {
     const { user } = useAuth();
     const location = useLocation();
@@ -30,6 +25,7 @@ export default function Leave() {
     const [leaveBalances, setLeaveBalances] = useState<any[]>([]);
     const [leaveHistory, setLeaveHistory] = useState<any[]>([]);
     const [allLeaves, setAllLeaves] = useState<any[]>([]);
+    const [holidays, setHolidays] = useState<any[]>([]);
     const [showFilterDrawer, setShowFilterDrawer] = useState(false);
     const [filters, setFilters] = useState({
         name: '',
@@ -60,16 +56,18 @@ export default function Leave() {
         try {
             const requests = [
                 api.get('/leave/balances'),
-                api.get('/leave/history')
+                api.get('/leave/history'),
+                api.get('/masters/holidays')
             ];
 
             if (isHrAdmin) {
                 requests.push(api.get('/leave/history?all=true'));
             }
 
-            const [balancesRes, historyRes, allLeavesRes] = await Promise.all(requests);
+            const [balancesRes, historyRes, holidaysRes, allLeavesRes] = await Promise.all(requests);
             setLeaveBalances(balancesRes.data);
             setLeaveHistory(historyRes.data);
+            setHolidays(holidaysRes.data);
             if (allLeavesRes) {
                 setAllLeaves(allLeavesRes.data);
             }
@@ -139,12 +137,13 @@ export default function Leave() {
 
     // Helper to check if a date string matches a leave or holiday
     const getDateStatus = (dateStr: string) => {
-        const holiday = HOLIDAYS.find(h => h.date === dateStr);
+        // Normalize date comparison by splitting at T
+        const holiday = holidays.find(h => h.date.split('T')[0] === dateStr);
         if (holiday) return { type: 'Holiday', label: holiday.name };
 
         const leave = leaveHistory.find(l => {
-            const start = new Date(l.startDate).toISOString().split('T')[0];
-            const end = new Date(l.endDate).toISOString().split('T')[0];
+            const start = l.startDate.split('T')[0];
+            const end = l.endDate.split('T')[0];
             return dateStr >= start && dateStr <= end;
         });
         if (leave) return { type: 'Leave', label: leave.leaveType?.code || 'LV', status: leave.status };
@@ -355,19 +354,43 @@ export default function Leave() {
                                 )}
                             </div>
                         </div>
-                        <div className="bg-purple-50 dark:bg-purple-900/10 rounded-2xl p-6 border border-purple-100 dark:border-purple-500/20">
-                            <h4 className="font-bold text-purple-800 dark:text-purple-200 mb-2">Upcoming Holiday</h4>
-                            <div className="flex items-center gap-4">
-                                <div className="bg-white dark:bg-purple-900/40 p-3 rounded-xl text-center min-w-[60px]">
-                                    <span className="block text-xs font-bold text-purple-400 uppercase">Dec</span>
-                                    <span className="block text-2xl font-bold text-purple-600">25</span>
+                        {/* Dynamic Upcoming Holiday */}
+                        {(() => {
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            const nextHoliday = [...holidays]
+                                .filter(h => new Date(h.date) >= today)
+                                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
+
+                            if (!nextHoliday) return null;
+
+                            const hDate = new Date(nextHoliday.date);
+                            return (
+                                <div className="bg-purple-50 dark:bg-purple-900/10 rounded-2xl p-6 border border-purple-100 dark:border-purple-500/20 animate-fade-in">
+                                    <h4 className="font-bold text-purple-800 dark:text-purple-200 mb-3 flex items-center gap-2">
+                                        <CalendarIcon size={16} /> Upcoming Holiday
+                                    </h4>
+                                    <div className="flex items-center gap-4">
+                                        <div className="bg-white dark:bg-purple-900/40 p-3 rounded-xl text-center min-w-[70px] shadow-sm">
+                                            <span className="block text-[10px] font-black text-purple-400 uppercase tracking-widest">
+                                                {hDate.toLocaleDateString('en-US', { month: 'short' })}
+                                            </span>
+                                            <span className="block text-2xl font-black text-purple-600 dark:text-purple-400">
+                                                {hDate.getDate()}
+                                            </span>
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="font-black text-gray-800 dark:text-white text-base leading-tight">
+                                                {nextHoliday.name}
+                                            </p>
+                                            <p className="text-xs font-bold text-purple-500 mt-0.5 uppercase tracking-wider">
+                                                {hDate.toLocaleDateString('en-US', { weekday: 'long' })}
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="flex-1">
-                                    <p className="font-bold text-gray-800 dark:text-white">Christmas Day</p>
-                                    <p className="text-xs text-purple-500">Wednesday</p>
-                                </div>
-                            </div>
-                        </div>
+                            );
+                        })()}
                     </div>
                 </div>
             ) : (
@@ -599,7 +622,7 @@ export default function Leave() {
                                         <h2 className="text-xl font-bold text-gray-800 dark:text-white">
                                             Advanced Search
                                         </h2>
-                                        <button 
+                                        <button
                                             onClick={() => setShowFilterDrawer(false)}
                                             className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-xl transition-colors text-gray-400"
                                         >

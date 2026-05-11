@@ -10,6 +10,7 @@ export default function EmployeeDashboard({ user }: { user: any }) {
     const [punchStatus, setPunchStatus] = useState<any>(null);
     const [leaveBalances, setLeaveBalances] = useState<any[]>([]);
     const [recentAttendance, setRecentAttendance] = useState<any[]>([]);
+    const [holidays, setHolidays] = useState<any[]>([]);
 
     useEffect(() => {
         const fetchEmployeeData = async () => {
@@ -19,15 +20,17 @@ export default function EmployeeDashboard({ user }: { user: any }) {
 
             try {
                 // Fetch each resource individually to handle partial failures
-                const [statusRes, leaveRes, historyRes] = await Promise.allSettled([
+                const [statusRes, leaveRes, historyRes, holidayRes] = await Promise.allSettled([
                     api.get('/attendance/status'),
                     api.get('/leave/balances'),
-                    api.get(`/attendance/history?year=${year}&month=${month}`)
+                    api.get(`/attendance/history?year=${year}&month=${month}`),
+                    api.get('/masters/holidays')
                 ]);
 
                 if (statusRes.status === 'fulfilled') setPunchStatus(statusRes.value.data);
                 if (leaveRes.status === 'fulfilled') setLeaveBalances(leaveRes.value.data);
                 if (historyRes.status === 'fulfilled') setRecentAttendance(historyRes.value.data.slice(0, 5));
+                if (holidayRes.status === 'fulfilled') setHolidays(holidayRes.value.data);
 
             } catch (error) {
                 console.error("Failed to fetch employee dashboard data:", error);
@@ -147,9 +150,35 @@ export default function EmployeeDashboard({ user }: { user: any }) {
                         </div>
                         <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Upcoming</span>
                     </div>
-                    <h4 className="text-gray-500 dark:text-gray-400 text-sm font-medium">Next Holiday</h4>
-                    <p className="text-2xl font-bold mt-1 text-gray-800 dark:text-white">Christmas Day</p>
-                    <p className="text-xs text-purple-500 font-bold mt-1">25 Dec 2025</p>
+                    {(() => {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const nextHoliday = [...holidays]
+                            .filter(h => new Date(h.date) >= today)
+                            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
+
+                        if (!nextHoliday) {
+                            return (
+                                <>
+                                    <h4 className="text-gray-500 dark:text-gray-400 text-sm font-medium">Next Holiday</h4>
+                                    <p className="text-xl font-bold mt-1 text-gray-400">No holidays scheduled</p>
+                                </>
+                            );
+                        }
+
+                        const hDate = new Date(nextHoliday.date);
+                        return (
+                            <>
+                                <h4 className="text-gray-500 dark:text-gray-400 text-sm font-medium">Next Holiday</h4>
+                                <p className="text-2xl font-bold mt-1 text-gray-800 dark:text-white truncate" title={nextHoliday.name}>
+                                    {nextHoliday.name}
+                                </p>
+                                <p className="text-xs text-purple-500 font-black mt-1 uppercase tracking-wider">
+                                    {hDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                </p>
+                            </>
+                        );
+                    })()}
                 </div>
             </div>
 

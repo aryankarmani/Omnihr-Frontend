@@ -80,7 +80,7 @@ export default function Attendance() {
                 for (let d = 1; d <= endDay; d++) {
                     const currentLoopDate = new Date(year, month - 1, d);
                     const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                    
+
                     // Skip if day is before joining date
                     if (joiningDate) {
                         const jdCopy = new Date(joiningDate);
@@ -122,7 +122,7 @@ export default function Attendance() {
         try {
             const res = await api.post('/attendance/punch');
             toast.success(res.data.message);
-            
+
             // Re-fetch status and current day history
             const statusRes = await api.get('/attendance/status');
             setIsPunchedIn(statusRes.data.isPunchedIn);
@@ -131,7 +131,7 @@ export default function Attendance() {
             } else {
                 setPunchInTime(null);
             }
-            
+
             // Refresh history for the current month
             const year = selectedMonth.getFullYear();
             const month = selectedMonth.getMonth() + 1;
@@ -148,7 +148,7 @@ export default function Attendance() {
             for (let d = 1; d <= endDay; d++) {
                 const currentLoopDate = new Date(year, month - 1, d);
                 const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                
+
                 // Skip if day is before joining date
                 if (joiningDate) {
                     const jdCopy = new Date(joiningDate);
