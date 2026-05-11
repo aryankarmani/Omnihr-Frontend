@@ -492,18 +492,9 @@ export default function Leave() {
                     </div>
                 </div>
             )}
-<<<<<<< HEAD
             {showApplyModal && createPortal(
                 <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
                     <div className="bg-white dark:bg-brand-900 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden relative border border-gray-100 dark:border-white/10">
-=======
-
-            {/* Apply Leave Modal */}
-            {showApplyModal && (
-                <div className="fixed inset-0 z-50 flex items-start pt-20 justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
-                    <div className="bg-white dark:bg-brand-900 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden relative">
-                        {/* Modal Header */}
->>>>>>> origin/feat/shubham1
                         <div className="bg-brand-600 p-6 text-white relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
                             <div className="relative z-10 flex justify-between items-center">
