@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Check, ChevronRight, Upload, FileText, User, CreditCard, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -8,6 +8,31 @@ export default function AddEmployee() {
     const navigate = useNavigate();
     const [currentStep, setCurrentStep] = useState(1);
     const [loading, setLoading] = useState(false);
+    const [masters, setMasters] = useState({
+        departments: [] as any[],
+        roles: [] as any[],
+        designations: [] as any[]
+    });
+
+    useEffect(() => {
+        const fetchMasters = async () => {
+            try {
+                const [deptRes, roleRes, desigRes] = await Promise.all([
+                    api.get('/masters/departments'),
+                    api.get('/masters/roles'),
+                    api.get('/masters/designations')
+                ]);
+                setMasters({
+                    departments: deptRes.data,
+                    roles: roleRes.data,
+                    designations: desigRes.data
+                });
+            } catch (error) {
+                console.error('Error fetching masters:', error);
+            }
+        };
+        fetchMasters();
+    }, []);
 
     const [formData, setFormData] = useState({
         firstName: '',
@@ -15,7 +40,11 @@ export default function AddEmployee() {
         email: '',
         phone: '',
         department: '',
+        departmentId: '',
+        role: '',
+        roleId: '',
         title: '',
+        designationId: '',
         pan: '',
         aadhaar: '',
         uan: '',
@@ -40,7 +69,7 @@ export default function AddEmployee() {
     const handleNext = async () => {
         // STEP 1 VALIDATION
         if (currentStep === 1) {
-            if (!formData.firstName || !formData.lastName || !formData.email || !formData.title || !formData.department) {
+            if (!formData.firstName || !formData.lastName || !formData.email || !formData.roleId || !formData.designationId || !formData.departmentId) {
                 toast.error('Please fill in all required fields');
                 return;
             }
@@ -199,18 +228,19 @@ export default function AddEmployee() {
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Department *</label>
                                 <div className="relative group/select">
                                     <select
-                                        name="department"
-                                        value={formData.department}
-                                        onChange={handleInputChange}
+                                        name="departmentId"
+                                        value={formData.departmentId}
+                                        onChange={(e) => {
+                                            const id = e.target.value;
+                                            const name = masters.departments.find(d => d.id === id)?.name || '';
+                                            setFormData({ ...formData, departmentId: id, department: name });
+                                        }}
                                         className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
                                     >
                                         <option value="" className="dark:bg-brand-900">Select Department</option>
-                                        <option value="Engineering" className="dark:bg-brand-900">Engineering</option>
-                                        <option value="Design" className="dark:bg-brand-900">Design</option>
-                                        <option value="Product" className="dark:bg-brand-900">Product</option>
-                                        <option value="Sales" className="dark:bg-brand-900">Sales</option>
-                                        <option value="HR" className="dark:bg-brand-900">HR</option>
-                                        <option value="Operations" className="dark:bg-brand-900">Operations</option>
+                                        {masters.departments.map(dept => (
+                                            <option key={dept.id} value={dept.id} className="dark:bg-brand-900">{dept.name}</option>
+                                        ))}
                                     </select>
                                     <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover/select:text-brand-500 transition-colors">
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
@@ -218,15 +248,50 @@ export default function AddEmployee() {
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Role / Designation *</label>
-                                <input
-                                    name="title"
-                                    value={formData.title}
-                                    onChange={handleInputChange}
-                                    type="text"
-                                    className="w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
-                                    placeholder="e.g. Senior Developer"
-                                />
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">System Role *</label>
+                                <div className="relative group/select">
+                                    <select
+                                        name="roleId"
+                                        value={formData.roleId}
+                                        onChange={(e) => {
+                                            const id = e.target.value;
+                                            const name = masters.roles.find(r => r.id === id)?.name || '';
+                                            setFormData({ ...formData, roleId: id, role: name });
+                                        }}
+                                        className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
+                                    >
+                                        <option value="" className="dark:bg-brand-900">Select Role</option>
+                                        {masters.roles.map(role => (
+                                            <option key={role.id} value={role.id} className="dark:bg-brand-900">{role.name}</option>
+                                        ))}
+                                    </select>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover/select:text-brand-500 transition-colors">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Designation / Title *</label>
+                                <div className="relative group/select">
+                                    <select
+                                        name="designationId"
+                                        value={formData.designationId}
+                                        onChange={(e) => {
+                                            const id = e.target.value;
+                                            const name = masters.designations.find(d => d.id === id)?.name || '';
+                                            setFormData({ ...formData, designationId: id, title: name });
+                                        }}
+                                        className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
+                                    >
+                                        <option value="" className="dark:bg-brand-900">Select Designation</option>
+                                        {masters.designations.map(desig => (
+                                            <option key={desig.id} value={desig.id} className="dark:bg-brand-900">{desig.name}</option>
+                                        ))}
+                                    </select>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover/select:text-brand-500 transition-colors">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}

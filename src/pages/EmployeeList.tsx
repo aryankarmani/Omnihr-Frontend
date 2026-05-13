@@ -49,6 +49,32 @@ export default function EmployeeList() {
         fetchEmployees();
     }, []);
 
+    const [masters, setMasters] = useState({
+        departments: [] as any[],
+        roles: [] as any[],
+        designations: [] as any[]
+    });
+
+    useEffect(() => {
+        const fetchMasters = async () => {
+            try {
+                const [deptRes, roleRes, desigRes] = await Promise.all([
+                    api.get('/masters/departments'),
+                    api.get('/masters/roles'),
+                    api.get('/masters/designations')
+                ]);
+                setMasters({
+                    departments: deptRes.data,
+                    roles: roleRes.data,
+                    designations: desigRes.data
+                });
+            } catch (error) {
+                console.error('Error fetching masters:', error);
+            }
+        };
+        fetchMasters();
+    }, []);
+
     // Modal State
     const [showAddModal, setShowAddModal] = useState(false);
     const [newEmployee, setNewEmployee] = useState({
@@ -56,7 +82,11 @@ export default function EmployeeList() {
         email: '',
         phone: '',
         role: '',
+        roleId: '',
         department: '',
+        departmentId: '',
+        title: '',
+        designationId: '',
         location: '',
         status: 'Active',
         panNumber: '',
@@ -95,7 +125,7 @@ export default function EmployeeList() {
         e.preventDefault();
 
         // Basic Validation
-        if (!newEmployee.name || !newEmployee.email || !newEmployee.role) {
+        if (!newEmployee.name || !newEmployee.email || !newEmployee.roleId || !newEmployee.designationId || !newEmployee.departmentId) {
             toast.error('Please fill in all required fields');
             return;
         }
@@ -123,7 +153,11 @@ export default function EmployeeList() {
             email: '',
             phone: '',
             role: '',
+            roleId: '',
             department: '',
+            departmentId: '',
+            title: '',
+            designationId: '',
             location: '',
             status: 'Active',
             panNumber: '',
@@ -472,15 +506,50 @@ export default function EmployeeList() {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Role / Designation *</label>
-                                        <input
-                                            type="text"
-                                            required
-                                            value={newEmployee.role}
-                                            onChange={(e) => setNewEmployee({ ...newEmployee, role: e.target.value })}
-                                            placeholder="e.g. Senior Developer"
-                                            className="w-full px-5 py-3.5 bg-gray-50 dark:bg-brand-900/50 border border-gray-200 dark:border-brand-500/20 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
-                                        />
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">System Role *</label>
+                                        <div className="relative group/select">
+                                            <select
+                                                required
+                                                value={newEmployee.roleId}
+                                                onChange={(e) => {
+                                                    const id = e.target.value;
+                                                    const name = masters.roles.find(r => r.id === id)?.name || '';
+                                                    setNewEmployee({ ...newEmployee, roleId: id, role: name });
+                                                }}
+                                                className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-brand-900/50 border border-gray-200 dark:border-brand-500/20 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
+                                            >
+                                                <option value="" className="dark:bg-brand-950">Select Role</option>
+                                                {masters.roles.map(role => (
+                                                    <option key={role.id} value={role.id} className="dark:bg-brand-950">{role.name}</option>
+                                                ))}
+                                            </select>
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover/select:text-brand-500 transition-colors">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Designation / Title *</label>
+                                        <div className="relative group/select">
+                                            <select
+                                                required
+                                                value={newEmployee.designationId}
+                                                onChange={(e) => {
+                                                    const id = e.target.value;
+                                                    const name = masters.designations.find(d => d.id === id)?.name || '';
+                                                    setNewEmployee({ ...newEmployee, designationId: id, title: name });
+                                                }}
+                                                className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-brand-900/50 border border-gray-200 dark:border-brand-500/20 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
+                                            >
+                                                <option value="" className="dark:bg-brand-950">Select Designation</option>
+                                                {masters.designations.map(desig => (
+                                                    <option key={desig.id} value={desig.id} className="dark:bg-brand-950">{desig.name}</option>
+                                                ))}
+                                            </select>
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover/select:text-brand-500 transition-colors">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Email Address *</label>
@@ -507,15 +576,18 @@ export default function EmployeeList() {
                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Department</label>
                                         <div className="relative group/select">
                                             <select
-                                                value={newEmployee.department}
-                                                onChange={(e) => setNewEmployee({ ...newEmployee, department: e.target.value })}
+                                                value={newEmployee.departmentId}
+                                                onChange={(e) => {
+                                                    const id = e.target.value;
+                                                    const name = masters.departments.find(d => d.id === id)?.name || '';
+                                                    setNewEmployee({ ...newEmployee, departmentId: id, department: name });
+                                                }}
                                                 className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-brand-900/50 border border-gray-200 dark:border-brand-500/20 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
                                             >
                                                 <option value="" className="dark:bg-brand-950">Select Department</option>
-                                                <option value="HR" className="dark:bg-brand-950">HR</option>
-                                                <option value="Engineering" className="dark:bg-brand-950">Engineering</option>
-                                                <option value="Design" className="dark:bg-brand-950">Design</option>
-                                                <option value="Operations" className="dark:bg-brand-950">Operations</option>
+                                                {masters.departments.map(dept => (
+                                                    <option key={dept.id} value={dept.id} className="dark:bg-brand-950">{dept.name}</option>
+                                                ))}
                                             </select>
                                             <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover/select:text-brand-500 transition-colors">
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
