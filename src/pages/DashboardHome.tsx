@@ -69,7 +69,7 @@ export default function DashboardHome() {
 
     // Default to Admin Dashboard for HR_ADMIN
     return (
-        <AdminDashboard 
+        <AdminDashboard
             navigate={navigate}
             stats={stats}
             attendanceData={attendanceData}
