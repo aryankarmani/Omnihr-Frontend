@@ -14,7 +14,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
     const navigate = useNavigate();
     const [showNotifications, setShowNotifications] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [notifications, setNotifications] = useState([]);
+    const [notifications, setNotifications] = useState<any[]>([]);
     const [employees, setEmployees] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const { theme, toggleTheme } = useTheme();
@@ -23,32 +23,15 @@ export default function Header({ onMenuClick }: HeaderProps) {
     const fetchNotifications = async () => {
         setLoading(true);
         try {
-            // Mock data for demonstration
-            const demoNotifications = [
-                { id: '1', title: 'New Leave Request', message: 'Sarah Jenkins requested leave for 2 days.', time: '2 mins ago', type: 'leave', unread: true },
-                { id: '2', title: 'System Update', message: 'HRMS will be down for maintenance on Sunday.', time: '1 hour ago', type: 'system', unread: true },
-                { id: '3', title: 'Attendance Alert', message: 'You were marked late yesterday.', time: '5 hours ago', type: 'attendance', unread: false },
-                { id: '4', title: 'Welcome!', message: 'Welcome to the new Encalm HRMS portal.', time: '1 day ago', type: 'system', unread: false },
-                { id: '5', title: 'Holiday Announcement', message: 'The office will be closed on Friday for the public holiday.', time: '2 days ago', type: 'system', unread: false },
-                { id: '6', title: 'Task Assigned', message: 'You have been assigned a new task: "Quarterly Review".', time: '3 days ago', type: 'system', unread: true },
-                { id: '7', title: 'Payroll Processed', message: 'Salary for the month of April has been processed.', time: '1 week ago', type: 'system', unread: false },
-                { id: '8', title: 'New Policy', message: 'The updated Work From Home policy is now available.', time: '1 week ago', type: 'system', unread: false },
-                { id: '9', title: 'Team Outing', message: 'Join us for the team lunch this Friday at 1 PM.', time: '2 weeks ago', type: 'leave', unread: false },
-                { id: '10', title: 'Password Reset', message: 'Your system password was changed successfully.', time: '1 month ago', type: 'system', unread: false },
-            ];
-
-            try {
-                const res = await api.get('/notifications');
-                setNotifications([...demoNotifications, ...res.data]);
-            } catch (e) {
-                setNotifications(demoNotifications as any);
-            }
-        } catch (e) {
-            console.log(e);
-        }
+             const res = await api.get('/notifications');
+        setNotifications(Array.isArray(res.data) ? res.data : []);
+    } catch (e) {
+        console.error('Failed to fetch notifications:', e);
+        setNotifications([]);
+    } finally {
         setLoading(false);
-    };
-
+    }
+};
     const fetchEmployees = async () => {
         try {
             const res = await api.get('/employee');

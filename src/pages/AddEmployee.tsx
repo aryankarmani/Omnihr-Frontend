@@ -297,20 +297,6 @@ if (!/^[A-Za-z\s]{2,50}$/.test(bankName)) {
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Department *</label>
                                 <div className="relative group/select">
                                     <select
-<<<<<<< HEAD
-                                        name="department"
-                                        value={formData.department}
-                                        onChange={handleInputChange}
-                                        className="appearance-none w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all cursor-pointer"
-                                    >
-                                        <option value="" className="dark:bg-brand-900 ">Select Department</option>
-                                        <option value="Engineering" className="dark:bg-brand-900">Engineering</option>
-                                        <option value="Design" className="dark:bg-brand-900">Design</option>
-                                        <option value="Product" className="dark:bg-brand-900">Product</option>
-                                        <option value="Sales" className="dark:bg-brand-900">Sales</option>
-                                        <option value="HR" className="dark:bg-brand-900">HR</option>
-                                        <option value="Operations" className="dark:bg-brand-900">Operations</option>
-=======
                                         name="departmentId"
                                         value={formData.departmentId}
                                         onChange={(e) => {
@@ -324,7 +310,6 @@ if (!/^[A-Za-z\s]{2,50}$/.test(bankName)) {
                                         {masters.departments.map(dept => (
                                             <option key={dept.id} value={dept.id} className="dark:bg-brand-900">{dept.name}</option>
                                         ))}
->>>>>>> origin/feat/keshav
                                     </select>
                                     <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover/select:text-brand-500 transition-colors">
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
@@ -332,18 +317,6 @@ if (!/^[A-Za-z\s]{2,50}$/.test(bankName)) {
                                 </div>
                             </div>
                             <div className="space-y-2">
-<<<<<<< HEAD
-                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Role / Designation *</label>
-                                <input
-                                        autoComplete="off"
-                                    name="title"
-                                    value={formData.title}
-                                    onChange={handleInputChange}
-                                    type="text"
-                              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"                      
-                                    placeholder="e.g. Senior Developer"
-                                />
-=======
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">System Role *</label>
                                 <div className="relative group/select">
                                     <select
@@ -388,7 +361,6 @@ if (!/^[A-Za-z\s]{2,50}$/.test(bankName)) {
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
                                     </div>
                                 </div>
->>>>>>> origin/feat/keshav
                             </div>
                         </div>
                     )}

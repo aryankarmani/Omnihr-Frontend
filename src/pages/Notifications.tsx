@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Bell, Check, Trash2, Calendar, FileText, Info, Loader2, Search, Filter } from 'lucide-react';
+import { Bell, Check, Trash2, Calendar, FileText, Info, Loader2, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 
@@ -13,28 +13,21 @@ export default function Notifications() {
 
     const fetchNotifications = async () => {
         setLoading(true);
-        try {
-            const demoData = [
-                { id: '1', title: 'New Leave Request', message: 'Sarah Jenkins requested leave for 2 days starting from tomorrow.', time: '2 mins ago', type: 'leave', unread: true, date: '2026-05-11' },
-                { id: '2', title: 'System Update', message: 'HRMS will be down for maintenance on Sunday, May 15th from 2:00 AM to 4:00 AM.', time: '1 hour ago', type: 'system', unread: true, date: '2026-05-11' },
-                { id: '3', title: 'Attendance Alert', message: 'You were marked late yesterday. Please regularize your attendance.', time: '5 hours ago', type: 'attendance', unread: false, date: '2026-05-10' },
-                { id: '4', title: 'Welcome!', message: 'Welcome to the new Encalm HRMS portal. Explore your dashboard to get started.', time: '1 day ago', type: 'system', unread: false, date: '2026-05-10' },
-                { id: '5', title: 'Policy Update', message: 'New travel policy has been uploaded to the documents section.', time: '2 days ago', type: 'system', unread: false, date: '2026-05-09' },
-            ];
+       
+           
+  try {
+    const res = await api.get('/notifications');
+     setNotifications(Array.isArray(res.data) ? res.data : []);
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    toast.error('Failed to load notifications');
+    setNotifications([]);
+  } finally {
+    setLoading(false);
+  }
+};
 
-            try {
-                const res = await api.get('/notifications');
-                setNotifications([...demoData, ...res.data]);
-            } catch (e) {
-                setNotifications(demoData);
-            }
-        } catch (error) {
-            console.error('Error fetching notifications:', error);
-            toast.error('Failed to load notifications');
-        } finally {
-            setLoading(false);
-        }
-    };
+          
 
     useEffect(() => {
         fetchNotifications();
