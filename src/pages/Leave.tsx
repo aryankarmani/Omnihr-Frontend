@@ -286,7 +286,7 @@ export default function Leave() {
                                     <div>
                                         <h3 className="text-gray-800 dark:text-white text-sm font-bold uppercase opacity-90">{bal.name}</h3>
                                         <div className="mt-2 flex items-baseline gap-1">
-                                            <span className={`text-4xl font-bold ${style.color}`}>{bal.balance}</span>
+                                            <span className="text-4xl font-bold text-white">{bal.balance}</span>
                                             <span className="text-gray-500 dark:text-white/80 text-sm">/ {bal.total}</span>
                                         </div>
                                     </div>
