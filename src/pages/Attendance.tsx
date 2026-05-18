@@ -26,6 +26,7 @@ export default function Attendance() {
         late: 0,
         holiday: 0
     });
+    const [joiningDate, setJoiningDate] = useState<Date | null>(null);
 
     const [attendanceHistory, setAttendanceHistory] = useState<DailyLog[]>([]);
 
@@ -40,6 +41,11 @@ export default function Attendance() {
                 const res = await api.get('/attendance/status');
                 setIsPunchedIn(res.data.isPunchedIn);
                 if (res.data.punchInTime) setPunchInTime(new Date(res.data.punchInTime));
+
+                // Fetch joining date
+                const empRes = await api.get('/employee/me');
+                const jd = empRes.data.employeeProfile?.joiningDate || empRes.data.createdAt;
+                if (jd) setJoiningDate(new Date(jd));
             } catch (error) {
                 console.error("Failed to fetch status:", error);
             }
@@ -72,9 +78,18 @@ export default function Attendance() {
 
                 // Calculate stats up to 'today' for the current month, or the whole month for past months
                 for (let d = 1; d <= endDay; d++) {
+                    const currentLoopDate = new Date(year, month - 1, d);
                     const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+                    // Skip if day is before joining date
+                    if (joiningDate) {
+                        const jdCopy = new Date(joiningDate);
+                        jdCopy.setHours(0, 0, 0, 0);
+                        if (currentLoopDate < jdCopy) continue;
+                    }
+
                     const log = historyData.find((l: any) => l.date === dateStr);
-                    const dayOfWeek = new Date(year, month - 1, d).getDay();
+                    const dayOfWeek = currentLoopDate.getDay();
                     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
                     if (log) {
@@ -101,13 +116,13 @@ export default function Attendance() {
             }
         };
         fetchHistory();
-    }, [selectedMonth]);
+    }, [selectedMonth, joiningDate]);
 
     const handlePunch = async () => {
         try {
             const res = await api.post('/attendance/punch');
             toast.success(res.data.message);
-            
+
             // Re-fetch status and current day history
             const statusRes = await api.get('/attendance/status');
             setIsPunchedIn(statusRes.data.isPunchedIn);
@@ -116,7 +131,7 @@ export default function Attendance() {
             } else {
                 setPunchInTime(null);
             }
-            
+
             // Refresh history for the current month
             const year = selectedMonth.getFullYear();
             const month = selectedMonth.getMonth() + 1;
@@ -131,13 +146,25 @@ export default function Attendance() {
             const endDay = (today.getFullYear() === year && today.getMonth() + 1 === month) ? today.getDate() : daysInMonth;
 
             for (let d = 1; d <= endDay; d++) {
+                const currentLoopDate = new Date(year, month - 1, d);
                 const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+                // Skip if day is before joining date
+                if (joiningDate) {
+                    const jdCopy = new Date(joiningDate);
+                    jdCopy.setHours(0, 0, 0, 0);
+                    if (currentLoopDate < jdCopy) continue;
+                }
+
                 const log = historyData.find((l: any) => l.date === dateStr);
-                const isWeekend = new Date(year, month - 1, d).getDay() === 0 || new Date(year, month - 1, d).getDay() === 6;
+                const isWeekend = currentLoopDate.getDay() === 0 || currentLoopDate.getDay() === 6;
                 if (log) {
                     if (log.status === 'Present') newStats.present++;
+                    else if (log.status === 'Late') {
+                        newStats.present++;
+                        newStats.late++;
+                    }
                     else if (log.status === 'Absent') newStats.absent++;
-                    else if (log.status === 'Late') newStats.late++;
                     else if (log.status === 'Holiday') newStats.holiday++;
                 } else if (!isWeekend && !((today.getFullYear() === year && today.getMonth() + 1 === month) && d === today.getDate())) {
                     newStats.absent++;
@@ -180,19 +207,23 @@ export default function Attendance() {
         for (let day = 1; day <= daysInMonth; day++) {
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             const log = attendanceHistory.find(d => d.date === dateStr);
-            const isWeekend = new Date(year, month, day).getDay() === 0 || new Date(year, month, day).getDay() === 6;
+            const currentLoopDate = new Date(year, month, day);
+            const isWeekend = currentLoopDate.getDay() === 0 || currentLoopDate.getDay() === 6;
+            const isBeforeJoining = joiningDate && currentLoopDate < new Date(new Date(joiningDate).setHours(0, 0, 0, 0));
 
             // Default logic if no log exists
-            let displayStatus: AttendanceStatus = log ? log.status : (isWeekend ? 'Weekend' : 'Absent');
+            let displayStatus: AttendanceStatus = log ? log.status : (isWeekend ? 'Weekend' : isBeforeJoining ? 'Weekend' : 'Absent');
+            const statusLabel = isBeforeJoining ? '-' : displayStatus;
+
             // Check for today
             const isToday = day === new Date().getDate() && month === new Date().getMonth() && year === new Date().getFullYear();
 
             days.push(
-                <div key={day} className={`h-24 p-2 rounded-xl border ${isToday ? 'border-brand-500 ring-1 ring-brand-500' : 'border-gray-100 dark:border-white/10'} bg-white dark:bg-brand-800 hover:shadow-md transition-shadow relative group`}>
+                <div key={day} className={`h-24 p-2 rounded-xl border ${isToday ? 'border-brand-500 ring-1 ring-brand-500' : 'border-gray-100 dark:border-white/10'} bg-white dark:bg-brand-800 hover:shadow-md transition-shadow relative group cursor-pointer`}>
                     <div className="flex justify-between items-start">
                         <span className={`font-semibold text-sm ${isToday ? 'text-brand-600 dark:text-brand-400' : 'text-gray-700 dark:text-gray-300'}`}>{day}</span>
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${getStatusColor(displayStatus)}`}>
-                            {displayStatus}
+                            {statusLabel}
                         </span>
                     </div>
 

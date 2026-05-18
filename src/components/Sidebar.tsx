@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { LayoutDashboard, Clock, Users, UsersRound, CalendarDays, FileText, Settings, ClipboardList, LogOut, ChevronLeft, ChevronRight, User, AlertCircle } from 'lucide-react';
+import {
+    LayoutDashboard, Users, UsersRound, LogOut, ChevronLeft,
+    ChevronRight, AlertCircle, ChevronDown, CalendarCheck,
+    Fingerprint, UserCog, FileCheck, BarChart3, Settings2,
+    CheckSquare, UserCircle, CalendarRange
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import vedaLogo from '../assets/veda-logo.png';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -9,21 +14,30 @@ interface MenuItem {
     icon: any;
     label: string;
     path: string;
-    module: string; // Key for access control
-    active?: boolean;
+    module: string;
+    children?: { label: string; path: string; module: string; icon?: any; state?: any }[];
 }
 
 const menuItems: MenuItem[] = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', module: 'DASHBOARD', active: true },
-    { icon: Clock, label: 'Attendance', path: '/attendance', module: 'ATTENDANCE' },
-    { icon: CalendarDays, label: 'Employee Attendance', path: '/employee-attendance', module: 'EMPLOYEE_ATTENDANCE' },
-    { icon: Users, label: 'Employee', path: '/employee', module: 'EMPLOYEE' },
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', module: 'DASHBOARD' },
+    { icon: Fingerprint, label: 'Attendance', path: '/attendance', module: 'ATTENDANCE' },
+    {
+        icon: UserCog,
+        label: 'Employee',
+        path: '/employee',
+        module: 'EMPLOYEE',
+        children: [
+            { label: 'List', path: '/employee', module: 'EMPLOYEE', icon: Users },
+            { label: 'Attendance', path: '/employee-attendance', module: 'EMPLOYEE_ATTENDANCE', icon: CalendarCheck },
+            { label: 'Leave Approval', path: '/leave', module: 'LEAVE', icon: FileCheck, state: { activeTab: 'APPROVALS' } },
+        ]
+    },
     { icon: UsersRound, label: 'Team', path: '/team', module: 'TEAM' },
-    { icon: CalendarDays, label: 'Leave', path: '/leave', module: 'LEAVE' },
-    { icon: FileText, label: 'Reports', path: '/reports', module: 'REPORTS' },
-    { icon: Settings, label: 'Masters', path: '/masters', module: 'MASTERS' },
-    { icon: ClipboardList, label: 'Task', path: '/task', module: 'TASK' },
-    { icon: User, label: 'My Profile', path: '/profile', module: 'MY_PROFILE' },
+    { icon: CalendarRange, label: 'Leave', path: '/leave', module: 'LEAVE' },
+    { icon: BarChart3, label: 'Reports', path: '/reports', module: 'REPORTS' },
+    { icon: Settings2, label: 'Masters', path: '/masters', module: 'MASTERS' },
+    { icon: CheckSquare, label: 'Task', path: '/task', module: 'TASK' },
+    { icon: UserCircle, label: 'My Profile', path: '/profile', module: 'MY_PROFILE' },
 ];
 
 interface SidebarProps {
@@ -34,38 +48,44 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: SidebarProps) {
-    const { user } = useAuth(); // Use user directly for accessibleModules
+    const { user } = useAuth();
     const { logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [openMenus, setOpenMenus] = useState<string[]>([]); // Start with all menus closed
 
-    // Default to all access if no role defined (or handle as restricted)
-    // For now, if accessibleModules is undefined, fallback to existing RBAC or allow all?
-    // Let's assume login returns it. If empty, maybe stored in localStorage needs refresh.
-    // Fallback logic
     let userModules = user?.accessibleModules || [];
 
-    // If no modules defined (legacy user or not set) BUT user is HR_ADMIN, give full access
-    // Or if simply no modules are returned, we might want to default to standard Employee modules?
-    // For safety during migration: if HR_ADMIN and no modules, show all.
     if (userModules.length === 0 && user?.role === 'HR_ADMIN') {
         userModules = ['DASHBOARD', 'ATTENDANCE', 'EMPLOYEE', 'TEAM', 'LEAVE', 'REPORTS', 'MASTERS', 'TASK', 'MY_PROFILE'];
     } else if (userModules.length === 0) {
-        // Default for others: personal access
         userModules = ['DASHBOARD', 'ATTENDANCE', 'LEAVE', 'MY_PROFILE'];
     }
 
-    const handleLogout = () => {
-        logout();
-        navigate('/signin');
-    };
-    const isActive = (path: string) => {
-        if (path === '/dashboard') return location.pathname === '/dashboard';
-        return location.pathname === path || location.pathname.startsWith(path + '/');
+    const toggleMenu = (label: string) => {
+        setOpenMenus(prev =>
+            prev.includes(label) ? prev.filter(m => m !== label) : [...prev, label]
+        );
     };
 
-    // Overlay for mobile
+    const isActive = (path: string, state?: any) => {
+        const pathMatches = location.pathname === path || (path !== '/' && path !== '/dashboard' && location.pathname.startsWith(path + '/'));
+        if (!pathMatches) return false;
+
+        // If a specific state is required for this menu item
+        if (state && state.activeTab) {
+            return location.state?.activeTab === state.activeTab;
+        }
+
+        // If the current route has a specific activeTab state, the base path item (no state) should not be active
+        if (location.state?.activeTab && !state) {
+            return false;
+        }
+
+        return true;
+    };
+
     const Overlay = () => (
         <div
             className={`fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
@@ -90,7 +110,6 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                         <img src={vedaLogo} alt="EnCalm HRX" className="w-full h-full object-contain" />
                     </div>
                     {!isCollapsed && <h1 className="text-xl font-bold tracking-wide whitespace-nowrap bg-clip-text text-transparent bg-gradient-to-r from-brand-700 to-brand-900 dark:from-white dark:to-brand-100">EnCalm HRX</h1>}
-                    {/* Toggle Button (Desktop only) */}
                     <button
                         onClick={onToggleCollapse}
                         className="hidden md:flex absolute -right-3 top-7 w-6 h-6 bg-brand-500 rounded-full items-center justify-center text-white shadow-md hover:bg-brand-600 transition-colors z-50"
@@ -99,33 +118,77 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                     </button>
                 </div>
 
-                <nav className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto overflow-x-hidden">
+                <nav className="flex-1 px-4 space-y-1 mt-4 overflow-y-auto overflow-x-hidden custom-scrollbar">
                     {menuItems.filter(item => {
-                        // Always show Dashboard
                         if (item.module === 'EMPLOYEE_ATTENDANCE') {
                             return user?.role === 'HR_ADMIN';
                         }
-                        // Check access
                         return userModules.includes(item.module);
                     }).map((item) => {
-                        const active = isActive(item.path);
+                        const hasChildren = item.children && item.children.length > 0;
+                        const isOpen = openMenus.includes(item.label);
+                        const active = isActive(item.path) || (item.children?.some(child => isActive(child.path, child.state)) ?? false);
 
                         return (
-                            <button
-                                key={item.label}
-                                onClick={() => {
-                                    navigate(item.path);
-                                    if (window.innerWidth < 768) onClose();
-                                }}
-                                title={isCollapsed ? item.label : ''}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${active
-                                    ? 'bg-brand-500 shadow-lg shadow-brand-900/20 text-white'
-                                    : 'text-gray-400 hover:bg-white/5 hover:text-white'
-                                    } ${isCollapsed ? 'justify-center' : ''}`}
-                            >
-                                <item.icon size={20} className={`flex-shrink-0 ${active ? 'text-white' : 'text-gray-400 group-hover:text-white'}`} />
-                                {!isCollapsed && <span className="font-medium text-sm whitespace-nowrap">{item.label}</span>}
-                            </button>
+                            <div key={item.label} className="space-y-1">
+                                <button
+                                    onClick={() => {
+                                        if (hasChildren && !isCollapsed) {
+                                            toggleMenu(item.label);
+                                        } else {
+                                            navigate(item.path);
+                                            if (window.innerWidth < 768) onClose();
+                                        }
+                                    }}
+                                    title={isCollapsed ? item.label : ''}
+                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${active && !hasChildren
+                                        ? 'bg-brand-500 shadow-lg shadow-brand-900/20 text-white'
+                                        : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                                        } ${isCollapsed ? 'justify-center' : ''}`}
+                                >
+                                    <item.icon size={20} className={`flex-shrink-0 ${(active && !hasChildren) ? 'text-white' : 'text-gray-400 group-hover:text-white'}`} />
+                                    {!isCollapsed && (
+                                        <>
+                                            <span className="font-medium text-sm whitespace-nowrap flex-1 text-left">{item.label}</span>
+                                            {hasChildren && (
+                                                <ChevronDown
+                                                    size={16}
+                                                    className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                                                />
+                                            )}
+                                        </>
+                                    )}
+                                </button>
+
+                                {hasChildren && isOpen && !isCollapsed && (
+                                    <div className="space-y-1 ml-4 border-l border-white/10 pl-2 animate-fade-in">
+                                        {item.children?.filter(child => {
+                                            if (child.module === 'EMPLOYEE_ATTENDANCE') return user?.role === 'HR_ADMIN';
+                                            return userModules.includes(child.module);
+                                        }).map((child) => {
+                                            const childActive = isActive(child.path, child.state);
+                                            const ChildIcon = child.icon || item.icon;
+
+                                            return (
+                                                <button
+                                                    key={child.label}
+                                                    onClick={() => {
+                                                        navigate(child.path, { state: child.state });
+                                                        if (window.innerWidth < 768) onClose();
+                                                    }}
+                                                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 group ${childActive
+                                                        ? 'bg-white/10 text-white'
+                                                        : 'text-gray-500 hover:bg-white/5 hover:text-white'
+                                                        }`}
+                                                >
+                                                    <ChildIcon size={16} className={childActive ? 'text-brand-400' : 'text-gray-500 group-hover:text-white'} />
+                                                    <span className="text-xs font-medium whitespace-nowrap">{child.label}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
                         );
                     })}
                 </nav>

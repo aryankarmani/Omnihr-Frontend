@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useRBAC } from '../hooks/useRBAC';
 import { ArrowLeft, User, FileText, CreditCard, Download, Upload, Briefcase, Save, X, Edit, Printer, Loader2 } from 'lucide-react';
@@ -12,7 +13,7 @@ export default function EmployeeProfile() {
     const navigate = useNavigate();
     const location = useLocation();
     const { hasPermission } = useRBAC();
-    
+
     const queryParams = new URLSearchParams(location.search);
     const initialEditMode = queryParams.get('edit') === 'true';
 
@@ -21,6 +22,7 @@ const [activeTab, setActiveTab] = useState<'personal' | 'statutory' | 'documents
 const [showPayslip, setShowPayslip] = useState(false);
     const [showIDCard, setShowIDCard] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [docToDelete, setDocToDelete] = useState<number | null>(null);
 
     // Employee State
     const [employee, setEmployee] = useState<any>(null);
@@ -120,7 +122,8 @@ const [showPayslip, setShowPayslip] = useState(false);
                 role: employee.role?.name || employee.role?.title || employee.role
             };
 
-            await api.put(`/employee/${id}`, profileData);
+            const endpoint = id ? `/employee/${id}` : '/employee/me';
+            await api.put(endpoint, profileData);
             setIsEditing(false);
             toast.success('Profile Updated Successfully!');
         } catch (error) {
@@ -174,7 +177,7 @@ const [showPayslip, setShowPayslip] = useState(false);
         }));
     };
 
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
              if (file.type !== "application/pdf") {
@@ -201,11 +204,12 @@ const [showPayslip, setShowPayslip] = useState(false);
 
     const handleDownload = (doc: any) => {
         if (doc.url) {
-            // If backend provides a real URL, open it to trigger download
-            window.open(doc.url, '_blank');
+            // Build the full URL (backend is on port 3001)
+            const baseUrl = 'http://localhost:3001';
+            const fullUrl = doc.url.startsWith('http') ? doc.url : `${baseUrl}${doc.url}`;
+            window.open(fullUrl, '_blank');
         } else {
-            // Fallback for documents that don't have a URL yet
-            toast(`Download link for ${doc.name} will be provided by backend`);
+            toast.error('Download link not available');
         }
     };
 
@@ -432,15 +436,7 @@ const [showPayslip, setShowPayslip] = useState(false);
                                             </div>
                                             <div className="flex gap-2">
                                                 {isEditing && (
-                                                    <button onClick={() => {
-                                                        setEmployee((prev: any) => ({
-                                                            ...prev,
-                                                            employeeProfile: {
-                                                                ...(prev.employeeProfile || {}),
-                                                                documents: prev.employeeProfile.documents.filter((_: any, idx: number) => idx !== i)
-                                                            }
-                                                        }));
-                                                    }} className="p-2 text-gray-400 hover:text-red-600 transition-colors">
+                                                    <button onClick={() => setDocToDelete(i)} className="p-2 text-gray-400 hover:text-red-600 transition-colors">
                                                         <X size={20} />
                                                     </button>
                                                 )}
@@ -467,7 +463,7 @@ const [showPayslip, setShowPayslip] = useState(false);
                                 {isEditing && (
                                     <div className="flex items-center gap-2">
                                         <span className="text-xs font-bold text-gray-400 uppercase">Employment Status:</span>
-                                        <select 
+                                        <select
                                             value={profile.status || 'Active'}
                                             onChange={(e) => handleInputChange('status', e.target.value)}
                                             className="bg-brand-50 dark:bg-white/5 border border-brand-200 dark:border-white/10 rounded-lg px-3 py-1 text-xs font-bold text-brand-600 outline-none"
@@ -742,7 +738,7 @@ const [showPayslip, setShowPayslip] = useState(false);
             {showPayslip && (
                 <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
                     <div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden">
-                        
+
                         {/* Header */}
                         <div className="p-4 md:p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50 dark:bg-white/5 shrink-0">
                             <h3 className="text-xl font-bold font-mono text-gray-800 dark:text-white">Payslip Preview</h3>
@@ -843,10 +839,10 @@ const [showPayslip, setShowPayslip] = useState(false);
                                         toast.error("Could not find payslip content");
                                         return;
                                     }
-                                    
+
                                     try {
                                         const toastId = toast.loading("Generating PDF...");
-                                        const canvas = await html2canvas(input, { 
+                                        const canvas = await html2canvas(input, {
                                             scale: 2,
                                             useCORS: true,
                                             allowTaint: true,
@@ -862,15 +858,15 @@ const [showPayslip, setShowPayslip] = useState(false);
                                                 });
                                             }
                                         });
-                                        
+
                                         const imgData = canvas.toDataURL('image/png');
                                         const pdf = new jsPDF('p', 'mm', 'a4');
                                         const pdfWidth = pdf.internal.pageSize.getWidth();
                                         const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-                                        
+
                                         pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
                                         pdf.save(`Payslip_${employee.name}_${new Date().toLocaleDateString()}.pdf`);
-                                        
+
                                         toast.success("PDF Downloaded", { id: toastId });
                                     } catch (err) {
                                         console.error("PDF Export Error:", err);
@@ -912,8 +908,8 @@ const [showPayslip, setShowPayslip] = useState(false);
                                 <div className="w-12 h-1 bg-brand-200 rounded-full my-4"></div>
                                 <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-left text-sm w-full px-10">
                                     <div>
-                                        <p className="text-xs text-gray-400 uppercase font-bold">Emp ID</p>
-                                        <p className="font-semibold text-gray-700">{employee.id}</p>
+                                        <p className="text-xs text-gray-400 uppercase font-bold">Role / Title</p>
+                                        <p className="font-semibold text-gray-700 truncate">{profile.title || 'Employee'}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-gray-400 uppercase font-bold">Blood Group</p>
@@ -931,7 +927,7 @@ const [showPayslip, setShowPayslip] = useState(false);
                             </div>
                         </div>
                         <div className="flex justify-center mt-6">
-                            <button 
+                            <button
                                 onClick={() => {
                                     const printContent = document.getElementById('id-card-container');
                                     const WindowPrt = window.open('', '', 'left=0,top=0,width=800,height=900,toolbar=0,scrollbars=0,status=0');
@@ -956,6 +952,60 @@ const [showPayslip, setShowPayslip] = useState(false);
                         </div>
                     </div>
                 </div>
+            )}
+            {/* Document Deletion Confirmation */}
+            {docToDelete !== null && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setDocToDelete(null)} />
+                    <div className="relative bg-white dark:bg-brand-950 w-full max-w-sm rounded-[2rem] shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden animate-scale-in">
+                        <div className="p-8 text-center">
+                            <div className="w-16 h-16 bg-red-50 dark:bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <X size={32} />
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Delete Document?</h3>
+                            <p className="text-gray-500 dark:text-gray-400 text-sm mb-8 leading-relaxed">
+                                Are you sure you want to delete <strong>{profile?.documents?.[docToDelete]?.name || 'this document'}</strong>? This action cannot be undone.
+                            </p>
+                            <div className="flex flex-col gap-3">
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            const docId = profile.documents[docToDelete]?.id;
+                                            const empId = id || employee.id;
+
+                                            if (docId) {
+                                                await api.delete(`/employee/${empId}/documents/${docId}`);
+                                            }
+
+                                            setEmployee((prev: any) => ({
+                                                ...prev,
+                                                employeeProfile: {
+                                                    ...(prev.employeeProfile || {}),
+                                                    documents: prev.employeeProfile.documents.filter((_: any, idx: number) => idx !== docToDelete)
+                                                }
+                                            }));
+                                            setDocToDelete(null);
+                                            toast.success('Document deleted from server');
+                                        } catch (error) {
+                                            console.error('Delete error:', error);
+                                            toast.error('Failed to delete document from server');
+                                        }
+                                    }}
+                                    className="w-full py-3.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-red-600/20"
+                                >
+                                    Yes, Delete
+                                </button>
+                                <button
+                                    onClick={() => setDocToDelete(null)}
+                                    className="w-full py-3.5 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 font-bold rounded-2xl hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>,
+                document.body
             )}
         </div>
     );
