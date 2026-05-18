@@ -26,6 +26,7 @@ export default function Attendance() {
         late: 0,
         holiday: 0
     });
+    const [holidays, setHolidays] = useState<any[]>([]);
     const [joiningDate, setJoiningDate] = useState<Date | null>(null);
 
     const [attendanceHistory, setAttendanceHistory] = useState<DailyLog[]>([]);
@@ -46,6 +47,10 @@ export default function Attendance() {
                 const empRes = await api.get('/employee/me');
                 const jd = empRes.data.employeeProfile?.joiningDate || empRes.data.createdAt;
                 if (jd) setJoiningDate(new Date(jd));
+
+                // Fetch holidays
+                const holidayRes = await api.get('/masters/holidays');
+                setHolidays(holidayRes.data);
             } catch (error) {
                 console.error("Failed to fetch status:", error);
             }
@@ -207,25 +212,33 @@ export default function Attendance() {
         for (let day = 1; day <= daysInMonth; day++) {
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             const log = attendanceHistory.find(d => d.date === dateStr);
+            const holiday = holidays.find(h => h.date.split('T')[0] === dateStr);
+
             const currentLoopDate = new Date(year, month, day);
             const isWeekend = currentLoopDate.getDay() === 0 || currentLoopDate.getDay() === 6;
             const isBeforeJoining = joiningDate && currentLoopDate < new Date(new Date(joiningDate).setHours(0, 0, 0, 0));
 
             // Default logic if no log exists
-            let displayStatus: AttendanceStatus = log ? log.status : (isWeekend ? 'Weekend' : isBeforeJoining ? 'Weekend' : 'Absent');
-            const statusLabel = isBeforeJoining ? '-' : displayStatus;
+            let displayStatus: AttendanceStatus = log ? log.status : (holiday ? 'Holiday' : isWeekend ? 'Weekend' : isBeforeJoining ? 'Weekend' : 'Absent');
+            const statusLabel = isBeforeJoining ? '-' : (holiday ? 'Holiday' : displayStatus);
 
             // Check for today
             const isToday = day === new Date().getDate() && month === new Date().getMonth() && year === new Date().getFullYear();
 
             days.push(
-                <div key={day} className={`h-24 p-2 rounded-xl border ${isToday ? 'border-brand-500 ring-1 ring-brand-500' : 'border-gray-100 dark:border-white/10'} bg-white dark:bg-brand-800 hover:shadow-md transition-shadow relative group cursor-pointer`}>
+                <div key={day} className={`h-24 p-2 rounded-xl border ${isToday ? 'border-brand-500 ring-1 ring-brand-500' : 'border-gray-100 dark:border-white/10'} ${holiday ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200' : 'bg-white dark:bg-brand-800'} hover:shadow-md transition-shadow relative group cursor-pointer`}>
                     <div className="flex justify-between items-start">
                         <span className={`font-semibold text-sm ${isToday ? 'text-brand-600 dark:text-brand-400' : 'text-gray-700 dark:text-gray-300'}`}>{day}</span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${getStatusColor(displayStatus)}`}>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${holiday ? 'bg-purple-100 text-purple-700' : getStatusColor(displayStatus)}`}>
                             {statusLabel}
                         </span>
                     </div>
+
+                    {holiday && (
+                        <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-1 rounded truncate w-full block text-center mt-1 font-bold shadow-sm">
+                            {holiday.name}
+                        </span>
+                    )}
 
                     {log && displayStatus !== 'Weekend' && log.inTime && (
                         <div className="mt-2 space-y-1">
@@ -269,24 +282,41 @@ export default function Attendance() {
                         {currentTime.toLocaleTimeString('en-US', { hour12: false })}
                     </div>
 
-                    <div className="relative group">
-                        <div className={`absolute -inset-1 bg-gradient-to-r ${isPunchedIn ? 'from-red-600 to-orange-600' : 'from-green-600 to-emerald-600'} rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200`}></div>
-                        <button
-                            onClick={handlePunch}
-                            className={`relative w-48 h-48 rounded-full border-4 flex flex-col items-center justify-center transition-all transform active:scale-95 shadow-xl ${isPunchedIn
-                                ? 'border-red-500 bg-red-50 dark:bg-red-500/10 text-red-600 hover:bg-red-100 dark:hover:bg-red-500/20'
-                                : 'border-green-500 bg-green-50 dark:bg-green-500/10 text-green-600 hover:bg-green-100 dark:hover:bg-green-500/20'
-                                }`}
-                        >
-                            <div className="mb-2">
-                                {isPunchedIn ? <Coffee size={48} /> : <MapPin size={48} />}
+                    {(() => {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const isHolidayToday = holidays.some(h => {
+                            const hDate = new Date(h.date);
+                            hDate.setHours(0, 0, 0, 0);
+                            return hDate.getTime() === today.getTime();
+                        });
+
+                        return (
+                            <div className="relative group">
+                                <div className={`absolute -inset-1 bg-gradient-to-r ${isHolidayToday ? 'from-purple-600 to-brand-600' : isPunchedIn ? 'from-red-600 to-orange-600' : 'from-green-600 to-emerald-600'} rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200`}></div>
+                                <button
+                                    onClick={handlePunch}
+                                    disabled={isHolidayToday}
+                                    className={`relative w-48 h-48 rounded-full border-4 flex flex-col items-center justify-center transition-all transform active:scale-95 shadow-xl disabled:opacity-80 disabled:cursor-not-allowed ${isHolidayToday
+                                        ? 'border-purple-500 bg-purple-50 dark:bg-purple-500/10 text-purple-600'
+                                        : isPunchedIn
+                                            ? 'border-red-500 bg-red-50 dark:bg-red-500/10 text-red-600 hover:bg-red-100 dark:hover:bg-red-500/20'
+                                            : 'border-green-500 bg-green-50 dark:bg-green-500/10 text-green-600 hover:bg-green-100 dark:hover:bg-green-500/20'
+                                        }`}
+                                >
+                                    <div className="mb-2">
+                                        {isHolidayToday ? <Calendar size={48} /> : isPunchedIn ? <Coffee size={48} /> : <MapPin size={48} />}
+                                    </div>
+                                    <span className="text-xl font-bold uppercase tracking-wider">
+                                        {isHolidayToday ? 'Holiday' : isPunchedIn ? 'Punch Out' : 'Punch In'}
+                                    </span>
+                                    <span className="text-xs mt-1 font-medium opacity-70">
+                                        {isHolidayToday ? 'Relax & Enjoy!' : isPunchedIn ? 'Enjoy your evening!' : 'Delhi Office (GPS)'}
+                                    </span>
+                                </button>
                             </div>
-                            <span className="text-xl font-bold uppercase tracking-wider">{isPunchedIn ? 'Punch Out' : 'Punch In'}</span>
-                            <span className="text-xs mt-1 font-medium opacity-70">
-                                {isPunchedIn ? 'Enjoy your evening!' : 'Delhi Office (GPS)'}
-                            </span>
-                        </button>
-                    </div>
+                        );
+                    })()}
 
                     {isPunchedIn && punchInTime && (
                         <div className="mt-6 p-3 bg-brand-50 dark:bg-white/5 rounded-xl flex items-center gap-2 text-sm text-brand-700 dark:text-brand-300">
@@ -323,7 +353,13 @@ export default function Attendance() {
                         <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center mb-4">
                             <Coffee />
                         </div>
-                        <h4 className="text-2xl font-bold text-gray-800 dark:text-white">{stats.holiday}</h4>
+                        <h4 className="text-2xl font-bold text-gray-800 dark:text-white">
+                            {holidays.filter(h => {
+                                const hDate = new Date(h.date);
+                                return hDate.getMonth() === selectedMonth.getMonth() &&
+                                    hDate.getFullYear() === selectedMonth.getFullYear();
+                            }).length}
+                        </h4>
                         <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase mt-1">Holidays</p>
                     </div>
 
@@ -353,13 +389,13 @@ export default function Attendance() {
                         <Calendar size={20} className="text-brand-500" /> Monthly Log
                     </h3>
                     <div className="flex items-center gap-4 bg-gray-50 dark:bg-white/5 p-1 rounded-xl">
-                        <button onClick={() => setSelectedMonth(new Date(selectedMonth.setMonth(selectedMonth.getMonth() - 1)))} className="p-2 hover:bg-white dark:hover:bg-white/10 rounded-lg transition-colors">
+                        <button onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() - 1, 1))} className="p-2 hover:bg-white dark:hover:bg-white/10 rounded-lg transition-colors">
                             <ChevronLeft size={20} />
                         </button>
                         <span className="font-bold w-32 text-center select-none">
                             {selectedMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                         </span>
-                        <button onClick={() => setSelectedMonth(new Date(selectedMonth.setMonth(selectedMonth.getMonth() + 1)))} className="p-2 hover:bg-white dark:hover:bg-white/10 rounded-lg transition-colors">
+                        <button onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 1))} className="p-2 hover:bg-white dark:hover:bg-white/10 rounded-lg transition-colors">
                             <ChevronRight size={20} />
                         </button>
                     </div>
@@ -384,6 +420,6 @@ export default function Attendance() {
                     {generateCalendarDays()}
                 </div>
             </div>
-        </div >
+        </div>
     );
 }

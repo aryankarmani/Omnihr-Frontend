@@ -27,6 +27,9 @@ const [showPayslip, setShowPayslip] = useState(false);
     // Employee State
     const [employee, setEmployee] = useState<any>(null);
     const [shifts, setShifts] = useState<any[]>([]);
+    const [roles, setRoles] = useState<any[]>([]);
+    const [designations, setDesignations] = useState<any[]>([]);
+    const [departments, setDepartments] = useState<any[]>([]);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const fetchEmployee = async () => {
@@ -51,10 +54,44 @@ const [showPayslip, setShowPayslip] = useState(false);
         toast.error('Failed to load shifts');
     }
 };
+const fetchRoles = async () => {
+    try {
+        const res = await api.get('/masters/roles');
+        console.log("ROLES DATA:", res.data);
+        setRoles(res.data);
+    } catch (error) {
+        console.error('Error fetching roles:', error);
+        toast.error('Failed to load roles');
+    }
+};
+
+const fetchDesignations = async () => {
+    try {
+        const res = await api.get('/masters/designations');
+        setDesignations(res.data);
+    } catch (error) {
+        console.error('Error fetching designations:', error);
+        toast.error('Failed to load designations');
+    }
+};
+const fetchDepartments = async () => {
+    try {
+        const res = await api.get('/masters/departments');
+        console.log("DEPARTMENTS DATA:", res.data);
+
+        setDepartments(Array.isArray(res.data) ? res.data : res.data.departments || []);
+    } catch (error) {
+        console.error('Error fetching departments:', error);
+        toast.error('Failed to load departments');
+    }
+};
 
     useEffect(() => {
         fetchEmployee();
         fetchShifts();
+        fetchRoles();
+        fetchDesignations();
+        fetchDepartments();
     }, [id]);
 
     const handleCancel = () => {
@@ -103,7 +140,9 @@ const [showPayslip, setShowPayslip] = useState(false);
                 address: employee.employeeProfile?.address,
                 location: employee.employeeProfile?.location,
                 department: employee.employeeProfile?.department,
+                departmentId: employee.employeeProfile?.departmentId,
                 title: employee.employeeProfile?.title,
+                designationId: employee.employeeProfile?.designationId,
                 status: employee.employeeProfile?.status || 'Active',
                 shiftId: employee.employeeProfile?.shiftId,
                 // Statutory
@@ -119,8 +158,8 @@ const [showPayslip, setShowPayslip] = useState(false);
                 // User
                 name: employee.name,
                 email: employee.email,
-                role: employee.role?.name || employee.role?.title || employee.role
-            };
+roleId: employee.roleId || employee.role?.id,
+role: employee.role?.name || employee.role?.title || employee.role            };
 
             const endpoint = id ? `/employee/${id}` : '/employee/me';
             await api.put(endpoint, profileData);
@@ -515,34 +554,170 @@ const [showPayslip, setShowPayslip] = useState(false);
                                     ) : <p className="font-semibold">{profile.dob ? new Date(profile.dob).toLocaleDateString() : 'N/A'}</p>}
                                 </div>
                            <div className="space-y-1">
-    <label className="text-xs font-bold text-gray-400 uppercase">ROLE</label>
-    {isEditing && hasPermission(['HR_ADMIN']) ? (
-        <input
-            type="text"
-            value={employee.role?.name || employee.role?.title || employee.role || ''}
-            onChange={(e) => handleInputChange('role', e.target.value)}
-            className="w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg outline-none"
-        />
-    ) : (
-        <p className="font-semibold">
-            {employee.role?.name || employee.role?.title || employee.role || 'N/A'}
-        </p>
-    )}
-</div>
+   <label className="text-xs font-bold text-gray-400 uppercase">SYSTEM ROLE</label>
+{isEditing && hasPermission(['HR_ADMIN']) ? (
+    <div className="relative">
+    <select
+        value={employee.role?.id || employee.roleId || ''}
+        onChange={(e) => {
+            const selectedRole = roles.find((r: any) => String(r.id) === String(e.target.value));
 
+            setEmployee((prev: any) => ({
+                ...prev,
+                roleId: e.target.value,
+                role: selectedRole
+            }));
+        }}
+className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"  
+  >
+       <option value="" className="dark:bg-brand-900">
+    Select Role
+</option>
+
+{roles.map((role: any) => (
+    <option
+        key={role.id}
+        value={role.id}
+        className="dark:bg-brand-900"
+    >
+        {role.name}
+    </option>
+        ))}
+    </select>
+    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+    <svg
+        className="w-4 h-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+    >
+        <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="3"
+            d="M19 9l-7 7-7-7"
+        />
+    </svg>
+</div>
+</div>
+) : (
+    <p className="font-semibold">
+        {employee.role?.name || employee.role?.title || employee.role || 'N/A'}
+    </p>
+)}
+</div>
 <div className="space-y-1">
     <label className="text-xs font-bold text-gray-400 uppercase">DESIGNATION</label>
+
     {isEditing && hasPermission(['HR_ADMIN']) ? (
-        <input
-            type="text"
-            value={profile.title || ''}
-            onChange={(e) => handleInputChange('title', e.target.value)}
-            className="w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg outline-none"
-        />
+        <div className="relative">
+            <select
+                value={profile.designationId || ''}
+                onChange={(e) => {
+                    const selectedDesignation = designations.find(
+                        (d: any) => String(d.id) === String(e.target.value)
+                    );
+
+                    setEmployee((prev: any) => ({
+                        ...prev,
+                        employeeProfile: {
+                            ...(prev?.employeeProfile || {}),
+                            designationId: e.target.value,
+                            title: selectedDesignation?.name || ''
+                        }
+                    }));
+                }}
+                className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
+            >
+                <option value="" className="dark:bg-brand-900">
+                    Select Designation
+                </option>
+
+                {designations.map((desig: any) => (
+                    <option
+                        key={desig.id}
+                        value={desig.id}
+                        className="dark:bg-brand-900"
+                    >
+                        {desig.name}
+                    </option>
+                ))}
+            </select>
+
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" />
+                </svg>
+            </div>
+        </div>
     ) : (
         <p className="font-semibold">{profile.title || 'N/A'}</p>
     )}
 </div>
+<div className="space-y-1">
+    <label className="text-xs font-bold text-gray-400 uppercase">
+        DEPARTMENT
+    </label>
+
+    {isEditing && hasPermission(['HR_ADMIN']) ? (
+        <div className="relative">
+            <select
+                value={profile.departmentId || ''}
+                onChange={(e) => {
+                    const selectedDepartment = departments.find(
+                        (d: any) => String(d.id) === String(e.target.value)
+                    );
+
+                    setEmployee((prev: any) => ({
+                        ...prev,
+                        employeeProfile: {
+                            ...(prev?.employeeProfile || {}),
+                            departmentId: e.target.value,
+                            department: selectedDepartment?.name || ''
+                        }
+                    }));
+                }}
+                className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
+            >
+                <option value="" className="dark:bg-brand-900">
+                    Select Department
+                </option>
+
+                {departments.map((dept: any) => (
+                    <option
+                        key={dept.id}
+                        value={dept.id}
+                        className="dark:bg-brand-900"
+                    >
+                        {dept.name}
+                    </option>
+                ))}
+            </select>
+
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="3"
+                        d="M19 9l-7 7-7-7"
+                    />
+                </svg>
+            </div>
+        </div>
+    ) : (
+        <p className="font-semibold">
+            {profile.department || 'N/A'}
+        </p>
+    )}
+</div>
+
+
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-400 uppercase">Blood Group</label>
                                     {isEditing ? (

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Building2, Plus, Save, MapPin, Trash2, Users, Briefcase, X, Edit, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -60,9 +60,13 @@ export default function OrgMasters() {
 
     // --- DEPARTMENTS STATE ---
     const [departments, setDepartments] = useState<any[]>([]);
+    const [employees, setEmployees] = useState<any[]>([]);
     const [showDeptModal, setShowDeptModal] = useState(false);
-    const [editingDeptId, setEditingDeptId] = useState<number | null>(null);
-    const [newDept, setNewDept] = useState({ name: '', head: '' });
+    const [editingDeptId, setEditingDeptId] = useState<string | null>(null);
+    const [newDept, setNewDept] = useState({ name: '', headId: null as number | null });
+    const [headSearch, setHeadSearch] = useState('');
+    const [showHeadDropdown, setShowHeadDropdown] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
     const fetchDepartments = async () => {
         try {
@@ -71,9 +75,17 @@ export default function OrgMasters() {
         } catch (error) { console.error(error); }
     };
 
+    const fetchEmployees = async () => {
+        try {
+            const res = await api.get('/employee');
+            setEmployees(res.data);
+        } catch (error) { console.error(error); }
+    };
+
     const handleEditDept = (dept: any) => {
         setEditingDeptId(dept.id);
-        setNewDept({ name: dept.name, head: dept.head });
+        setNewDept({ name: dept.name, headId: dept.headId || null });
+        setHeadSearch('');
         setShowDeptModal(true);
     };
 
@@ -93,7 +105,7 @@ export default function OrgMasters() {
             }
             fetchDepartments();
             setShowDeptModal(false);
-            setNewDept({ name: '', head: '' });
+            setNewDept({ name: '', headId: null });
             setEditingDeptId(null);
         } catch (error) { toast.error("Failed"); }
         finally { setLoading(false); }
@@ -186,6 +198,7 @@ export default function OrgMasters() {
         fetchLocations();
         fetchDepartments();
         fetchDesignations();
+        fetchEmployees();
         api.get('/masters/states').then(res => setStateList(res.data)).catch(console.error);
     }, []);
 
@@ -197,6 +210,16 @@ export default function OrgMasters() {
             }
         } else { setCityList([]); }
     }, [newLoc.state, stateList]);
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setShowHeadDropdown(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
 
     return (
@@ -304,26 +327,71 @@ export default function OrgMasters() {
                                 <Users size={20} className="text-brand-500" />
                                 Departments & Units ({departments.length})
                             </h3>
-                            <button onClick={() => { setEditingDeptId(null); setNewDept({ name: '', head: '' }); setShowDeptModal(true); }} className="flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-medium transition-colors">
+                            <button onClick={() => { setEditingDeptId(null); setNewDept({ name: '', headId: null }); setShowDeptModal(true); }} className="flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-medium transition-colors">
                                 <Plus size={16} /> Add Department
                             </button>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            {departments.map(dept => (
-                                <div key={dept.id} className="group p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col justify-between hover:shadow-lg hover:border-brand-500/50 transition-all relative">
-                                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button onClick={() => setItemToDelete({ id: dept.id, name: dept.name, type: 'department' })} className="text-gray-400 hover:text-red-500"><Trash2 size={14} /></button>
+                            {departments.map(dept => {
+                                const headEmployee = employees.find(e => e.id === dept.headId);
+                                const deptEmployees = employees.filter(e => e.employeeProfile?.departmentId === dept.id);
+                                return (
+                                    <div key={dept.id} className="group p-5 bg-white dark:bg-[#1a1c24] rounded-2xl border border-gray-200 dark:border-white/10 flex flex-col justify-between hover:shadow-2xl hover:border-brand-500/50 transition-all relative overflow-hidden">
+                                        {/* Background Decoration */}
+                                        <div className="absolute -right-4 -top-4 w-24 h-24 bg-brand-500/5 rounded-full blur-2xl group-hover:bg-brand-500/10 transition-all" />
+                                        
+                                        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                                            <button onClick={() => handleEditDept(dept)} className="p-1.5 bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 rounded-lg hover:bg-brand-100 transition-colors"><Edit size={14}/></button>
+                                            <button onClick={() => setItemToDelete({ id: dept.id, name: dept.name, type: 'department' })} className="p-1.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 transition-colors"><Trash2 size={14} /></button>
+                                        </div>
+
+                                        <div>
+                                            <div className="flex items-center gap-3 mb-4">
+                                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
+                                                    <Users size={24} />
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">{dept.name}</h4>
+                                                    <p className="text-xs text-gray-500 font-medium">Internal Department</p>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-3">
+                                                <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5">
+                                                    <div className="w-8 h-8 rounded-full bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center text-brand-600 dark:text-brand-400">
+                                                        <Briefcase size={14} />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Department Head</p>
+                                                        <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 truncate">
+                                                            {headEmployee?.name || 'Not Assigned'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+
+                                        </div>
+
+                                        <div className="mt-6 pt-4 border-t border-gray-100 dark:border-white/5 flex justify-between items-center">
+                                            <div className="flex -space-x-2">
+                                                {deptEmployees.slice(0, 3).map((emp, i) => (
+                                                    <div key={emp.id} title={emp.name} className="w-7 h-7 rounded-full border-2 border-white dark:border-gray-800 bg-brand-200 flex items-center justify-center text-[10px] font-bold text-brand-700">
+                                                        {emp.name.substring(0, 1)}
+                                                    </div>
+                                                ))}
+                                                {deptEmployees.length > 3 && (
+                                                    <div className="w-7 h-7 rounded-full border-2 border-white dark:border-gray-800 bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-[10px] font-bold text-gray-500">
+                                                        +{deptEmployees.length - 3}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <span className="text-xs font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-500/10 px-2 py-1 rounded-full">
+                                                {deptEmployees.length} Employees
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h4 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{dept.name}</h4>
-                                        <p className="text-sm text-gray-500">Head: {dept.head || 'Not Assigned'}</p>
-                                    </div>
-                                    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center">
-                                        <span className="text-xs font-medium bg-brand-50 text-brand-700 px-2 py-1 rounded-full">{dept.designations?.length || 0} Designations</span>
-                                        <button onClick={() => handleEditDept(dept)} className="text-gray-400 hover:text-brand-500 text-sm flex items-center gap-1"><Edit size={12}/> Edit</button>
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 )}
@@ -397,21 +465,158 @@ export default function OrgMasters() {
                 </div>
             )}
 
-            {/* Department Modal */}
             {showDeptModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md p-6 animate-fade-in-up">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-lg font-bold dark:text-white">{editingDeptId ? 'Edit Department' : 'Add Department'}</h3>
-                            <button onClick={() => setShowDeptModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+                    <div className="bg-white dark:bg-[#1a1c24] rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-gray-200 dark:border-white/10 animate-fade-in-up">
+                        <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
+                            <div>
+                                <h3 className="text-lg font-bold dark:text-white">{editingDeptId ? 'Edit Department' : 'Add Department'}</h3>
+                                <p className="text-xs text-gray-500 mt-1">Configure department details and leadership</p>
+                            </div>
+                            <button onClick={() => setShowDeptModal(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 transition-colors"><X size={20} /></button>
                         </div>
-                        <div className="space-y-4">
-                            <div><label className="block text-sm font-medium mb-1 dark:text-gray-300">Department Name</label><input type="text" className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" value={newDept.name} onChange={e => setNewDept({ ...newDept, name: e.target.value })} /></div>
-                            <div><label className="block text-sm font-medium mb-1 dark:text-gray-300">Department Head</label><input type="text" className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" value={newDept.head} onChange={e => setNewDept({ ...newDept, head: e.target.value })} /></div>
-                            <button onClick={saveDepartment} className="w-full py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 font-medium mt-2">
-                                {loading ? <Loader2 size={16} className="animate-spin inline mr-2"/> : null}
-                                {editingDeptId ? 'Update Department' : 'Save Department'}
-                            </button>
+                        
+                        <div className="p-6 space-y-6">
+                            {/* Department Name */}
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Department Name</label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <Users size={16} className="text-gray-400" />
+                                    </div>
+                                    <input 
+                                        type="text" 
+                                        placeholder="e.g. Information Technology"
+                                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white" 
+                                        value={newDept.name} 
+                                        onChange={e => setNewDept({ ...newDept, name: e.target.value })} 
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Department Head Selection - ONLY SHOW WHEN EDITING */}
+                            {editingDeptId && (
+                                <div className="relative" ref={dropdownRef}>
+                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Department Head</label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <Briefcase size={16} className="text-brand-500" />
+                                        </div>
+                                        <input 
+                                            type="text" 
+                                            placeholder="Search employee..."
+                                            className="w-full pl-10 pr-10 py-2.5 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white" 
+                                            value={headSearch || (employees.find(e => e.id === newDept.headId)?.name || '')} 
+                                            onFocus={() => setShowHeadDropdown(true)}
+                                            onChange={e => {
+                                                setHeadSearch(e.target.value);
+                                                setShowHeadDropdown(true);
+                                                if (!e.target.value) setNewDept({...newDept, headId: null});
+                                            }}
+                                        />
+                                        {newDept.headId && (
+                                            <button 
+                                                onClick={() => {setNewDept({...newDept, headId: null}); setHeadSearch('');}}
+                                                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-red-500"
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* Head Dropdown */}
+                                    {showHeadDropdown && (
+                                        <div className="absolute z-50 w-full mt-2 bg-white dark:bg-[#252836] border border-gray-200 dark:border-white/10 rounded-xl shadow-2xl max-h-[195px] overflow-y-auto animate-fade-in custom-scrollbar">
+                                            {employees
+                                                .filter(e => e.name.toLowerCase().includes(headSearch.toLowerCase()))
+                                                .map(emp => (
+                                                    <button
+                                                        key={emp.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setNewDept({ ...newDept, headId: emp.id });
+                                                            setHeadSearch(emp.name);
+                                                            setShowHeadDropdown(false);
+                                                        }}
+                                                        className="w-full flex items-center gap-3 p-3 hover:bg-brand-50 dark:hover:bg-brand-500/10 transition-colors text-left border-b border-gray-50 dark:border-white/5 last:border-0"
+                                                    >
+                                                        <div className="w-8 h-8 rounded-full bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center text-brand-600 dark:text-brand-400 text-xs font-bold">
+                                                            {emp.name.substring(0, 2).toUpperCase()}
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-medium dark:text-white">{emp.name}</p>
+                                                            <p className="text-[10px] text-gray-500 dark:text-gray-400">{emp.employeeProfile?.title || 'No Title'}</p>
+                                                        </div>
+                                                    </button>
+                                                ))
+                                            }
+                                            {employees.filter(e => e.name.toLowerCase().includes(headSearch.toLowerCase())).length === 0 && (
+                                                <div className="p-4 text-center text-gray-500 text-sm italic">No employees found</div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Employees in this department list */}
+                            {editingDeptId && (
+                                <div className="pt-2">
+                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex justify-between items-center">
+                                        <span className="flex items-center gap-2">
+                                            <Users size={14} />
+                                            Active Members
+                                        </span>
+                                        <span className="bg-brand-500/10 text-brand-500 px-2 py-0.5 rounded-full text-[10px]">
+                                            {employees.filter(e => e.employeeProfile?.departmentId === editingDeptId).length} Assigned
+                                        </span>
+                                    </label>
+                                    <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                                        {employees
+                                            .filter(e => e.employeeProfile?.departmentId === editingDeptId)
+                                            .map(emp => (
+                                                <div key={emp.id} className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-xl transition-all group hover:border-brand-500/30">
+                                                    <div className="relative">
+                                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-100 to-brand-200 dark:from-brand-900/40 dark:to-brand-800/20 flex items-center justify-center text-[10px] font-bold text-brand-600 dark:text-brand-400">
+                                                            {emp.name.substring(0, 2).toUpperCase()}
+                                                        </div>
+                                                        {emp.id === newDept.headId && (
+                                                            <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-brand-500 rounded-full border-2 border-white dark:border-[#1a1c24] flex items-center justify-center">
+                                                                <Briefcase size={8} className="text-white" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs font-bold dark:text-white truncate">{emp.name}</p>
+                                                        <p className="text-[9px] text-gray-500 truncate">{emp.employeeProfile?.title || 'No Title'}</p>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        }
+                                        {employees.filter(e => e.employeeProfile?.departmentId === editingDeptId).length === 0 && (
+                                            <div className="col-span-2 py-8 flex flex-col items-center justify-center text-gray-500 bg-gray-50 dark:bg-white/5 rounded-2xl border-2 border-dashed border-gray-200 dark:border-white/5">
+                                                <Users size={24} className="mb-2 opacity-20" />
+                                                <p className="text-xs italic">No employees assigned yet.</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex gap-4 pt-4">
+                                <button 
+                                    onClick={() => setShowDeptModal(false)}
+                                    className="flex-1 py-3 bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 rounded-2xl hover:bg-gray-200 dark:hover:bg-white/10 font-bold transition-all text-sm"
+                                >
+                                    Discard
+                                </button>
+                                <button 
+                                    onClick={saveDepartment} 
+                                    className="flex-[2] py-3 bg-gradient-to-r from-brand-600 to-brand-500 text-white rounded-2xl hover:scale-[1.02] active:scale-95 font-bold shadow-lg shadow-brand-500/25 transition-all flex items-center justify-center gap-2 text-sm"
+                                >
+                                    {loading ? <Loader2 size={18} className="animate-spin"/> : <Save size={18} />}
+                                    {editingDeptId ? 'Update Changes' : 'Confirm Department'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
