@@ -327,29 +327,29 @@ export default function Attendance() {
                 </div>
 
                 {/* Quick Stats */}
-                <div className="lg:col-span-2 grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="bg-white dark:bg-brand-900 p-6 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm">
+<div className="lg:col-span-2 grid grid-cols-2 lg:grid-cols-4 gap-4 items-start">
+<div className="bg-white dark:bg-brand-900 p-6 h-80 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm">
                         <div className="w-10 h-10 bg-green-100 text-green-600 rounded-lg flex items-center justify-center mb-4">
                             <CheckCircle />
                         </div>
                         <h4 className="text-2xl font-bold text-gray-800 dark:text-white">{stats.present}</h4>
                         <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase mt-1">Present Days</p>
                     </div>
-                    <div className="bg-white dark:bg-brand-900 p-6 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm">
+<div className="bg-white dark:bg-brand-900 p-6 h-80 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm">
                         <div className="w-10 h-10 bg-red-100 text-red-600 rounded-lg flex items-center justify-center mb-4">
                             <AlertCircle />
                         </div>
                         <h4 className="text-2xl font-bold text-gray-800 dark:text-white">{stats.absent}</h4>
                         <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase mt-1">Absents</p>
                     </div>
-                    <div className="bg-white dark:bg-brand-900 p-6 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm">
+<div className="bg-white dark:bg-brand-900 p-6 h-80 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm">
                         <div className="w-10 h-10 bg-orange-100 text-orange-600 rounded-lg flex items-center justify-center mb-4">
                             <Clock />
                         </div>
                         <h4 className="text-2xl font-bold text-gray-800 dark:text-white">{stats.late}</h4>
                         <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase mt-1">Late Marks</p>
                     </div>
-                    <div className="bg-white dark:bg-brand-900 p-6 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm">
+                    <div className="bg-white dark:bg-brand-900 p-6 h-80 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm">
                         <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center mb-4">
                             <Coffee />
                         </div>
@@ -364,7 +364,7 @@ export default function Attendance() {
                     </div>
 
                     {/* Regularization Alert */}
-                    <div className="col-span-2 lg:col-span-4 bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-500/20 rounded-2xl p-4 flex items-center justify-between">
+                    {/* <div className="col-span-2 lg:col-span-4 bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-500/20 rounded-2xl p-4 flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <AlertCircle className="text-orange-600" size={20} />
                             <div>
@@ -378,7 +378,7 @@ export default function Attendance() {
                         >
                             Fix Now
                         </button>
-                    </div>
+                    </div> */}
                 </div>
             </div>
 
