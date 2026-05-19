@@ -14,41 +14,24 @@ export default function Header({ onMenuClick }: HeaderProps) {
     const navigate = useNavigate();
     const [showNotifications, setShowNotifications] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [notifications, setNotifications] = useState([]);
+    const [notifications, setNotifications] = useState<any[]>([]);
     const [employees, setEmployees] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const { theme, toggleTheme } = useTheme();
     const { user } = useAuth();
-    
+
     const fetchNotifications = async () => {
         setLoading(true);
         try {
-            // Mock data for demonstration
-            const demoNotifications = [
-                { id: '1', title: 'New Leave Request', message: 'Sarah Jenkins requested leave for 2 days.', time: '2 mins ago', type: 'leave', unread: true },
-                { id: '2', title: 'System Update', message: 'HRMS will be down for maintenance on Sunday.', time: '1 hour ago', type: 'system', unread: true },
-                { id: '3', title: 'Attendance Alert', message: 'You were marked late yesterday.', time: '5 hours ago', type: 'attendance', unread: false },
-                { id: '4', title: 'Welcome!', message: 'Welcome to the new Encalm HRMS portal.', time: '1 day ago', type: 'system', unread: false },
-                { id: '5', title: 'Holiday Announcement', message: 'The office will be closed on Friday for the public holiday.', time: '2 days ago', type: 'system', unread: false },
-                { id: '6', title: 'Task Assigned', message: 'You have been assigned a new task: "Quarterly Review".', time: '3 days ago', type: 'system', unread: true },
-                { id: '7', title: 'Payroll Processed', message: 'Salary for the month of April has been processed.', time: '1 week ago', type: 'system', unread: false },
-                { id: '8', title: 'New Policy', message: 'The updated Work From Home policy is now available.', time: '1 week ago', type: 'system', unread: false },
-                { id: '9', title: 'Team Outing', message: 'Join us for the team lunch this Friday at 1 PM.', time: '2 weeks ago', type: 'leave', unread: false },
-                { id: '10', title: 'Password Reset', message: 'Your system password was changed successfully.', time: '1 month ago', type: 'system', unread: false },
-            ];
-
-            try {
-                const res = await api.get('/notifications');
-                setNotifications([...demoNotifications, ...res.data]);
-            } catch (e) {
-                setNotifications(demoNotifications as any);
-            }
-        } catch (e) {
-            console.log(e);
-        }
+             const res = await api.get('/notifications');
+        setNotifications(Array.isArray(res.data) ? res.data : []);
+    } catch (e) {
+        console.error('Failed to fetch notifications:', e);
+        setNotifications([]);
+    } finally {
         setLoading(false);
-    };
-
+    }
+};
     const fetchEmployees = async () => {
         try {
             const res = await api.get('/employee');
@@ -60,8 +43,77 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
     useEffect(() => {
         fetchNotifications();
-            // eslint-disable-next-line react-hooks/exhaustive-deps
-        }, []);
+        fetchEmployees();
+    }, []);
+
+    // Simple navigation list for the search with module permissions
+    const navItems = [
+        { name: 'Dashboard', path: '/dashboard', icon: <LayoutGrid size={16} />, module: 'DASHBOARD' },
+        { name: 'Attendance', path: '/attendance', icon: <Calendar size={16} />, module: 'ATTENDANCE' },
+        { name: 'Leave', path: '/leave', icon: <FileText size={16} />, module: 'LEAVE', state: { activeTab: 'MY_LEAVE' } },
+        { name: 'My Profile', path: '/profile', icon: <User size={16} />, module: 'MY_PROFILE' },
+        { name: 'Team', path: '/team', icon: <Users size={16} />, module: 'TEAM' },
+        { name: 'Reports', path: '/reports', icon: <FileText size={16} />, module: 'REPORTS' },
+        { name: 'Masters', path: '/masters', icon: <Settings size={16} />, module: 'MASTERS' },
+        { name: 'Organization Master', path: '/masters/org', icon: <Settings size={16} />, module: 'MASTERS' },
+        { name: 'Statutory Master', path: '/masters/statutory', icon: <Settings size={16} />, module: 'MASTERS' },
+        { name: 'Attendance Master', path: '/masters/attendance', icon: <Settings size={16} />, module: 'MASTERS' },
+        { name: 'Access Master', path: '/masters/access', icon: <Settings size={16} />, module: 'MASTERS' },
+        { name: 'Employee List', path: '/employee', icon: <Users size={16} />, module: 'EMPLOYEE' },
+        { name: 'Total Headcount', path: '/employee', icon: <Users size={16} />, module: 'EMPLOYEE' },
+        { name: 'On Leave Today', path: '/leave-today', icon: <Calendar size={16} />, module: 'EMPLOYEE' },
+        { name: 'New Joiners', path: '/new-joiners', icon: <Users size={16} />, module: 'EMPLOYEE' },
+        { name: 'Employee Attendance', path: '/employee-attendance', icon: <Calendar size={16} />, module: 'EMPLOYEE_ATTENDANCE' },
+        { name: 'Leave Approval', path: '/leave', icon: <FileText size={16} />, module: 'EMPLOYEE', state: { activeTab: 'APPROVALS' } },
+    ];
+
+    // Get accessible modules (same logic as sidebar)
+    let userModules = user?.accessibleModules || [];
+    if (userModules.length === 0 && user?.role === 'HR_ADMIN') {
+        userModules = ['DASHBOARD', 'ATTENDANCE', 'EMPLOYEE', 'EMPLOYEE_ATTENDANCE', 'TEAM', 'LEAVE', 'REPORTS', 'MASTERS', 'TASK', 'MY_PROFILE'];
+    } else if (userModules.length === 0) {
+        userModules = ['DASHBOARD', 'ATTENDANCE', 'LEAVE', 'MY_PROFILE'];
+    }
+
+    const sortResults = (results: any[], query: string) => {
+        const q = query.toLowerCase();
+        return results.sort((a, b) => {
+            const aName = a.name.toLowerCase();
+            const bName = b.name.toLowerCase();
+            if (aName === q) return -1;
+            if (bName === q) return 1;
+            if (aName.startsWith(q) && !bName.startsWith(q)) return -1;
+            if (!aName.startsWith(q) && bName.startsWith(q)) return 1;
+            return aName.localeCompare(bName);
+        });
+    };
+
+    // Filter employees: Employees should only see themselves or no one, Admins see everyone
+    const filteredEmployees = searchQuery.trim() === '' ? [] : sortResults(
+        employees.filter(emp => {
+            // Permission check: Only Admins can search other employees
+            if (user?.role !== 'HR_ADMIN' && emp.id !== user?.id) return false;
+            return emp.name.toLowerCase().includes(searchQuery.toLowerCase());
+        }),
+        searchQuery
+    ).slice(0, 5);
+
+    // Filter nav items: Only show items the user has access to
+    const filteredNav = searchQuery.trim() === '' ? [] : sortResults(
+        navItems.filter(item => {
+            const isHrAdmin = user?.role === 'HR_ADMIN';
+            
+            // Explicitly block Admin-only modules for non-admins
+            const adminModules = ['EMPLOYEE', 'EMPLOYEE_ATTENDANCE', 'MASTERS', 'REPORTS', 'TEAM'];
+            if (adminModules.includes(item.module) && !isHrAdmin) return false;
+            
+            // Fallback module check
+            if (!userModules.includes(item.module)) return false;
+            
+            return item.name.toLowerCase().includes(searchQuery.toLowerCase());
+        }),
+        searchQuery
+    );
 
     return (
         <>
@@ -163,10 +215,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
                     </button>
 
                     {user && (
-                         <div 
-                            onClick={() => navigate('/profile')}                         className="flex items-center gap-3 pl-2 md:pl-4 border-l border-gray-200 ml-2 cursor-pointer"
-  >
-                                <div className="text-right hidden md:block">
+                        <div 
+                            onClick={() => navigate('/profile')}
+                            className="flex items-center gap-3 pl-2 md:pl-4 border-l border-gray-200 ml-2 cursor-pointer hover:opacity-80 transition-opacity"
+                        >
+                            <div className="text-right hidden md:block">
                                 <p className="text-sm font-bold text-gray-800 dark:text-gray-100">{user.name}</p>
                                 <p className="text-xs text-gray-500 capitalize">{user.role?.toLowerCase().replace('_', ' ') || 'User'}</p>
                             </div>
