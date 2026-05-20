@@ -1,4 +1,4 @@
-// import { AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import HeadcountStats from './HeadcountStats';
 import LiveAttendance from './LiveAttendance';
 
@@ -21,7 +21,7 @@ export default function AdminDashboard({ navigate, stats, attendanceData, pendin
             </header>
 
             {/* Regularization Alert */}
-            {/* <div className="mb-8 relative overflow-hidden bg-gradient-to-r from-orange-50 to-orange-100/50 dark:from-orange-950/40 dark:to-orange-900/10 border border-orange-200/60 dark:border-orange-500/20 rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm hover:shadow-md transition-shadow">
+            { <div className="mb-8 relative overflow-hidden bg-gradient-to-r from-orange-50 to-orange-100/50 dark:from-orange-950/40 dark:to-orange-900/10 border border-orange-200/60 dark:border-orange-500/20 rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm hover:shadow-md transition-shadow">
                 <div className="absolute -right-10 -top-10 w-40 h-40 bg-orange-500/10 rounded-full blur-2xl pointer-events-none"></div>
                 <div className="flex items-start sm:items-center gap-4 relative z-10">
                     <div className="p-3 bg-white dark:bg-orange-500/20 rounded-2xl shadow-sm">
@@ -38,7 +38,7 @@ export default function AdminDashboard({ navigate, stats, attendanceData, pendin
                 >
                     View Requests
                 </button>
-            // </div> */} {/* alertdelete */}
+              </div> } {/* alertdelete */}
 
             {/* Key Metrics Widgets */}
             <HeadcountStats {...stats} navigate={navigate} />

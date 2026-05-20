@@ -1,3 +1,4 @@
+import { useMutation } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import { Calendar, Clock, MapPin, AlertCircle, CheckCircle, Coffee, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -67,53 +68,16 @@ export default function Attendance() {
                 const historyRes = await api.get(`/attendance/history?year=${year}&month=${month}`);
                 const historyData = historyRes.data;
                 setAttendanceHistory(historyData);
+                // Fetch stats from backend
+               const statsRes = await api.get(`/attendance/stats?year=${year}&month=${month}`);
 
-                // Frontend-side calculation of stats
-                const newStats = {
-                    present: 0,
-                    absent: 0,
-                    late: 0,
-                    holiday: 0
-                };
-
-                const daysInMonth = new Date(year, month, 0).getDate();
-                const today = new Date();
-                const isCurrentMonth = today.getFullYear() === year && today.getMonth() + 1 === month;
-                const endDay = isCurrentMonth ? today.getDate() : daysInMonth;
-
-                // Calculate stats up to 'today' for the current month, or the whole month for past months
-                for (let d = 1; d <= endDay; d++) {
-                    const currentLoopDate = new Date(year, month - 1, d);
-                    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-
-                    // Skip if day is before joining date
-                    if (joiningDate) {
-                        const jdCopy = new Date(joiningDate);
-                        jdCopy.setHours(0, 0, 0, 0);
-                        if (currentLoopDate < jdCopy) continue;
-                    }
-
-                    const log = historyData.find((l: any) => l.date === dateStr);
-                    const dayOfWeek = currentLoopDate.getDay();
-                    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-
-                    if (log) {
-                        if (log.status === 'Present') {
-                            newStats.present++;
-                        } else if (log.status === 'Late') {
-                            newStats.present++;
-                            newStats.late++;
-                        } else if (log.status === 'Absent') {
-                            newStats.absent++;
-                        } else if (log.status === 'Holiday') {
-                            newStats.holiday++;
-                        }
-                    } else if (!isWeekend && !(isCurrentMonth && d === today.getDate())) {
-                        // Days with no log are counted as absent (excluding weekends and today)
-                        newStats.absent++;
-                    }
-                }
-                setStats(newStats);
+setStats({
+    present: statsRes.data.present || 0,
+    absent: statsRes.data.absent || 0,
+    late: statsRes.data.late || 0,
+    holiday: statsRes.data.holiday || 0
+});
+                
             } catch (error) {
                 console.error("Failed to fetch history:", error);
             } finally {
@@ -123,63 +87,25 @@ export default function Attendance() {
         fetchHistory();
     }, [selectedMonth, joiningDate]);
 
-    const handlePunch = async () => {
-        try {
-            const res = await api.post('/attendance/punch');
-            toast.success(res.data.message);
+    const punchMutation = useMutation({
+    mutationFn: async () => {
+        const res = await api.post('/attendance/punch');
+        return res.data;
+    },
 
-            // Re-fetch status and current day history
-            const statusRes = await api.get('/attendance/status');
-            setIsPunchedIn(statusRes.data.isPunchedIn);
-            if (statusRes.data.punchInTime) {
-                setPunchInTime(new Date(statusRes.data.punchInTime));
-            } else {
-                setPunchInTime(null);
-            }
+    onSuccess: (data) => {
+        toast.success(data.message);
+     window.location.reload();
+    },
 
-            // Refresh history for the current month
-            const year = selectedMonth.getFullYear();
-            const month = selectedMonth.getMonth() + 1;
-            const historyRes = await api.get(`/attendance/history?year=${year}&month=${month}`);
-            const historyData = historyRes.data;
-            setAttendanceHistory(historyData);
+    onError: (error: any) => {
+        toast.error(error.response?.data?.message || 'Error during punch toggle');
+    }
+});
 
-            // Recalculate stats locally
-            const newStats = { present: 0, absent: 0, late: 0, holiday: 0 };
-            const daysInMonth = new Date(year, month, 0).getDate();
-            const today = new Date();
-            const endDay = (today.getFullYear() === year && today.getMonth() + 1 === month) ? today.getDate() : daysInMonth;
-
-            for (let d = 1; d <= endDay; d++) {
-                const currentLoopDate = new Date(year, month - 1, d);
-                const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-
-                // Skip if day is before joining date
-                if (joiningDate) {
-                    const jdCopy = new Date(joiningDate);
-                    jdCopy.setHours(0, 0, 0, 0);
-                    if (currentLoopDate < jdCopy) continue;
-                }
-
-                const log = historyData.find((l: any) => l.date === dateStr);
-                const isWeekend = currentLoopDate.getDay() === 0 || currentLoopDate.getDay() === 6;
-                if (log) {
-                    if (log.status === 'Present') newStats.present++;
-                    else if (log.status === 'Late') {
-                        newStats.present++;
-                        newStats.late++;
-                    }
-                    else if (log.status === 'Absent') newStats.absent++;
-                    else if (log.status === 'Holiday') newStats.holiday++;
-                } else if (!isWeekend && !((today.getFullYear() === year && today.getMonth() + 1 === month) && d === today.getDate())) {
-                    newStats.absent++;
-                }
-            }
-            setStats(newStats);
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || 'Error during punch toggle');
-        }
-    };
+const handlePunch = () => {
+    punchMutation.mutate();
+};
 
     const getStatusColor = (status: AttendanceStatus) => {
         switch (status) {
@@ -219,7 +145,7 @@ export default function Attendance() {
             const isBeforeJoining = joiningDate && currentLoopDate < new Date(new Date(joiningDate).setHours(0, 0, 0, 0));
 
             // Default logic if no log exists
-            let displayStatus: AttendanceStatus = log ? log.status : (holiday ? 'Holiday' : isWeekend ? 'Weekend' : isBeforeJoining ? 'Weekend' : 'Absent');
+            const displayStatus: AttendanceStatus = log ? log.status : holiday ? 'Holiday' : isWeekend ? 'Weekend' : isBeforeJoining ? 'Weekend' : 'Absent';
             const statusLabel = isBeforeJoining ? '-' : (holiday ? 'Holiday' : displayStatus);
 
             // Check for today
@@ -296,7 +222,7 @@ export default function Attendance() {
                                 <div className={`absolute -inset-1 bg-gradient-to-r ${isHolidayToday ? 'from-purple-600 to-brand-600' : isPunchedIn ? 'from-red-600 to-orange-600' : 'from-green-600 to-emerald-600'} rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200`}></div>
                                 <button
                                     onClick={handlePunch}
-                                    disabled={isHolidayToday}
+disabled={isHolidayToday || punchMutation.isPending}
                                     className={`relative w-48 h-48 rounded-full border-4 flex flex-col items-center justify-center transition-all transform active:scale-95 shadow-xl disabled:opacity-80 disabled:cursor-not-allowed ${isHolidayToday
                                         ? 'border-purple-500 bg-purple-50 dark:bg-purple-500/10 text-purple-600'
                                         : isPunchedIn
@@ -364,7 +290,7 @@ export default function Attendance() {
                     </div>
 
                     {/* Regularization Alert */}
-                    {/* <div className="col-span-2 lg:col-span-4 bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-500/20 rounded-2xl p-4 flex items-center justify-between">
+                    { <div className="col-span-2 lg:col-span-4 bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-500/20 rounded-2xl p-4 flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <AlertCircle className="text-orange-600" size={20} />
                             <div>
@@ -378,7 +304,7 @@ export default function Attendance() {
                         >
                             Fix Now
                         </button>
-                    </div> */}
+                    </div> }
                 </div>
             </div>
 

@@ -111,6 +111,16 @@ const fetchDepartments = async () => {
         }
 
         if (pd.phone && !/^\d{10}$/.test(pd.phone)) newErrors.phone = "Phone must be 10 digits";
+        if (isEditing && !employee.roleId && !employee.role?.id) {
+    newErrors.role = "System Role is required";
+}
+
+if (isEditing && !pd.designationId) {newErrors.designationId = "Designation is required";
+}
+
+if (isEditing && !pd.departmentId) {newErrors.departmentId = "Department is required";
+}
+if (isEditing && !pd.bloodGroup) { newErrors.bloodGroup = "Blood Group is required";}
         if (pd.bloodGroup && !/^(A|B|AB|O)[+-]$/i.test(pd.bloodGroup)) newErrors.bloodGroup = "Invalid Blood Group (e.g. A+, O-)";
         if (isEditing && !pd.address) newErrors.address = "Address is required";
         if (isEditing && !pd.dob) newErrors.dob = "Date of Birth is required";
@@ -397,6 +407,7 @@ role: employee.role?.name || employee.role?.title || employee.role            };
                                         <label className="text-xs font-bold text-gray-400 uppercase">Bank Name</label>
                                         <input
                                             type="text"
+                                            placeholder='e.g. HDFC Bank'
                                             value={bank.bankName || ''}
                                             onChange={(e) => handleBankChange('bankName', e.target.value)}
                                             className="w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-brand-500/50 outline-none"
@@ -1066,15 +1077,20 @@ className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border 
                         </button>
 
                         <div id="id-card-container" className="w-[320px] h-[500px] bg-white rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden relative flex flex-col">
-                            <div className="absolute top-0 inset-x-0 h-48 bg-gradient-to-br from-brand-800 to-brand-600 rounded-b-[50px] z-0"></div>
+<div
+    className="absolute top-0 inset-x-0 h-48 rounded-b-[50px] z-0"
+    style={{ background: 'linear-gradient(to bottom right, #5b21b6, #7c3aed)' }}
+></div>
                             <div className="mx-auto w-16 h-3 bg-white/20 rounded-full mt-4 relative z-10 backdrop-blur-sm"></div>
                             <div className="flex justify-between items-start mb-6 px-6 pt-4 relative z-10">
                                 <h2 className="text-white font-bold tracking-widest text-lg opacity-90">EnCalm <span className="text-brand-300">HRX</span></h2>
                                 <div className="w-10 h-8 bg-gradient-to-br from-yellow-200 to-yellow-500 rounded-md opacity-80 shadow-inner border border-yellow-300/50"></div>
                             </div>
                             <div className="relative z-10 mx-auto mt-6">
-                                <div className="w-32 h-32 rounded-full border-4 border-white shadow-lg overflow-hidden bg-brand-600 flex items-center justify-center text-white font-bold text-4xl">
-                                    {employee.name.split(' ').map((n: any) => n[0]).join('')}
+<div
+    className="w-32 h-32 rounded-full border-4 border-white shadow-lg overflow-hidden flex items-center justify-center text-white font-bold text-4xl"
+    style={{ background: '#7c3aed' }}
+>                                     {employee.name.split(' ').map((n: any) => n[0]).join('')}
                                 </div>
                             </div>
                             <div className="text-center mt-4 flex-1 flex flex-col items-center">
@@ -1103,23 +1119,56 @@ className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border 
                         </div>
                         <div className="flex justify-center mt-6">
                             <button
-                                onClick={() => {
-                                    const printContent = document.getElementById('id-card-container');
-                                    const WindowPrt = window.open('', '', 'left=0,top=0,width=800,height=900,toolbar=0,scrollbars=0,status=0');
-                                    if (WindowPrt && printContent) {
-                                        WindowPrt.document.write('<html><head><title>Print ID Card</title>');
-                                        WindowPrt.document.write('<script src="https://cdn.tailwindcss.com"></script>');
-                                        WindowPrt.document.write('</head><body>');
-                                        WindowPrt.document.write(printContent.innerHTML);
-                                        WindowPrt.document.write('</body></html>');
-                                        WindowPrt.document.close();
-                                        WindowPrt.focus();
-                                        setTimeout(() => {
-                                            WindowPrt.print();
-                                            WindowPrt.close();
-                                        }, 500);
-                                    }
-                                }}
+                              onClick={() => {
+    const printContent = document.getElementById('id-card-container');
+    const WindowPrt = window.open('', '', 'left=0,top=0,width=800,height=900,toolbar=0,scrollbars=0,status=0');
+
+    if (WindowPrt && printContent) {
+        WindowPrt.document.write(`
+            <html>
+                <head>
+                    <title>Print ID Card</title>
+                    <script src="https://cdn.tailwindcss.com"></script>
+                    <style>
+                        @page {
+                            size: 320px 500px;
+                            margin: 0;
+                        }
+
+                        html, body {
+                            margin: 0;
+                            padding: 0;
+                            width: 320px;
+                            height: 500px;
+                            overflow: hidden;
+                            -webkit-print-color-adjust: exact;
+                            print-color-adjust: exact;
+                        }
+
+                        #id-card-container {
+                            width: 320px !important;
+                            height: 500px !important;
+                            border-radius: 24px !important;
+                            overflow: hidden !important;
+                            box-shadow: none !important;
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${printContent.outerHTML}
+                </body>
+            </html>
+        `);
+
+        WindowPrt.document.close();
+
+        setTimeout(() => {
+            WindowPrt.focus();
+            WindowPrt.print();
+            WindowPrt.close();
+        }, 800);
+    }
+}} 
                                 className="flex items-center gap-2 px-6 py-2 bg-white text-gray-800 font-bold rounded-full shadow-lg hover:bg-gray-100 transition-colors"
                             >
                                 <Printer size={18} /> Print

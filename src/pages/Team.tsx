@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useEffect } from 'react';
 import { Users, Plus, MoreVertical, Briefcase, UserPlus, X, Trash2 } from 'lucide-react';
 import { useRBAC } from '../hooks/useRBAC';
@@ -168,10 +169,9 @@ export default function Team() {
                     </div>
                 ))}
             </div>
-            {showAddMemberModal && (
-                <div className="fixed inset-0 z-[60] flex items-start justify-center pt-20 bg-black/50 backdrop-blur-sm">
-
-                    <div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+            {showAddMemberModal &&  createPortal(
+<div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/70 backdrop-blur-xl">
+<div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
 
                         <div className="p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50 dark:bg-white/5">
                             <h3 className="text-xl font-bold text-gray-800 dark:text-white">Add Members</h3>
@@ -280,10 +280,12 @@ export default function Team() {
 
                     </div>
                 </div>
-            )}
-            {showCreateModal && (
-                <div className="fixed inset-0 z-[999] bg-black/50 backdrop-blur-sm flex items-start justify-center pt-20">
-                    <div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            ,document.body)}
+           {showCreateModal &&
+    createPortal(
+        // changes were made here 
+        <div className="fixed inset-0 z-[999999] bg-black/70 backdrop-blur-xl flex items-center justify-center p-4">
+<div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
                         <div className="p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center">
                             <h3 className="text-xl font-bold text-gray-800 dark:text-white">Create New Team</h3>
                             <button onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
@@ -319,9 +321,11 @@ export default function Team() {
                                 Create Team
                             </button>
                         </form>
-                    </div>
-                </div>
-            )}
+                        </div>
+                          </div>,
+        document.body
+    )
+}
 
             {editTeam && (
                 <div className="fixed inset-0 z-[999] bg-black/50 backdrop-blur-sm flex items-start justify-center pt-20">

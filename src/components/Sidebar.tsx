@@ -20,7 +20,7 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', module: 'DASHBOARD' },
-    { icon: Fingerprint, label: 'Attendance', path: '/attendance', module: 'ATTENDANCE' },
+    { icon: Fingerprint, label: 'My Attendance', path: '/attendance', module: 'ATTENDANCE' },
     {
         icon: UserCog,
         label: 'Employee',

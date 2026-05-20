@@ -151,9 +151,10 @@ export default function AccessMasters() {
             </div>
 
             {/* Role Modal */}
-            {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col animate-fade-in-up">
+            {/* changes made */}
+            {showModal && createPortal(
+            <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-xl">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col animate-fade-in-up">
                         <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
                             <h3 className="text-xl font-bold dark:text-white">{editingRole ? 'Edit Role' : 'Create Role'}</h3>
                             <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
@@ -251,7 +252,7 @@ export default function AccessMasters() {
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,document.body
             )}
 
             {/* Delete Confirmation Modal (MATCHING THEME) */}

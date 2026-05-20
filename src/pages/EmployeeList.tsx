@@ -466,9 +466,9 @@ export default function EmployeeList() {
             )}
 
             {/* Delete Confirmation Modal */}
-            {employeeToDelete && (
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-brand-950 rounded-3xl shadow-2xl w-full max-w-md p-8 border border-gray-100 dark:border-white/10 text-center relative overflow-hidden">
+            {employeeToDelete && createPortal (
+            <div className="fixed inset-0 z-[999999] flex items-start justify-center bg-black/80 backdrop-blur-xl pt-30">
+            <div className="bg-white dark:bg-brand-950 rounded-3xl shadow-2xl w-full max-w-md p-8 border border-gray-100 dark:border-white/10 text-center relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-2 bg-red-500"></div>
 
 
@@ -510,7 +510,7 @@ export default function EmployeeList() {
                     </div>
                 </div>
             
-            )}
+            , document.body)}
 
             {/* Add Employee Modal */}
             {showAddModal && createPortal(

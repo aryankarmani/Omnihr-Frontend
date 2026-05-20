@@ -377,7 +377,7 @@ export default function EmployeeAttendanceView() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div className="bg-white dark:bg-brand-900 p-6 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm">
           <div className="w-10 h-10 bg-green-100 text-green-600 rounded-lg flex items-center justify-center mb-4">
             <CheckCircle size={20} />
@@ -408,20 +408,7 @@ export default function EmployeeAttendanceView() {
           </p>
         </div>
 
-        <div className="bg-white dark:bg-brand-900 p-6 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm">
-          <div className="w-10 h-10 bg-orange-100 text-orange-600 rounded-lg flex items-center justify-center mb-4">
-            <Clock size={20} />
-          </div>
-          <h4 className="text-2xl font-bold text-gray-800 dark:text-white">
-            {backendStats?.missedCheckinCount ?? Math.max(0, stats.absent - regularizedDates.filter(d => {
-              const [y, m] = d.split('-');
-              return parseInt(y) === selectedMonth.getFullYear() && parseInt(m) === selectedMonth.getMonth() + 1;
-            }).length)}
-          </h4>
-          <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase mt-1 leading-tight">
-            Missed Check-in
-          </p>
-        </div>
+        
 
         <div className="bg-white dark:bg-brand-900 p-6 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm">
           <div className="w-10 h-10 bg-orange-100 text-orange-600 rounded-lg flex items-center justify-center mb-4">
