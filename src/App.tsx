@@ -24,6 +24,7 @@ import AccessMasters from './pages/masters/AccessMasters';
 import EmployeeAttendanceList from './pages/EmployeeAttendanceList';
 import EmployeeAttendanceView from './pages/EmployeeAttendanceView';
 import Notifications from './pages/Notifications';
+import Regularizations from './pages/Regularizations';
 
 
 function AppContent() {
@@ -122,6 +123,17 @@ function AppContent() {
             isAuthenticated ? (
               <Layout>
                 <EmployeeAttendanceView />
+              </Layout>
+            ) : (
+              <Navigate to="/signin" replace />
+            )
+          } />
+
+          {/* Attendance Regularizations */}
+          <Route path="/regularizations" element={
+            isAuthenticated ? (
+              <Layout>
+                <Regularizations />
               </Layout>
             ) : (
               <Navigate to="/signin" replace />

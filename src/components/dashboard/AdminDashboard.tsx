@@ -30,6 +30,44 @@ export default function AdminDashboard({
     const [rejectComment, setRejectComment] = useState("");
     const [submittingReject, setSubmittingReject] = useState(false);
 
+    // Robust 12-Hour AM/PM Formatter
+    const formatTime12h = (timeStr?: string) => {
+        if (!timeStr) return '--:--';
+        try {
+            // Check if it's a simple HH:MM or HH:MM:SS string
+            if (/^\d{2}:\d{2}(:\d{2})?$/.test(timeStr)) {
+                const [hoursStr, minutesStr] = timeStr.split(':');
+                let hours = parseInt(hoursStr, 10);
+                const minutes = parseInt(minutesStr, 10);
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                hours = hours % 12;
+                hours = hours ? hours : 12; // the hour '0' should be '12'
+                const minutesFormatted = minutes < 10 ? '0' + minutes : minutes;
+                return `${hours}:${minutesFormatted} ${ampm}`;
+            }
+            
+            // If it contains a T or is a full date string, parse it using Date
+            const date = new Date(timeStr);
+            if (isNaN(date.getTime())) {
+                // Try matching HH:MM inside the string
+                const match = timeStr.match(/(\d{2}):(\d{2})/);
+                if (match) {
+                    let hours = parseInt(match[1], 10);
+                    const minutes = parseInt(match[2], 10);
+                    const ampm = hours >= 12 ? 'PM' : 'AM';
+                    hours = hours % 12;
+                    hours = hours ? hours : 12;
+                    const minutesFormatted = minutes < 10 ? '0' + minutes : minutes;
+                    return `${hours}:${minutesFormatted} ${ampm}`;
+                }
+                return timeStr;
+            }
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+        } catch (e) {
+            return timeStr;
+        }
+    };
+
     // Sync local pending lists
     useEffect(() => {
         setLocalPendingRegs(pendingRegularizations);
@@ -117,9 +155,11 @@ export default function AdminDashboard({
                 <div className="lg:col-span-1 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-6 md:p-8 rounded-3xl border border-gray-100/50 dark:border-gray-700/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300 h-[28rem] flex flex-col pt-7">
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="text-lg font-black text-gray-800 dark:text-white">Approval Center</h3>
-                        <span className="bg-brand-100 dark:bg-brand-500/20 text-brand-700 dark:text-brand-400 text-xs font-black px-2.5 py-1 rounded-full">
-                            {activeTab === 'leaves' ? pendingApprovals.length : localPendingRegs.length}
-                        </span>
+                        <div className="flex items-center gap-2">
+                            <span className="bg-brand-100 dark:bg-brand-500/20 text-brand-700 dark:text-brand-400 text-xs font-black px-2.5 py-1 rounded-full">
+                                {activeTab === 'leaves' ? pendingApprovals.length : localPendingRegs.length}
+                            </span>
+                        </div>
                     </div>
 
                     {/* Tabs */}
@@ -140,12 +180,12 @@ export default function AdminDashboard({
                                     : 'border-transparent text-gray-400 hover:text-gray-600'
                                 }`}
                         >
-                            Corrections ({localPendingRegs.length})
+                            REGULARIZATIONS ({localPendingRegs.length})
                         </button>
                     </div>
 
                     {/* Content Scroll Area */}
-                    <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-1">
+                    <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-1 min-h-0 max-h-[220px]">
                         {activeTab === 'leaves' ? (
                             pendingApprovals.length === 0 ? (
                                 <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-10 font-semibold">No pending leaves.</p>
@@ -172,54 +212,68 @@ export default function AdminDashboard({
                             localPendingRegs.length === 0 ? (
                                 <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-10 font-semibold">No pending corrections.</p>
                             ) : (
-                                localPendingRegs.map((request) => (
-                                    <div key={request.id} className="group p-4 hover:bg-white dark:hover:bg-gray-700/50 rounded-2xl border border-gray-50 dark:border-white/5 hover:border-gray-100 dark:hover:border-gray-600 hover:shadow-sm transition-all duration-205">
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-500/20 dark:to-orange-400/10 flex items-center justify-center text-orange-600 dark:text-orange-400 font-black text-xs shadow-inner overflow-hidden shrink-0">
-                                                {request.user?.name ? request.user.name.substring(0, 2).toUpperCase() : <User size={14} />}
+                                <>
+                                    {localPendingRegs.map((request) => (
+                                        <div key={request.id} className="group p-4 hover:bg-white dark:hover:bg-gray-700/50 rounded-2xl border border-gray-50 dark:border-white/5 hover:border-gray-100 dark:hover:border-gray-600 hover:shadow-sm transition-all duration-205">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-500/20 dark:to-orange-400/10 flex items-center justify-center text-orange-600 dark:text-orange-400 font-black text-xs shadow-inner overflow-hidden shrink-0">
+                                                    {request.user?.name ? request.user.name.substring(0, 2).toUpperCase() : <User size={14} />}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">{request.user?.name || `Employee #${request.userId}`}</h4>
+                                                    <p className="text-[10px] font-bold text-brand-600 dark:text-brand-400 truncate">Date: {request.date}</p>
+                                                </div>
                                             </div>
-                                            <div className="flex-1 min-w-0">
-                                                <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">{request.user?.name || `Employee #${request.userId}`}</h4>
-                                                <p className="text-[10px] font-bold text-brand-600 dark:text-brand-400 truncate">Date: {request.date}</p>
+
+                                            <p className="text-[10px] text-gray-600 dark:text-gray-300 font-medium mb-3 italic">
+                                                "{request.reason}"
+                                            </p>
+
+                                            {/* Proposed Times */}
+                                            {(request.proposedIn || request.inTime || request.proposedOut || request.outTime) && (
+                                                <div className="flex gap-4 text-[10px] font-semibold text-gray-500 dark:text-gray-400 mb-4 bg-gray-50 dark:bg-white/5 p-2 rounded-lg">
+                                                    {(request.proposedIn || request.inTime) && (
+                                                        <span className="flex items-center gap-1"><Clock size={10} className="text-green-600" /> In: {formatTime12h(request.proposedIn || request.inTime)}</span>
+                                                    )}
+                                                    {(request.proposedOut || request.outTime) && (
+                                                        <span className="flex items-center gap-1"><Clock size={10} className="text-red-500" /> Out: {formatTime12h(request.proposedOut || request.outTime)}</span>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {/* Actions */}
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => handleApprove(request.id)}
+                                                    className="flex-1 py-1.5 px-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-[10px] font-bold flex items-center justify-center gap-1 shadow-sm transition-all"
+                                                >
+                                                    <Check size={12} /> Approve
+                                                </button>
+                                                <button
+                                                    onClick={() => handleRejectClick(request.id)}
+                                                    className="flex-1 py-1.5 px-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-[10px] font-bold flex items-center justify-center gap-1 shadow-sm transition-all"
+                                                >
+                                                    <X size={12} /> Reject
+                                                </button>
                                             </div>
                                         </div>
-
-                                        <p className="text-[10px] text-gray-600 dark:text-gray-300 font-medium mb-3 italic">
-                                            "{request.reason}"
-                                        </p>
-
-                                        {/* Proposed Times */}
-                                        {(request.inTime || request.outTime) && (
-                                            <div className="flex gap-4 text-[10px] font-semibold text-gray-500 dark:text-gray-400 mb-4 bg-gray-50 dark:bg-white/5 p-2 rounded-lg">
-                                                {request.inTime && (
-                                                    <span className="flex items-center gap-1"><Clock size={10} className="text-green-600" /> In: {new Date(request.inTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}</span>
-                                                )}
-                                                {request.outTime && (
-                                                    <span className="flex items-center gap-1"><Clock size={10} className="text-red-500" /> Out: {new Date(request.outTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}</span>
-                                                )}
-                                            </div>
-                                        )}
-
-                                        {/* Actions */}
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={() => handleApprove(request.id)}
-                                                className="flex-1 py-1.5 px-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-[10px] font-bold flex items-center justify-center gap-1 shadow-sm transition-all"
-                                            >
-                                                <Check size={12} /> Approve
-                                            </button>
-                                            <button
-                                                onClick={() => handleRejectClick(request.id)}
-                                                className="flex-1 py-1.5 px-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-[10px] font-bold flex items-center justify-center gap-1 shadow-sm transition-all"
-                                            >
-                                                <X size={12} /> Reject
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))
+                                    ))}
+                                </>
                             )
                         )}
                     </div>
+
+                    {/* Fixed Bottom Section */}
+                    {activeTab === 'regularizations' && localPendingRegs.length > 0 && (
+                        <div className="pt-3 mt-2 border-t border-gray-100 dark:border-white/10 shrink-0">
+                            <button
+                                onClick={() => navigate('/regularizations')}
+                                className="w-full py-2.5 px-4 bg-brand-50 hover:bg-brand-100 dark:bg-brand-500/10 dark:hover:bg-brand-500/20 text-brand-600 dark:text-brand-400 font-black rounded-xl transition-all text-xs flex items-center justify-center gap-1.5 shadow-sm"
+                            >
+                                View All Regularizations
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -246,7 +300,9 @@ export default function AdminDashboard({
                                 </tr>
                             </thead>
                             <tbody className="text-sm divide-y divide-gray-50/80 dark:divide-gray-700/50">
-                                {employees.map((emp) => (
+                                {employees
+                                    .filter((emp) => emp.status !== 'Inactive' && emp.status?.toLowerCase() !== 'inactive')
+                                    .map((emp) => (
                                     <tr key={emp.id} onClick={() => navigate(`/employee/${emp.id}`)} className="group hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors cursor-pointer">
                                         <td className="py-4 px-8 flex items-center gap-4">
                                             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 flex-shrink-0 flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300 shadow-inner group-hover:scale-105 transition-transform">
@@ -266,7 +322,10 @@ export default function AdminDashboard({
                                         <td className="py-4 px-8 text-right">
                                             <button
                                                 className="text-sm font-bold text-gray-400 dark:text-gray-500 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors hover:underline underline-offset-4 decoration-2"
-                                                onClick={() => navigate(`/employee/${emp.id}`)}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    navigate(`/employee/${emp.id}`);
+                                                }}
                                             >
                                                 View Profile
                                             </button>

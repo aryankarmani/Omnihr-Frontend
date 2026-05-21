@@ -85,6 +85,23 @@ export default function Leave() {
 
     const handleApplyLeave = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Weekend validation (timezone-safe local parsing)
+        const [startYear, startMonth, startDay] = fromDate.split('-').map(Number);
+        const start = new Date(startYear, startMonth - 1, startDay);
+
+        const [endYear, endMonth, endDay] = toDate.split('-').map(Number);
+        const end = new Date(endYear, endMonth - 1, endDay);
+
+        if (start.getDay() === 0 || start.getDay() === 6) {
+            toast.error('Start date cannot be a weekend (Saturday/Sunday)');
+            return;
+        }
+        if (end.getDay() === 0 || end.getDay() === 6) {
+            toast.error('End date cannot be a weekend (Saturday/Sunday)');
+            return;
+        }
+
         setSubmitting(true);
         try {
             await api.post('/leave/apply', {
@@ -156,6 +173,7 @@ export default function Leave() {
             case 'EL': return { color: 'text-purple-600', bg: 'bg-purple-100', darkBg: 'dark:bg-purple-900/30' };
             case 'CL': return { color: 'text-blue-600', bg: 'bg-blue-100', darkBg: 'dark:bg-blue-900/30' };
             case 'SL': return { color: 'text-pink-600', bg: 'bg-pink-100', darkBg: 'dark:bg-pink-900/30' };
+            case 'LWP': return { color: 'text-red-600', bg: 'bg-red-100', darkBg: 'dark:bg-red-900/30' };
             default: return { color: 'text-gray-600', bg: 'bg-gray-100', darkBg: 'dark:bg-white/10' };
         }
     };
@@ -212,6 +230,11 @@ export default function Leave() {
                 <div
                     key={day}
                     onClick={() => {
+                        const dayOfWeek = dayDate.getDay();
+                        if (dayOfWeek === 0 || dayOfWeek === 6) {
+                            toast.error('Cannot apply for leave on weekends (Saturday/Sunday)');
+                            return;
+                        }
                         if (isPast && !status) {
                             toast.error('Cannot apply for leave on past dates');
                             return;
@@ -542,6 +565,7 @@ export default function Leave() {
                                         <option value="CL" className="bg-white dark:bg-brand-800 text-gray-900 dark:text-white">Casual Leave (CL)</option>
                                         <option value="EL" className="bg-white dark:bg-brand-800 text-gray-900 dark:text-white">Earned Leave (EL)</option>
                                         <option value="SL" className="bg-white dark:bg-brand-800 text-gray-900 dark:text-white">Sick Leave (SL)</option>
+                                        <option value="LWP" className="bg-white dark:bg-brand-800 text-gray-900 dark:text-white">Leave Without Pay (LWP)</option>
                                     </select>
                                 </div>
                                 <div className="space-y-1.5">
@@ -586,7 +610,7 @@ export default function Leave() {
                                 <button
                                     type="button"
                                     onClick={() => setShowApplyModal(false)}
-                                    className="flex-1 py-3 bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-200 transition-colors"
+                                    className="flex-1 py-3 bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-400 transition-colors"
                                     disabled={submitting}
                                 >
                                     Cancel
@@ -653,6 +677,7 @@ export default function Leave() {
                                                 <option value="CL" className="dark:bg-brand-900">Casual Leave (CL)</option>
                                                 <option value="EL" className="dark:bg-brand-900">Earned Leave (EL)</option>
                                                 <option value="SL" className="dark:bg-brand-900">Sick Leave (SL)</option>
+                                                <option value="LWP" className="dark:bg-brand-900">Leave Without Pay (LWP)</option>
                                             </select>
                                         </div>
 

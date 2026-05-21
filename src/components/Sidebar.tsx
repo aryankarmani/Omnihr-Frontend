@@ -30,6 +30,7 @@ const menuItems: MenuItem[] = [
             { label: 'List', path: '/employee', module: 'EMPLOYEE', icon: Users },
             { label: 'Attendance', path: '/employee-attendance', module: 'EMPLOYEE_ATTENDANCE', icon: CalendarCheck },
             { label: 'Leave Approval', path: '/leave', module: 'LEAVE', icon: FileCheck, state: { activeTab: 'APPROVALS' } },
+            { label: 'Regularizations', path: '/regularizations', module: 'EMPLOYEE_ATTENDANCE', icon: CheckSquare },
         ]
     },
     { icon: UsersRound, label: 'Team', path: '/team', module: 'TEAM' },

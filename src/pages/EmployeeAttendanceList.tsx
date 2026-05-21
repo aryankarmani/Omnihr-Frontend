@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Loader2, Search, Filter, Plus } from 'lucide-react';
+import { Loader2, Search, Filter } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import api from '../utils/api';
 
@@ -168,7 +168,10 @@ export default function EmployeeAttendanceList() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <button
-                          onClick={() => navigate(`/employee-attendance/${emp.id}`)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/employee-attendance/${emp.id}`);
+                          }}
                           className="px-6 py-2 bg-brand-600 text-white rounded-xl hover:bg-brand-700 hover:scale-105 active:scale-95 transition-all text-xs font-bold uppercase tracking-wider shadow-lg shadow-brand-500/20"
                         >
                           View

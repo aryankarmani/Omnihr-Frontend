@@ -36,10 +36,54 @@ export default function Attendance() {
     const [regularizeDate, setRegularizeDate] = useState<string | null>(null);
     const [reason, setReason] = useState('');
     const [customReason, setCustomReason] = useState('');
-    const [proposedIn, setProposedIn] = useState('09:00');
-    const [proposedOut, setProposedOut] = useState('18:00');
     const [submittingRequest, setSubmittingRequest] = useState(false);
     const [attendancePolicy, setAttendancePolicy] = useState<any>(null);
+
+    // Text field state representations for 12-hour format display and direct editing
+    const [inInputText, setInInputText] = useState('09:00 AM');
+    const [outInputText, setOutInputText] = useState('06:00 PM');
+
+    const format24to12 = (timeStr: string) => {
+        if (!timeStr) return '';
+        const [hoursStr, minutesStr] = timeStr.split(':');
+        const hours = parseInt(hoursStr, 10);
+        if (isNaN(hours)) return timeStr;
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const displayHours = hours % 12 || 12;
+        return `${String(displayHours).padStart(2, '0')}:${minutesStr} ${ampm}`;
+    };
+
+    const parse12hTo24h = (str: string): string | null => {
+        if (!str) return null;
+        const cleaned = str.trim().toLowerCase();
+
+        // Match 12h formats like "06:00 pm", "6:00pm", "9 am", "9:30am", "09 am"
+        const match = cleaned.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/);
+        if (match) {
+            let hours = parseInt(match[1], 10);
+            const minutes = match[2] ? parseInt(match[2], 10) : 0;
+            const period = match[3];
+
+            if (hours >= 1 && hours <= 12 && minutes >= 0 && minutes < 60) {
+                if (period === 'pm' && hours !== 12) {
+                    hours += 12;
+                } else if (period === 'am' && hours === 12) {
+                    hours = 0;
+                }
+                return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+            }
+        }
+        return null;
+    };
+
+    // Reset inputs and fields when modal is closed or opened
+    useEffect(() => {
+        setReason('');
+        setCustomReason('');
+        setInInputText('09:00 AM');
+        setOutInputText('06:00 PM');
+    }, [regularizeDate]);
+
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -141,25 +185,47 @@ export default function Attendance() {
             return;
         }
 
-        // Validate Lookback policy
+        const parsedIn = parse12hTo24h(inInputText);
+        const parsedOut = parse12hTo24h(outInputText);
+
+        if (!parsedIn) {
+            toast.error('Please enter a valid Proposed In Time (e.g., 09:00 AM)');
+            return;
+        }
+        if (!parsedOut) {
+            toast.error('Please enter a valid Proposed Out Time (e.g., 06:00 PM)');
+            return;
+        }
+
+        // Validate Lookback policy (strictly past 3 days and not future/today)
         const lookbackDays = attendancePolicy?.regularizationDays ?? 3;
-        const targetDate = new Date(regularizeDate);
+        const [y, m, d] = regularizeDate.split('-').map(Number);
+        const targetDate = new Date(y, m - 1, d);
         targetDate.setHours(0, 0, 0, 0);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const diffTime = today.getTime() - targetDate.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays < 1) {
+            toast.error('You can only regularize attendance for past dates.');
+            return;
+        }
 
         if (diffDays > lookbackDays) {
-            toast.error(`Policy limit exceeded! You cannot regularize dates older than ${lookbackDays} days.`);
+            toast.error(`You can only regularize attendance for the past ${lookbackDays} days.`);
             return;
         }
 
         setSubmittingRequest(true);
         try {
-            // ISO Date strings for proposed times
-            const inTimeStr = proposedIn ? new Date(`${regularizeDate}T${proposedIn}:00`).toISOString() : undefined;
-            const outTimeStr = proposedOut ? new Date(`${regularizeDate}T${proposedOut}:00`).toISOString() : undefined;
+            // ISO Date strings for proposed times (completely timezone-safe parsing)
+            const [inH, inM] = parsedIn.split(':').map(Number);
+            const [outH, outM] = parsedOut.split(':').map(Number);
+            const inTimeDate = new Date(y, m - 1, d, inH, inM, 0);
+            const outTimeDate = new Date(y, m - 1, d, outH, outM, 0);
+            const inTimeStr = inTimeDate.toISOString();
+            const outTimeStr = outTimeDate.toISOString();
 
             await api.post('/attendance/regularize', {
                 date: regularizeDate,
@@ -209,6 +275,9 @@ export default function Attendance() {
             days.push(<div key={`empty-${i}`} className="h-24 bg-gray-50/50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-xl"></div>);
         }
 
+        const todayMidnight = new Date();
+        todayMidnight.setHours(23, 59, 59, 999);
+
         // Days of current month
         for (let day = 1; day <= daysInMonth; day++) {
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -219,8 +288,11 @@ export default function Attendance() {
             const isWeekend = currentLoopDate.getDay() === 0 || currentLoopDate.getDay() === 6;
             const isBeforeJoining = joiningDate && currentLoopDate < new Date(new Date(joiningDate).setHours(0, 0, 0, 0));
 
+            // Precise future date checking (tomorrow or later)
+            const isFuture = currentLoopDate > todayMidnight;
+
             // Default logic if no log exists
-            let displayStatus: AttendanceStatus = log ? log.status : holiday ? 'Holiday' : isWeekend ? 'Weekend' : isBeforeJoining ? 'Weekend' : 'Absent';
+            let displayStatus: AttendanceStatus = log ? log.status : holiday ? 'Holiday' : isWeekend ? 'Weekend' : isBeforeJoining ? 'Weekend' : isFuture ? 'Weekend' : 'Absent';
 
             // Check for regularization status
             const request = regularizationRequests.find(r => r.date === dateStr);
@@ -231,14 +303,21 @@ export default function Attendance() {
                 displayStatus = 'Pending';
             }
 
-            const statusLabel = isBeforeJoining ? '-' : (holiday ? 'Holiday' : displayStatus);
+            const statusLabel = isBeforeJoining || isFuture ? '-' : (holiday ? 'Holiday' : displayStatus);
             const isToday = day === new Date().getDate() && month === new Date().getMonth() && year === new Date().getFullYear();
+
+            // Calculate if the day is older than the allowed 3 days
+            const targetMidnight = new Date(currentLoopDate);
+            targetMidnight.setHours(23, 59, 59, 999);
+            const diffTime = todayMidnight.getTime() - targetMidnight.getTime();
+            const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+            const isTooOld = diffDays > 3;
 
             days.push(
                 <div key={day} className={`h-24 p-2 rounded-xl border ${isToday ? 'border-brand-500 ring-1 ring-brand-500' : 'border-gray-100 dark:border-white/10'} ${holiday ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200' : 'bg-white dark:bg-brand-800'} hover:shadow-md transition-shadow relative group cursor-pointer`}>
                     <div className="flex justify-between items-start">
                         <span className={`font-semibold text-sm ${isToday ? 'text-brand-600 dark:text-brand-400' : 'text-gray-700 dark:text-gray-300'}`}>{day}</span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${holiday ? 'bg-purple-100 text-purple-700' : getStatusColor(displayStatus)}`}>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${holiday ? 'bg-purple-100 text-purple-700' : getStatusColor(isBeforeJoining || isFuture ? 'Weekend' : displayStatus)}`}>
                             {statusLabel}
                         </span>
                     </div>
@@ -258,16 +337,16 @@ export default function Attendance() {
                     {log && displayStatus !== 'Weekend' && log.inTime && (
                         <div className="mt-2 space-y-1">
                             <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
-                                <Clock size={10} /> {new Date(log.inTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
+                                <Clock size={10} /> {new Date(log.inTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
                             </div>
                             <div className="flex items-center gap-1 text-xs text-red-500 dark:text-red-400">
-                                <Clock size={10} /> {log.outTime ? new Date(log.outTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '--:--'}
+                                <Clock size={10} /> {log.outTime ? new Date(log.outTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : '--:--'}
                             </div>
                         </div>
                     )}
 
-                    {/* Add Regularize Button for Absent/Late/Missing Punch */}
-                    {!isToday && !hasPendingRequest && !hasRejectedRequest && (displayStatus === 'Absent' || displayStatus === 'Late') && (
+                    {/* Add Regularize Button for Absent/Late/Missing Punch (strictly past 3 days and not future/today) */}
+                    {!isToday && !isFuture && !isTooOld && !hasPendingRequest && !hasRejectedRequest && (displayStatus === 'Absent' || displayStatus === 'Late') && (
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -285,16 +364,22 @@ export default function Attendance() {
         return days;
     };
 
-    // Find first missed/absent punch to feature in top alert
+    // Find first missed/absent punch to feature in top alert (strictly past 3 days)
     const getFirstMissedPunch = () => {
         if (loading || attendanceHistory.length === 0) return null;
 
         // Find absent days in history that do not have regularization requests
         const today = new Date();
+        today.setHours(0, 0, 0, 0);
         const missed = attendanceHistory.find(log => {
             if (log.status !== 'Absent') return false;
             const logDate = new Date(log.date);
             if (logDate >= today) return false;
+
+            // Check if older than 3 days
+            const diffTime = today.getTime() - logDate.getTime();
+            const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+            if (diffDays > 3) return false;
 
             // Check requests
             const request = regularizationRequests.find(r => r.date === log.date);
@@ -321,7 +406,7 @@ export default function Attendance() {
 
                     <p className="text-gray-500 dark:text-gray-400 font-medium mb-4">{currentTime.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
                     <div className="text-5xl font-mono font-bold text-gray-800 dark:text-white mb-8 tracking-wider">
-                        {currentTime.toLocaleTimeString('en-US', { hour12: false })}
+                        {currentTime.toLocaleTimeString('en-US', { hour12: true })}
                     </div>
 
                     {(() => {
@@ -363,7 +448,7 @@ export default function Attendance() {
                     {isPunchedIn && punchInTime && (
                         <div className="mt-6 p-3 bg-brand-50 dark:bg-white/5 rounded-xl flex items-center gap-2 text-sm text-brand-700 dark:text-brand-300">
                             <Clock size={16} />
-                            <span>In Time: <strong>{punchInTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong></span>
+                            <span>In Time: <strong>{punchInTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}</strong></span>
                         </div>
                     )}
                 </div>
@@ -480,24 +565,28 @@ export default function Attendance() {
                             <div>
                                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Requested Date</label>
                                 <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl font-semibold text-sm">
-                                    {new Date(regularizeDate).toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                                    {(() => {
+                                        const [y, m, d] = regularizeDate.split('-').map(Number);
+                                        const localDate = new Date(y, m - 1, d);
+                                        return localDate.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                                    })()}
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Reason for correction</label>
+                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Reason for regularize</label>
                                 <select
                                     value={reason}
                                     onChange={(e) => setReason(e.target.value)}
                                     required
-                                    className="w-full p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-sm font-semibold"
+                                    className="w-full p-3 bg-gray-50 dark:bg-brand-800 border border-gray-200 dark:border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-sm font-semibold text-gray-800 dark:text-white cursor-pointer"
                                 >
-                                    <option value="" disabled>Select a reason...</option>
-                                    <option value="Forgot to Punch In">Forgot to Punch In</option>
-                                    <option value="Forgot to Punch Out">Forgot to Punch Out</option>
-                                    <option value="Device/Bio-metric Issue">Device/Bio-metric Issue</option>
-                                    <option value="Official Duty / Client Visit">Official Duty / Client Visit</option>
-                                    <option value="Other">Other (Write Custom Reason)</option>
+                                    <option value="" disabled className="bg-white dark:bg-brand-800 text-gray-900 dark:text-white">Select a reason...</option>
+                                    <option value="Forgot to Punch In" className="bg-white dark:bg-brand-800 text-gray-900 dark:text-white">Forgot to Punch In</option>
+                                    <option value="Forgot to Punch Out" className="bg-white dark:bg-brand-800 text-gray-900 dark:text-white">Forgot to Punch Out</option>
+                                    <option value="Device/Bio-metric Issue" className="bg-white dark:bg-brand-800 text-gray-900 dark:text-white">Device/Bio-metric Issue</option>
+                                    <option value="Official Duty / Client Visit" className="bg-white dark:bg-brand-800 text-gray-900 dark:text-white">Official Duty / Client Visit</option>
+                                    <option value="Other" className="bg-white dark:bg-brand-800 text-gray-900 dark:text-white">Other (Write Custom Reason)</option>
                                 </select>
                             </div>
 
@@ -521,24 +610,52 @@ export default function Attendance() {
                                     <div className="relative">
                                         <Clock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                                         <input
-                                            type="time"
-                                            value={proposedIn}
-                                            onChange={(e) => setProposedIn(e.target.value)}
-                                            className="w-full pl-10 pr-3 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-sm font-semibold animate-none"
+                                            type="text"
+                                            value={inInputText}
+                                            onChange={(e) => setInInputText(e.target.value)}
+                                            placeholder="09:00 AM"
+                                            className={`w-full pl-10 pr-3 py-2.5 bg-gray-50 dark:bg-white/5 border rounded-xl outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-sm font-semibold animate-none ${
+                                                inInputText && !parse12hTo24h(inInputText)
+                                                    ? 'border-rose-500/60 focus:ring-rose-500/30'
+                                                    : 'border-gray-200 dark:border-white/10'
+                                            }`}
                                         />
                                     </div>
+                                    <p className={`text-[10px] mt-1 font-semibold ${
+                                        inInputText && !parse12hTo24h(inInputText)
+                                            ? 'text-rose-500'
+                                            : 'text-gray-400 dark:text-gray-500'
+                                    }`}>
+                                        {inInputText && parse12hTo24h(inInputText)
+                                            ? `✓ Set: ${format24to12(parse12hTo24h(inInputText)!)}`
+                                            : 'Format: HH:MM AM/PM'}
+                                    </p>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Proposed Out Time</label>
                                     <div className="relative">
                                         <Clock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                                         <input
-                                            type="time"
-                                            value={proposedOut}
-                                            onChange={(e) => setProposedOut(e.target.value)}
-                                            className="w-full pl-10 pr-3 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-sm font-semibold animate-none"
+                                            type="text"
+                                            value={outInputText}
+                                            onChange={(e) => setOutInputText(e.target.value)}
+                                            placeholder="06:00 PM"
+                                            className={`w-full pl-10 pr-3 py-2.5 bg-gray-50 dark:bg-white/5 border rounded-xl outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-sm font-semibold animate-none ${
+                                                outInputText && !parse12hTo24h(outInputText)
+                                                    ? 'border-rose-500/60 focus:ring-rose-500/30'
+                                                    : 'border-gray-200 dark:border-white/10'
+                                            }`}
                                         />
                                     </div>
+                                    <p className={`text-[10px] mt-1 font-semibold ${
+                                        outInputText && !parse12hTo24h(outInputText)
+                                            ? 'text-rose-500'
+                                            : 'text-gray-400 dark:text-gray-500'
+                                    }`}>
+                                        {outInputText && parse12hTo24h(outInputText)
+                                            ? `✓ Set: ${format24to12(parse12hTo24h(outInputText)!)}`
+                                            : 'Format: HH:MM AM/PM'}
+                                    </p>
                                 </div>
                             </div>
 
