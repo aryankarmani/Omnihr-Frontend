@@ -46,7 +46,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
         fetchEmployees();
     }, []);
 
-    // Simple navigation list for the search with module permissions
+    
     const navItems = [
         { name: 'Dashboard', path: '/dashboard', icon: <LayoutGrid size={16} />, module: 'DASHBOARD' },
         { name: 'Attendance', path: '/attendance', icon: <Calendar size={16} />, module: 'ATTENDANCE' },
@@ -67,7 +67,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
         { name: 'Leave Approval', path: '/leave', icon: <FileText size={16} />, module: 'EMPLOYEE', state: { activeTab: 'APPROVALS' } },
     ];
 
-    // Get accessible modules (same logic as sidebar)
+    
     let userModules = user?.accessibleModules || [];
     if (userModules.length === 0 && user?.role === 'HR_ADMIN') {
         userModules = ['DASHBOARD', 'ATTENDANCE', 'EMPLOYEE', 'EMPLOYEE_ATTENDANCE', 'TEAM', 'LEAVE', 'REPORTS', 'MASTERS', 'TASK', 'MY_PROFILE'];
@@ -88,7 +88,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
         });
     };
 
-    // Filter employees: Employees should only see themselves or no one, Admins see everyone
     const filteredEmployees = searchQuery.trim() === '' ? [] : sortResults(
         employees.filter(emp => {
             // Permission check: Only Admins can search other employees
