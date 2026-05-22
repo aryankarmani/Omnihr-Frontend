@@ -5,10 +5,9 @@ import {
   Clock,
   Search,
   Loader2,
-  ArrowLeft,
   AlertCircle,
-  Check,
-  X
+  CheckCircle,
+  XIcon
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
@@ -161,12 +160,6 @@ export default function Regularizations() {
     
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate(-1)}
-            className="p-2 bg-white dark:bg-brand-900 border border-gray-100 dark:border-white/10 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-colors shadow-sm"
-          >
-            <ArrowLeft size={20} className="text-gray-600 dark:text-gray-300" />
-          </button>
           <div>
             <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Attendance Corrections</h2>
             <p className="text-gray-500 dark:text-gray-400">Review and approve attendance regularization requests</p>
@@ -280,17 +273,17 @@ export default function Regularizations() {
                         <div className="flex gap-2 justify-end">
                           <button
                             onClick={() => handleApprove(req.id)}
-                            className="p-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow-sm transition-all hover:scale-105"
+                            className="p-2 bg-green-50 hover:bg-green-100 text-green-600 rounded-lg transition-colors"
                             title="Approve Request"
                           >
-                            <Check size={16} />
+                            <CheckCircle size={18} />
                           </button>
                           <button
                             onClick={() => handleRejectClick(req.id)}
-                            className="p-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl shadow-sm transition-all hover:scale-105"
+                            className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
                             title="Reject Request"
                           >
-                            <X size={16} />
+                            <XIcon size={18} />
                           </button>
                         </div>
                       </td>

@@ -96,10 +96,14 @@ export default function Attendance() {
             setIsPunchedIn(res.data.isPunchedIn);
             if (res.data.punchInTime) setPunchInTime(new Date(res.data.punchInTime));
 
-            // Fetch joining date
+            
             const empRes = await api.get('/employee/me');
             const jd = empRes.data.employeeProfile?.joiningDate || empRes.data.createdAt;
-            if (jd) setJoiningDate(new Date(jd));
+            if (jd) {
+                const datePart = jd.split('T')[0];
+                const [year, month, day] = datePart.split('-').map(Number);
+                setJoiningDate(new Date(year, month - 1, day));
+            }
 
             // Fetch holidays
             const holidayRes = await api.get('/masters/holidays');
@@ -286,7 +290,7 @@ export default function Attendance() {
 
             const currentLoopDate = new Date(year, month, day);
             const isWeekend = currentLoopDate.getDay() === 0 || currentLoopDate.getDay() === 6;
-            const isBeforeJoining = joiningDate && currentLoopDate < new Date(new Date(joiningDate).setHours(0, 0, 0, 0));
+            const isBeforeJoining = joiningDate && currentLoopDate < joiningDate;
 
             // Precise future date checking (tomorrow or later)
             const isFuture = currentLoopDate > todayMidnight;
@@ -306,12 +310,11 @@ export default function Attendance() {
             const statusLabel = isBeforeJoining || isFuture ? '-' : (holiday ? 'Holiday' : displayStatus);
             const isToday = day === new Date().getDate() && month === new Date().getMonth() && year === new Date().getFullYear();
 
-            // Calculate if the day is older than the allowed 3 days
             const targetMidnight = new Date(currentLoopDate);
             targetMidnight.setHours(23, 59, 59, 999);
             const diffTime = todayMidnight.getTime() - targetMidnight.getTime();
             const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-            const isTooOld = diffDays > 3;
+            const isTooOld = diffDays > (attendancePolicy?.regularizationDays ?? 3);
 
             days.push(
                 <div key={day} className={`h-24 p-2 rounded-xl border ${isToday ? 'border-brand-500 ring-1 ring-brand-500' : 'border-gray-100 dark:border-white/10'} ${holiday ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200' : 'bg-white dark:bg-brand-800'} hover:shadow-md transition-shadow relative group cursor-pointer`}>
@@ -364,29 +367,43 @@ export default function Attendance() {
         return days;
     };
 
-    // Find first missed/absent punch to feature in top alert (strictly past 3 days)
     const getFirstMissedPunch = () => {
-        if (loading || attendanceHistory.length === 0) return null;
+        if (loading) return null;
 
-        // Find absent days in history that do not have regularization requests
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const missed = attendanceHistory.find(log => {
-            if (log.status !== 'Absent') return false;
-            const logDate = new Date(log.date);
-            if (logDate >= today) return false;
 
-            // Check if older than 3 days
-            const diffTime = today.getTime() - logDate.getTime();
-            const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-            if (diffDays > 3) return false;
+        const lookbackDays = attendancePolicy?.regularizationDays ?? 3;
 
-            // Check requests
-            const request = regularizationRequests.find(r => r.date === log.date);
-            return !request;
-        });
+        for (let i = 1; i <= lookbackDays; i++) {
+            const checkDate = new Date(today);
+            checkDate.setDate(today.getDate() - i);
+            checkDate.setHours(0, 0, 0, 0);
 
-        return missed ? missed.date : null;
+            const year = checkDate.getFullYear();
+            const month = checkDate.getMonth() + 1;
+            const day = checkDate.getDate();
+            const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+            const isWeekend = checkDate.getDay() === 0 || checkDate.getDay() === 6;
+            if (isWeekend) continue;
+
+            if (joiningDate && checkDate < joiningDate) continue;
+
+            const isHoliday = holidays.some(h => h.date.split('T')[0] === dateStr);
+            if (isHoliday) continue;
+
+            const log = attendanceHistory.find(d => d.date === dateStr);
+            const isAbsent = !log || log.status === 'Absent';
+            if (!isAbsent) continue;
+
+            const request = regularizationRequests.find(r => r.date === dateStr);
+            if (request) continue;
+
+            return dateStr;
+        }
+
+        return null;
     };
 
     const missedPunchDate = getFirstMissedPunch();
@@ -497,7 +514,10 @@ export default function Attendance() {
                                 <AlertCircle className="text-orange-600 dark:text-orange-400" size={20} />
                                 <div>
                                     <h5 className="font-bold text-orange-800 dark:text-orange-200 text-sm">Action Needed: Missed Punch</h5>
-                                    <p className="text-xs text-orange-600 dark:text-orange-300">You have a missed check-in on <strong>{new Date(missedPunchDate).toLocaleDateString([], { day: 'numeric', month: 'short' })}</strong>. Correct this now.</p>
+                                    <p className="text-xs text-orange-600 dark:text-orange-300">You have a missed check-in on <strong>{(() => {
+                                        const [y, m, d] = missedPunchDate.split('-').map(Number);
+                                        return new Date(y, m - 1, d).toLocaleDateString([], { day: 'numeric', month: 'short' });
+                                    })()}</strong>. Correct this now.</p>
                                 </div>
                             </div>
                             <button
