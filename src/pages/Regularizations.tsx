@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Calendar,
   Clock,
   Search,
   Loader2,
-  AlertCircle,
   CheckCircle,
   XIcon
 } from 'lucide-react';
@@ -37,7 +35,6 @@ interface RegularizationRequest {
 }
 
 export default function Regularizations() {
-  const navigate = useNavigate();
   const [requests, setRequests] = useState<RegularizationRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,6 +43,7 @@ export default function Regularizations() {
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectComment, setRejectComment] = useState('');
   const [submittingReject, setSubmittingReject] = useState(false);
+  const [selectedRequestForReason, setSelectedRequestForReason] = useState<RegularizationRequest | null>(null);
 
  
   const fetchRequests = async () => {
@@ -88,6 +86,7 @@ export default function Regularizations() {
     setSubmittingReject(true);
     try {
       await api.put(`/attendance/regularize/${rejectingId}/reject`, {
+        reason: rejectComment,
         approverComment: rejectComment
       });
       toast.success('Attendance correction rejected');
@@ -168,17 +167,6 @@ export default function Regularizations() {
       </div>
 
     
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white dark:bg-brand-900 p-6 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-xl flex items-center justify-center">
-            <AlertCircle size={24} />
-          </div>
-          <div>
-            <h4 className="text-2xl font-bold text-gray-800 dark:text-white">{requests.length}</h4>
-            <p className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider mt-0.5">Pending Approvals</p>
-          </div>
-        </div>
-      </div>
 
     
       <div className="bg-white dark:bg-brand-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 mb-6 flex flex-col md:flex-row gap-4 items-center">
@@ -266,7 +254,11 @@ export default function Regularizations() {
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-xs font-semibold text-gray-600 dark:text-gray-300 max-w-xs truncate italic">
+                      <td 
+                        onClick={() => setSelectedRequestForReason(req)}
+                        className="px-6 py-4 text-xs font-semibold text-gray-600 dark:text-gray-300 max-w-xs truncate italic cursor-pointer hover:text-brand-500 dark:hover:text-brand-400 hover:underline transition-all"
+                        title="Click to view full reason"
+                      >
                         "{req.reason}"
                       </td>
                       <td className="px-6 py-4 text-right">
@@ -328,6 +320,56 @@ export default function Regularizations() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {selectedRequestForReason && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="relative bg-white dark:bg-brand-950 w-full max-w-md rounded-[2rem] shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden p-8 animate-scale-in animate-none">
+            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-brand-500 to-purple-500"></div>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-gray-800 dark:text-white">Correction Reason</h3>
+              <button type="button" onClick={() => setSelectedRequestForReason(null)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors text-gray-400">
+                <XIcon size={20} />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Employee Name</label>
+                <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl font-bold text-sm text-gray-800 dark:text-white">
+                  {selectedRequestForReason.user?.name || `Employee #${selectedRequestForReason.userId}`}
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Date Requested</label>
+                <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl font-bold text-sm text-gray-800 dark:text-white">
+                  {selectedRequestForReason.date}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Submission Reason</label>
+                <div className="p-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm text-gray-700 dark:text-gray-300 font-semibold leading-relaxed">
+                  <div className="max-h-[150px] overflow-y-auto custom-scrollbar break-words pr-2">
+                    {selectedRequestForReason.reason}
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4">
+                <button
+                  type="button"
+                  onClick={() => setSelectedRequestForReason(null)}
+                  className="w-full py-3.5 bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 text-white font-bold rounded-2xl transition-all shadow-lg shadow-brand-500/20 text-sm tracking-wider uppercase cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         </div>,
         document.body

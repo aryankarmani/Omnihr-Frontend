@@ -105,14 +105,14 @@ export default function Team() {
                                     {menuOpen === team.id && (
                                         <div
                                             onClick={(e) => e.stopPropagation()}
-                                            className="absolute right-0 mt-2 w-36 bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl shadow-xl overflow-hidden z-50">
+                                            className="absolute right-0 mt-2 w-36 bg-white dark:bg-brand-950 border border-gray-100 dark:border-white/10 rounded-xl shadow-xl overflow-hidden z-50">
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     setMenuOpen(null);
                                                     setEditTeam(team);
                                                 }}
-                                                className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10 transition-all"
+                                                className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10 transition-all font-semibold"
                                             >
                                                 Edit
                                             </button>
@@ -124,7 +124,7 @@ export default function Team() {
                                                     setConfirmDelete(team.id);
 
                                                 }}
-                                                className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-all"
+                                                className="w-full text-left px-4 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all font-semibold"
                                             >
                                                 Delete
                                             </button>
@@ -327,10 +327,10 @@ export default function Team() {
     )
 }
 
-            {editTeam && (
-                <div className="fixed inset-0 z-[999] bg-black/50 backdrop-blur-sm flex items-start justify-center pt-20">
-                    <div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-                        <div className="p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center">
+            {editTeam && createPortal(
+                <div className="fixed inset-0 z-[999999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in">
+                        <div className="p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50 dark:bg-white/5">
                             <h3 className="text-xl font-bold text-gray-800 dark:text-white">Edit Team</h3>
                             <button onClick={() => setEditTeam(null)} className="text-gray-400 hover:text-gray-600 transition-colors">
                                 <X size={20} />
@@ -364,17 +364,18 @@ export default function Team() {
                                     fetchTeams();
                                     setEditTeam(null);
                                 }}
-                                className="w-full py-3 bg-brand-600 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-700 transition-all mt-2"
+                                className="w-full py-3 bg-brand-600 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-700 transition-all mt-2 active:scale-95"
                             >
                                 Save Changes
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
-            {selectedTeam && (
-                <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+            {selectedTeam && createPortal(
+                <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-scale-in">
                         <div className="p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50 dark:bg-white/5">
                             <div>
                                 <h3 className="text-xl font-bold text-gray-800 dark:text-white">{teams.find(t => t.id === selectedTeam)?.name}</h3>
@@ -453,16 +454,17 @@ export default function Team() {
                             ))}
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
-            {confirmDelete && (
-                <div className="fixed inset-0 z-[999] bg-black/50 backdrop-blur-sm flex items-start justify-center pt-32">
-                    <div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center border border-gray-100 dark:border-white/10">
+            {confirmDelete && createPortal(
+                <div className="fixed inset-0 z-[999999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center border border-gray-100 dark:border-white/10 animate-scale-in">
                         <div className="w-16 h-16 mx-auto mb-4 bg-red-50 dark:bg-red-500/10 rounded-full flex items-center justify-center text-red-500">
                             <Trash2 size={32} />
                         </div>
                         <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Delete Team?</h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 font-medium">
                             Are you sure you want to delete this team? This action cannot be undone.
                         </p>
                         <div className="flex gap-3">
@@ -479,15 +481,15 @@ export default function Team() {
                                     fetchTeams();
                                     setConfirmDelete(null);
                                 }}
-                                className="flex-1 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold shadow-lg shadow-red-500/30 transition-all"
+                                className="flex-1 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold shadow-lg shadow-red-500/30 transition-all active:scale-95"
                             >
                                 Yes, Delete
                             </button>
                         </div>
                     </div>
-                </div>
-            )
-            }
+                </div>,
+                document.body
+            )}
 
         </div >
     );

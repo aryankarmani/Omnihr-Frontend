@@ -921,8 +921,8 @@ className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border 
             </div>
 
             {/* Payslip Modal (Keep original UI logic, but ensure it uses the dynamic data) */}
-            {showPayslip && (
-                <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
+            {showPayslip && createPortal(
+                <div className="fixed inset-0 z-[999999] flex items-start justify-center pt-20 bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
                     <div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden">
 
                         {/* Header */}
@@ -1065,32 +1065,34 @@ className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border 
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* ID Card Modal (Keep original UI logic, with dynamic data) */}
-            {showIDCard && (
-                <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/80 backdrop-blur-md p-4 animate-fade-in">
+            {showIDCard && createPortal(
+                <div className="fixed inset-0 z-[999999] flex items-start justify-center pt-20 bg-black/80 backdrop-blur-md p-4 animate-fade-in">
                     <div className="relative">
                         <button onClick={() => setShowIDCard(false)} className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors">
                             <X size={24} />
                         </button>
 
-                        <div id="id-card-container" className="w-[320px] h-[500px] bg-white rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden relative flex flex-col">
-<div
-    className="absolute top-0 inset-x-0 h-48 rounded-b-[50px] z-0"
-    style={{ background: 'linear-gradient(to bottom right, #5b21b6, #7c3aed)' }}
-></div>
+                        <div id="id-card-container" className="w-[320px] h-[540px] bg-white rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden relative flex flex-col animate-scale-in">
+                            <div
+                                className="absolute top-0 inset-x-0 h-48 rounded-b-[50px] z-0"
+                                style={{ background: 'linear-gradient(to bottom right, #5b21b6, #7c3aed)' }}
+                            ></div>
                             <div className="mx-auto w-16 h-3 bg-white/20 rounded-full mt-4 relative z-10 backdrop-blur-sm"></div>
                             <div className="flex justify-between items-start mb-6 px-6 pt-4 relative z-10">
                                 <h2 className="text-white font-bold tracking-widest text-lg opacity-90">EnCalm <span className="text-brand-300">HRX</span></h2>
                                 <div className="w-10 h-8 bg-gradient-to-br from-yellow-200 to-yellow-500 rounded-md opacity-80 shadow-inner border border-yellow-300/50"></div>
                             </div>
                             <div className="relative z-10 mx-auto mt-6">
-<div
-    className="w-32 h-32 rounded-full border-4 border-white shadow-lg overflow-hidden flex items-center justify-center text-white font-bold text-4xl"
-    style={{ background: '#7c3aed' }}
->                                     {employee.name.split(' ').map((n: any) => n[0]).join('')}
+                                <div
+                                    className="w-32 h-32 rounded-full border-4 border-white shadow-lg overflow-hidden flex items-center justify-center text-white font-bold text-4xl"
+                                    style={{ background: '#7c3aed' }}
+                                >
+                                    {employee.name.split(' ').map((n: any) => n[0]).join('')}
                                 </div>
                             </div>
                             <div className="text-center mt-4 flex-1 flex flex-col items-center">
@@ -1113,69 +1115,76 @@ className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border 
                                 </div>
                             </div>
                             <div className="bg-gray-50 p-4 border-t border-gray-100 flex justify-between items-center mt-auto">
-                                <div className="w-16 h-16 bg-white p-1 rounded-lg border border-gray-200 flex items-center justify-center text-[8px] text-gray-400 uppercase">QR Code</div>
+                                <div className="w-16 h-16 bg-white p-1 rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden">
+                                    <img 
+                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`Employee ID: ${employee.id}\nName: ${employee.name}\nRole: ${profile.title || 'Employee'}\nDept: ${profile.department || 'N/A'}`)}`}
+                                        alt="QR Code"
+                                        className="w-full h-full object-contain"
+                                    />
+                                </div>
                                 <div className="text-right italic text-gray-400 text-xs">Authorized Sig.</div>
                             </div>
                         </div>
                         <div className="flex justify-center mt-6">
                             <button
                               onClick={() => {
-    const printContent = document.getElementById('id-card-container');
-    const WindowPrt = window.open('', '', 'left=0,top=0,width=800,height=900,toolbar=0,scrollbars=0,status=0');
+                                const printContent = document.getElementById('id-card-container');
+                                const WindowPrt = window.open('', '', 'left=0,top=0,width=800,height=900,toolbar=0,scrollbars=0,status=0');
 
-    if (WindowPrt && printContent) {
-        WindowPrt.document.write(`
-            <html>
-                <head>
-                    <title>Print ID Card</title>
-                    <script src="https://cdn.tailwindcss.com"></script>
-                    <style>
-                        @page {
-                            size: 320px 500px;
-                            margin: 0;
-                        }
+                                if (WindowPrt && printContent) {
+                                    WindowPrt.document.write(`
+                                        <html>
+                                            <head>
+                                                <title>Print ID Card</title>
+                                                <script src="https://cdn.tailwindcss.com"></script>
+                                                <style>
+                                                    @page {
+                                                        size: 320px 540px;
+                                                        margin: 0;
+                                                    }
 
-                        html, body {
-                            margin: 0;
-                            padding: 0;
-                            width: 320px;
-                            height: 500px;
-                            overflow: hidden;
-                            -webkit-print-color-adjust: exact;
-                            print-color-adjust: exact;
-                        }
+                                                    html, body {
+                                                        margin: 0;
+                                                        padding: 0;
+                                                        width: 320px;
+                                                        height: 540px;
+                                                        overflow: hidden;
+                                                        -webkit-print-color-adjust: exact;
+                                                        print-color-adjust: exact;
+                                                    }
 
-                        #id-card-container {
-                            width: 320px !important;
-                            height: 500px !important;
-                            border-radius: 24px !important;
-                            overflow: hidden !important;
-                            box-shadow: none !important;
-                        }
-                    </style>
-                </head>
-                <body>
-                    ${printContent.outerHTML}
-                </body>
-            </html>
-        `);
+                                                    #id-card-container {
+                                                        width: 320px !important;
+                                                        height: 540px !important;
+                                                        border-radius: 24px !important;
+                                                        overflow: hidden !important;
+                                                        box-shadow: none !important;
+                                                    }
+                                                </style>
+                                            </head>
+                                            <body>
+                                                ${printContent.outerHTML}
+                                            </body>
+                                        </html>
+                                    `);
 
-        WindowPrt.document.close();
+                                    WindowPrt.document.close();
 
-        setTimeout(() => {
-            WindowPrt.focus();
-            WindowPrt.print();
-            WindowPrt.close();
-        }, 800);
-    }
-}} 
+                                    setTimeout(() => {
+                                        WindowPrt.focus();
+                                        WindowPrt.print();
+                                        WindowPrt.close();
+                                    }, 800);
+                                }
+                            }} 
                                 className="flex items-center gap-2 px-6 py-2 bg-white text-gray-800 font-bold rounded-full shadow-lg hover:bg-gray-100 transition-colors"
                             >
                                 <Printer size={18} /> Print
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
             {/* Document Deletion Confirmation */}
             {docToDelete !== null && createPortal(
