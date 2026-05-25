@@ -110,37 +110,37 @@ const handleSalaryChange = (field: string, value: string) => {
             }
         }
 
-        // STEP 2 VALIDATION
-       if (currentStep === 2) {
+        
+        if (currentStep === 2) {
 
-    const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
-    if (!formData.pan) {
-        toast.error('PAN is required');
-        return;
-    }
-    if (!panRegex.test(formData.pan.trim().toUpperCase())) {
-        toast.error('Invalid PAN Number format (e.g. ABCDE1234F)');
-        return;
-    }
+            const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+            if (!formData.pan) {
+                toast.error('PAN is required');
+                return;
+            }
+            if (!panRegex.test(formData.pan.trim().toUpperCase())) {
+                toast.error('Invalid PAN Number format (e.g. ABCDE1234F)');
+                return;
+            }
 
-    if (!formData.aadhaar) {
-        toast.error('Aadhaar is required');
-        return;
-    }
-    if (!/^\d{12}$/.test(formData.aadhaar.replace(/\s/g, ''))) {
-        toast.error('Aadhaar Number must be 12 digits');
-        return;
-    }
+            if (!formData.aadhaar) {
+                toast.error('Aadhaar is required');
+                return;
+            }
+            if (!/^\d{12}$/.test(formData.aadhaar.replace(/\s/g, ''))) {
+                toast.error('Aadhaar Number must be 12 digits');
+                return;
+            }
 
-    const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
-    if (!formData.ifsc) {
-        toast.error('IFSC is required');
-        return;
-    }
-    if (!ifscRegex.test(formData.ifsc.trim().toUpperCase())) {
-        toast.error('Invalid IFSC Code format (e.g. SBIN0001234)');
-        return;
-    }
+            const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+            if (!formData.ifsc) {
+                toast.error('IFSC is required');
+                return;
+            }
+            if (!ifscRegex.test(formData.ifsc.trim().toUpperCase())) {
+                toast.error('Invalid IFSC Code format (e.g. SBIN0001234)');
+                return;
+            }
 
     if (!formData.accountNumber) {
         toast.error('Account Number is required');
@@ -153,31 +153,31 @@ const handleSalaryChange = (field: string, value: string) => {
     
     const uan = formData.uan.replace(/\s/g, '');
 
-if (!formData.uan) {
-    toast.error('UAN is required');
-    return;
-}
-if (!/^\d{12}$/.test(uan)) {
-    toast.error('UAN must be 12 digits');
-    return;
+            if (!formData.uan) {
+                toast.error('UAN is required');
+                return;
+            }
+            if (!/^\d{12}$/.test(uan)) {
+                toast.error('UAN must be 12 digits');
+                return;
 
-}
-const esic = formData.esic.replace(/\s/g, '');
+            }
+            const esic = formData.esic.replace(/\s/g, '');
 
-if (!formData.esic) {
-    toast.error('ESIC is required');
-    return;
-}
-if (!/^\d{17}$/.test(esic)) {
-    toast.error('ESIC must be 17 digits');
-    return;
-}
-const bankName = formData.bankName.trim();
+            if (!formData.esic) {
+                toast.error('ESIC is required');
+                return;
+            }
+            if (!/^\d{17}$/.test(esic)) {
+                toast.error('ESIC must be 17 digits');
+                return;
+            }
+            const bankName = formData.bankName.trim();
 
-if (!bankName) {
-    toast.error('Bank Name is required');
-    return;
-}
+            if (!bankName) {
+                toast.error('Bank Name is required');
+                return;
+            }
 
 // allows only letters & spaces (2–50 chars)
 if (!/^[A-Za-z\s]{2,50}$/.test(bankName)) {
@@ -213,7 +213,7 @@ if (currentStep === 3) {
 if (currentStep < 4) {
 setCurrentStep(c => c + 1);
         } else {
-            // Final Submit
+           
             setLoading(true);
             try {
                const submissionData = {
@@ -257,7 +257,7 @@ setCurrentStep(c => c + 1);
             </button>
 
             <div className="bg-white dark:bg-brand-900 rounded-3xl shadow-sm border border-gray-100 dark:border-white/5 overflow-hidden">
-                {/* Header / Stepper */}
+               
                 <div className="bg-brand-50/50 dark:bg-white/5 p-8 border-b border-gray-100 dark:border-white/10">
                     <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Onboard New Employee</h1>
                     <p className="text-gray-500 dark:text-gray-400 mb-8">Complete the following steps to add a new team member.</p>
@@ -300,12 +300,12 @@ setCurrentStep(c => c + 1);
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">First Name *</label>
                                 <input
-                                 autoComplete="new-password"
+                                    autoComplete="new-password"
                                     name="firstName"
                                     value={formData.firstName}
                                     onChange={handleInputChange}
                                     type="text"
-                                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
+                                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                     placeholder="First"
                                 />
                             </div>
@@ -317,7 +317,7 @@ setCurrentStep(c => c + 1);
                                     value={formData.lastName}
                                     onChange={handleInputChange}
                                     type="text"
-                                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
+                                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                     placeholder="Last"
                                 />
                             </div>
@@ -329,7 +329,7 @@ setCurrentStep(c => c + 1);
                                     value={formData.email}
                                     onChange={handleInputChange}
                                     type="email"
-                                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
+                                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                     placeholder="Enter your email"
                                 />
                             </div>
@@ -341,7 +341,7 @@ setCurrentStep(c => c + 1);
                                     value={formData.phone}
                                     onChange={handleInputChange}
                                     type="tel"
-                              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"                      
+                                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                     placeholder="+91 "
                                 />
                             </div>
@@ -429,11 +429,11 @@ setCurrentStep(c => c + 1);
                                             name="pan"
                                             value={formData.pan}
                                             onChange={(e) => {
-                                          setFormData({
-                                           ...formData,
-                                           pan: e.target.value.toUpperCase()
-                                            });
-                                             }}
+                                                setFormData({
+                                                    ...formData,
+                                                    pan: e.target.value.toUpperCase()
+                                                });
+                                            }}
                                             type="text"
                                             className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                             placeholder="E.g. ABCDE1234F"
@@ -442,7 +442,7 @@ setCurrentStep(c => c + 1);
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Aadhaar Number</label>
                                         <input
-                                             autoComplete="off"
+                                            autoComplete="off"
                                             name="aadhaar"
                                             value={formData.aadhaar}
                                             onChange={handleInputChange}
@@ -454,12 +454,12 @@ setCurrentStep(c => c + 1);
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">UAN (PF)</label>
                                         <input
-                                             autoComplete="off"
+                                            autoComplete="off"
                                             name="uan"
                                             value={formData.uan}
                                             onChange={handleInputChange}
                                             type="text"
-                              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"                      
+                                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                             placeholder="Enter 12-digit UAN number"
                                         />
                                     </div>
@@ -484,7 +484,7 @@ setCurrentStep(c => c + 1);
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Bank Name</label>
                                         <input
-                                                autoComplete="off"
+                                            autoComplete="off"
                                             name="bankName"
                                             value={formData.bankName}
                                             onChange={handleInputChange}
@@ -496,7 +496,7 @@ setCurrentStep(c => c + 1);
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">IFSC Code</label>
                                         <input
-                                                autoComplete="off"
+                                            autoComplete="off"
                                             name="ifsc"
                                             value={formData.ifsc}
                                             onChange={handleInputChange}
@@ -512,9 +512,9 @@ setCurrentStep(c => c + 1);
                                             autoComplete="off"
                                             value={formData.accountNumber}
                                             onChange={(e) => {
-                                            const value = e.target.value.replace(/\D/g, ""); // remove non-numbers
-                                            setFormData({ ...formData, accountNumber: value });
-                                             }}
+                                                const value = e.target.value.replace(/\D/g, ""); // remove non-numbers
+                                                setFormData({ ...formData, accountNumber: value });
+                                            }}
                                             className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
 
                                             placeholder="Enter 9-18 digit account number"
@@ -562,46 +562,45 @@ setCurrentStep(c => c + 1);
 
                     {currentStep === 4 && (
                         <div className="space-y-6 animate-fade-in">
-                            <div   onClick={() => document.getElementById('fileInput')?.click()}
-                            className="border-2 border-dashed border-gray-300 dark:border-white/20 rounded-3xl p-12 text-center group hover:border-brand-500 transition-colors cursor-pointer bg-gray-50 dark:bg-white/5">
+                            <div onClick={() => document.getElementById('fileInput')?.click()}
+                                className="border-2 border-dashed border-gray-300 dark:border-white/20 rounded-3xl p-12 text-center group hover:border-brand-500 transition-colors cursor-pointer bg-gray-50 dark:bg-white/5">
                                 <div className="w-16 h-16 bg-brand-100 dark:bg-white/10 text-brand-600 dark:text-white rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                                     <Upload size={32} />
                                 </div>
                                 <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Upload Onboarding Documents</h3>
-                                <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto">
+                                {/* <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto">
                                     Files are currently simulated for this MVP. Drag and drop functionality coming soon.
-                                </p>
+                                </p> */}
                                 <input
                                     id="fileInput"
                                     type="file"
                                     className="hidden"
                                     onChange={(e) => {
-                                    if (!selectedDoc) return;
+                                        if (!selectedDoc) return;
 
-                                   const file = e.target.files[0];
-                                if (file) {
-                                 setDocuments(prev => ({
-                                        ...prev,
-                                   [selectedDoc]: file
-                                          }));
-                                       }
-                                      }}
-                               />
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                            setDocuments(prev => ({
+                                                ...prev,
+                                                [selectedDoc]: file
+                                            }));
+                                        }
+                                    }}
+                                />
                             </div>
 
                             <div className="space-y-4">
                                 <p className="text-sm font-bold text-gray-500 uppercase">Required Documents Checklist</p>
                                 {[
-                                    {key:'aadhaar', name: 'Aadhaar Card', required: true },
-                                    {key:'pan', name: 'PAN Card', required: true },
-                                    {key:'degree', name: 'Highest Qualification Degree', required: true }
+                                    { key: 'aadhaar', name: 'Aadhaar Card', required: true },
+                                    { key: 'pan', name: 'PAN Card', required: true },
+                                    { key: 'degree', name: 'Highest Qualification Degree', required: true }
                                 ].map((doc, i) => (
-                                 <div
-                                   key={i}
-                                   onClick={() => setSelectedDoc(doc.key)}
-                                   className={`flex items-center justify-between p-4 cursor-pointer border rounded-xl ${
-                                   selectedDoc === doc.key ? 'border-brand-500 bg-brand-100 dark:bg-brand-800' : ''
-}`}        >                               <div className="flex items-center gap-3">
+                                    <div
+                                        key={i}
+                                        onClick={() => setSelectedDoc(doc.key)}
+                                        className={`flex items-center justify-between p-4 cursor-pointer border rounded-xl ${selectedDoc === doc.key ? 'border-brand-500 bg-brand-100 dark:bg-brand-800' : ''
+                                            }`}        >                               <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 bg-gray-100 dark:bg-white/10 rounded-lg flex items-center justify-center text-gray-500">
                                                 <FileText size={20} />
                                             </div>
@@ -610,25 +609,25 @@ setCurrentStep(c => c + 1);
                                                     {doc.name} {doc.required && <span className="text-red-500">*</span>}
                                                 </p>
                                                 <p className="text-xs text-brand-600 font-medium">
-                                                      {documents[doc.key] ? documents[doc.key].name : 'Ready for capture'}
+                                                    {documents[doc.key] ? (documents[doc.key] as File).name : 'Ready for capture'}
 
                                                 </p>
                                             </div>
                                         </div>
-                                     {documents[doc.key] && (
-                            <Trash2
-                                 size={18}
-                                 className="text-red-500 cursor-pointer"
-                                 onClick={(e) => {
-                                 e.stopPropagation(); 
-                                 setDocuments(prev => ({
-                                  ...prev,
-                                 [doc.key]: null
-                                   }));
-                                }}
-                            
-                                />
-                                 )}
+                                        {documents[doc.key] && (
+                                            <Trash2
+                                                size={18}
+                                                className="text-red-500 cursor-pointer"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setDocuments(prev => ({
+                                                        ...prev,
+                                                        [doc.key]: null
+                                                    }));
+                                                }}
+
+                                            />
+                                        )}
                                     </div>
                                 ))}
                             </div>

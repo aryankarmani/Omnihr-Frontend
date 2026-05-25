@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Calendar, Clock, MapPin, AlertCircle, CheckCircle, Coffee, ChevronLeft, ChevronRight, Loader2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
+import { createPortal } from 'react-dom';
 
 // Types for Attendance Data
 type AttendanceStatus = 'Present' | 'Absent' | 'Late' | 'Half Day' | 'Holiday' | 'Weekend' | 'Pending';
@@ -34,6 +35,7 @@ export default function Attendance() {
     // Attendance Regularization State
     const [regularizationRequests, setRegularizationRequests] = useState<any[]>([]);
     const [regularizeDate, setRegularizeDate] = useState<string | null>(null);
+    const [rejectedRequestToShow, setRejectedRequestToShow] = useState<any | null>(null);
     const [reason, setReason] = useState('');
     const [customReason, setCustomReason] = useState('');
     const [submittingRequest, setSubmittingRequest] = useState(false);
@@ -42,6 +44,17 @@ export default function Attendance() {
     // Text field state representations for 12-hour format display and direct editing
     const [inInputText, setInInputText] = useState('09:00 AM');
     const [outInputText, setOutInputText] = useState('06:00 PM');
+
+    const formatTime12h = (timeStr?: string) => {
+        if (!timeStr) return '--:--';
+        try {
+            const date = new Date(timeStr);
+            if (isNaN(date.getTime())) return timeStr;
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+        } catch (e) {
+            return timeStr;
+        }
+    };
 
     const format24to12 = (timeStr: string) => {
         if (!timeStr) return '';
@@ -96,10 +109,14 @@ export default function Attendance() {
             setIsPunchedIn(res.data.isPunchedIn);
             if (res.data.punchInTime) setPunchInTime(new Date(res.data.punchInTime));
 
-            // Fetch joining date
+            
             const empRes = await api.get('/employee/me');
             const jd = empRes.data.employeeProfile?.joiningDate || empRes.data.createdAt;
-            if (jd) setJoiningDate(new Date(jd));
+            if (jd) {
+                const datePart = jd.split('T')[0];
+                const [year, month, day] = datePart.split('-').map(Number);
+                setJoiningDate(new Date(year, month - 1, day));
+            }
 
             // Fetch holidays
             const holidayRes = await api.get('/masters/holidays');
@@ -286,7 +303,7 @@ export default function Attendance() {
 
             const currentLoopDate = new Date(year, month, day);
             const isWeekend = currentLoopDate.getDay() === 0 || currentLoopDate.getDay() === 6;
-            const isBeforeJoining = joiningDate && currentLoopDate < new Date(new Date(joiningDate).setHours(0, 0, 0, 0));
+            const isBeforeJoining = joiningDate && currentLoopDate < joiningDate;
 
             // Precise future date checking (tomorrow or later)
             const isFuture = currentLoopDate > todayMidnight;
@@ -306,12 +323,11 @@ export default function Attendance() {
             const statusLabel = isBeforeJoining || isFuture ? '-' : (holiday ? 'Holiday' : displayStatus);
             const isToday = day === new Date().getDate() && month === new Date().getMonth() && year === new Date().getFullYear();
 
-            // Calculate if the day is older than the allowed 3 days
             const targetMidnight = new Date(currentLoopDate);
             targetMidnight.setHours(23, 59, 59, 999);
             const diffTime = todayMidnight.getTime() - targetMidnight.getTime();
             const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-            const isTooOld = diffDays > 3;
+            const isTooOld = diffDays > (attendancePolicy?.regularizationDays ?? 3);
 
             days.push(
                 <div key={day} className={`h-24 p-2 rounded-xl border ${isToday ? 'border-brand-500 ring-1 ring-brand-500' : 'border-gray-100 dark:border-white/10'} ${holiday ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200' : 'bg-white dark:bg-brand-800'} hover:shadow-md transition-shadow relative group cursor-pointer`}>
@@ -329,7 +345,14 @@ export default function Attendance() {
                     )}
 
                     {hasRejectedRequest && (
-                        <div className="text-[9px] bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 border border-rose-100 dark:border-rose-500/20 px-1 py-0.5 rounded mt-1 truncate" title={`Rejected comment: ${request.approverComment || 'No comment'}`}>
+                        <div
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setRejectedRequestToShow(request);
+                            }}
+                            className="text-[9px] bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 border border-rose-100 dark:border-rose-500/20 px-1 py-0.5 rounded mt-1 truncate hover:bg-rose-100 dark:hover:bg-rose-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all font-semibold shadow-sm cursor-pointer"
+                            title={`Rejected comment: ${request.approverComment || 'No comment'}`}
+                        >
                             Rejected: {request.approverComment || 'no reason'}
                         </div>
                     )}
@@ -364,29 +387,43 @@ export default function Attendance() {
         return days;
     };
 
-    // Find first missed/absent punch to feature in top alert (strictly past 3 days)
     const getFirstMissedPunch = () => {
-        if (loading || attendanceHistory.length === 0) return null;
+        if (loading) return null;
 
-        // Find absent days in history that do not have regularization requests
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const missed = attendanceHistory.find(log => {
-            if (log.status !== 'Absent') return false;
-            const logDate = new Date(log.date);
-            if (logDate >= today) return false;
 
-            // Check if older than 3 days
-            const diffTime = today.getTime() - logDate.getTime();
-            const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-            if (diffDays > 3) return false;
+        const lookbackDays = attendancePolicy?.regularizationDays ?? 3;
 
-            // Check requests
-            const request = regularizationRequests.find(r => r.date === log.date);
-            return !request;
-        });
+        for (let i = 1; i <= lookbackDays; i++) {
+            const checkDate = new Date(today);
+            checkDate.setDate(today.getDate() - i);
+            checkDate.setHours(0, 0, 0, 0);
 
-        return missed ? missed.date : null;
+            const year = checkDate.getFullYear();
+            const month = checkDate.getMonth() + 1;
+            const day = checkDate.getDate();
+            const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+            const isWeekend = checkDate.getDay() === 0 || checkDate.getDay() === 6;
+            if (isWeekend) continue;
+
+            if (joiningDate && checkDate < joiningDate) continue;
+
+            const isHoliday = holidays.some(h => h.date.split('T')[0] === dateStr);
+            if (isHoliday) continue;
+
+            const log = attendanceHistory.find(d => d.date === dateStr);
+            const isAbsent = !log || log.status === 'Absent';
+            if (!isAbsent) continue;
+
+            const request = regularizationRequests.find(r => r.date === dateStr);
+            if (request) continue;
+
+            return dateStr;
+        }
+
+        return null;
     };
 
     const missedPunchDate = getFirstMissedPunch();
@@ -497,7 +534,10 @@ export default function Attendance() {
                                 <AlertCircle className="text-orange-600 dark:text-orange-400" size={20} />
                                 <div>
                                     <h5 className="font-bold text-orange-800 dark:text-orange-200 text-sm">Action Needed: Missed Punch</h5>
-                                    <p className="text-xs text-orange-600 dark:text-orange-300">You have a missed check-in on <strong>{new Date(missedPunchDate).toLocaleDateString([], { day: 'numeric', month: 'short' })}</strong>. Correct this now.</p>
+                                    <p className="text-xs text-orange-600 dark:text-orange-300">You have a missed check-in on <strong>{(() => {
+                                        const [y, m, d] = missedPunchDate.split('-').map(Number);
+                                        return new Date(y, m - 1, d).toLocaleDateString([], { day: 'numeric', month: 'short' });
+                                    })()}</strong>. Correct this now.</p>
                                 </div>
                             </div>
                             <button
@@ -551,12 +591,12 @@ export default function Attendance() {
             </div>
 
             {/* Attendance Regularization Modal */}
-            {regularizeDate && (
+            {regularizeDate && createPortal(
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
                     <div className="bg-white dark:bg-brand-900 rounded-[2.5rem] p-8 max-w-md w-full border border-gray-100 dark:border-white/10 shadow-2xl animate-scale-in">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-xl font-bold text-gray-800 dark:text-white">Attendance Correction</h3>
-                            <button onClick={() => setRegularizeDate(null)} className="p-1 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors">
+                            <button type="button" onClick={() => setRegularizeDate(null)} className="p-1 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors">
                                 <X size={20} />
                             </button>
                         </div>
@@ -677,7 +717,87 @@ export default function Attendance() {
                             </div>
                         </form>
                     </div>
-                </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Rejected Request Detail Modal */}
+            {rejectedRequestToShow && createPortal(
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white dark:bg-brand-900 rounded-[2.5rem] p-8 max-w-md w-full border border-gray-100 dark:border-white/10 shadow-2xl animate-scale-in relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-rose-500 to-orange-500"></div>
+                        <div className="flex justify-between items-center mb-6">
+                            <div className="flex items-center gap-2">
+                                <span className="p-2 bg-rose-50 dark:bg-rose-500/10 text-rose-500 rounded-xl">
+                                    <AlertCircle size={20} />
+                                </span>
+                                <h3 className="text-xl font-bold text-gray-800 dark:text-white">Correction Rejected</h3>
+                            </div>
+                            <button type="button" onClick={() => setRejectedRequestToShow(null)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4 font-sans">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Date Requested</label>
+                                <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl font-bold text-sm text-gray-700 dark:text-gray-200">
+                                    {(() => {
+                                        const [y, m, d] = rejectedRequestToShow.date.split('-').map(Number);
+                                        const localDate = new Date(y, m - 1, d);
+                                        return localDate.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                                    })()}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Proposed In Time</label>
+                                    <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                                        <Clock size={14} /> {formatTime12h(rejectedRequestToShow.proposedIn || rejectedRequestToShow.inTime)}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Proposed Out Time</label>
+                                    <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm font-semibold text-rose-500 dark:text-rose-400 flex items-center gap-1.5">
+                                        <Clock size={14} /> {formatTime12h(rejectedRequestToShow.proposedOut || rejectedRequestToShow.outTime)}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Your Reason</label>
+                                <div className="p-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm text-gray-600 dark:text-gray-300 italic font-semibold leading-relaxed">
+                                    <div className="max-h-[120px] overflow-y-auto custom-scrollbar break-words pr-2">
+                                        "{rejectedRequestToShow.reason}"
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-2">
+                                <label className="block text-xs font-bold text-rose-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                                    Manager's Rejection Reason
+                                </label>
+                                <div className="p-4 bg-rose-50/50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/20 rounded-2xl text-sm text-rose-700 dark:text-rose-300 font-bold leading-relaxed shadow-sm">
+                                    <div className="max-h-[120px] overflow-y-auto custom-scrollbar break-words pr-2">
+                                        {rejectedRequestToShow.approverComment || 'No comment provided.'}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setRejectedRequestToShow(null)}
+                                    className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-rose-500/20 text-sm tracking-wider uppercase cursor-pointer"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>,
+                document.body
             )}
         </div>
     );

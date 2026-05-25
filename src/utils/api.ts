@@ -8,7 +8,7 @@ let isRefreshing = false;
 // Add a request interceptor to inject the auth token
 api.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -35,7 +35,7 @@ api.interceptors.response.use(
             isRefreshing = true;
 
             try {
-                const refreshToken = localStorage.getItem('refreshToken');
+                const refreshToken = sessionStorage.getItem('refreshToken');
 
                 if (!refreshToken) {
                     throw new Error('No refresh token found');
@@ -48,14 +48,14 @@ api.interceptors.response.use(
 
                 const newToken = res.data.token;
 
-                localStorage.setItem('token', newToken);
+                sessionStorage.setItem('token', newToken);
 
                 originalRequest.headers.Authorization = `Bearer ${newToken}`;
 
                 return api(originalRequest);
             } catch (refreshError) {
-                localStorage.removeItem('token');
-                localStorage.removeItem('refreshToken');
+                sessionStorage.removeItem('token');
+                sessionStorage.removeItem('refreshToken');
 
                 window.location.href = '/signin';
 

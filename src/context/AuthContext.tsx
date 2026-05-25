@@ -30,21 +30,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Initialize from local storage to persist login across refreshes
-   useEffect(() => {
-    const storedUser = localStorage.getItem('encalm_user');
-    const token = localStorage.getItem('token');
-
-    if (storedUser && token) {
-        setUser(JSON.parse(storedUser));
-    } else {
-        localStorage.removeItem('encalm_user');
-        localStorage.removeItem('token');
-        setUser(null);
-    }
-
-    setIsLoading(false);
-}, []);
+    // Initialize from session storage to persist login across refreshes
+    useEffect(() => {
+        const storedUser = sessionStorage.getItem('encalm_user');
+        if (storedUser) {
+            setUser(JSON.parse(storedUser));
+        }
+        setIsLoading(false);
+    }, []);
 
     const login = async (email: string, password: string) => {
         try {
@@ -56,8 +49,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const { token, user: userData } = data;
 
             setUser(userData);
-            localStorage.setItem('encalm_user', JSON.stringify(userData));
-            localStorage.setItem('token', token);
+            sessionStorage.setItem('encalm_user', JSON.stringify(userData));
+            sessionStorage.setItem('token', token);
         } catch (err: any) {
             setError(err.message || 'Login failed');
             throw err;
@@ -68,8 +61,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const logout = () => {
         setUser(null);
-        localStorage.removeItem('encalm_user');
-        localStorage.removeItem('token');
+        sessionStorage.removeItem('encalm_user');
+        sessionStorage.removeItem('token');
     };
 
     return (

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { Search, Bell, Moon, Sun, Menu, User, LayoutGrid, Calendar, Users, FileText, Settings, XCircle } from 'lucide-react';
+import { Search, Bell, Moon, Sun, Menu, User, LayoutGrid, Calendar, Users, FileText, Settings } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
@@ -198,7 +198,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                         className="p-2 bg-white dark:bg-white/5 rounded-xl shadow-sm hover:shadow-md cursor-pointer text-brand-500 dark:text-brand-300 transition-all relative"
                     >
                         <Bell size={20} />
-                        {notifications.length > 0 && (
+                        {notifications.some((n: any) => n.unread) && (
                             <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
                         )}
                     </div>
@@ -246,7 +246,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                 <h2 className="text-xl font-black text-gray-800 dark:text-white">
                                     Notifications
                                 </h2>
-                                {notifications.length > 0 && (
+                                {notifications.some((n: any) => n.unread) && (
                                     <span className="px-2.5 py-1 bg-brand-500 text-white text-[10px] font-black rounded-full">
                                         {notifications.filter((n: any) => n.unread).length} NEW
                                     </span>

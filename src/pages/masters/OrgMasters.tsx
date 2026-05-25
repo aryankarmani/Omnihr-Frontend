@@ -374,7 +374,7 @@ export default function OrgMasters() {
 
                                         <div className="mt-6 pt-4 border-t border-gray-100 dark:border-white/5 flex justify-between items-center">
                                             <div className="flex -space-x-2">
-                                                {deptEmployees.slice(0, 3).map((emp, i) => (
+                                                {deptEmployees.slice(0, 3).map((emp) => (
                                                     <div key={emp.id} title={emp.name} className="w-7 h-7 rounded-full border-2 border-white dark:border-gray-800 bg-brand-200 flex items-center justify-center text-[10px] font-bold text-brand-700">
                                                         {emp.name.substring(0, 1)}
                                                     </div>

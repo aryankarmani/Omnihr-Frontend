@@ -58,14 +58,14 @@ export default function AttendanceMasters() {
         finally { setLoading(false); }
     };
     const deleteShift = async (id: number) => {
-    try {
-        await api.delete(`/masters/shifts/${id}`);
-        fetchShifts();
-        toast.success("Shift deleted!");
-    } catch (e) {
-        toast.error("Failed to delete shift");
-    }
-};
+        try {
+            await api.delete(`/masters/shifts/${id}`);
+            fetchShifts();
+            toast.success("Shift deleted!");
+        } catch (e) {
+            toast.error("Failed to delete shift");
+        }
+    };
 
     const savePolicy = async () => {
         try {
@@ -88,7 +88,7 @@ export default function AttendanceMasters() {
         } finally {
             if (itemToDelete.type === 'shift') setShifts(shifts.filter(s => s.id !== itemToDelete.id));
             if (itemToDelete.type === 'holiday') setHolidays(holidays.filter(h => h.id !== itemToDelete.id));
-            
+
             setItemToDelete(null);
             setLoading(false);
         }
@@ -102,13 +102,13 @@ export default function AttendanceMasters() {
                     { id: 'holidays', label: 'Holidays', icon: Calendar },
                     { id: 'policy', label: 'Attendance Rules', icon: Settings },
                 ].map(tab => (
-                    <button 
+                    <button
                         key={tab.id}
-                        onClick={() => setActiveTab(tab.id)} 
-                        className={`px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-all whitespace-nowrap ${activeTab === tab.id 
-                            ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400 ring-1 ring-brand-200 dark:ring-brand-800' 
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-all whitespace-nowrap ${activeTab === tab.id
+                            ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400 ring-1 ring-brand-200 dark:ring-brand-800'
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5'
-                        }`}
+                            }`}
                     >
                         <tab.icon size={16} /> {tab.label}
                     </button>
@@ -128,7 +128,7 @@ export default function AttendanceMasters() {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {shifts.map(shift => (
                                 <div key={shift.id} className="group p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:shadow-md transition-all relative">
-                                    <button 
+                                    <button
                                         onClick={() => setItemToDelete({ id: shift.id, name: shift.name, type: 'shift' })}
                                         className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                                     >
@@ -282,7 +282,7 @@ export default function AttendanceMasters() {
                         </div>
                         <h3 className="text-xl font-bold text-white mb-2">Delete {itemToDelete.type}?</h3>
                         <p className="text-[#8a8b94] mb-8 text-sm leading-relaxed px-2">
-                            Are you sure you want to delete <span className="font-bold text-gray-200">{itemToDelete.name}</span>? <br/>
+                            Are you sure you want to delete <span className="font-bold text-gray-200">{itemToDelete.name}</span>? <br />
                             This action cannot be undone and will permanently remove all associated data.
                         </p>
                         <div className="flex gap-4 px-2">

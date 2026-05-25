@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Calendar, Mail, Loader2, ArrowLeft, UserCheck, Filter, X, LayoutGrid, List } from 'lucide-react';
+import { Search, Calendar, Mail, Loader2, ArrowLeft, UserCheck, Filter, LayoutGrid, List } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
