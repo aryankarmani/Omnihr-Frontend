@@ -31,13 +31,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [error, setError] = useState<string | null>(null);
 
     // Initialize from local storage to persist login across refreshes
-    useEffect(() => {
-        const storedUser = localStorage.getItem('encalm_user');
-        if (storedUser) {
-            setUser(JSON.parse(storedUser));
-        }
-        setIsLoading(false);
-    }, []);
+   useEffect(() => {
+    const storedUser = localStorage.getItem('encalm_user');
+    const token = localStorage.getItem('token');
+
+    if (storedUser && token) {
+        setUser(JSON.parse(storedUser));
+    } else {
+        localStorage.removeItem('encalm_user');
+        localStorage.removeItem('token');
+        setUser(null);
+    }
+
+    setIsLoading(false);
+}, []);
 
     const login = async (email: string, password: string) => {
         try {

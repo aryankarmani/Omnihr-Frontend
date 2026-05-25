@@ -52,6 +52,15 @@ export default function AddEmployee() {
         bankName: '',
         ifsc: '',
         accountNumber: '',
+       salary: {
+    basic: '',
+    hra: '',
+    special: '',
+    medical: '',
+    pf: '',
+    pt: '',
+    tax: '',
+},
         joiningDate: new Date().toISOString().split('T')[0]
     });
      const [selectedDoc, setSelectedDoc] = useState(null);
@@ -60,16 +69,28 @@ export default function AddEmployee() {
     pan: null,
     degree: null,
 });
-    const steps = [
-        { id: 1, title: 'Personal Details', icon: User },
-        { id: 2, title: 'Statutory Info', icon: CreditCard },
-        { id: 3, title: 'Documents', icon: FileText },
-    ];
+   const steps = [
+    { id: 1, title: 'Personal Details', icon: User },
+    { id: 2, title: 'Statutory Info', icon: CreditCard },
+    { id: 3, title: 'Salary Info', icon: CreditCard },
+    { id: 4, title: 'Documents', icon: FileText },
+];
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
+    
+
+const handleSalaryChange = (field: string, value: string) => {
+    setFormData((prev: any) => ({
+        ...prev,
+        salary: {
+            ...prev.salary,
+            [field]: value.replace(/\D/g, ''),
+        },
+    }));
+};
 
     const handleNext = async () => {
         // STEP 1 VALIDATION
@@ -129,6 +150,7 @@ export default function AddEmployee() {
         toast.error('Account Number must be 9–18 digits');
         return;
     }
+    
     const uan = formData.uan.replace(/\s/g, '');
 
 if (!formData.uan) {
@@ -164,23 +186,49 @@ if (!/^[A-Za-z\s]{2,50}$/.test(bankName)) {
 }
    
        }
-           // STEP 3 VALIDATION
-       if (currentStep === 3) {
+       // STEP 3 VALIDATION
+if (currentStep === 3) {
+    const salary = formData.salary;
+
+    if (
+        !salary.basic ||
+        !salary.hra ||
+        !salary.special ||
+        !salary.medical ||
+        !salary.pf ||
+        !salary.pt ||
+        !salary.tax
+    ) {
+        toast.error('Please fill all salary details');
+        return;
+    }
+}
+           // STEP 4 VALIDATION
+       if (currentStep === 4) {
     if (!documents.aadhaar || !documents.pan || !documents.degree) {
         toast.error('Please upload all required documents');
         return;
     }
 }
-        if (currentStep < 3) {
-            setCurrentStep(c => c + 1);
+if (currentStep < 4) {
+setCurrentStep(c => c + 1);
         } else {
             // Final Submit
             setLoading(true);
             try {
-                const submissionData = {
-                    ...formData,
-                    name: `${formData.firstName} ${formData.lastName}`.trim(),
-                };
+               const submissionData = {
+    ...formData,
+    name: `${formData.firstName} ${formData.lastName}`.trim(),
+    salary: {
+        basic: formData.salary.basic,
+        hra: formData.salary.hra,
+        special: formData.salary.special,
+        medical: formData.salary.medical,
+        pf: formData.salary.pf,
+        pt: formData.salary.pt,
+        tax: formData.salary.tax,
+    },
+};
                 await api.post('/employee', submissionData);
                 toast.success('Employee Onboarded Successfully!');
                 navigate('/employee');
@@ -234,7 +282,11 @@ if (!/^[A-Za-z\s]{2,50}$/.test(bankName)) {
                             <div
                                 className="h-full bg-brand-500 transition-all duration-500"
                                 style={{
-                                    width: currentStep === 1 ? '0%' : currentStep === 2 ? '50%' : '100%',
+                                   width:
+    currentStep === 1 ? '0%' :
+    currentStep === 2 ? '33%' :
+    currentStep === 3 ? '66%' :
+    '100%',
                                 }}
                             ></div>
                         </div>
@@ -470,10 +522,45 @@ if (!/^[A-Za-z\s]{2,50}$/.test(bankName)) {
                                     </div>
                                 </div>
                             </div>
+                      
+
                         </div>
                     )}
-
                     {currentStep === 3 && (
+    <div className="space-y-4 animate-fade-in">
+        <h3 className="font-bold text-gray-800 dark:text-white border-b border-gray-100 dark:border-white/10 pb-2">
+            Salary Info
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[
+                { label: 'Basic', key: 'basic' },
+                { label: 'HRA', key: 'hra' },
+                { label: 'Special Allowance', key: 'special' },
+                { label: 'Medical', key: 'medical' },
+                { label: 'PF', key: 'pf' },
+                { label: 'PT', key: 'pt' },
+                { label: 'Tax / TDS', key: 'tax' },
+            ].map((field) => (
+                <div key={field.key} className="space-y-2">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">
+                        {field.label}
+                    </label>
+
+                    <input
+                        type="text"
+                        value={(formData.salary as any)[field.key] || ''}
+                        onChange={(e) => handleSalaryChange(field.key, e.target.value)}
+                        className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
+                        placeholder={`Enter ${field.label}`}
+                    />
+                </div>
+            ))}
+        </div>
+    </div>
+)}
+
+                    {currentStep === 4 && (
                         <div className="space-y-6 animate-fade-in">
                             <div   onClick={() => document.getElementById('fileInput')?.click()}
                             className="border-2 border-dashed border-gray-300 dark:border-white/20 rounded-3xl p-12 text-center group hover:border-brand-500 transition-colors cursor-pointer bg-gray-50 dark:bg-white/5">
@@ -569,7 +656,7 @@ if (!/^[A-Za-z\s]{2,50}$/.test(bankName)) {
                             </>
                         ) : (
                             <>
-                                {currentStep === 3 ? 'Complete Onboarding' : 'Next Step'} <ChevronRight size={18} />
+                                {currentStep === 4 ? 'Complete Onboarding' : 'Next Step'} <ChevronRight size={18} />
                             </>
                         )}
                     </button>

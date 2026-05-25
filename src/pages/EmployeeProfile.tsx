@@ -17,7 +17,7 @@ export default function EmployeeProfile() {
     const queryParams = new URLSearchParams(location.search);
     const initialEditMode = queryParams.get('edit') === 'true';
 
-const [activeTab, setActiveTab] = useState<'personal' | 'statutory' | 'documents' | 'shiftRoster'>('statutory');
+const [activeTab, setActiveTab] = useState<'personal' | 'statutory' | 'documents' | 'shiftRoster' | 'salary'>('statutory');
     const [isEditing, setIsEditing] = useState(initialEditMode);
 const [showPayslip, setShowPayslip] = useState(false);
     const [showIDCard, setShowIDCard] = useState(false);
@@ -36,6 +36,8 @@ const [showPayslip, setShowPayslip] = useState(false);
         try {
             const endpoint = id ? `/employee/${id}` : '/employee/me';
             const res = await api.get(endpoint);
+            console.log("EMPLOYEE DATA:", res.data);
+console.log("SALARY DATA:", res.data.employeeProfile?.salary);
             setEmployee(res.data);
             setErrors({});
         } catch (error) {
@@ -124,6 +126,17 @@ if (isEditing && !pd.bloodGroup) { newErrors.bloodGroup = "Blood Group is requir
         if (pd.bloodGroup && !/^(A|B|AB|O)[+-]$/i.test(pd.bloodGroup)) newErrors.bloodGroup = "Invalid Blood Group (e.g. A+, O-)";
         if (isEditing && !pd.address) newErrors.address = "Address is required";
         if (isEditing && !pd.dob) newErrors.dob = "Date of Birth is required";
+        if (pd.dob) {
+    const dob = pd.dob.split('T')[0];
+    const year = dob.split('-')[0];
+    const today = new Date().toISOString().split('T')[0];
+
+    if (year.length !== 4) {
+        newErrors.dob = "Year must be 4 digits";
+    } else if (dob > today) {
+        newErrors.dob = "Future date is not allowed";
+    }
+}
 
         if (p.uan && !/^\d{12}$/.test(p.uan)) newErrors.uan = "UAN must be 12 digits";
         if (p.esic && !/^\d{17}$/.test(p.esic)) newErrors.esic = "ESIC must be 17 digits";
@@ -133,15 +146,47 @@ if (isEditing && !pd.bloodGroup) { newErrors.bloodGroup = "Blood Group is requir
         if (b.accountNumber && !/^\d{9,18}$/.test(b.accountNumber)) newErrors.accountNumber = "Invalid Account Number";
         if (b.ifsc && !/^[A-Z]{4}0[A-Z0-9]{6}$/i.test(b.ifsc)) newErrors.ifsc = "Invalid IFSC Code";
 
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+       setErrors(newErrors);
+
+const errorFields = Object.keys(newErrors);
+
+if (errorFields.length > 0) {
+    if (
+        errorFields.includes('basic') ||
+        errorFields.includes('hra') ||
+        errorFields.includes('special') ||
+        errorFields.includes('medical') ||
+        errorFields.includes('pf') ||
+        errorFields.includes('pt') ||
+        errorFields.includes('tax')
+    ) {
+        toast.error('Please fix validation errors in Salary Info');
+        setActiveTab('salary');
+    } else if (
+        errorFields.includes('uan') ||
+        errorFields.includes('esic') ||
+        errorFields.includes('pan') ||
+        errorFields.includes('aadhaar') ||
+        errorFields.includes('accountNumber') ||
+        errorFields.includes('ifsc')
+    ) {
+        toast.error('Please fix validation errors in Statutory & Bank Info');
+        setActiveTab('statutory');
+    } else {
+        toast.error('Please fix validation errors in Personal Details');
+        setActiveTab('personal');
+    }
+
+    return false;
+}
+
+return true;
     };
 
     const handleSave = async () => {
-        if (!validate()) {
-            toast.error('Please fix validation errors');
-            return;
-        }
+      if (!validate()) {
+    return;
+}
         try {
             const profileData = {
                 phone: employee.employeeProfile?.phone,
@@ -155,6 +200,7 @@ if (isEditing && !pd.bloodGroup) { newErrors.bloodGroup = "Blood Group is requir
                 designationId: employee.employeeProfile?.designationId,
                 status: employee.employeeProfile?.status || 'Active',
                 shiftId: employee.employeeProfile?.shiftId,
+                salary: employee.employeeProfile?.salary,
                 // Statutory
                 uan: employee.employeeProfile?.statutory?.uan,
                 pfNumber: employee.employeeProfile?.statutory?.pfNumber,
@@ -165,7 +211,7 @@ if (isEditing && !pd.bloodGroup) { newErrors.bloodGroup = "Blood Group is requir
                 bankName: employee.employeeProfile?.bank?.bankName,
                 accountNumber: employee.employeeProfile?.bank?.accountNumber,
                 ifsc: employee.employeeProfile?.bank?.ifsc,
-                // User
+                 // User
                 name: employee.name,
                 email: employee.email,
 roleId: employee.roleId || employee.role?.id,
@@ -213,18 +259,31 @@ role: employee.role?.name || employee.role?.title || employee.role            };
     };
 
     const handleBankChange = (field: string, value: string) => {
-        if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
-        setEmployee((prev: any) => ({
-            ...prev,
-            employeeProfile: {
-                ...(prev?.employeeProfile || {}),
-                bank: {
-                    ...(prev?.employeeProfile?.bank || {}),
-                    [field]: value
-                }
+    if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
+
+    setEmployee((prev: any) => ({
+        ...prev,
+        employeeProfile: {
+            ...(prev?.employeeProfile || {}),
+            bank: {
+                ...(prev?.employeeProfile?.bank || {}),
+                [field]: value
             }
-        }));
-    };
+        }
+    }));
+};
+const handleSalaryChange = (field: string, value: string) => {
+    setEmployee((prev: any) => ({
+        ...prev,
+        employeeProfile: {
+            ...(prev?.employeeProfile || {}),
+            salary: {
+                ...(prev?.employeeProfile?.salary || {}),
+                [field]: value
+            }
+        }
+    }));
+};
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -348,13 +407,21 @@ role: employee.role?.name || employee.role?.title || employee.role            };
 
             {/* Tabs */}
             <div className="flex gap-4 mb-6 border-b border-gray-200 dark:border-white/10 overflow-x-auto pb-1">
-             {['statutory', 'documents', 'personal', 'shiftRoster'].map((tab) => (     <button
+             {['statutory', 'documents', 'personal', 'shiftRoster','salary'].map((tab) => (     <button
                         key={tab}
                         onClick={() => setActiveTab(tab as any)}
                         className={`pb-3 px-2 font-medium transition-all whitespace-nowrap capitalize ${activeTab === tab ? 'text-brand-600 border-b-2 border-brand-600' : 'text-gray-500 hover:text-gray-700'}`}
                     >
-{tab === 'statutory' ? 'Statutory & Bank Info' : tab === 'personal' ? 'Personal Details' :tab === 'shiftRoster'
-    ? 'Shift & Roster' : 'Document Vault'}                    </button>
+                     {tab === 'statutory'
+    ? 'Statutory & Bank Info'
+    : tab === 'personal'
+    ? 'Personal Details'
+    : tab === 'shiftRoster'
+    ? 'Shift & Roster'
+    : tab === 'salary'
+    ? 'Salary Info'
+    : 'Document Vault'} 
+                      </button>
                 ))}
             </div>
 
@@ -452,6 +519,7 @@ role: employee.role?.name || employee.role?.title || employee.role            };
                                     </div>
                                 </div>
                             )}
+        
                         </div>
                     )}
 
@@ -894,7 +962,46 @@ className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border 
                             </div>
                         </div>
                     )}
+                {activeTab === 'salary' && (
+    <div className="bg-white dark:bg-brand-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-white/5 animate-fade-in-up">
+        <h3 className="text-xl font-bold mb-6 text-gray-800 dark:text-white">
+            Salary Info
+        </h3>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[
+                { label: 'Basic', key: 'basic' },
+                { label: 'HRA', key: 'hra' },
+                { label: 'Special Allowance', key: 'special' },
+                { label: 'Medical', key: 'medical' },
+                { label: 'PF', key: 'pf' },
+                { label: 'PT', key: 'pt' },
+                { label: 'Tax / TDS', key: 'tax' },
+            ].map((field) => (
+                <div key={field.key} className="space-y-1">
+                    <label className="text-xs font-bold text-gray-400 uppercase">
+                        {field.label}
+                    </label>
+
+                    {isEditing && hasPermission(['HR_ADMIN']) ? (
+                        <input
+                            type="text"
+value={profile.salary?.[field.key] || ''}
+                            onChange={(e) =>
+                                handleSalaryChange(field.key, e.target.value.replace(/\D/g, ''))
+                            }
+                            className="w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg outline-none"
+                        />
+                    ) : (
+                        <p className="font-semibold">
+₹ {profile.salary?.[field.key] || '0'}
+                        </p>
+                    )}
+                </div>
+            ))}
+        </div>
+    </div>
+)}
                 </div>
 
                 {/* Sidebar / Quick Actions */}
