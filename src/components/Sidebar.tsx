@@ -58,10 +58,32 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
 
     let userModules = user?.accessibleModules || [];
 
-    if (userModules.length === 0 && user?.role === 'HR_ADMIN') {
-        userModules = ['DASHBOARD', 'ATTENDANCE', 'EMPLOYEE', 'TEAM', 'LEAVE', 'REPORTS', 'MASTERS', 'TASK', 'MY_PROFILE'];
-    } else if (userModules.length === 0) {
-        userModules = ['DASHBOARD', 'ATTENDANCE', 'LEAVE', 'MY_PROFILE'];
+    const employeeDefaultModules = [
+        'DASHBOARD',
+        'ATTENDANCE',
+        'LEAVE',
+        'MY_PROFILE',
+    ];
+
+    const adminDefaultModules = [
+        'DASHBOARD',
+        'ATTENDANCE',
+        'EMPLOYEE',
+        'TEAM',
+        'LEAVE',
+        'REPORTS',
+        'MASTERS',
+        'TASK',
+        'MY_PROFILE',
+    ];
+
+
+    if (user?.role === 'HR_ADMIN') {
+        userModules = userModules.length > 0
+            ? Array.from(new Set([...adminDefaultModules, ...userModules]))
+            : adminDefaultModules;
+    } else {
+        userModules = Array.from(new Set([...employeeDefaultModules, ...userModules]));
     }
 
     const toggleMenu = (label: string) => {
