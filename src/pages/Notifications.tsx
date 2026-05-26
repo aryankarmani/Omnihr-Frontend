@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Bell, Check, Trash2, Calendar, FileText, Info, Loader2, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
+import { createPortal } from 'react-dom';
 
 export default function Notifications() {
     const [notifications, setNotifications] = useState<any[]>([]);
@@ -233,7 +234,7 @@ export default function Notifications() {
             )}
 
             {/* Deletion Modal */}
-            {showDeleteModal && (
+            {showDeleteModal && createPortal(
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
                     <div className="bg-white dark:bg-brand-900 rounded-[2.5rem] p-8 max-w-md w-full border border-gray-100 dark:border-white/10 shadow-2xl animate-scale-in">
                         <div className="w-16 h-16 bg-rose-100 dark:bg-rose-500/20 rounded-2xl flex items-center justify-center mb-6 text-rose-500 mx-auto">
@@ -258,7 +259,8 @@ export default function Notifications() {
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

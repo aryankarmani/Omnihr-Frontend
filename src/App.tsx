@@ -3,7 +3,6 @@ import { Toaster } from 'react-hot-toast';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import SignIn from './pages/SignIn';
-import SignUp from './pages/SignUp';
 import ForgotPassword from './pages/ForgotPassword';
 import Layout from './components/Layout';
 import DashboardHome from './pages/DashboardHome';
@@ -27,6 +26,11 @@ import Notifications from './pages/Notifications';
 import Regularizations from './pages/Regularizations';
 
 
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? <Layout>{children}</Layout> : <Navigate to="/signin" replace />;
+}
+
 function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
 
@@ -47,189 +51,28 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<Navigate to="/signin" replace />} />
           <Route path="/signin" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <SignIn />} />
-          <Route path="/signup" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <SignUp />} />
+          <Route path="/signup" element={<Navigate to="/signin" replace />} />
           <Route path="/forgot-password" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <ForgotPassword />} />
 
-          {/* Dashboard Route */}
-          <Route path="/dashboard" element={
-            isAuthenticated ? (
-              <Layout>
-                <DashboardHome />
-              </Layout>
-            ) : (
-              <Navigate to="/signin" replace />
-            )
-          } />
-
-          {/* Employee Routes */}
-          <Route path="/employee" element={
-            isAuthenticated ? (
-              <Layout>
-                <EmployeeList />
-              </Layout>
-            ) : (
-              <Navigate to="/signin" replace />
-            )
-          } />
-
-          <Route path="/employee/add" element={
-            isAuthenticated ? (
-              <Layout>
-                <AddEmployee />
-              </Layout>
-            ) : (
-              <Navigate to="/signin" replace />
-            )
-          } />
-
-          <Route path="/employee/:id" element={
-            isAuthenticated ? (
-              <Layout>
-                <EmployeeProfile />
-              </Layout>
-            ) : (
-              <Navigate to="/signin" replace />
-            )
-          } />
-
-
-
-
-
-          {/* Attendance Route */}
-          <Route path="/attendance" element={
-            isAuthenticated ? (
-              <Layout>
-                <Attendance />
-              </Layout>
-            ) : (
-              <Navigate to="/signin" replace />
-            )
-          } />
-
-          {/* Employee Attendance List (Admin Only) */}
-          <Route path="/employee-attendance" element={
-            isAuthenticated ? (
-              <Layout>
-                <EmployeeAttendanceList />
-              </Layout>
-            ) : (
-              <Navigate to="/signin" replace />
-            )
-          } />
-
-          {/* Employee Attendance View */}
-          <Route path="/employee-attendance/:id" element={
-            isAuthenticated ? (
-              <Layout>
-                <EmployeeAttendanceView />
-              </Layout>
-            ) : (
-              <Navigate to="/signin" replace />
-            )
-          } />
-
-          {/* Attendance Regularizations */}
-          <Route path="/regularizations" element={
-            isAuthenticated ? (
-              <Layout>
-                <Regularizations />
-              </Layout>
-            ) : (
-              <Navigate to="/signin" replace />
-            )
-          } />
-
-
-
-          {/* Leave Route */}
-          <Route path="/leave" element={
-            isAuthenticated ? (
-              <Layout>
-                <Leave />
-              </Layout>
-            ) : (
-              <Navigate to="/signin" replace />
-            )
-          } />
-
-          {/* Profile Route */}
-          <Route path="/profile" element={
-            isAuthenticated ? (
-              <Layout>
-                <EmployeeProfile />
-              </Layout>
-            ) : (
-              <Navigate to="/signin" replace />
-            )
-          } />
-
-          <Route path="/notifications" element={
-            isAuthenticated ? (
-              <Layout>
-                <Notifications />
-              </Layout>
-            ) : (
-              <Navigate to="/signin" replace />
-            )
-          } />
-
-
-
-          {/* Team Route */}
-          <Route path="/team" element={
-            isAuthenticated ? (
-              <Layout>
-                <Team />
-              </Layout>
-            ) : (
-              <Navigate to="/signin" replace />
-            )
-          } />
-
-          {/* Reports Route */}
-          <Route path="/reports" element={
-            isAuthenticated ? (
-              <Layout>
-                <Reports />
-              </Layout>
-            ) : (
-              <Navigate to="/signin" replace />
-            )
-          } />
-
-          {/* Leave Today Route */}
-          <Route path="/leave-today" element={
-            isAuthenticated ? (
-              <Layout>
-                <LeaveToday />
-              </Layout>
-            ) : (
-              <Navigate to="/signin" replace />
-            )
-          } />
-
-          {/* New Joiners Route */}
-          <Route path="/new-joiners" element={
-            isAuthenticated ? (
-              <Layout>
-                <NewJoiners />
-              </Layout>
-            ) : (
-              <Navigate to="/signin" replace />
-            )
-          } />
+          {/* Protected Routes */}
+          <Route path="/dashboard" element={<ProtectedRoute><DashboardHome /></ProtectedRoute>} />
+          <Route path="/employee" element={<ProtectedRoute><EmployeeList /></ProtectedRoute>} />
+          <Route path="/employee/add" element={<ProtectedRoute><AddEmployee /></ProtectedRoute>} />
+          <Route path="/employee/:id" element={<ProtectedRoute><EmployeeProfile /></ProtectedRoute>} />
+          <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
+          <Route path="/employee-attendance" element={<ProtectedRoute><EmployeeAttendanceList /></ProtectedRoute>} />
+          <Route path="/employee-attendance/:id" element={<ProtectedRoute><EmployeeAttendanceView /></ProtectedRoute>} />
+          <Route path="/regularizations" element={<ProtectedRoute><Regularizations /></ProtectedRoute>} />
+          <Route path="/leave" element={<ProtectedRoute><Leave /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><EmployeeProfile /></ProtectedRoute>} />
+          <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+          <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
+          <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+          <Route path="/leave-today" element={<ProtectedRoute><LeaveToday /></ProtectedRoute>} />
+          <Route path="/new-joiners" element={<ProtectedRoute><NewJoiners /></ProtectedRoute>} />
 
           {/* Masters Route */}
-          <Route path="/masters" element={
-            isAuthenticated ? (
-              <Layout>
-                <MastersLayout />
-              </Layout>
-            ) : (
-              <Navigate to="/signin" replace />
-            )
-          }>
+          <Route path="/masters" element={<ProtectedRoute><MastersLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="org" replace />} />
             <Route path="org" element={<OrgMasters />} />
             <Route path="statutory" element={<StatutoryMasters />} />

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
-import { useTheme } from '../context/ThemeContext';
+// import { useTheme } from '../context/ThemeContext';
 import officeWorkerImg from '../assets/office-worker-3d.png';
 import vedaLogo from '../assets/veda-logo.png';
 import { Captcha } from '../components/auth/Captcha';
@@ -12,7 +12,7 @@ type AuthStep = 'INITIAL_FORM' | 'OTP_VERIFICATION';
 
 export default function SignUp() {
     const navigate = useNavigate();
-    const { setTheme } = useTheme();
+    // const { setTheme } = useTheme();
 
     const [step, setStep] = useState<AuthStep>('INITIAL_FORM');
     const [showPassword, setShowPassword] = useState(false);

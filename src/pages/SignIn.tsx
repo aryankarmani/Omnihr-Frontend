@@ -77,10 +77,6 @@ export default function SignIn() {
                 >
                     Forgot Password?
                 </Link>
-
-                <p className="text-gray-400 text-xs md:text-sm">
-                    Do Not Have Account? <Link to="/signup" className="text-brand-500 font-bold hover:underline ml-1">Sign Up</Link>
-                </p>
             </div>
         </form>
     );

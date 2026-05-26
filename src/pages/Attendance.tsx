@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Calendar, Clock, MapPin, AlertCircle, CheckCircle, Coffee, ChevronLeft, ChevronRight, Loader2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
+import { createPortal } from 'react-dom';
 
 // Types for Attendance Data
 type AttendanceStatus = 'Present' | 'Absent' | 'Late' | 'Half Day' | 'Holiday' | 'Weekend' | 'Pending';
@@ -34,6 +35,7 @@ export default function Attendance() {
     // Attendance Regularization State
     const [regularizationRequests, setRegularizationRequests] = useState<any[]>([]);
     const [regularizeDate, setRegularizeDate] = useState<string | null>(null);
+    const [rejectedRequestToShow, setRejectedRequestToShow] = useState<any | null>(null);
     const [reason, setReason] = useState('');
     const [customReason, setCustomReason] = useState('');
     const [submittingRequest, setSubmittingRequest] = useState(false);
@@ -42,6 +44,17 @@ export default function Attendance() {
     // Text field state representations for 12-hour format display and direct editing
     const [inInputText, setInInputText] = useState('09:00 AM');
     const [outInputText, setOutInputText] = useState('06:00 PM');
+
+    const formatTime12h = (timeStr?: string) => {
+        if (!timeStr) return '--:--';
+        try {
+            const date = new Date(timeStr);
+            if (isNaN(date.getTime())) return timeStr;
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+        } catch (e) {
+            return timeStr;
+        }
+    };
 
     const format24to12 = (timeStr: string) => {
         if (!timeStr) return '';
@@ -332,7 +345,14 @@ export default function Attendance() {
                     )}
 
                     {hasRejectedRequest && (
-                        <div className="text-[9px] bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 border border-rose-100 dark:border-rose-500/20 px-1 py-0.5 rounded mt-1 truncate" title={`Rejected comment: ${request.approverComment || 'No comment'}`}>
+                        <div
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setRejectedRequestToShow(request);
+                            }}
+                            className="text-[9px] bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 border border-rose-100 dark:border-rose-500/20 px-1 py-0.5 rounded mt-1 truncate hover:bg-rose-100 dark:hover:bg-rose-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all font-semibold shadow-sm cursor-pointer"
+                            title={`Rejected comment: ${request.approverComment || 'No comment'}`}
+                        >
                             Rejected: {request.approverComment || 'no reason'}
                         </div>
                     )}
@@ -571,12 +591,12 @@ export default function Attendance() {
             </div>
 
             {/* Attendance Regularization Modal */}
-            {regularizeDate && (
+            {regularizeDate && createPortal(
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
                     <div className="bg-white dark:bg-brand-900 rounded-[2.5rem] p-8 max-w-md w-full border border-gray-100 dark:border-white/10 shadow-2xl animate-scale-in">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-xl font-bold text-gray-800 dark:text-white">Attendance Correction</h3>
-                            <button onClick={() => setRegularizeDate(null)} className="p-1 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors">
+                            <button type="button" onClick={() => setRegularizeDate(null)} className="p-1 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors">
                                 <X size={20} />
                             </button>
                         </div>
@@ -697,7 +717,87 @@ export default function Attendance() {
                             </div>
                         </form>
                     </div>
-                </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Rejected Request Detail Modal */}
+            {rejectedRequestToShow && createPortal(
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white dark:bg-brand-900 rounded-[2.5rem] p-8 max-w-md w-full border border-gray-100 dark:border-white/10 shadow-2xl animate-scale-in relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-rose-500 to-orange-500"></div>
+                        <div className="flex justify-between items-center mb-6">
+                            <div className="flex items-center gap-2">
+                                <span className="p-2 bg-rose-50 dark:bg-rose-500/10 text-rose-500 rounded-xl">
+                                    <AlertCircle size={20} />
+                                </span>
+                                <h3 className="text-xl font-bold text-gray-800 dark:text-white">Correction Rejected</h3>
+                            </div>
+                            <button type="button" onClick={() => setRejectedRequestToShow(null)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4 font-sans">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Date Requested</label>
+                                <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl font-bold text-sm text-gray-700 dark:text-gray-200">
+                                    {(() => {
+                                        const [y, m, d] = rejectedRequestToShow.date.split('-').map(Number);
+                                        const localDate = new Date(y, m - 1, d);
+                                        return localDate.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                                    })()}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Proposed In Time</label>
+                                    <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                                        <Clock size={14} /> {formatTime12h(rejectedRequestToShow.proposedIn || rejectedRequestToShow.inTime)}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Proposed Out Time</label>
+                                    <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm font-semibold text-rose-500 dark:text-rose-400 flex items-center gap-1.5">
+                                        <Clock size={14} /> {formatTime12h(rejectedRequestToShow.proposedOut || rejectedRequestToShow.outTime)}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Your Reason</label>
+                                <div className="p-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm text-gray-600 dark:text-gray-300 italic font-semibold leading-relaxed">
+                                    <div className="max-h-[120px] overflow-y-auto custom-scrollbar break-words pr-2">
+                                        "{rejectedRequestToShow.reason}"
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-2">
+                                <label className="block text-xs font-bold text-rose-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                                    Manager's Rejection Reason
+                                </label>
+                                <div className="p-4 bg-rose-50/50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/20 rounded-2xl text-sm text-rose-700 dark:text-rose-300 font-bold leading-relaxed shadow-sm">
+                                    <div className="max-h-[120px] overflow-y-auto custom-scrollbar break-words pr-2">
+                                        {rejectedRequestToShow.approverComment || 'No comment provided.'}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setRejectedRequestToShow(null)}
+                                    className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-rose-500/20 text-sm tracking-wider uppercase cursor-pointer"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>,
+                document.body
             )}
         </div>
     );

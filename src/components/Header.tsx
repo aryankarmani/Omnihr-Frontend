@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { Search, Bell, Moon, Sun, Menu, User, LayoutGrid, Calendar, Users, FileText, Settings, XCircle } from 'lucide-react';
+import { Search, Bell, Moon, Sun, Menu, User, LayoutGrid, Calendar, Users, FileText, Settings } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';

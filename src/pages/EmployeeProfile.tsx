@@ -17,7 +17,7 @@ export default function EmployeeProfile() {
     const queryParams = new URLSearchParams(location.search);
     const initialEditMode = queryParams.get('edit') === 'true';
 
-const [activeTab, setActiveTab] = useState<'personal' | 'statutory' | 'documents' | 'shiftRoster'>('statutory');
+const [activeTab, setActiveTab] = useState<'personal' | 'statutory' | 'documents' | 'shiftRoster' | 'salary'>('statutory');
     const [isEditing, setIsEditing] = useState(initialEditMode);
 const [showPayslip, setShowPayslip] = useState(false);
     const [showIDCard, setShowIDCard] = useState(false);
@@ -36,6 +36,8 @@ const [showPayslip, setShowPayslip] = useState(false);
         try {
             const endpoint = id ? `/employee/${id}` : '/employee/me';
             const res = await api.get(endpoint);
+            console.log("EMPLOYEE DATA:", res.data);
+console.log("SALARY DATA:", res.data.employeeProfile?.salary);
             setEmployee(res.data);
             setErrors({});
         } catch (error) {
@@ -124,6 +126,17 @@ if (isEditing && !pd.bloodGroup) { newErrors.bloodGroup = "Blood Group is requir
         if (pd.bloodGroup && !/^(A|B|AB|O)[+-]$/i.test(pd.bloodGroup)) newErrors.bloodGroup = "Invalid Blood Group (e.g. A+, O-)";
         if (isEditing && !pd.address) newErrors.address = "Address is required";
         if (isEditing && !pd.dob) newErrors.dob = "Date of Birth is required";
+        if (pd.dob) {
+    const dob = pd.dob.split('T')[0];
+    const year = dob.split('-')[0];
+    const today = new Date().toISOString().split('T')[0];
+
+    if (year.length !== 4) {
+        newErrors.dob = "Year must be 4 digits";
+    } else if (dob > today) {
+        newErrors.dob = "Future date is not allowed";
+    }
+}
 
         if (p.uan && !/^\d{12}$/.test(p.uan)) newErrors.uan = "UAN must be 12 digits";
         if (p.esic && !/^\d{17}$/.test(p.esic)) newErrors.esic = "ESIC must be 17 digits";
@@ -133,15 +146,47 @@ if (isEditing && !pd.bloodGroup) { newErrors.bloodGroup = "Blood Group is requir
         if (b.accountNumber && !/^\d{9,18}$/.test(b.accountNumber)) newErrors.accountNumber = "Invalid Account Number";
         if (b.ifsc && !/^[A-Z]{4}0[A-Z0-9]{6}$/i.test(b.ifsc)) newErrors.ifsc = "Invalid IFSC Code";
 
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+       setErrors(newErrors);
+
+const errorFields = Object.keys(newErrors);
+
+if (errorFields.length > 0) {
+    if (
+        errorFields.includes('basic') ||
+        errorFields.includes('hra') ||
+        errorFields.includes('special') ||
+        errorFields.includes('medical') ||
+        errorFields.includes('pf') ||
+        errorFields.includes('pt') ||
+        errorFields.includes('tax')
+    ) {
+        toast.error('Please fix validation errors in Salary Info');
+        setActiveTab('salary');
+    } else if (
+        errorFields.includes('uan') ||
+        errorFields.includes('esic') ||
+        errorFields.includes('pan') ||
+        errorFields.includes('aadhaar') ||
+        errorFields.includes('accountNumber') ||
+        errorFields.includes('ifsc')
+    ) {
+        toast.error('Please fix validation errors in Statutory & Bank Info');
+        setActiveTab('statutory');
+    } else {
+        toast.error('Please fix validation errors in Personal Details');
+        setActiveTab('personal');
+    }
+
+    return false;
+}
+
+return true;
     };
 
     const handleSave = async () => {
-        if (!validate()) {
-            toast.error('Please fix validation errors');
-            return;
-        }
+      if (!validate()) {
+    return;
+}
         try {
             const profileData = {
                 phone: employee.employeeProfile?.phone,
@@ -155,6 +200,7 @@ if (isEditing && !pd.bloodGroup) { newErrors.bloodGroup = "Blood Group is requir
                 designationId: employee.employeeProfile?.designationId,
                 status: employee.employeeProfile?.status || 'Active',
                 shiftId: employee.employeeProfile?.shiftId,
+                salary: employee.employeeProfile?.salary,
                 // Statutory
                 uan: employee.employeeProfile?.statutory?.uan,
                 pfNumber: employee.employeeProfile?.statutory?.pfNumber,
@@ -165,7 +211,7 @@ if (isEditing && !pd.bloodGroup) { newErrors.bloodGroup = "Blood Group is requir
                 bankName: employee.employeeProfile?.bank?.bankName,
                 accountNumber: employee.employeeProfile?.bank?.accountNumber,
                 ifsc: employee.employeeProfile?.bank?.ifsc,
-                // User
+                 // User
                 name: employee.name,
                 email: employee.email,
 roleId: employee.roleId || employee.role?.id,
@@ -213,18 +259,31 @@ role: employee.role?.name || employee.role?.title || employee.role            };
     };
 
     const handleBankChange = (field: string, value: string) => {
-        if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
-        setEmployee((prev: any) => ({
-            ...prev,
-            employeeProfile: {
-                ...(prev?.employeeProfile || {}),
-                bank: {
-                    ...(prev?.employeeProfile?.bank || {}),
-                    [field]: value
-                }
+    if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
+
+    setEmployee((prev: any) => ({
+        ...prev,
+        employeeProfile: {
+            ...(prev?.employeeProfile || {}),
+            bank: {
+                ...(prev?.employeeProfile?.bank || {}),
+                [field]: value
             }
-        }));
-    };
+        }
+    }));
+};
+const handleSalaryChange = (field: string, value: string) => {
+    setEmployee((prev: any) => ({
+        ...prev,
+        employeeProfile: {
+            ...(prev?.employeeProfile || {}),
+            salary: {
+                ...(prev?.employeeProfile?.salary || {}),
+                [field]: value
+            }
+        }
+    }));
+};
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -348,13 +407,21 @@ role: employee.role?.name || employee.role?.title || employee.role            };
 
             {/* Tabs */}
             <div className="flex gap-4 mb-6 border-b border-gray-200 dark:border-white/10 overflow-x-auto pb-1">
-             {['statutory', 'documents', 'personal', 'shiftRoster'].map((tab) => (     <button
+             {['statutory', 'documents', 'personal', 'shiftRoster','salary'].map((tab) => (     <button
                         key={tab}
                         onClick={() => setActiveTab(tab as any)}
                         className={`pb-3 px-2 font-medium transition-all whitespace-nowrap capitalize ${activeTab === tab ? 'text-brand-600 border-b-2 border-brand-600' : 'text-gray-500 hover:text-gray-700'}`}
                     >
-{tab === 'statutory' ? 'Statutory & Bank Info' : tab === 'personal' ? 'Personal Details' :tab === 'shiftRoster'
-    ? 'Shift & Roster' : 'Document Vault'}                    </button>
+                     {tab === 'statutory'
+    ? 'Statutory & Bank Info'
+    : tab === 'personal'
+    ? 'Personal Details'
+    : tab === 'shiftRoster'
+    ? 'Shift & Roster'
+    : tab === 'salary'
+    ? 'Salary Info'
+    : 'Document Vault'} 
+                      </button>
                 ))}
             </div>
 
@@ -452,6 +519,7 @@ role: employee.role?.name || employee.role?.title || employee.role            };
                                     </div>
                                 </div>
                             )}
+        
                         </div>
                     )}
 
@@ -894,7 +962,46 @@ className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border 
                             </div>
                         </div>
                     )}
+                {activeTab === 'salary' && (
+    <div className="bg-white dark:bg-brand-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-white/5 animate-fade-in-up">
+        <h3 className="text-xl font-bold mb-6 text-gray-800 dark:text-white">
+            Salary Info
+        </h3>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[
+                { label: 'Basic', key: 'basic' },
+                { label: 'HRA', key: 'hra' },
+                { label: 'Special Allowance', key: 'special' },
+                { label: 'Medical', key: 'medical' },
+                { label: 'PF', key: 'pf' },
+                { label: 'PT', key: 'pt' },
+                { label: 'Tax / TDS', key: 'tax' },
+            ].map((field) => (
+                <div key={field.key} className="space-y-1">
+                    <label className="text-xs font-bold text-gray-400 uppercase">
+                        {field.label}
+                    </label>
+
+                    {isEditing && hasPermission(['HR_ADMIN']) ? (
+                        <input
+                            type="text"
+value={profile.salary?.[field.key] || ''}
+                            onChange={(e) =>
+                                handleSalaryChange(field.key, e.target.value.replace(/\D/g, ''))
+                            }
+                            className="w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg outline-none"
+                        />
+                    ) : (
+                        <p className="font-semibold">
+₹ {profile.salary?.[field.key] || '0'}
+                        </p>
+                    )}
+                </div>
+            ))}
+        </div>
+    </div>
+)}
                 </div>
 
                 {/* Sidebar / Quick Actions */}
@@ -921,8 +1028,8 @@ className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border 
             </div>
 
             {/* Payslip Modal (Keep original UI logic, but ensure it uses the dynamic data) */}
-            {showPayslip && (
-                <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
+            {showPayslip && createPortal(
+                <div className="fixed inset-0 z-[999999] flex items-start justify-center pt-20 bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
                     <div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden">
 
                         {/* Header */}
@@ -1065,32 +1172,34 @@ className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border 
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* ID Card Modal (Keep original UI logic, with dynamic data) */}
-            {showIDCard && (
-                <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/80 backdrop-blur-md p-4 animate-fade-in">
+            {showIDCard && createPortal(
+                <div className="fixed inset-0 z-[999999] flex items-start justify-center pt-20 bg-black/80 backdrop-blur-md p-4 animate-fade-in">
                     <div className="relative">
                         <button onClick={() => setShowIDCard(false)} className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors">
                             <X size={24} />
                         </button>
 
-                        <div id="id-card-container" className="w-[320px] h-[500px] bg-white rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden relative flex flex-col">
-<div
-    className="absolute top-0 inset-x-0 h-48 rounded-b-[50px] z-0"
-    style={{ background: 'linear-gradient(to bottom right, #5b21b6, #7c3aed)' }}
-></div>
+                        <div id="id-card-container" className="w-[320px] h-[540px] bg-white rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden relative flex flex-col animate-scale-in">
+                            <div
+                                className="absolute top-0 inset-x-0 h-48 rounded-b-[50px] z-0"
+                                style={{ background: 'linear-gradient(to bottom right, #5b21b6, #7c3aed)' }}
+                            ></div>
                             <div className="mx-auto w-16 h-3 bg-white/20 rounded-full mt-4 relative z-10 backdrop-blur-sm"></div>
                             <div className="flex justify-between items-start mb-6 px-6 pt-4 relative z-10">
                                 <h2 className="text-white font-bold tracking-widest text-lg opacity-90">EnCalm <span className="text-brand-300">HRX</span></h2>
                                 <div className="w-10 h-8 bg-gradient-to-br from-yellow-200 to-yellow-500 rounded-md opacity-80 shadow-inner border border-yellow-300/50"></div>
                             </div>
                             <div className="relative z-10 mx-auto mt-6">
-<div
-    className="w-32 h-32 rounded-full border-4 border-white shadow-lg overflow-hidden flex items-center justify-center text-white font-bold text-4xl"
-    style={{ background: '#7c3aed' }}
->                                     {employee.name.split(' ').map((n: any) => n[0]).join('')}
+                                <div
+                                    className="w-32 h-32 rounded-full border-4 border-white shadow-lg overflow-hidden flex items-center justify-center text-white font-bold text-4xl"
+                                    style={{ background: '#7c3aed' }}
+                                >
+                                    {employee.name.split(' ').map((n: any) => n[0]).join('')}
                                 </div>
                             </div>
                             <div className="text-center mt-4 flex-1 flex flex-col items-center">
@@ -1113,69 +1222,76 @@ className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border 
                                 </div>
                             </div>
                             <div className="bg-gray-50 p-4 border-t border-gray-100 flex justify-between items-center mt-auto">
-                                <div className="w-16 h-16 bg-white p-1 rounded-lg border border-gray-200 flex items-center justify-center text-[8px] text-gray-400 uppercase">QR Code</div>
+                                <div className="w-16 h-16 bg-white p-1 rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden">
+                                    <img 
+                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`Employee ID: ${employee.id}\nName: ${employee.name}\nRole: ${profile.title || 'Employee'}\nDept: ${profile.department || 'N/A'}`)}`}
+                                        alt="QR Code"
+                                        className="w-full h-full object-contain"
+                                    />
+                                </div>
                                 <div className="text-right italic text-gray-400 text-xs">Authorized Sig.</div>
                             </div>
                         </div>
                         <div className="flex justify-center mt-6">
                             <button
                               onClick={() => {
-    const printContent = document.getElementById('id-card-container');
-    const WindowPrt = window.open('', '', 'left=0,top=0,width=800,height=900,toolbar=0,scrollbars=0,status=0');
+                                const printContent = document.getElementById('id-card-container');
+                                const WindowPrt = window.open('', '', 'left=0,top=0,width=800,height=900,toolbar=0,scrollbars=0,status=0');
 
-    if (WindowPrt && printContent) {
-        WindowPrt.document.write(`
-            <html>
-                <head>
-                    <title>Print ID Card</title>
-                    <script src="https://cdn.tailwindcss.com"></script>
-                    <style>
-                        @page {
-                            size: 320px 500px;
-                            margin: 0;
-                        }
+                                if (WindowPrt && printContent) {
+                                    WindowPrt.document.write(`
+                                        <html>
+                                            <head>
+                                                <title>Print ID Card</title>
+                                                <script src="https://cdn.tailwindcss.com"></script>
+                                                <style>
+                                                    @page {
+                                                        size: 320px 540px;
+                                                        margin: 0;
+                                                    }
 
-                        html, body {
-                            margin: 0;
-                            padding: 0;
-                            width: 320px;
-                            height: 500px;
-                            overflow: hidden;
-                            -webkit-print-color-adjust: exact;
-                            print-color-adjust: exact;
-                        }
+                                                    html, body {
+                                                        margin: 0;
+                                                        padding: 0;
+                                                        width: 320px;
+                                                        height: 540px;
+                                                        overflow: hidden;
+                                                        -webkit-print-color-adjust: exact;
+                                                        print-color-adjust: exact;
+                                                    }
 
-                        #id-card-container {
-                            width: 320px !important;
-                            height: 500px !important;
-                            border-radius: 24px !important;
-                            overflow: hidden !important;
-                            box-shadow: none !important;
-                        }
-                    </style>
-                </head>
-                <body>
-                    ${printContent.outerHTML}
-                </body>
-            </html>
-        `);
+                                                    #id-card-container {
+                                                        width: 320px !important;
+                                                        height: 540px !important;
+                                                        border-radius: 24px !important;
+                                                        overflow: hidden !important;
+                                                        box-shadow: none !important;
+                                                    }
+                                                </style>
+                                            </head>
+                                            <body>
+                                                ${printContent.outerHTML}
+                                            </body>
+                                        </html>
+                                    `);
 
-        WindowPrt.document.close();
+                                    WindowPrt.document.close();
 
-        setTimeout(() => {
-            WindowPrt.focus();
-            WindowPrt.print();
-            WindowPrt.close();
-        }, 800);
-    }
-}} 
+                                    setTimeout(() => {
+                                        WindowPrt.focus();
+                                        WindowPrt.print();
+                                        WindowPrt.close();
+                                    }, 800);
+                                }
+                            }} 
                                 className="flex items-center gap-2 px-6 py-2 bg-white text-gray-800 font-bold rounded-full shadow-lg hover:bg-gray-100 transition-colors"
                             >
                                 <Printer size={18} /> Print
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
             {/* Document Deletion Confirmation */}
             {docToDelete !== null && createPortal(
