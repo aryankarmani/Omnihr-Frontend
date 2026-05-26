@@ -645,7 +645,7 @@ export default function AddEmployee() {
                                 ].map((doc, i) => (
                                     <div
                                         key={i}
-                                        onClick={() => setSelectedDoc(documents.key)}
+                                        onClick={() => setSelectedDoc(doc.key)}
                                         className={`flex items-center justify-between p-4 cursor-pointer border rounded-xl ${selectedDoc === doc.key ? 'border-brand-500 bg-brand-100 dark:bg-brand-800' : ''
                                             }`}        >                               <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 bg-gray-100 dark:bg-white/10 rounded-lg flex items-center justify-center text-gray-500">
