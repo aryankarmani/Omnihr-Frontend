@@ -181,7 +181,8 @@ export default function Attendance() {
         },
         onSuccess: (data) => {
             toast.success(data.message);
-            window.location.reload();
+            fetchStatusAndPolicy();
+            fetchHistoryAndRequests();
         },
         onError: (error: any) => {
             toast.error(error.response?.data?.message || 'Error during punch toggle');

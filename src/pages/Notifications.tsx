@@ -212,7 +212,7 @@ export default function Notifications() {
                                         </div>
                                         <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{n.time}</span>
                                     </div>
-                                    <p className={`text-sm leading-relaxed ${n.unread ? 'text-gray-700 dark:text-gray-200' : 'text-gray-500 dark:text-gray-400'}`}>
+                                    <p className={`text-sm leading-relaxed break-all ${n.unread ? 'text-gray-700 dark:text-gray-200' : 'text-gray-500 dark:text-gray-400'}`}>
                                         {n.message}
                                     </p>
                                 </div>

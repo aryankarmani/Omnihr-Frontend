@@ -39,6 +39,9 @@ export default function AddEmployee() {
         lastName: '',
         email: '',
         phone: '',
+        bloodGroup: '',
+        address: '',
+        dob: '',
         department: '',
         departmentId: '',
         role: '',
@@ -52,45 +55,45 @@ export default function AddEmployee() {
         bankName: '',
         ifsc: '',
         accountNumber: '',
-       salary: {
-    basic: '',
-    hra: '',
-    special: '',
-    medical: '',
-    pf: '',
-    pt: '',
-    tax: '',
-},
+        salary: {
+            basic: '',
+            hra: '',
+            special: '',
+            medical: '',
+            pf: '',
+            pt: '',
+            tax: '',
+        },
         joiningDate: new Date().toISOString().split('T')[0]
     });
-     const [selectedDoc, setSelectedDoc] = useState(null);
-    const [documents, setDocuments] = useState({
-     aadhaar: null,
-    pan: null,
-    degree: null,
-});
-   const steps = [
-    { id: 1, title: 'Personal Details', icon: User },
-    { id: 2, title: 'Statutory Info', icon: CreditCard },
-    { id: 3, title: 'Salary Info', icon: CreditCard },
-    { id: 4, title: 'Documents', icon: FileText },
-];
+    const [selectedDoc, setSelectedDoc] = useState(null);
+    const [documents, setDocuments] = useState<Record<string, any>>({
+        aadhaar: null,
+        pan: null,
+        degree: null,
+    });
+    const steps = [
+        { id: 1, title: 'Personal Details', icon: User },
+        { id: 2, title: 'Statutory Info', icon: CreditCard },
+        { id: 3, title: 'Salary Info', icon: CreditCard },
+        { id: 4, title: 'Documents', icon: FileText },
+    ];
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
-    
 
-const handleSalaryChange = (field: string, value: string) => {
-    setFormData((prev: any) => ({
-        ...prev,
-        salary: {
-            ...prev.salary,
-            [field]: value.replace(/\D/g, ''),
-        },
-    }));
-};
+
+    const handleSalaryChange = (field: string, value: string) => {
+        setFormData((prev: any) => ({
+            ...prev,
+            salary: {
+                ...prev.salary,
+                [field]: value.replace(/\D/g, ''),
+            },
+        }));
+    };
 
     const handleNext = async () => {
         // STEP 1 VALIDATION
@@ -110,7 +113,7 @@ const handleSalaryChange = (field: string, value: string) => {
             }
         }
 
-        
+
         if (currentStep === 2) {
 
             const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
@@ -142,16 +145,16 @@ const handleSalaryChange = (field: string, value: string) => {
                 return;
             }
 
-    if (!formData.accountNumber) {
-        toast.error('Account Number is required');
-        return;
-    }
-    if (!/^\d{9,18}$/.test(formData.accountNumber.trim())) {
-        toast.error('Account Number must be 9–18 digits');
-        return;
-    }
-    
-    const uan = formData.uan.replace(/\s/g, '');
+            if (!formData.accountNumber) {
+                toast.error('Account Number is required');
+                return;
+            }
+            if (!/^\d{9,18}$/.test(formData.accountNumber.trim())) {
+                toast.error('Account Number must be 9–18 digits');
+                return;
+            }
+
+            const uan = formData.uan.replace(/\s/g, '');
 
             if (!formData.uan) {
                 toast.error('UAN is required');
@@ -179,56 +182,56 @@ const handleSalaryChange = (field: string, value: string) => {
                 return;
             }
 
-// allows only letters & spaces (2–50 chars)
-if (!/^[A-Za-z\s]{2,50}$/.test(bankName)) {
-    toast.error('Bank Name must contain only letters (2-50 characters)');
-    return;
-}
-   
-       }
-       // STEP 3 VALIDATION
-if (currentStep === 3) {
-    const salary = formData.salary;
+            // allows only letters & spaces (2–50 chars)
+            if (!/^[A-Za-z\s]{2,50}$/.test(bankName)) {
+                toast.error('Bank Name must contain only letters (2-50 characters)');
+                return;
+            }
 
-    if (
-        !salary.basic ||
-        !salary.hra ||
-        !salary.special ||
-        !salary.medical ||
-        !salary.pf ||
-        !salary.pt ||
-        !salary.tax
-    ) {
-        toast.error('Please fill all salary details');
-        return;
-    }
-}
-           // STEP 4 VALIDATION
-       if (currentStep === 4) {
-    if (!documents.aadhaar || !documents.pan || !documents.degree) {
-        toast.error('Please upload all required documents');
-        return;
-    }
-}
-if (currentStep < 4) {
-setCurrentStep(c => c + 1);
+        }
+        // STEP 3 VALIDATION
+        if (currentStep === 3) {
+            const salary = formData.salary;
+
+            if (
+                !salary.basic ||
+                !salary.hra ||
+                !salary.special ||
+                !salary.medical ||
+                !salary.pf ||
+                !salary.pt ||
+                !salary.tax
+            ) {
+                toast.error('Please fill all salary details');
+                return;
+            }
+        }
+        // STEP 4 VALIDATION
+        if (currentStep === 4) {
+            if (!documents.aadhaar || !documents.pan || !documents.degree) {
+                toast.error('Please upload all required documents');
+                return;
+            }
+        }
+        if (currentStep < 4) {
+            setCurrentStep(c => c + 1);
         } else {
-           
+
             setLoading(true);
             try {
-               const submissionData = {
-    ...formData,
-    name: `${formData.firstName} ${formData.lastName}`.trim(),
-    salary: {
-        basic: formData.salary.basic,
-        hra: formData.salary.hra,
-        special: formData.salary.special,
-        medical: formData.salary.medical,
-        pf: formData.salary.pf,
-        pt: formData.salary.pt,
-        tax: formData.salary.tax,
-    },
-};
+                const submissionData = {
+                    ...formData,
+                    name: `${formData.firstName} ${formData.lastName}`.trim(),
+                    salary: {
+                        basic: formData.salary.basic,
+                        hra: formData.salary.hra,
+                        special: formData.salary.special,
+                        medical: formData.salary.medical,
+                        pf: formData.salary.pf,
+                        pt: formData.salary.pt,
+                        tax: formData.salary.tax,
+                    },
+                };
                 await api.post('/employee', submissionData);
                 toast.success('Employee Onboarded Successfully!');
                 navigate('/employee');
@@ -257,7 +260,7 @@ setCurrentStep(c => c + 1);
             </button>
 
             <div className="bg-white dark:bg-brand-900 rounded-3xl shadow-sm border border-gray-100 dark:border-white/5 overflow-hidden">
-               
+
                 <div className="bg-brand-50/50 dark:bg-white/5 p-8 border-b border-gray-100 dark:border-white/10">
                     <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Onboard New Employee</h1>
                     <p className="text-gray-500 dark:text-gray-400 mb-8">Complete the following steps to add a new team member.</p>
@@ -282,11 +285,11 @@ setCurrentStep(c => c + 1);
                             <div
                                 className="h-full bg-brand-500 transition-all duration-500"
                                 style={{
-                                   width:
-    currentStep === 1 ? '0%' :
-    currentStep === 2 ? '33%' :
-    currentStep === 3 ? '66%' :
-    '100%',
+                                    width:
+                                        currentStep === 1 ? '0%' :
+                                            currentStep === 2 ? '33%' :
+                                                currentStep === 3 ? '66%' :
+                                                    '100%',
                                 }}
                             ></div>
                         </div>
@@ -305,7 +308,7 @@ setCurrentStep(c => c + 1);
                                     value={formData.firstName}
                                     onChange={handleInputChange}
                                     type="text"
-                                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
+                                    className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                     placeholder="First"
                                 />
                             </div>
@@ -317,7 +320,7 @@ setCurrentStep(c => c + 1);
                                     value={formData.lastName}
                                     onChange={handleInputChange}
                                     type="text"
-                                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
+                                    className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                     placeholder="Last"
                                 />
                             </div>
@@ -329,7 +332,7 @@ setCurrentStep(c => c + 1);
                                     value={formData.email}
                                     onChange={handleInputChange}
                                     type="email"
-                                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
+                                    className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                     placeholder="Enter your email"
                                 />
                             </div>
@@ -341,8 +344,38 @@ setCurrentStep(c => c + 1);
                                     value={formData.phone}
                                     onChange={handleInputChange}
                                     type="tel"
-                                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
+                                    className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                     placeholder="+91 "
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Blood Group</label>
+                                <div className="relative group/select">
+                                    <select
+                                        name="bloodGroup"
+                                        value={formData.bloodGroup}
+                                        onChange={handleInputChange}
+                                        className="appearance-none w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
+                                    >
+                                        <option value="" className="dark:bg-brand-900">Select Blood Group</option>
+                                        {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
+                                            <option key={bg} value={bg} className="dark:bg-brand-900">{bg}</option>
+                                        ))}
+                                    </select>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover/select:text-brand-500 transition-colors">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Date of Birth</label>
+                                <input
+                                    autoComplete="off"
+                                    name="dob"
+                                    value={formData.dob}
+                                    onChange={handleInputChange}
+                                    type="date"
+                                    className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -356,7 +389,7 @@ setCurrentStep(c => c + 1);
                                             const name = masters.departments.find(d => d.id === id)?.name || '';
                                             setFormData({ ...formData, departmentId: id, department: name });
                                         }}
-                                        className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
+                                        className="appearance-none w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
                                     >
                                         <option value="" className="dark:bg-brand-900">Select Department</option>
                                         {masters.departments.map(dept => (
@@ -379,7 +412,7 @@ setCurrentStep(c => c + 1);
                                             const name = masters.roles.find(r => r.id === id)?.name || '';
                                             setFormData({ ...formData, roleId: id, role: name });
                                         }}
-                                        className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
+                                        className="appearance-none w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
                                     >
                                         <option value="" className="dark:bg-brand-900">Select Role</option>
                                         {masters.roles.map(role => (
@@ -402,7 +435,7 @@ setCurrentStep(c => c + 1);
                                             const name = masters.designations.find(d => d.id === id)?.name || '';
                                             setFormData({ ...formData, designationId: id, title: name });
                                         }}
-                                        className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
+                                        className="appearance-none w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
                                     >
                                         <option value="" className="dark:bg-brand-900">Select Designation</option>
                                         {masters.designations.map(desig => (
@@ -412,6 +445,20 @@ setCurrentStep(c => c + 1);
                                     <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover/select:text-brand-500 transition-colors">
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
                                     </div>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Residential Address</label>
+                                <div className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus-within:ring-4 focus-within:ring-brand-500/20 transition-all overflow-hidden h-[46px]">
+                                    <textarea
+                                        autoComplete="off"
+                                        name="address"
+                                        value={formData.address}
+                                        onChange={handleInputChange}
+                                        rows={1}
+                                        className="w-full px-4 py-3 bg-transparent border-0 outline-none text-gray-700 dark:text-white text-sm font-medium placeholder:text-gray-400 dark:placeholder:text-gray-400 resize-none h-full overflow-y-auto block scrollbar-thin"
+                                        placeholder="Enter full residential address"
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -522,43 +569,43 @@ setCurrentStep(c => c + 1);
                                     </div>
                                 </div>
                             </div>
-                      
+
 
                         </div>
                     )}
                     {currentStep === 3 && (
-    <div className="space-y-4 animate-fade-in">
-        <h3 className="font-bold text-gray-800 dark:text-white border-b border-gray-100 dark:border-white/10 pb-2">
-            Salary Info
-        </h3>
+                        <div className="space-y-4 animate-fade-in">
+                            <h3 className="font-bold text-gray-800 dark:text-white border-b border-gray-100 dark:border-white/10 pb-2">
+                                Salary Info
+                            </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {[
-                { label: 'Basic', key: 'basic' },
-                { label: 'HRA', key: 'hra' },
-                { label: 'Special Allowance', key: 'special' },
-                { label: 'Medical', key: 'medical' },
-                { label: 'PF', key: 'pf' },
-                { label: 'PT', key: 'pt' },
-                { label: 'Tax / TDS', key: 'tax' },
-            ].map((field) => (
-                <div key={field.key} className="space-y-2">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">
-                        {field.label}
-                    </label>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {[
+                                    { label: 'Basic', key: 'basic' },
+                                    { label: 'HRA', key: 'hra' },
+                                    { label: 'Special Allowance', key: 'special' },
+                                    { label: 'Medical', key: 'medical' },
+                                    { label: 'PF', key: 'pf' },
+                                    { label: 'PT', key: 'pt' },
+                                    { label: 'Tax / TDS', key: 'tax' },
+                                ].map((field) => (
+                                    <div key={field.key} className="space-y-2">
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">
+                                            {field.label}
+                                        </label>
 
-                    <input
-                        type="text"
-                        value={(formData.salary as any)[field.key] || ''}
-                        onChange={(e) => handleSalaryChange(field.key, e.target.value)}
-                        className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
-                        placeholder={`Enter ${field.label}`}
-                    />
-                </div>
-            ))}
-        </div>
-    </div>
-)}
+                                        <input
+                                            type="text"
+                                            value={(formData.salary as any)[field.key] || ''}
+                                            onChange={(e) => handleSalaryChange(field.key, e.target.value)}
+                                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
+                                            placeholder={`Enter ${field.label}`}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {currentStep === 4 && (
                         <div className="space-y-6 animate-fade-in">
@@ -598,7 +645,7 @@ setCurrentStep(c => c + 1);
                                 ].map((doc, i) => (
                                     <div
                                         key={i}
-                                        onClick={() => setSelectedDoc(doc.key)}
+                                        onClick={() => setSelectedDoc(documents.key)}
                                         className={`flex items-center justify-between p-4 cursor-pointer border rounded-xl ${selectedDoc === doc.key ? 'border-brand-500 bg-brand-100 dark:bg-brand-800' : ''
                                             }`}        >                               <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 bg-gray-100 dark:bg-white/10 rounded-lg flex items-center justify-center text-gray-500">
