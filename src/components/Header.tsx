@@ -155,7 +155,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                                     <div className="p-1.5 bg-gray-100 dark:bg-white/5 rounded-lg text-gray-400 group-hover/item:text-brand-500 transition-colors">
                                                         {item.icon}
                                                     </div>
-                                                    <span className="text-sm font-bold text-gray-700 dark:text-gray-200">{item.name}</span>
+                                                    <span className="text-sm font-bold text-gray-700 dark:text-gray-200 truncate flex-1">{item.name}</span>
                                                 </button>
                                             ))}
                                         </div>
@@ -170,11 +170,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                                     onClick={() => { navigate(`/employee/${emp.id}`); setSearchQuery(''); }}
                                                     className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-brand-50 dark:hover:bg-brand-500/10 transition-all text-left group/item"
                                                 >
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center text-white font-bold text-xs">
+                                                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                        <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center text-white font-bold text-xs shrink-0">
                                                             {emp.name.charAt(0)}
                                                         </div>
-                                                        <span className="text-sm font-bold text-gray-800 dark:text-white">{emp.name}</span>
+                                                        <span className="text-sm font-bold text-gray-800 dark:text-white truncate flex-1">{emp.name}</span>
                                                     </div>
                                                 </button>
                                             ))}
@@ -277,6 +277,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                                     await api.patch(`/notifications/${n.id}/read`);
                                                 } catch(e) {}
                                                 fetchNotifications();
+                                                navigate('/notifications');
+                                                setShowNotifications(false);
                                             }}
                                             className={`group relative p-4 rounded-2xl border transition-all cursor-pointer ${
                                                 n.unread 
@@ -301,7 +303,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                                         </h3>
                                                         <span className="text-[10px] text-gray-400 font-medium">{n.time}</span>
                                                     </div>
-                                                    <p className={`text-xs leading-relaxed ${n.unread ? 'text-gray-700 dark:text-gray-200' : 'text-gray-500 dark:text-gray-400'}`}>
+                                                    <p className={`text-xs leading-relaxed break-all ${n.unread ? 'text-gray-700 dark:text-gray-200' : 'text-gray-500 dark:text-gray-400'}`}>
                                                         {n.message || n.title}
                                                     </p>
                                                 </div>

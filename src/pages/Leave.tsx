@@ -48,6 +48,7 @@ export default function Leave() {
     const [toDate, setToDate] = useState('');
     const [reason, setReason] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [selectedLeaveForReason, setSelectedLeaveForReason] = useState<any | null>(null);
 
     const isHrAdmin = user?.role === 'HR_ADMIN';
 
@@ -93,13 +94,15 @@ export default function Leave() {
         const [endYear, endMonth, endDay] = toDate.split('-').map(Number);
         const end = new Date(endYear, endMonth - 1, endDay);
 
-        if (start.getDay() === 0 || start.getDay() === 6) {
-            toast.error('Start date cannot be a weekend (Saturday/Sunday)');
-            return;
-        }
-        if (end.getDay() === 0 || end.getDay() === 6) {
-            toast.error('End date cannot be a weekend (Saturday/Sunday)');
-            return;
+        // Check if any day in the selected range is a weekend
+        const current = new Date(start);
+        while (current <= end) {
+            const dayOfWeek = current.getDay();
+            if (dayOfWeek === 0 || dayOfWeek === 6) {
+                toast.error('Cannot apply for leave on weekends (Saturday/Sunday)');
+                return;
+            }
+            current.setDate(current.getDate() + 1);
         }
 
         setSubmitting(true);
@@ -361,7 +364,7 @@ export default function Leave() {
                                             <div className={`mt-1 w-2 h-2 rounded-full ${isApproved ? 'bg-green-500' : 'bg-orange-500'}`}></div>
                                             <div className="flex-1">
                                                 <div className="flex justify-between items-start">
-                                                    <h4 className="font-bold text-gray-800 dark:text-white text-sm">{leave.leaveType?.code} - {leave.reason}</h4>
+                                                    <h4 className="font-bold text-gray-800 dark:text-white text-sm break-all">{leave.leaveType?.code} - {leave.reason}</h4>
                                                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${isApproved ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
                                                         {leave.status}
                                                     </span>
@@ -496,9 +499,13 @@ export default function Leave() {
                                             <td className="py-5 px-4 text-sm text-gray-600 dark:text-gray-400">
                                                 {new Date(l.startDate).toLocaleDateString()} - {new Date(l.endDate).toLocaleDateString()}
                                             </td>
-                                            <td className="py-5 px-4 text-sm text-gray-600 dark:text-gray-400 italic">
-                                                "{l.reason}"
-                                            </td>
+                                            <td 
+                                                 onClick={() => setSelectedLeaveForReason(l)}
+                                                 className="py-5 px-4 text-sm text-gray-600 dark:text-gray-400 max-w-xs truncate italic cursor-pointer hover:text-brand-500 hover:underline transition-all"
+                                                 title="Click to view full reason"
+                                             >
+                                                 "{l.reason}"
+                                             </td>
                                             <td className="py-5 px-4">
                                                 <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm ${l.status === 'APPROVED'
                                                     ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
@@ -752,6 +759,70 @@ export default function Leave() {
                     document.body
                 )
             }
+            {selectedLeaveForReason && createPortal(
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+                    <div className="relative bg-white dark:bg-brand-900 w-full max-w-md rounded-[2.5rem] shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden p-8 animate-scale-in">
+                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-brand-500 to-purple-500"></div>
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-xl font-bold text-gray-800 dark:text-white">Leave Details</h3>
+                            <button type="button" onClick={() => setSelectedLeaveForReason(null)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors text-gray-400">
+                                <XCircle size={20} />
+                            </button>
+                        </div>
+                        
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Employee Name</label>
+                                <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl font-bold text-sm text-gray-800 dark:text-white">
+                                    {selectedLeaveForReason.user?.name}
+                                </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Leave Type</label>
+                                    <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl font-bold text-sm text-gray-800 dark:text-white">
+                                        {selectedLeaveForReason.leaveType?.name || selectedLeaveForReason.leaveType?.code || 'Leave'}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Status</label>
+                                    <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl font-bold text-sm text-gray-800 dark:text-white capitalize">
+                                        {selectedLeaveForReason.status?.toLowerCase()}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Leave Duration</label>
+                                <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl font-bold text-sm text-gray-800 dark:text-white">
+                                    {new Date(selectedLeaveForReason.startDate).toLocaleDateString()} - {new Date(selectedLeaveForReason.endDate).toLocaleDateString()}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Reason for Leave</label>
+                                <div className="p-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm text-gray-700 dark:text-gray-300 font-semibold leading-relaxed">
+                                    <div className="max-h-[150px] overflow-y-auto custom-scrollbar break-all pr-2">
+                                        {selectedLeaveForReason.reason}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedLeaveForReason(null)}
+                                    className="w-full py-3.5 bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 text-white font-bold rounded-2xl transition-all shadow-lg shadow-brand-500/20 text-sm tracking-wider uppercase cursor-pointer"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
         </div>
     );
 }
