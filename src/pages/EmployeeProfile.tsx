@@ -806,15 +806,22 @@ className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border 
                                         </>
                                     ) : <p className="font-semibold">{profile.bloodGroup || 'N/A'}</p>}
                                 </div>
-                                <div className="space-y-1 md:col-span-2">
-                                    <label className="text-xs font-bold text-gray-400 uppercase">Address</label>
-                                    {isEditing ? (
-                                        <>
-                                            <input type="text" value={profile.address || ''} onChange={(e) => handleInputChange('address', e.target.value)} className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.address ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg outline-none`} />
-                                            {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
-                                        </>
-                                    ) : <p className="font-semibold">{profile.address || 'N/A'}</p>}
-                                </div>
+                                 <div className="space-y-1 md:col-span-2">
+                                      <label className="text-xs font-bold text-gray-400 uppercase">Address</label>
+                                      {isEditing ? (
+                                          <>
+                                              <div className={`w-full bg-gray-50 dark:bg-white/5 border ${errors.address ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg focus-within:ring-2 focus-within:ring-brand-500/20 transition-all overflow-hidden h-[38px]`}>
+                                                  <textarea
+                                                      rows={1}
+                                                      value={profile.address || ''}
+                                                      onChange={(e) => handleInputChange('address', e.target.value)}
+                                                      className="w-full px-3 py-2 bg-transparent border-0 outline-none text-gray-700 dark:text-white text-sm font-medium placeholder:text-gray-400 dark:placeholder:text-gray-400 resize-none h-full overflow-y-auto block scrollbar-thin"
+                                                  />
+                                              </div>
+                                              {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
+                                          </>
+                                      ) : <p className="font-semibold break-all">{profile.address || 'N/A'}</p>}
+                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-400 uppercase">Status</label>
                                     {isEditing && hasPermission(['HR_ADMIN']) ? (
