@@ -17,9 +17,9 @@ export default function EmployeeProfile() {
     const queryParams = new URLSearchParams(location.search);
     const initialEditMode = queryParams.get('edit') === 'true';
 
-const [activeTab, setActiveTab] = useState<'personal' | 'statutory' | 'documents' | 'shiftRoster' | 'salary'>('statutory');
+    const [activeTab, setActiveTab] = useState<'personal' | 'statutory' | 'documents' | 'shiftRoster' | 'salary'>('statutory');
     const [isEditing, setIsEditing] = useState(initialEditMode);
-const [showPayslip, setShowPayslip] = useState(false);
+    const [showPayslip, setShowPayslip] = useState(false);
     const [showIDCard, setShowIDCard] = useState(false);
     const [loading, setLoading] = useState(true);
     const [docToDelete, setDocToDelete] = useState<number | null>(null);
@@ -37,7 +37,7 @@ const [showPayslip, setShowPayslip] = useState(false);
             const endpoint = id ? `/employee/${id}` : '/employee/me';
             const res = await api.get(endpoint);
             console.log("EMPLOYEE DATA:", res.data);
-console.log("SALARY DATA:", res.data.employeeProfile?.salary);
+            console.log("SALARY DATA:", res.data.employeeProfile?.salary);
             setEmployee(res.data);
             setErrors({});
         } catch (error) {
@@ -48,45 +48,45 @@ console.log("SALARY DATA:", res.data.employeeProfile?.salary);
         }
     };
     const fetchShifts = async () => {
-    try {
-        const res = await api.get('/masters/shifts');
-        setShifts(res.data);
-    } catch (error) {
-        console.error('Error fetching shifts:', error);
-        toast.error('Failed to load shifts');
-    }
-};
-const fetchRoles = async () => {
-    try {
-        const res = await api.get('/masters/roles');
-        console.log("ROLES DATA:", res.data);
-        setRoles(res.data);
-    } catch (error) {
-        console.error('Error fetching roles:', error);
-        toast.error('Failed to load roles');
-    }
-};
+        try {
+            const res = await api.get('/masters/shifts');
+            setShifts(res.data);
+        } catch (error) {
+            console.error('Error fetching shifts:', error);
+            toast.error('Failed to load shifts');
+        }
+    };
+    const fetchRoles = async () => {
+        try {
+            const res = await api.get('/masters/roles');
+            console.log("ROLES DATA:", res.data);
+            setRoles(res.data);
+        } catch (error) {
+            console.error('Error fetching roles:', error);
+            toast.error('Failed to load roles');
+        }
+    };
 
-const fetchDesignations = async () => {
-    try {
-        const res = await api.get('/masters/designations');
-        setDesignations(res.data);
-    } catch (error) {
-        console.error('Error fetching designations:', error);
-        toast.error('Failed to load designations');
-    }
-};
-const fetchDepartments = async () => {
-    try {
-        const res = await api.get('/masters/departments');
-        console.log("DEPARTMENTS DATA:", res.data);
+    const fetchDesignations = async () => {
+        try {
+            const res = await api.get('/masters/designations');
+            setDesignations(res.data);
+        } catch (error) {
+            console.error('Error fetching designations:', error);
+            toast.error('Failed to load designations');
+        }
+    };
+    const fetchDepartments = async () => {
+        try {
+            const res = await api.get('/masters/departments');
+            console.log("DEPARTMENTS DATA:", res.data);
 
-        setDepartments(Array.isArray(res.data) ? res.data : res.data.departments || []);
-    } catch (error) {
-        console.error('Error fetching departments:', error);
-        toast.error('Failed to load departments');
-    }
-};
+            setDepartments(Array.isArray(res.data) ? res.data : res.data.departments || []);
+        } catch (error) {
+            console.error('Error fetching departments:', error);
+            toast.error('Failed to load departments');
+        }
+    };
 
     useEffect(() => {
         fetchEmployee();
@@ -107,36 +107,38 @@ const fetchDepartments = async () => {
         const b = employee?.employeeProfile?.bank || {};
         const pd = employee?.employeeProfile || {};
         if (!employee.email) {
-        newErrors.email = "Email is required";
+            newErrors.email = "Email is required";
         } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(employee.email)) {
-         newErrors.email = "Invalid email format";
+            newErrors.email = "Invalid email format";
         }
 
         if (pd.phone && !/^\d{10}$/.test(pd.phone)) newErrors.phone = "Phone must be 10 digits";
         if (isEditing && !employee.roleId && !employee.role?.id) {
-    newErrors.role = "System Role is required";
-}
+            newErrors.role = "System Role is required";
+        }
 
-if (isEditing && !pd.designationId) {newErrors.designationId = "Designation is required";
-}
+        if (isEditing && !pd.designationId) {
+            newErrors.designationId = "Designation is required";
+        }
 
-if (isEditing && !pd.departmentId) {newErrors.departmentId = "Department is required";
-}
-if (isEditing && !pd.bloodGroup) { newErrors.bloodGroup = "Blood Group is required";}
+        if (isEditing && !pd.departmentId) {
+            newErrors.departmentId = "Department is required";
+        }
+        if (isEditing && !pd.bloodGroup) { newErrors.bloodGroup = "Blood Group is required"; }
         if (pd.bloodGroup && !/^(A|B|AB|O)[+-]$/i.test(pd.bloodGroup)) newErrors.bloodGroup = "Invalid Blood Group (e.g. A+, O-)";
         if (isEditing && !pd.address) newErrors.address = "Address is required";
         if (isEditing && !pd.dob) newErrors.dob = "Date of Birth is required";
         if (pd.dob) {
-    const dob = pd.dob.split('T')[0];
-    const year = dob.split('-')[0];
-    const today = new Date().toISOString().split('T')[0];
+            const dob = pd.dob.split('T')[0];
+            const year = dob.split('-')[0];
+            const today = new Date().toISOString().split('T')[0];
 
-    if (year.length !== 4) {
-        newErrors.dob = "Year must be 4 digits";
-    } else if (dob > today) {
-        newErrors.dob = "Future date is not allowed";
-    }
-}
+            if (year.length !== 4) {
+                newErrors.dob = "Year must be 4 digits";
+            } else if (dob > today) {
+                newErrors.dob = "Future date is not allowed";
+            }
+        }
 
         if (p.uan && !/^\d{12}$/.test(p.uan)) newErrors.uan = "UAN must be 12 digits";
         if (p.esic && !/^\d{17}$/.test(p.esic)) newErrors.esic = "ESIC must be 17 digits";
@@ -146,47 +148,47 @@ if (isEditing && !pd.bloodGroup) { newErrors.bloodGroup = "Blood Group is requir
         if (b.accountNumber && !/^\d{9,18}$/.test(b.accountNumber)) newErrors.accountNumber = "Invalid Account Number";
         if (b.ifsc && !/^[A-Z]{4}0[A-Z0-9]{6}$/i.test(b.ifsc)) newErrors.ifsc = "Invalid IFSC Code";
 
-       setErrors(newErrors);
+        setErrors(newErrors);
 
-const errorFields = Object.keys(newErrors);
+        const errorFields = Object.keys(newErrors);
 
-if (errorFields.length > 0) {
-    if (
-        errorFields.includes('basic') ||
-        errorFields.includes('hra') ||
-        errorFields.includes('special') ||
-        errorFields.includes('medical') ||
-        errorFields.includes('pf') ||
-        errorFields.includes('pt') ||
-        errorFields.includes('tax')
-    ) {
-        toast.error('Please fix validation errors in Salary Info');
-        setActiveTab('salary');
-    } else if (
-        errorFields.includes('uan') ||
-        errorFields.includes('esic') ||
-        errorFields.includes('pan') ||
-        errorFields.includes('aadhaar') ||
-        errorFields.includes('accountNumber') ||
-        errorFields.includes('ifsc')
-    ) {
-        toast.error('Please fix validation errors in Statutory & Bank Info');
-        setActiveTab('statutory');
-    } else {
-        toast.error('Please fix validation errors in Personal Details');
-        setActiveTab('personal');
-    }
+        if (errorFields.length > 0) {
+            if (
+                errorFields.includes('basic') ||
+                errorFields.includes('hra') ||
+                errorFields.includes('special') ||
+                errorFields.includes('medical') ||
+                errorFields.includes('pf') ||
+                errorFields.includes('pt') ||
+                errorFields.includes('tax')
+            ) {
+                toast.error('Please fix validation errors in Salary Info');
+                setActiveTab('salary');
+            } else if (
+                errorFields.includes('uan') ||
+                errorFields.includes('esic') ||
+                errorFields.includes('pan') ||
+                errorFields.includes('aadhaar') ||
+                errorFields.includes('accountNumber') ||
+                errorFields.includes('ifsc')
+            ) {
+                toast.error('Please fix validation errors in Statutory & Bank Info');
+                setActiveTab('statutory');
+            } else {
+                toast.error('Please fix validation errors in Personal Details');
+                setActiveTab('personal');
+            }
 
-    return false;
-}
+            return false;
+        }
 
-return true;
+        return true;
     };
 
     const handleSave = async () => {
-      if (!validate()) {
-    return;
-}
+        if (!validate()) {
+            return;
+        }
         try {
             const profileData = {
                 phone: employee.employeeProfile?.phone,
@@ -211,11 +213,12 @@ return true;
                 bankName: employee.employeeProfile?.bank?.bankName,
                 accountNumber: employee.employeeProfile?.bank?.accountNumber,
                 ifsc: employee.employeeProfile?.bank?.ifsc,
-                 // User
+                // User
                 name: employee.name,
                 email: employee.email,
-roleId: employee.roleId || employee.role?.id,
-role: employee.role?.name || employee.role?.title || employee.role            };
+                roleId: employee.roleId || employee.role?.id,
+                role: employee.role?.name || employee.role?.title || employee.role
+            };
 
             const endpoint = id ? `/employee/${id}` : '/employee/me';
             await api.put(endpoint, profileData);
@@ -229,7 +232,8 @@ role: employee.role?.name || employee.role?.title || employee.role            };
 
     const handleInputChange = (field: string, value: string) => {
         if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
-    if (field === 'name' || field === 'email' || field === 'role') {            setEmployee((prev: any) => ({
+        if (field === 'name' || field === 'email' || field === 'role') {
+            setEmployee((prev: any) => ({
                 ...prev,
                 [field]: value
             }));
@@ -259,38 +263,38 @@ role: employee.role?.name || employee.role?.title || employee.role            };
     };
 
     const handleBankChange = (field: string, value: string) => {
-    if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
+        if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
 
-    setEmployee((prev: any) => ({
-        ...prev,
-        employeeProfile: {
-            ...(prev?.employeeProfile || {}),
-            bank: {
-                ...(prev?.employeeProfile?.bank || {}),
-                [field]: value
+        setEmployee((prev: any) => ({
+            ...prev,
+            employeeProfile: {
+                ...(prev?.employeeProfile || {}),
+                bank: {
+                    ...(prev?.employeeProfile?.bank || {}),
+                    [field]: value
+                }
             }
-        }
-    }));
-};
-const handleSalaryChange = (field: string, value: string) => {
-    setEmployee((prev: any) => ({
-        ...prev,
-        employeeProfile: {
-            ...(prev?.employeeProfile || {}),
-            salary: {
-                ...(prev?.employeeProfile?.salary || {}),
-                [field]: value
+        }));
+    };
+    const handleSalaryChange = (field: string, value: string) => {
+        setEmployee((prev: any) => ({
+            ...prev,
+            employeeProfile: {
+                ...(prev?.employeeProfile || {}),
+                salary: {
+                    ...(prev?.employeeProfile?.salary || {}),
+                    [field]: value
+                }
             }
-        }
-    }));
-};
+        }));
+    };
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-             if (file.type !== "application/pdf") {
-            toast.error("Only PDF allowed");
-             return;
+            if (file.type !== "application/pdf") {
+                toast.error("Only PDF allowed");
+                return;
             }
 
             const newDoc = {
@@ -343,6 +347,18 @@ const handleSalaryChange = (field: string, value: string) => {
     const statutory = profile.statutory || {};
     const bank = profile.bank || {};
 
+    // Dynamic salary calculations for payslip preview
+    const basic = Number(profile.salary?.basic || 0);
+    const hra = Number(profile.salary?.hra || 0);
+    const special = Number(profile.salary?.special || 0);
+    const medical = Number(profile.salary?.medical || 0);
+    const pf = Number(profile.salary?.pf || 0);
+    const pt = Number(profile.salary?.pt || 0);
+    const tax = Number(profile.salary?.tax || 0);
+
+    const totalEarnings = basic + hra + special + medical;
+    const totalDeductions = pf + pt + tax;
+
     return (
         <div className="animate-fade-in-up pb-8 relative">
             <button
@@ -375,9 +391,9 @@ const handleSalaryChange = (field: string, value: string) => {
                         ) : (
                             <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">{employee.name}</h1>
                         )}
-<p className="text-lg text-brand-600 dark:text-brand-400 font-medium mb-4">
-    {employee.role?.name || employee.role?.title || employee.role || 'Employee'} • {profile.title || 'No Designation'}
-</p>                        <div className="flex flex-wrap justify-center md:justify-start gap-4">
+                        <p className="text-lg text-brand-600 dark:text-brand-400 font-medium mb-4">
+                            {employee.role?.name || employee.role?.title || employee.role || 'Employee'} • {profile.title || 'No Designation'}
+                        </p>                        <div className="flex flex-wrap justify-center md:justify-start gap-4">
                             <span className="px-3 py-1 bg-gray-100 dark:bg-white/10 rounded-lg text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2">
                                 <Briefcase size={16} /> ID: {employee.id}
                             </span>
@@ -407,21 +423,21 @@ const handleSalaryChange = (field: string, value: string) => {
 
             {/* Tabs */}
             <div className="flex gap-4 mb-6 border-b border-gray-200 dark:border-white/10 overflow-x-auto pb-1">
-             {['statutory', 'documents', 'personal', 'shiftRoster','salary'].map((tab) => (     <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab as any)}
-                        className={`pb-3 px-2 font-medium transition-all whitespace-nowrap capitalize ${activeTab === tab ? 'text-brand-600 border-b-2 border-brand-600' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                     {tab === 'statutory'
-    ? 'Statutory & Bank Info'
-    : tab === 'personal'
-    ? 'Personal Details'
-    : tab === 'shiftRoster'
-    ? 'Shift & Roster'
-    : tab === 'salary'
-    ? 'Salary Info'
-    : 'Document Vault'} 
-                      </button>
+                {['statutory', 'documents', 'personal', 'shiftRoster', 'salary'].map((tab) => (<button
+                    key={tab}
+                    onClick={() => setActiveTab(tab as any)}
+                    className={`pb-3 px-2 font-medium transition-all whitespace-nowrap capitalize ${activeTab === tab ? 'text-brand-600 border-b-2 border-brand-600' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                    {tab === 'statutory'
+                        ? 'Statutory & Bank Info'
+                        : tab === 'personal'
+                            ? 'Personal Details'
+                            : tab === 'shiftRoster'
+                                ? 'Shift & Roster'
+                                : tab === 'salary'
+                                    ? 'Salary Info'
+                                    : 'Document Vault'}
+                </button>
                 ))}
             </div>
 
@@ -519,7 +535,7 @@ const handleSalaryChange = (field: string, value: string) => {
                                     </div>
                                 </div>
                             )}
-        
+
                         </div>
                     )}
 
@@ -531,7 +547,7 @@ const handleSalaryChange = (field: string, value: string) => {
                                 </h3>
                                 {hasPermission(['HR_ADMIN']) && (
                                     <>
-                                        <input type="file" id="document-upload" className="hidden" accept='.pdf' onChange ={handleFileUpload} />
+                                        <input type="file" id="document-upload" className="hidden" accept='.pdf' onChange={handleFileUpload} />
                                         <label htmlFor="document-upload" className="flex items-center gap-2 text-sm font-medium text-brand-600 hover:bg-brand-50 px-3 py-1.5 rounded-lg transition-colors cursor-pointer">
                                             <Upload size={16} /> Upload New
                                         </label>
@@ -606,19 +622,18 @@ const handleSalaryChange = (field: string, value: string) => {
                                     <label className="text-xs font-bold text-gray-400 uppercase">Email</label>
                                     {isEditing ? (
                                         <>
-    <input 
-        type="email" 
-        value={employee.email} 
-        onChange={(e) => handleInputChange('email', e.target.value)} 
-        className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${
-            errors.email ? 'border-red-500' : 'border-gray-200 dark:border-white/10'
-        } rounded-lg outline-none`} 
-    />
+                                            <input
+                                                type="email"
+                                                value={employee.email}
+                                                onChange={(e) => handleInputChange('email', e.target.value)}
+                                                className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.email ? 'border-red-500' : 'border-gray-200 dark:border-white/10'
+                                                    } rounded-lg outline-none`}
+                                            />
 
-    {errors.email && (
-        <p className="text-red-500 text-xs mt-1">{errors.email}</p>
-    )}
-</>
+                                            {errors.email && (
+                                                <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+                                            )}
+                                        </>
                                     ) : (
                                         <p className="font-semibold text-gray-800 dark:text-gray-200">{employee.email}</p>
                                     )}
@@ -632,169 +647,169 @@ const handleSalaryChange = (field: string, value: string) => {
                                         </>
                                     ) : <p className="font-semibold">{profile.dob ? new Date(profile.dob).toLocaleDateString() : 'N/A'}</p>}
                                 </div>
-                           <div className="space-y-1">
-   <label className="text-xs font-bold text-gray-400 uppercase">SYSTEM ROLE</label>
-{isEditing && hasPermission(['HR_ADMIN']) ? (
-    <div className="relative">
-    <select
-        value={employee.role?.id || employee.roleId || ''}
-        onChange={(e) => {
-            const selectedRole = roles.find((r: any) => String(r.id) === String(e.target.value));
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-gray-400 uppercase">SYSTEM ROLE</label>
+                                    {isEditing && hasPermission(['HR_ADMIN']) ? (
+                                        <div className="relative">
+                                            <select
+                                                value={employee.role?.id || employee.roleId || ''}
+                                                onChange={(e) => {
+                                                    const selectedRole = roles.find((r: any) => String(r.id) === String(e.target.value));
 
-            setEmployee((prev: any) => ({
-                ...prev,
-                roleId: e.target.value,
-                role: selectedRole
-            }));
-        }}
-className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"  
-  >
-       <option value="" className="dark:bg-brand-900">
-    Select Role
-</option>
+                                                    setEmployee((prev: any) => ({
+                                                        ...prev,
+                                                        roleId: e.target.value,
+                                                        role: selectedRole
+                                                    }));
+                                                }}
+                                                className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
+                                            >
+                                                <option value="" className="dark:bg-brand-900">
+                                                    Select Role
+                                                </option>
 
-{roles.map((role: any) => (
-    <option
-        key={role.id}
-        value={role.id}
-        className="dark:bg-brand-900"
-    >
-        {role.name}
-    </option>
-        ))}
-    </select>
-    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-    <svg
-        className="w-4 h-4"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-    >
-        <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="3"
-            d="M19 9l-7 7-7-7"
-        />
-    </svg>
-</div>
-</div>
-) : (
-    <p className="font-semibold">
-        {employee.role?.name || employee.role?.title || employee.role || 'N/A'}
-    </p>
-)}
-</div>
-<div className="space-y-1">
-    <label className="text-xs font-bold text-gray-400 uppercase">DESIGNATION</label>
+                                                {roles.map((role: any) => (
+                                                    <option
+                                                        key={role.id}
+                                                        value={role.id}
+                                                        className="dark:bg-brand-900"
+                                                    >
+                                                        {role.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                                <svg
+                                                    className="w-4 h-4"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth="3"
+                                                        d="M19 9l-7 7-7-7"
+                                                    />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <p className="font-semibold">
+                                            {employee.role?.name || employee.role?.title || employee.role || 'N/A'}
+                                        </p>
+                                    )}
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-gray-400 uppercase">DESIGNATION</label>
 
-    {isEditing && hasPermission(['HR_ADMIN']) ? (
-        <div className="relative">
-            <select
-                value={profile.designationId || ''}
-                onChange={(e) => {
-                    const selectedDesignation = designations.find(
-                        (d: any) => String(d.id) === String(e.target.value)
-                    );
+                                    {isEditing && hasPermission(['HR_ADMIN']) ? (
+                                        <div className="relative">
+                                            <select
+                                                value={profile.designationId || ''}
+                                                onChange={(e) => {
+                                                    const selectedDesignation = designations.find(
+                                                        (d: any) => String(d.id) === String(e.target.value)
+                                                    );
 
-                    setEmployee((prev: any) => ({
-                        ...prev,
-                        employeeProfile: {
-                            ...(prev?.employeeProfile || {}),
-                            designationId: e.target.value,
-                            title: selectedDesignation?.name || ''
-                        }
-                    }));
-                }}
-                className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
-            >
-                <option value="" className="dark:bg-brand-900">
-                    Select Designation
-                </option>
+                                                    setEmployee((prev: any) => ({
+                                                        ...prev,
+                                                        employeeProfile: {
+                                                            ...(prev?.employeeProfile || {}),
+                                                            designationId: e.target.value,
+                                                            title: selectedDesignation?.name || ''
+                                                        }
+                                                    }));
+                                                }}
+                                                className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
+                                            >
+                                                <option value="" className="dark:bg-brand-900">
+                                                    Select Designation
+                                                </option>
 
-                {designations.map((desig: any) => (
-                    <option
-                        key={desig.id}
-                        value={desig.id}
-                        className="dark:bg-brand-900"
-                    >
-                        {desig.name}
-                    </option>
-                ))}
-            </select>
+                                                {designations.map((desig: any) => (
+                                                    <option
+                                                        key={desig.id}
+                                                        value={desig.id}
+                                                        className="dark:bg-brand-900"
+                                                    >
+                                                        {desig.name}
+                                                    </option>
+                                                ))}
+                                            </select>
 
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" />
-                </svg>
-            </div>
-        </div>
-    ) : (
-        <p className="font-semibold">{profile.title || 'N/A'}</p>
-    )}
-</div>
-<div className="space-y-1">
-    <label className="text-xs font-bold text-gray-400 uppercase">
-        DEPARTMENT
-    </label>
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <p className="font-semibold">{profile.title || 'N/A'}</p>
+                                    )}
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-gray-400 uppercase">
+                                        DEPARTMENT
+                                    </label>
 
-    {isEditing && hasPermission(['HR_ADMIN']) ? (
-        <div className="relative">
-            <select
-                value={profile.departmentId || ''}
-                onChange={(e) => {
-                    const selectedDepartment = departments.find(
-                        (d: any) => String(d.id) === String(e.target.value)
-                    );
+                                    {isEditing && hasPermission(['HR_ADMIN']) ? (
+                                        <div className="relative">
+                                            <select
+                                                value={profile.departmentId || ''}
+                                                onChange={(e) => {
+                                                    const selectedDepartment = departments.find(
+                                                        (d: any) => String(d.id) === String(e.target.value)
+                                                    );
 
-                    setEmployee((prev: any) => ({
-                        ...prev,
-                        employeeProfile: {
-                            ...(prev?.employeeProfile || {}),
-                            departmentId: e.target.value,
-                            department: selectedDepartment?.name || ''
-                        }
-                    }));
-                }}
-                className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
-            >
-                <option value="" className="dark:bg-brand-900">
-                    Select Department
-                </option>
+                                                    setEmployee((prev: any) => ({
+                                                        ...prev,
+                                                        employeeProfile: {
+                                                            ...(prev?.employeeProfile || {}),
+                                                            departmentId: e.target.value,
+                                                            department: selectedDepartment?.name || ''
+                                                        }
+                                                    }));
+                                                }}
+                                                className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
+                                            >
+                                                <option value="" className="dark:bg-brand-900">
+                                                    Select Department
+                                                </option>
 
-                {departments.map((dept: any) => (
-                    <option
-                        key={dept.id}
-                        value={dept.id}
-                        className="dark:bg-brand-900"
-                    >
-                        {dept.name}
-                    </option>
-                ))}
-            </select>
+                                                {departments.map((dept: any) => (
+                                                    <option
+                                                        key={dept.id}
+                                                        value={dept.id}
+                                                        className="dark:bg-brand-900"
+                                                    >
+                                                        {dept.name}
+                                                    </option>
+                                                ))}
+                                            </select>
 
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="3"
-                        d="M19 9l-7 7-7-7"
-                    />
-                </svg>
-            </div>
-        </div>
-    ) : (
-        <p className="font-semibold">
-            {profile.department || 'N/A'}
-        </p>
-    )}
-</div>
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                                <svg
+                                                    className="w-4 h-4"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth="3"
+                                                        d="M19 9l-7 7-7-7"
+                                                    />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <p className="font-semibold">
+                                            {profile.department || 'N/A'}
+                                        </p>
+                                    )}
+                                </div>
 
 
                                 <div className="space-y-1">
@@ -806,22 +821,22 @@ className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border 
                                         </>
                                     ) : <p className="font-semibold">{profile.bloodGroup || 'N/A'}</p>}
                                 </div>
-                                 <div className="space-y-1 md:col-span-2">
-                                      <label className="text-xs font-bold text-gray-400 uppercase">Address</label>
-                                      {isEditing ? (
-                                          <>
-                                              <div className={`w-full bg-gray-50 dark:bg-white/5 border ${errors.address ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg focus-within:ring-2 focus-within:ring-brand-500/20 transition-all overflow-hidden h-[38px]`}>
-                                                  <textarea
-                                                      rows={1}
-                                                      value={profile.address || ''}
-                                                      onChange={(e) => handleInputChange('address', e.target.value)}
-                                                      className="w-full px-3 py-2 bg-transparent border-0 outline-none text-gray-700 dark:text-white text-sm font-medium placeholder:text-gray-400 dark:placeholder:text-gray-400 resize-none h-full overflow-y-auto block scrollbar-thin"
-                                                  />
-                                              </div>
-                                              {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
-                                          </>
-                                      ) : <p className="font-semibold break-all">{profile.address || 'N/A'}</p>}
-                                 </div>
+                                <div className="space-y-1 md:col-span-2">
+                                    <label className="text-xs font-bold text-gray-400 uppercase">Address</label>
+                                    {isEditing ? (
+                                        <>
+                                            <div className={`w-full bg-gray-50 dark:bg-white/5 border ${errors.address ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg focus-within:ring-2 focus-within:ring-brand-500/20 transition-all overflow-hidden h-[38px]`}>
+                                                <textarea
+                                                    rows={1}
+                                                    value={profile.address || ''}
+                                                    onChange={(e) => handleInputChange('address', e.target.value)}
+                                                    className="w-full px-3 py-2 bg-transparent border-0 outline-none text-gray-700 dark:text-white text-sm font-medium placeholder:text-gray-400 dark:placeholder:text-gray-400 resize-none h-full overflow-y-auto block scrollbar-thin"
+                                                />
+                                            </div>
+                                            {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
+                                        </>
+                                    ) : <p className="font-semibold break-all">{profile.address || 'N/A'}</p>}
+                                </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-400 uppercase">Status</label>
                                     {isEditing && hasPermission(['HR_ADMIN']) ? (
@@ -851,7 +866,7 @@ className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border 
                                 </div>
                             </div>
                         </div>
-                                    )}
+                    )}
 
                     {activeTab === 'shiftRoster' && (
                         <div className="bg-white dark:bg-brand-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-white/5 animate-fade-in-up">
@@ -865,150 +880,149 @@ className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border 
                                 </label>
 
                                 {isEditing && hasPermission(['HR_ADMIN']) ? (
-                                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-    {shifts.map((shift: any) => (
-        <div
-            key={shift.id}
-            onClick={() => {
-                if (isEditing && hasPermission(['HR_ADMIN'])) {
-                    handleInputChange('shiftId', String(shift.id));
-                }
-            }}
-            className={`p-4 rounded-xl border cursor-pointer transition-all ${
-                String(profile.shiftId) === String(shift.id)
-                    ? 'border-brand-400 ring-2 ring-brand-500/50 bg-brand-500/10'
-                    : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5'
-            }`}
-        >
-            
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        {shifts.map((shift: any) => (
+                                            <div
+                                                key={shift.id}
+                                                onClick={() => {
+                                                    if (isEditing && hasPermission(['HR_ADMIN'])) {
+                                                        handleInputChange('shiftId', String(shift.id));
+                                                    }
+                                                }}
+                                                className={`p-4 rounded-xl border cursor-pointer transition-all ${String(profile.shiftId) === String(shift.id)
+                                                        ? 'border-brand-400 ring-2 ring-brand-500/50 bg-brand-500/10'
+                                                        : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5'
+                                                    }`}
+                                            >
 
-            <div className="space-y-1 text-xs text-gray-500 dark:text-gray-300">
-        <div className="space-y-2 text-sm text-gray-700 dark:text-gray-200">
 
-    <h4 className="font-bold text-lg text-gray-800 dark:text-white">
-        {shift.name}
-    </h4>
-    <p className="flex justify-between">
-    <span className="font-semibold">Timing:</span>
-    <span>
-        {shift.startTime} - {shift.endTime}
-    </span>
-</p>
-   <p className="flex justify-between">
-    <span className="font-semibold">Break:</span>
-    <span>{shift.breakDuration} mins</span>
-</p>
+                                                <div className="space-y-1 text-xs text-gray-500 dark:text-gray-300">
+                                                    <div className="space-y-2 text-sm text-gray-700 dark:text-gray-200">
 
-<p className="flex justify-between">
-    <span className="font-semibold">Grace Time:</span>
-    <span>{shift.graceTime} mins</span>
-</p>
+                                                        <h4 className="font-bold text-lg text-gray-800 dark:text-white">
+                                                            {shift.name}
+                                                        </h4>
+                                                        <p className="flex justify-between">
+                                                            <span className="font-semibold">Timing:</span>
+                                                            <span>
+                                                                {shift.startTime} - {shift.endTime}
+                                                            </span>
+                                                        </p>
+                                                        <p className="flex justify-between">
+                                                            <span className="font-semibold">Break:</span>
+                                                            <span>{shift.breakDuration} mins</span>
+                                                        </p>
 
-<p className="flex justify-between">
-    <span className="font-semibold">Night Shift:</span>
-    <span>{shift.isNightShift ? "Yes" : "No"}</span>
-</p>
+                                                        <p className="flex justify-between">
+                                                            <span className="font-semibold">Grace Time:</span>
+                                                            <span>{shift.graceTime} mins</span>
+                                                        </p>
 
-</div>
+                                                        <p className="flex justify-between">
+                                                            <span className="font-semibold">Night Shift:</span>
+                                                            <span>{shift.isNightShift ? "Yes" : "No"}</span>
+                                                        </p>
 
-               </div>
-            </div>
-        
-    ))}
-</div>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+
+                                        ))}
+                                    </div>
                                 ) : (
-                                   <div>
-    {(() => {
-        const assignedShift = shifts.find(
-            (s: any) => String(s.id) === String(profile.shiftId)
-        );
+                                    <div>
+                                        {(() => {
+                                            const assignedShift = shifts.find(
+                                                (s: any) => String(s.id) === String(profile.shiftId)
+                                            );
 
-        return assignedShift ? (
-            <div className="p-4 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 max-w-md">
-                
-                <h4 className="font-bold text-lg text-gray-800 dark:text-white mb-3">
-                    {assignedShift.name}
-                </h4>
+                                            return assignedShift ? (
+                                                <div className="p-4 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 max-w-md">
 
-                <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
-                    
-                    
+                                                    <h4 className="font-bold text-lg text-gray-800 dark:text-white mb-3">
+                                                        {assignedShift.name}
+                                                    </h4>
 
-                    <div className="flex justify-between">
-                        <span>Timing:</span>
-                        <span>
-                            {assignedShift.startTime} - {assignedShift.endTime}
-                        </span>
-                    </div>
+                                                    <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
 
-                    <div className="flex justify-between">
-                        <span>Break:</span>
-                        <span>{assignedShift.breakDuration} mins</span>
-                    </div>
 
-                    <div className="flex justify-between">
-                        <span>Grace Time:</span>
-                        <span>{assignedShift.graceTime} mins</span>
-                    </div>
 
-                    <div className="flex justify-between">
-                        <span>Night Shift:</span>
-                        <span>
-                            {assignedShift.isNightShift ? 'Yes' : 'No'}
-                        </span>
-                    </div>
+                                                        <div className="flex justify-between">
+                                                            <span>Timing:</span>
+                                                            <span>
+                                                                {assignedShift.startTime} - {assignedShift.endTime}
+                                                            </span>
+                                                        </div>
 
-                </div>
-            </div>
-        ) : (
-            <p>No Shift Assigned</p>
-        );
-    })()}
-</div>
+                                                        <div className="flex justify-between">
+                                                            <span>Break:</span>
+                                                            <span>{assignedShift.breakDuration} mins</span>
+                                                        </div>
+
+                                                        <div className="flex justify-between">
+                                                            <span>Grace Time:</span>
+                                                            <span>{assignedShift.graceTime} mins</span>
+                                                        </div>
+
+                                                        <div className="flex justify-between">
+                                                            <span>Night Shift:</span>
+                                                            <span>
+                                                                {assignedShift.isNightShift ? 'Yes' : 'No'}
+                                                            </span>
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <p>No Shift Assigned</p>
+                                            );
+                                        })()}
+                                    </div>
                                 )}
                             </div>
                         </div>
                     )}
-                {activeTab === 'salary' && (
-    <div className="bg-white dark:bg-brand-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-white/5 animate-fade-in-up">
-        <h3 className="text-xl font-bold mb-6 text-gray-800 dark:text-white">
-            Salary Info
-        </h3>
+                    {activeTab === 'salary' && (
+                        <div className="bg-white dark:bg-brand-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-white/5 animate-fade-in-up">
+                            <h3 className="text-xl font-bold mb-6 text-gray-800 dark:text-white">
+                                Salary Info
+                            </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {[
-                { label: 'Basic', key: 'basic' },
-                { label: 'HRA', key: 'hra' },
-                { label: 'Special Allowance', key: 'special' },
-                { label: 'Medical', key: 'medical' },
-                { label: 'PF', key: 'pf' },
-                { label: 'PT', key: 'pt' },
-                { label: 'Tax / TDS', key: 'tax' },
-            ].map((field) => (
-                <div key={field.key} className="space-y-1">
-                    <label className="text-xs font-bold text-gray-400 uppercase">
-                        {field.label}
-                    </label>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {[
+                                    { label: 'Basic', key: 'basic' },
+                                    { label: 'HRA', key: 'hra' },
+                                    { label: 'Special Allowance', key: 'special' },
+                                    { label: 'Medical', key: 'medical' },
+                                    { label: 'PF', key: 'pf' },
+                                    { label: 'PT', key: 'pt' },
+                                    { label: 'Tax / TDS', key: 'tax' },
+                                ].map((field) => (
+                                    <div key={field.key} className="space-y-1">
+                                        <label className="text-xs font-bold text-gray-400 uppercase">
+                                            {field.label}
+                                        </label>
 
-                    {isEditing && hasPermission(['HR_ADMIN']) ? (
-                        <input
-                            type="text"
-value={profile.salary?.[field.key] || ''}
-                            onChange={(e) =>
-                                handleSalaryChange(field.key, e.target.value.replace(/\D/g, ''))
-                            }
-                            className="w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg outline-none"
-                        />
-                    ) : (
-                        <p className="font-semibold">
-₹ {profile.salary?.[field.key] || '0'}
-                        </p>
+                                        {isEditing && hasPermission(['HR_ADMIN']) ? (
+                                            <input
+                                                type="text"
+                                                value={profile.salary?.[field.key] || ''}
+                                                onChange={(e) =>
+                                                    handleSalaryChange(field.key, e.target.value.replace(/\D/g, ''))
+                                                }
+                                                className="w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg outline-none"
+                                            />
+                                        ) : (
+                                            <p className="font-semibold">
+                                                ₹ {profile.salary?.[field.key] || '0'}
+                                            </p>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     )}
-                </div>
-            ))}
-        </div>
-    </div>
-)}
                 </div>
 
                 {/* Sidebar / Quick Actions */}
@@ -1099,19 +1113,72 @@ value={profile.salary?.[field.key] || ''}
                                         <div className="p-2 font-bold text-gray-700 text-xs uppercase text-center">Deductions</div>
                                     </div>
                                     <div className="grid grid-cols-2 text-xs min-h-[120px]">
-                                        <div className="border-r border-gray-200 p-0">
-                                            <div className="flex justify-between p-2 md:p-3 border-b border-gray-50">
-                                                <span className="text-gray-600">Basic Salary</span>
-                                                <span className="font-semibold">₹ 0.00</span>
+                                        <div className="border-r border-gray-200 p-0 flex flex-col justify-between">
+                                            <div>
+                                                <div className="flex justify-between p-2 border-b border-gray-50">
+                                                    <span className="text-gray-600 font-semibold">Basic Salary</span>
+                                                    <span className="font-semibold">₹ {basic.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                </div>
+                                                {hra > 0 && (
+                                                    <div className="flex justify-between p-2 border-b border-gray-50">
+                                                        <span className="text-gray-600">HRA</span>
+                                                        <span className="font-semibold">₹ {hra.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                    </div>
+                                                )}
+                                                {special > 0 && (
+                                                    <div className="flex justify-between p-2 border-b border-gray-50">
+                                                        <span className="text-gray-600">Special Allowance</span>
+                                                        <span className="font-semibold">₹ {special.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                    </div>
+                                                )}
+                                                {medical > 0 && (
+                                                    <div className="flex justify-between p-2 border-b border-gray-50">
+                                                        <span className="text-gray-600">Medical Allowance</span>
+                                                        <span className="font-semibold">₹ {medical.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                    </div>
+                                                )}
+                                                {totalEarnings === 0 && (
+                                                    <div className="flex justify-between p-2 md:p-3 italic text-gray-400">
+                                                        <span>Salary structure pending setup...</span>
+                                                    </div>
+                                                )}
                                             </div>
-                                            <div className="flex justify-between p-2 md:p-3 italic text-gray-400">
-                                                <span>Salary structure pending setup...</span>
-                                            </div>
+                                            {totalEarnings > 0 && (
+                                                <div className="flex justify-between p-2 bg-gray-50 border-t border-gray-100 font-bold text-gray-800">
+                                                    <span>Total Earnings</span>
+                                                    <span>₹ {totalEarnings.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                </div>
+                                            )}
                                         </div>
-                                        <div className="p-0">
-                                            <div className="flex justify-between p-2 md:p-3 border-b border-gray-50">
-                                                <span className="text-gray-600">Total Deductions</span>
-                                                <span className="font-bold text-red-700">₹ 0.00</span>
+                                        <div className="p-0 flex flex-col justify-between">
+                                            <div>
+                                                {pf > 0 && (
+                                                    <div className="flex justify-between p-2 border-b border-gray-50">
+                                                        <span className="text-gray-600">Provident Fund (PF)</span>
+                                                        <span className="font-semibold">₹ {pf.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                    </div>
+                                                )}
+                                                {pt > 0 && (
+                                                    <div className="flex justify-between p-2 border-b border-gray-50">
+                                                        <span className="text-gray-600">Professional Tax (PT)</span>
+                                                        <span className="font-semibold">₹ {pt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                    </div>
+                                                )}
+                                                {tax > 0 && (
+                                                    <div className="flex justify-between p-2 border-b border-gray-50">
+                                                        <span className="text-gray-600">Income Tax / TDS</span>
+                                                        <span className="font-semibold">₹ {tax.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                    </div>
+                                                )}
+                                                {totalDeductions === 0 && (
+                                                    <div className="flex justify-between p-2 md:p-3 italic text-gray-400">
+                                                        <span>No deductions applicable</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex justify-between p-2 bg-gray-50 border-t border-gray-100 font-bold">
+                                                <span className="text-gray-700">Total Deductions</span>
+                                                <span className="text-red-700 font-bold">₹ {totalDeductions.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -1230,7 +1297,7 @@ value={profile.salary?.[field.key] || ''}
                             </div>
                             <div className="bg-gray-50 p-4 border-t border-gray-100 flex justify-between items-center mt-auto">
                                 <div className="w-16 h-16 bg-white p-1 rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden">
-                                    <img 
+                                    <img
                                         src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`Employee ID: ${employee.id}\nName: ${employee.name}\nRole: ${profile.title || 'Employee'}\nDept: ${profile.department || 'N/A'}`)}`}
                                         alt="QR Code"
                                         className="w-full h-full object-contain"
@@ -1241,12 +1308,12 @@ value={profile.salary?.[field.key] || ''}
                         </div>
                         <div className="flex justify-center mt-6">
                             <button
-                              onClick={() => {
-                                const printContent = document.getElementById('id-card-container');
-                                const WindowPrt = window.open('', '', 'left=0,top=0,width=800,height=900,toolbar=0,scrollbars=0,status=0');
+                                onClick={() => {
+                                    const printContent = document.getElementById('id-card-container');
+                                    const WindowPrt = window.open('', '', 'left=0,top=0,width=800,height=900,toolbar=0,scrollbars=0,status=0');
 
-                                if (WindowPrt && printContent) {
-                                    WindowPrt.document.write(`
+                                    if (WindowPrt && printContent) {
+                                        WindowPrt.document.write(`
                                         <html>
                                             <head>
                                                 <title>Print ID Card</title>
@@ -1282,15 +1349,15 @@ value={profile.salary?.[field.key] || ''}
                                         </html>
                                     `);
 
-                                    WindowPrt.document.close();
+                                        WindowPrt.document.close();
 
-                                    setTimeout(() => {
-                                        WindowPrt.focus();
-                                        WindowPrt.print();
-                                        WindowPrt.close();
-                                    }, 800);
-                                }
-                            }} 
+                                        setTimeout(() => {
+                                            WindowPrt.focus();
+                                            WindowPrt.print();
+                                            WindowPrt.close();
+                                        }, 800);
+                                    }
+                                }}
                                 className="flex items-center gap-2 px-6 py-2 bg-white text-gray-800 font-bold rounded-full shadow-lg hover:bg-gray-100 transition-colors"
                             >
                                 <Printer size={18} /> Print
