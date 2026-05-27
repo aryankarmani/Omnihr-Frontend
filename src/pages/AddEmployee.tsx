@@ -69,6 +69,7 @@ export default function AddEmployee() {
     pan: null,
     degree: null,
 });
+const [errors, setErrors] = useState<any>({});
    const steps = [
     { id: 1, title: 'Personal Details', icon: User },
     { id: 2, title: 'Statutory Info', icon: CreditCard },
@@ -76,10 +77,19 @@ export default function AddEmployee() {
     { id: 4, title: 'Documents', icon: FileText },
 ];
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
+const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+
+    setFormData(prev => ({
+        ...prev,
+        [name]: value
+    }));
+
+    setErrors((prev: any) => ({
+        ...prev,
+        [name]: ''
+    }));
+};
     
 
 const handleSalaryChange = (field: string, value: string) => {
@@ -94,94 +104,114 @@ const handleSalaryChange = (field: string, value: string) => {
 
     const handleNext = async () => {
         // STEP 1 VALIDATION
-        if (currentStep === 1) {
-            if (!formData.firstName || !formData.lastName || !formData.email || !formData.roleId || !formData.designationId || !formData.departmentId) {
-                toast.error('Please fill in all required fields');
-                return;
-            }
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(formData.email)) {
-                toast.error('Please enter a valid email address');
-                return;
-            }
-            if (formData.phone && !/^\d{10}$/.test(formData.phone.replace(/\D/g, ''))) {
-                toast.error('Phone number must be 10 digits');
-                return;
-            }
+           if (currentStep === 1) {
+
+           const newErrors: any = {};
+
+if (!formData.firstName) {
+    newErrors.firstName = 'First name is required';
+}
+
+if (!formData.lastName) {
+    newErrors.lastName = 'Last name is required';
+}
+
+if (!formData.email) {
+    newErrors.email = 'Email is required';
+} else {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(formData.email)) {
+        newErrors.email = 'Please enter a valid email address';
+    }
+}
+
+if (!formData.phone) {
+    newErrors.phone = 'Phone number is required';
+} else if (!/^\d{10}$/.test(formData.phone)) {
+    newErrors.phone = 'Enter valid 10 digit phone number';
+}
+
+if (!formData.departmentId) {
+    newErrors.departmentId = 'Department is required';
+}
+
+if (!formData.roleId) {
+    newErrors.roleId = 'Role is required';
+}
+
+if (!formData.designationId) {
+    newErrors.designationId = 'Designation is required';
+}
+
+setErrors(newErrors);
+
+if (Object.keys(newErrors).length > 0) {
+    return;
+}
         }
 
         
         if (currentStep === 2) {
+            const newErrors: any = {};
 
-            const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
-            if (!formData.pan) {
-                toast.error('PAN is required');
-                return;
-            }
-            if (!panRegex.test(formData.pan.trim().toUpperCase())) {
-                toast.error('Invalid PAN Number format (e.g. ABCDE1234F)');
-                return;
-            }
+           const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
 
-            if (!formData.aadhaar) {
-                toast.error('Aadhaar is required');
-                return;
-            }
-            if (!/^\d{12}$/.test(formData.aadhaar.replace(/\s/g, ''))) {
-                toast.error('Aadhaar Number must be 12 digits');
-                return;
-            }
+if (!formData.pan) {
+    newErrors.pan = 'PAN is required';
+} 
+else if (!panRegex.test(formData.pan.trim().toUpperCase())) {
+    newErrors.pan = 'Invalid PAN format';
+}
+
+           if (!formData.aadhaar) {
+    newErrors.aadhaar = 'Aadhaar is required';
+}
+else if (!/^\d{12}$/.test(formData.aadhaar)) {
+    newErrors.aadhaar = 'Aadhaar must be 12 digits';
+}
 
             const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
             if (!formData.ifsc) {
-                toast.error('IFSC is required');
-                return;
+                newErrors.ifsc = 'IFSC is required';
+                
             }
             if (!ifscRegex.test(formData.ifsc.trim().toUpperCase())) {
-                toast.error('Invalid IFSC Code format (e.g. SBIN0001234)');
-                return;
+               newErrors.ifsc = 'Invalid IFSC format';
+                
             }
 
-    if (!formData.accountNumber) {
-        toast.error('Account Number is required');
-        return;
-    }
-    if (!/^\d{9,18}$/.test(formData.accountNumber.trim())) {
-        toast.error('Account Number must be 9–18 digits');
-        return;
-    }
+   if (!formData.accountNumber) {
+    newErrors.accountNumber = 'Account Number is required';
+}
+else if (!/^\d{9,18}$/.test(formData.accountNumber)) {
+    newErrors.accountNumber = 'Account Number must be 9-18 digits';
+}
     
-    const uan = formData.uan.replace(/\s/g, '');
-
             if (!formData.uan) {
-                toast.error('UAN is required');
-                return;
-            }
-            if (!/^\d{12}$/.test(uan)) {
-                toast.error('UAN must be 12 digits');
-                return;
+    newErrors.uan = 'UAN is required';
+}
+else if (!/^\d{12}$/.test(formData.uan)) {
+    newErrors.uan = 'UAN must be 12 digits';
+}
 
-            }
-            const esic = formData.esic.replace(/\s/g, '');
-
-            if (!formData.esic) {
-                toast.error('ESIC is required');
-                return;
-            }
-            if (!/^\d{17}$/.test(esic)) {
-                toast.error('ESIC must be 17 digits');
-                return;
-            }
+           if (!formData.esic) {
+    newErrors.esic = 'ESIC is required';
+}
+else if (!/^\d{17}$/.test(formData.esic)) {
+    newErrors.esic = 'ESIC must be 17 digits';
+}
             const bankName = formData.bankName.trim();
 
             if (!bankName) {
-                toast.error('Bank Name is required');
-                return;
-            }
+    newErrors.bankName = 'Bank Name is required';
+}
+else if (!/^[A-Za-z\s]{2,50}$/.test(bankName)) {
+    newErrors.bankName = 'Only letters allowed';
+}
+setErrors(newErrors);
 
-// allows only letters & spaces (2–50 chars)
-if (!/^[A-Za-z\s]{2,50}$/.test(bankName)) {
-    toast.error('Bank Name must contain only letters (2-50 characters)');
+if (Object.keys(newErrors).length > 0) {
     return;
 }
    
@@ -331,7 +361,13 @@ setCurrentStep(c => c + 1);
                                     type="email"
                                     className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                     placeholder="Enter your email"
+                                    
                                 />
+                                {errors.email && (
+    <p className="text-red-500 text-xs ml-1">
+        {errors.email}
+    </p>
+)}
                             </div>
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Phone Number</label>
@@ -339,11 +375,28 @@ setCurrentStep(c => c + 1);
                                     autoComplete="off"
                                     name="phone"
                                     value={formData.phone}
-                                    onChange={handleInputChange}
+                                   onChange={(e) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+
+    setFormData(prev => ({
+        ...prev,
+        phone: value
+    }));
+
+    setErrors((prev: any) => ({
+        ...prev,
+        phone: ''
+    }));
+}}
                                     type="tel"
                                     className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                     placeholder="+91 "
                                 />
+                                {errors.phone && (
+    <p className="text-red-500 text-xs ml-1">
+        {errors.phone}
+    </p>
+)}
                             </div>
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Department *</label>
@@ -438,6 +491,7 @@ setCurrentStep(c => c + 1);
                                             className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                             placeholder="E.g. ABCDE1234F"
                                         />
+                                        {errors.pan && <p className="text-red-500 text-xs ml-1">{errors.pan}</p>}
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Aadhaar Number</label>
@@ -445,11 +499,20 @@ setCurrentStep(c => c + 1);
                                             autoComplete="off"
                                             name="aadhaar"
                                             value={formData.aadhaar}
-                                            onChange={handleInputChange}
+                                           onChange={(e) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 12);
+
+    setFormData({
+        ...formData,
+        aadhaar: value
+    });
+}}
                                             type="text"
                                             className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                             placeholder="XXXX XXXX XXXX"
                                         />
+                                        {errors.aadhaar && <p className="text-red-500 text-xs ml-1">{errors.aadhaar}</p>}
+
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">UAN (PF)</label>
@@ -457,11 +520,19 @@ setCurrentStep(c => c + 1);
                                             autoComplete="off"
                                             name="uan"
                                             value={formData.uan}
-                                            onChange={handleInputChange}
+                                            onChange={(e) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 12);
+
+    setFormData({
+        ...formData,
+        uan: value
+    });
+}}
                                             type="text"
                                             className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                             placeholder="Enter 12-digit UAN number"
                                         />
+                                        {errors.uan && <p className="text-red-500 text-xs ml-1">{errors.uan}</p>}
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">ESIC Number</label>
@@ -469,11 +540,20 @@ setCurrentStep(c => c + 1);
                                             autoComplete="off"
                                             name="esic"
                                             value={formData.esic}
-                                            onChange={handleInputChange}
+                                            onChange={(e) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 17);
+
+    setFormData({
+        ...formData,
+        esic: value
+    });
+}}
                                             type="text"
                                             className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                             placeholder="Enter 17-digit ESIC number "
                                         />
+                                        {errors.esic && <p className="text-red-500 text-xs ml-1">{errors.esic}</p>}
+
                                     </div>
                                 </div>
                             </div>
@@ -492,6 +572,8 @@ setCurrentStep(c => c + 1);
                                             className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                             placeholder="e.g. HDFC Bank"
                                         />
+                                        {errors.bankName && <p className="text-red-500 text-xs ml-1">{errors.bankName}</p>}
+
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">IFSC Code</label>
@@ -504,6 +586,8 @@ setCurrentStep(c => c + 1);
                                             className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all uppercase placeholder:normal-case placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                             placeholder="Enter IFSC code"
                                         />
+                                        {errors.ifsc && <p className="text-red-500 text-xs ml-1">{errors.ifsc}</p>}
+
                                     </div>
                                     <div className="space-y-2 md:col-span-2">
                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Account Number</label>
@@ -519,6 +603,7 @@ setCurrentStep(c => c + 1);
 
                                             placeholder="Enter 9-18 digit account number"
                                         />
+                                        {errors.accountNumber && <p className="text-red-500 text-xs ml-1">{errors.accountNumber}</p>}
                                     </div>
                                 </div>
                             </div>
