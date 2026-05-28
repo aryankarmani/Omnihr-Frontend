@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Check, ChevronRight, Upload, FileText, User, CreditCard, Loader2, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -66,12 +67,13 @@ export default function AddEmployee() {
         },
         joiningDate: new Date().toISOString().split('T')[0]
     });
-    const [selectedDoc, setSelectedDoc] = useState(null);
+    const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
     const [documents, setDocuments] = useState<Record<string, any>>({
         aadhaar: null,
         pan: null,
         degree: null,
     });
+    const [confirmDeleteDoc, setConfirmDeleteDoc] = useState<string | null>(null);
     const steps = [
         { id: 1, title: 'Personal Details', icon: User },
         { id: 2, title: 'Statutory Info', icon: CreditCard },
@@ -373,7 +375,18 @@ export default function AddEmployee() {
                                     autoComplete="off"
                                     name="dob"
                                     value={formData.dob}
-                                    onChange={handleInputChange}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val) {
+                                            const parts = val.split('-');
+                                            if (parts[0] && parts[0].length > 4) {
+                                                parts[0] = parts[0].substring(0, 4);
+                                                setFormData(prev => ({ ...prev, dob: parts.join('-') }));
+                                                return;
+                                            }
+                                        }
+                                        handleInputChange(e);
+                                    }}
                                     type="date"
                                     className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                 />
@@ -609,35 +622,8 @@ export default function AddEmployee() {
 
                     {currentStep === 4 && (
                         <div className="space-y-6 animate-fade-in">
-                            <div onClick={() => document.getElementById('fileInput')?.click()}
-                                className="border-2 border-dashed border-gray-300 dark:border-white/20 rounded-3xl p-12 text-center group hover:border-brand-500 transition-colors cursor-pointer bg-gray-50 dark:bg-white/5">
-                                <div className="w-16 h-16 bg-brand-100 dark:bg-white/10 text-brand-600 dark:text-white rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                                    <Upload size={32} />
-                                </div>
-                                <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Upload Onboarding Documents</h3>
-                                {/* <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto">
-                                    Files are currently simulated for this MVP. Drag and drop functionality coming soon.
-                                </p> */}
-                                <input
-                                    id="fileInput"
-                                    type="file"
-                                    className="hidden"
-                                    onChange={(e) => {
-                                        if (!selectedDoc) return;
-
-                                        const file = e.target.files?.[0];
-                                        if (file) {
-                                            setDocuments(prev => ({
-                                                ...prev,
-                                                [selectedDoc]: file
-                                            }));
-                                        }
-                                    }}
-                                />
-                            </div>
-
                             <div className="space-y-4">
-                                <p className="text-sm font-bold text-gray-500 uppercase">Required Documents Checklist</p>
+                                <p className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">Required Documents Checklist</p>
                                 {[
                                     { key: 'aadhaar', name: 'Aadhaar Card', required: true },
                                     { key: 'pan', name: 'PAN Card', required: true },
@@ -645,36 +631,62 @@ export default function AddEmployee() {
                                 ].map((doc, i) => (
                                     <div
                                         key={i}
-                                        onClick={() => setSelectedDoc(doc.key)}
-                                        className={`flex items-center justify-between p-4 cursor-pointer border rounded-xl ${selectedDoc === doc.key ? 'border-brand-500 bg-brand-100 dark:bg-brand-800' : ''
-                                            }`}        >                               <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-gray-100 dark:bg-white/10 rounded-lg flex items-center justify-center text-gray-500">
-                                                <FileText size={20} />
+                                        onClick={() => document.getElementById(`fileInput-${doc.key}`)?.click()}
+                                        className={`flex items-center justify-between p-4 cursor-pointer border rounded-2xl transition-all ${documents[doc.key] 
+                                            ? 'border-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10' 
+                                            : 'border-gray-200 dark:border-white/10 hover:border-brand-500 dark:hover:border-brand-500 bg-gray-50 dark:bg-white/5 hover:scale-[1.01] shadow-sm'
+                                            }`}
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${documents[doc.key] 
+                                                ? 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400' 
+                                                : 'bg-gray-100 dark:bg-white/10 text-gray-400'
+                                                }`}>
+                                                <FileText size={24} />
                                             </div>
                                             <div>
-                                                <p className="font-semibold text-gray-800 dark:text-white">
+                                                <p className="font-semibold text-gray-800 dark:text-white text-base">
                                                     {doc.name} {doc.required && <span className="text-red-500">*</span>}
                                                 </p>
-                                                <p className="text-xs text-brand-600 font-medium">
-                                                    {documents[doc.key] ? (documents[doc.key] as File).name : 'Ready for capture'}
-
+                                                <p className={`text-xs font-medium transition-colors ${documents[doc.key] ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                                                    {documents[doc.key] ? (documents[doc.key] as File).name : 'Click to upload document'}
                                                 </p>
                                             </div>
                                         </div>
-                                        {documents[doc.key] && (
-                                            <Trash2
-                                                size={18}
-                                                className="text-red-500 cursor-pointer"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
+                                        
+                                        <div className="flex items-center gap-3">
+                                            {documents[doc.key] ? (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setConfirmDeleteDoc(doc.key);
+                                                    }}
+                                                    className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                                                >
+                                                    <Trash2 size={20} />
+                                                </button>
+                                            ) : (
+                                                <div className="w-8 h-8 rounded-full bg-brand-50 dark:bg-white/10 text-brand-600 dark:text-brand-400 flex items-center justify-center hover:scale-110 transition-transform">
+                                                    <Upload size={16} />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <input
+                                            id={`fileInput-${doc.key}`}
+                                            type="file"
+                                            className="hidden"
+                                            accept="application/pdf,image/*"
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
                                                     setDocuments(prev => ({
                                                         ...prev,
-                                                        [doc.key]: null
+                                                        [doc.key]: file
                                                     }));
-                                                }}
-
-                                            />
-                                        )}
+                                                }
+                                            }}
+                                        />
                                     </div>
                                 ))}
                             </div>
@@ -708,6 +720,40 @@ export default function AddEmployee() {
                     </button>
                 </div>
             </div>
+            {confirmDeleteDoc && createPortal(
+                <div className="fixed inset-0 z-[999999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center border border-gray-100 dark:border-white/10 animate-scale-in">
+                        <div className="w-16 h-16 mx-auto mb-4 bg-red-50 dark:bg-red-500/10 rounded-full flex items-center justify-center text-red-500">
+                            <Trash2 size={32} />
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Remove Document?</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 font-medium">
+                            Are you sure you want to remove this document? You will need to upload it again if needed.
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setConfirmDeleteDoc(null)}
+                                className="flex-1 py-2 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 font-semibold hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setDocuments(prev => ({
+                                        ...prev,
+                                        [confirmDeleteDoc]: null
+                                    }));
+                                    setConfirmDeleteDoc(null);
+                                }}
+                                className="flex-1 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold shadow-lg shadow-red-500/30 transition-all active:scale-95"
+                            >
+                                Yes, Remove
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
         </div>
     );
 }
