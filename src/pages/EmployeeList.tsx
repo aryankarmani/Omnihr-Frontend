@@ -4,9 +4,32 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { createPortal } from 'react-dom';
+import { useAuth } from '../context/AuthContext';
+import { getTeams } from '../utils/teamApi';
 
 export default function EmployeeList() {
     const navigate = useNavigate();
+    const { user } = useAuth();
+    const [teamMemberIds, setTeamMemberIds] = useState<number[]>([]);
+
+    useEffect(() => {
+        const fetchManagerTeam = async () => {
+            if (user?.role === 'MANAGER') {
+                try {
+                    const res = await getTeams();
+                    const teams = res.data || [];
+                    const myTeam = teams.find((t: any) => t.managerId === user.id || t.manager?.id === user.id);
+                    if (myTeam) {
+                        const ids = myTeam.members.map((m: any) => m.id);
+                        setTeamMemberIds(ids);
+                    }
+                } catch (e) {
+                    console.error("Failed to load manager's team in EmployeeList", e);
+                }
+            }
+        };
+        fetchManagerTeam();
+    }, [user]);
     const [showFilterDrawer, setShowFilterDrawer] = useState(false);
     const [filters, setFilters] = useState({
         name: '',
@@ -101,9 +124,12 @@ export default function EmployeeList() {
     const [selectedEmployeeForActions, setSelectedEmployeeForActions] = useState<any>(null);
     const [employeeToDelete, setEmployeeToDelete] = useState<any>(null);
 
-    // Filter Logic
     const filteredEmployees = employees.filter(emp => {
         const profile = emp.employeeProfile || {};
+
+        if (user?.role === 'MANAGER' && !teamMemberIds.includes(emp.id)) {
+            return false;
+        }
 
         return (
             (!appliedFilters.name ||
@@ -170,38 +196,38 @@ export default function EmployeeList() {
         });
         toast.success('Employee Added Successfully!');
     };
-           const handleExportCSV = () => {
-    const csvRows = [
-        ["ID", "Name", "Email", "Phone", "Role", "Department", "Location", "Status"],
-    ];
+    const handleExportCSV = () => {
+        const csvRows = [
+            ["ID", "Name", "Email", "Phone", "Role", "Department", "Location", "Status"],
+        ];
 
-    filteredEmployees.forEach((emp) => {
-        const profile = emp.employeeProfile || {};
+        filteredEmployees.forEach((emp) => {
+            const profile = emp.employeeProfile || {};
 
-        csvRows.push([
-            emp.id,
-            emp.name,
-            emp.email,
-            profile.phone || "",
-            profile.title || "",
-            profile.department || "",
-            profile.location || "",
-            profile.status || "Active",
-        ]);
-    });
+            csvRows.push([
+                emp.id,
+                emp.name,
+                emp.email,
+                profile.phone || "",
+                profile.title || "",
+                profile.department || "",
+                profile.location || "",
+                profile.status || "Active",
+            ]);
+        });
 
-    const csvContent = csvRows.map((row) => row.join(",")).join("\n");
+        const csvContent = csvRows.map((row) => row.join(",")).join("\n");
 
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
+        const blob = new Blob([csvContent], { type: "text/csv" });
+        const url = window.URL.createObjectURL(blob);
 
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "employees.csv";
-    a.click();
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "employees.csv";
+        a.click();
 
-    window.URL.revokeObjectURL(url);
-};
+        window.URL.revokeObjectURL(url);
+    };
     return (
         <div className="animate-fade-in-up">
             {/* Header Actions */}
@@ -211,10 +237,10 @@ export default function EmployeeList() {
                     <p className="text-gray-500 dark:text-gray-400">Manage your organization's workforce</p>
                 </div>
                 <div className="flex gap-3 w-full md:w-auto">
-                      <button
-    onClick={handleExportCSV}
-    className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors"
->
+                    <button
+                        onClick={handleExportCSV}
+                        className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors"
+                    >
                         <FileText size={18} />
                         <span className="hidden md:inline">Export</span>
                     </button>
@@ -466,9 +492,9 @@ export default function EmployeeList() {
             )}
 
             {/* Delete Confirmation Modal */}
-            {employeeToDelete && createPortal (
-            <div className="fixed inset-0 z-[999999] flex items-start justify-center bg-black/80 backdrop-blur-xl pt-30">
-            <div className="bg-white dark:bg-brand-950 rounded-3xl shadow-2xl w-full max-w-md p-8 border border-gray-100 dark:border-white/10 text-center relative overflow-hidden">
+            {employeeToDelete && createPortal(
+                <div className="fixed inset-0 z-[999999] flex items-start justify-center bg-black/80 backdrop-blur-xl pt-30">
+                    <div className="bg-white dark:bg-brand-950 rounded-3xl shadow-2xl w-full max-w-md p-8 border border-gray-100 dark:border-white/10 text-center relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-2 bg-red-500"></div>
 
 
@@ -509,8 +535,8 @@ export default function EmployeeList() {
                         </div>
                     </div>
                 </div>
-            
-            , document.body)}
+
+                , document.body)}
 
             {/* Add Employee Modal */}
             {showAddModal && createPortal(
@@ -716,11 +742,11 @@ export default function EmployeeList() {
                                 Cancel
                             </button>
                             <button
-  type="submit"
-  className="flex-[2] py-4 bg-brand-600 text-white font-black uppercase text-xs tracking-[0.2em] rounded-2xl shadow-xl shadow-brand-500/20 hover:bg-brand-700 hover:scale-[1.02] active:scale-[0.98] transition-all"
->
-  Create Employee
-</button>
+                                type="submit"
+                                className="flex-[2] py-4 bg-brand-600 text-white font-black uppercase text-xs tracking-[0.2em] rounded-2xl shadow-xl shadow-brand-500/20 hover:bg-brand-700 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                            >
+                                Create Employee
+                            </button>
                         </div>
                     </div>
                 </div>,

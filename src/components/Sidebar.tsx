@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
     LayoutDashboard, Users, UsersRound, LogOut, ChevronLeft,
@@ -9,6 +9,8 @@ import {
 import { useAuth } from '../context/AuthContext';
 import vedaLogo from '../assets/veda-logo.png';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { getTeams } from '../utils/teamApi';
+import api from '../utils/api';
 
 interface MenuItem {
     icon: any;
@@ -55,6 +57,34 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
     const location = useLocation();
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [openMenus, setOpenMenus] = useState<string[]>([]); // Start with all menus closed
+    const [managerPermissions, setManagerPermissions] = useState<any>(null);
+
+    useEffect(() => {
+        if (user?.role === 'MANAGER') {
+            const fetchManagerTeamAndPermissions = async () => {
+                try {
+                    const res = await getTeams();
+                    const teams = res.data || [];
+                    const myTeam = teams.find((t: any) => t.managerId === user.id || t.manager?.id === user.id);
+                    if (myTeam) {
+                        const permRes = await api.get(`/teams/${myTeam.id}/access-control`);
+                        setManagerPermissions(permRes.data);
+                    } else {
+                        // Manager doesn't manage any team yet, or no teams
+                        setManagerPermissions({
+                            list: false,
+                            attendance: false,
+                            leaveApproval: false,
+                            regularization: false
+                        });
+                    }
+                } catch (e) {
+                    console.error("Failed to load teams or permissions in Sidebar", e);
+                }
+            };
+            fetchManagerTeamAndPermissions();
+        }
+    }, [user]);
 
     let userModules = user?.accessibleModules || [];
 
@@ -82,6 +112,12 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
         userModules = userModules.length > 0
             ? Array.from(new Set([...adminDefaultModules, ...userModules]))
             : adminDefaultModules;
+    } else if (user?.role === 'MANAGER') {
+        const managerModules = [...employeeDefaultModules];
+        if (managerPermissions?.list) managerModules.push('EMPLOYEE');
+        if (managerPermissions?.attendance || managerPermissions?.regularization) managerModules.push('EMPLOYEE_ATTENDANCE');
+        if (managerPermissions?.leaveApproval) managerModules.push('EMPLOYEE'); // Needs to show employee parent menu
+        userModules = Array.from(new Set([...managerModules, ...userModules]));
     } else {
         userModules = Array.from(new Set([...employeeDefaultModules, ...userModules]));
     }
@@ -144,7 +180,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                 <nav className="flex-1 px-4 space-y-1 mt-4 overflow-y-auto overflow-x-hidden custom-scrollbar">
                     {menuItems.filter(item => {
                         if (item.module === 'EMPLOYEE_ATTENDANCE') {
-                            return user?.role === 'HR_ADMIN';
+                            return user?.role === 'HR_ADMIN' || (user?.role === 'MANAGER' && (managerPermissions?.attendance || managerPermissions?.regularization));
                         }
                         return userModules.includes(item.module);
                     }).map((item) => {
@@ -168,6 +204,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                                         ? 'bg-brand-500 shadow-lg shadow-brand-900/20 text-white'
                                         : 'text-gray-400 hover:bg-white/5 hover:text-white'
                                         } ${isCollapsed ? 'justify-center' : ''}`}
+                                
                                 >
                                     <item.icon size={20} className={`flex-shrink-0 ${(active && !hasChildren) ? 'text-white' : 'text-gray-400 group-hover:text-white'}`} />
                                     {!isCollapsed && (
@@ -186,7 +223,14 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                                 {hasChildren && isOpen && !isCollapsed && (
                                     <div className="space-y-1 ml-4 border-l border-white/10 pl-2 animate-fade-in">
                                         {item.children?.filter(child => {
-                                            if (child.module === 'EMPLOYEE_ATTENDANCE') return user?.role === 'HR_ADMIN';
+                                            if (user?.role === 'HR_ADMIN') return true;
+                                            if (user?.role === 'MANAGER') {
+                                                if (child.label === 'List') return !!managerPermissions?.list;
+                                                if (child.label === 'Attendance') return !!managerPermissions?.attendance;
+                                                if (child.label === 'Leave Approval') return !!managerPermissions?.leaveApproval;
+                                                if (child.label === 'Regularizations') return !!managerPermissions?.regularization;
+                                            }
+                                            if (child.module === 'EMPLOYEE_ATTENDANCE') return false;
                                             return userModules.includes(child.module);
                                         }).map((child) => {
                                             const childActive = isActive(child.path, child.state);

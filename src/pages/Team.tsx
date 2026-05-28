@@ -3,8 +3,9 @@ import { createPortal } from 'react-dom';
 import { useEffect } from 'react';
 import { Users, Plus, MoreVertical, Briefcase, UserPlus, X, Trash2 } from 'lucide-react';
 import { useRBAC } from '../hooks/useRBAC';
-// import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
+import toast from 'react-hot-toast';
 import {
     getTeams,
     createTeam as createTeamApi,
@@ -18,7 +19,8 @@ import {
 export default function Team() {
     const [employees, setEmployees] = useState<any[]>([]);
     const { hasPermission } = useRBAC();
-    // const { user } = useAuth();
+    const { user } = useAuth();
+    const isAdmin = user?.role === 'HR_ADMIN';
     const canManageTeams = hasPermission(['HR_ADMIN', 'MANAGER']);
     const [teams, setTeams] = useState<any[]>([]);
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -32,6 +34,41 @@ export default function Team() {
     const [confirmRemove, setConfirmRemove] = useState<any>(null);
     const [newTeamName, setNewTeamName] = useState('');
     const [newTeamDesc, setNewTeamDesc] = useState('');
+
+    const [accessControlTeam, setAccessControlTeam] = useState<any>(null);
+    const [permissions, setPermissions] = useState({
+        list: true,
+        attendance: true,
+        leaveApproval: true,
+        regularization: true
+    });
+
+    const handleOpenAccessControl = async (team: any) => {
+        setAccessControlTeam(team);
+        try {
+            const res = await api.get(`/teams/${team.id}/access-control`);
+            setPermissions(res.data);
+        } catch (e) {
+            setPermissions({
+                list: true,
+                attendance: true,
+                leaveApproval: true,
+                regularization: true
+            });
+        }
+    };
+
+    const handleSaveAccessControl = async () => {
+        if (accessControlTeam) {
+            try {
+                await api.post(`/teams/${accessControlTeam.id}/access-control`, permissions);
+                toast.success(`Access control updated for team ${accessControlTeam.name}`);
+                setAccessControlTeam(null);
+            } catch (e) {
+                toast.error("Failed to save access control permissions");
+            }
+        }
+    };
 
     useEffect(() => {
         if (showAddMemberModal && selectedTeam) {
@@ -140,10 +177,22 @@ export default function Team() {
                                                     setConfirmDelete(team.id);
 
                                                 }}
-                                                className="w-full text-left px-4 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all font-semibold"
+                                                className="w-full text-left px-4 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all font-semibold border-b border-gray-100 dark:border-white/5"
                                             >
                                                 Delete
                                             </button>
+                                            {isAdmin && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setMenuOpen(null);
+                                                        handleOpenAccessControl(team);
+                                                    }}
+                                                    className="w-full text-left px-4 py-2 text-sm text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-500/10 transition-all font-semibold"
+                                                >
+                                                    Access Control
+                                                </button>
+                                            )}
 
                                         </div>
                                     )}
@@ -187,9 +236,9 @@ export default function Team() {
                     </div>
                 ))}
             </div>
-            {showAddMemberModal &&  createPortal(
-<div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/70 backdrop-blur-xl">
-<div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+            {showAddMemberModal && createPortal(
+                <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/70 backdrop-blur-xl">
+                    <div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
 
                         <div className="p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50 dark:bg-white/5">
                             <h3 className="text-xl font-bold text-gray-800 dark:text-white">Add Members</h3>
@@ -202,7 +251,7 @@ export default function Team() {
                         </div>
                         <div className="p-6 max-h-[40vh] overflow-y-auto space-y-3 custom-scroll">
 
-                             {employees.map(emp => {
+                            {employees.map(emp => {
                                 const isSelected = selectedEmployees.includes(emp.id);
                                 const isManager = selectedManager === emp.id;
 
@@ -306,52 +355,52 @@ export default function Team() {
 
                     </div>
                 </div>
-            ,document.body)}
-           {showCreateModal &&
-    createPortal(
-        // changes were made here 
-        <div className="fixed inset-0 z-[999999] bg-black/70 backdrop-blur-xl flex items-center justify-center p-4">
-<div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-                        <div className="p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center">
-                            <h3 className="text-xl font-bold text-gray-800 dark:text-white">Create New Team</h3>
-                            <button onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <form onSubmit={handleCreateTeam} className="p-6 space-y-4">
-                            <div className="space-y-1.5">
-                                <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Team Name</label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={newTeamName}
-                                    onChange={(e) => setNewTeamName(e.target.value)}
-                                    placeholder="e.g. Quality Assurance"
-                                    className="w-full px-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none"
-                                />
+                , document.body)}
+            {showCreateModal &&
+                createPortal(
+                    // changes were made here 
+                    <div className="fixed inset-0 z-[999999] bg-black/70 backdrop-blur-xl flex items-center justify-center p-4">
+                        <div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                            <div className="p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center">
+                                <h3 className="text-xl font-bold text-gray-800 dark:text-white">Create New Team</h3>
+                                <button onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                                    <X size={20} />
+                                </button>
                             </div>
-                            <div className="space-y-1.5">
-                                <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Description</label>
-                                <textarea
-                                    rows={3}
-                                    value={newTeamDesc}
-                                    onChange={(e) => setNewTeamDesc(e.target.value)}
-                                    placeholder="Brief description of the team's responsibilities"
-                                    className="w-full px-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none"
-                                />
-                            </div>
-                            <button
-                                type="submit"
-                                className="w-full py-3 bg-brand-600 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-700 transition-all mt-2"
-                            >
-                                Create Team
-                            </button>
-                        </form>
+                            <form onSubmit={handleCreateTeam} className="p-6 space-y-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Team Name</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={newTeamName}
+                                        onChange={(e) => setNewTeamName(e.target.value)}
+                                        placeholder="e.g. Quality Assurance"
+                                        className="w-full px-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Description</label>
+                                    <textarea
+                                        rows={3}
+                                        value={newTeamDesc}
+                                        onChange={(e) => setNewTeamDesc(e.target.value)}
+                                        placeholder="Brief description of the team's responsibilities"
+                                        className="w-full px-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none"
+                                    />
+                                </div>
+                                <button
+                                    type="submit"
+                                    className="w-full py-3 bg-brand-600 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-700 transition-all mt-2"
+                                >
+                                    Create Team
+                                </button>
+                            </form>
                         </div>
-                          </div>,
-        document.body
-    )
-}
+                    </div>,
+                    document.body
+                )
+            }
 
             {editTeam && createPortal(
                 <div className="fixed inset-0 z-[999999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
@@ -510,6 +559,65 @@ export default function Team() {
                                 className="flex-1 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold shadow-lg shadow-red-500/30 transition-all active:scale-95"
                             >
                                 Yes, Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {accessControlTeam && createPortal(
+                <div className="fixed inset-0 z-[999999] bg-black/70 backdrop-blur-xl flex items-center justify-center p-4 animate-fade-in">
+                    <div className="bg-white dark:bg-brand-900 rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden border border-gray-100 dark:border-white/10 animate-scale-in text-left">
+                        <div className="p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50/50 dark:bg-white/5">
+                            <div>
+                                <h3 className="text-xl font-bold text-gray-800 dark:text-white">Access Control</h3>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Configure manager dashboard tabs for <strong>{accessControlTeam.name}</strong></p>
+                            </div>
+                            <button onClick={() => setAccessControlTeam(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors p-1.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-xl">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Select allowed dashboard tabs</p>
+
+                            <div className="grid grid-cols-1 gap-3">
+                                {[
+                                    { key: 'list', label: 'Employee List', desc: 'Allows viewing and searching the team member roster' },
+                                    { key: 'attendance', label: 'Attendance', desc: 'Allows viewing daily attendance sheets of the team' },
+                                    { key: 'leaveApproval', label: 'Leave Approval', desc: 'Allows reviewing, approving, and rejecting leave requests' },
+                                    { key: 'regularization', label: 'Regularization', desc: 'Allows managing attendance corrections and requests' }
+                                ].map((option) => {
+                                    const isChecked = (permissions as any)[option.key];
+                                    return (
+                                        <div
+                                            key={option.key}
+                                            onClick={() => setPermissions(prev => ({ ...prev, [option.key]: !isChecked }))}
+                                            className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-4 ${isChecked
+                                                    ? 'border-brand-500 bg-brand-500/10 dark:bg-brand-500/5'
+                                                    : 'border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5 hover:border-gray-200 dark:hover:border-white/10'
+                                                }`}
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={isChecked}
+                                                onChange={() => { }} // handled by div onClick
+                                                className="mt-1 accent-brand-600 rounded cursor-pointer"
+                                            />
+                                            <div>
+                                                <h4 className="font-bold text-sm text-gray-800 dark:text-white">{option.label}</h4>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{option.desc}</p>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            <button
+                                onClick={handleSaveAccessControl}
+                                className="w-full py-3.5 bg-brand-600 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-700 transition-all mt-4 active:scale-95 text-sm"
+                            >
+                                Save Permissions
                             </button>
                         </div>
                     </div>
