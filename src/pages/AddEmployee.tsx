@@ -67,7 +67,7 @@ export default function AddEmployee() {
         },
         joiningDate: new Date().toISOString().split('T')[0]
     });
-    const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
+
     const [documents, setDocuments] = useState<Record<string, any>>({
         aadhaar: null,
         pan: null,
@@ -111,6 +111,29 @@ export default function AddEmployee() {
             }
             if (formData.phone && !/^\d{10}$/.test(formData.phone.replace(/\D/g, ''))) {
                 toast.error('Phone number must be 10 digits');
+                return;
+            }
+            if (!formData.dob) {
+                toast.error('Date of Birth is required');
+                return;
+            }
+            const dobDate = new Date(formData.dob);
+            const today = new Date();
+            if (dobDate > today) {
+                toast.error('Date of Birth cannot be in the future');
+                return;
+            }
+            let age = today.getFullYear() - dobDate.getFullYear();
+            const m = today.getMonth() - dobDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < dobDate.getDate())) {
+                age--;
+            }
+            if (age < 18) {
+                toast.error('Employee must be at least 18 years old');
+                return;
+            }
+            if (!formData.address || formData.address.trim().length < 10) {
+                toast.error('Address is required and must be at least 10 characters long');
                 return;
             }
         }
@@ -217,10 +240,9 @@ export default function AddEmployee() {
         }
         if (currentStep < 4) {
             setCurrentStep(c => c + 1);
-        } else {
-
             setLoading(true);
             try {
+                // Keep original submissionData exactly untouched
                 const submissionData = {
                     ...formData,
                     name: `${formData.firstName} ${formData.lastName}`.trim(),
@@ -370,7 +392,7 @@ export default function AddEmployee() {
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Date of Birth</label>
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Date of Birth *</label>
                                 <input
                                     autoComplete="off"
                                     name="dob"
@@ -461,7 +483,7 @@ export default function AddEmployee() {
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Residential Address</label>
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Residential Address *</label>
                                 <div className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus-within:ring-4 focus-within:ring-brand-500/20 transition-all overflow-hidden h-[46px]">
                                     <textarea
                                         autoComplete="off"

@@ -890,8 +890,8 @@ export default function EmployeeProfile() {
                                                     }
                                                 }}
                                                 className={`p-4 rounded-xl border cursor-pointer transition-all ${String(profile.shiftId) === String(shift.id)
-                                                        ? 'border-brand-400 ring-2 ring-brand-500/50 bg-brand-500/10'
-                                                        : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5'
+                                                    ? 'border-brand-400 ring-2 ring-brand-500/50 bg-brand-500/10'
+                                                    : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5'
                                                     }`}
                                             >
 

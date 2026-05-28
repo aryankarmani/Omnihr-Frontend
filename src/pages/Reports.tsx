@@ -9,6 +9,48 @@ export default function Reports() {
     const [attendanceData, setAttendanceData] = useState<any[]>([]);
     const [payrollData, setPayrollData] = useState<any[]>([]);
     const [stats, setStats] = useState<any>({});
+    const downloadFile = async (
+        endpoint: string,
+        filename: string
+    ) => {
+        try {
+            const tenantId =
+                sessionStorage.getItem('tenantId');
+
+            const response = await api.get(endpoint, {
+                responseType: 'blob',
+                params: {
+                    tenantId
+                }
+            });
+
+
+
+            const blob = new Blob([response.data]);
+
+            const url = window.URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+
+            a.href = url;
+            a.download = filename;
+
+            document.body.appendChild(a);
+
+            a.click();
+
+            window.URL.revokeObjectURL(url);
+
+            document.body.removeChild(a);
+
+        } catch (err) {
+
+            console.error('Download failed:', err);
+
+            alert('Download failed');
+        }
+    };
+
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -144,7 +186,7 @@ export default function Reports() {
                     <h3 className="text-xl font-bold mb-4">Generate Reports</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div
-                            onClick={() => window.open(`${api.defaults.baseURL}/reports/monthly-attendance`)}
+                            onClick={() => downloadFile('/reports/export/attendance', 'attendance.csv')}
                             className="bg-white/10 hover:bg-white/20 transition-colors p-4 rounded-xl cursor-pointer backdrop-blur-sm border border-white/10"
                         >
                             <FileText size={24} className="mb-3 opacity-80" />
@@ -152,20 +194,21 @@ export default function Reports() {
                             <p className="text-xs opacity-70 mt-1">Download CSV</p>
                         </div>
                         <div
-                            onClick={() => window.open(`${api.defaults.baseURL}/reports/salary-register`)}
+                            onClick={() => downloadFile('/reports/export/salary', 'salary.csv')}
+
                             className="bg-white/10 hover:bg-white/20 transition-colors p-4 rounded-xl cursor-pointer backdrop-blur-sm border border-white/10"
                         >
                             <DollarSign size={24} className="mb-3 opacity-80" />
                             <h4 className="font-bold text-sm">Salary Register</h4>
-                            <p className="text-xs opacity-70 mt-1">Download PDF</p>
+                            <p className="text-xs opacity-70 mt-1">Download CSV</p>
                         </div>
                         <div
-                            onClick={() => window.open(`${api.defaults.baseURL}/reports/leave-balance`)}
+                            onClick={() => downloadFile('/reports/export/leave', 'leave.xlsx')}
                             className="bg-white/10 hover:bg-white/20 transition-colors p-4 rounded-xl cursor-pointer backdrop-blur-sm border border-white/10"
                         >
                             <Calendar size={24} className="mb-3 opacity-80" />
                             <h4 className="font-bold text-sm">Leave Balance</h4>
-                            <p className="text-xs opacity-70 mt-1">Export Excel</p>
+                            <p className="text-xs opacity-70 mt-1">Download CSV</p>
                         </div>
                     </div>
                 </div>
