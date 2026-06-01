@@ -82,23 +82,27 @@ function AppContent() {
 
         </Routes>
       </BrowserRouter>
-      <Toaster position="top-right" toastOptions={{
-        className: 'dark:bg-brand-900 dark:text-white',
-        style: {
-          background: '#333',
-          color: '#fff',
-        },
-        success: {
+      <Toaster 
+        position="top-right" 
+        containerStyle={{ zIndex: 99999999 }}
+        toastOptions={{
+          className: 'dark:bg-brand-900 dark:text-white',
           style: {
-            background: 'green',
+            background: '#333',
+            color: '#fff',
           },
-        },
-        error: {
-          style: {
-            background: 'red',
+          success: {
+            style: {
+              background: 'green',
+            },
           },
-        },
-      }} />
+          error: {
+            style: {
+              background: 'red',
+            },
+          },
+        }} 
+      />
     </ThemeProvider>
   );
 }

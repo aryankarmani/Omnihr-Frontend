@@ -32,6 +32,22 @@ export default function Team() {
     const [confirmRemove, setConfirmRemove] = useState<any>(null);
     const [newTeamName, setNewTeamName] = useState('');
     const [newTeamDesc, setNewTeamDesc] = useState('');
+
+    useEffect(() => {
+        if (showAddMemberModal && selectedTeam) {
+            const team = teams.find(t => t.id === selectedTeam);
+            if (team) {
+                const memberIds = team.members.map((m: any) => m.id);
+                setSelectedEmployees(memberIds);
+                const mgrId = team.managerId || team.manager?.id || null;
+                setSelectedManager(mgrId);
+            }
+        } else if (!showAddMemberModal) {
+            setSelectedEmployees([]);
+            setSelectedManager(null);
+        }
+    }, [showAddMemberModal, selectedTeam, teams]);
+
     const fetchEmployees = async () => {
         try {
             const res = await api.get('/employee');
@@ -135,8 +151,10 @@ export default function Team() {
                                 </div>
                             </div>
 
-                            <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">{team.name}</h3>
-                            <p className="text-gray-500 dark:text-gray-400 text-sm mb-6 line-clamp-2 min-h-[40px]">{team.description}</p>
+                            <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2 break-all">{team.name}</h3>
+                            <p className="text-gray-500 dark:text-gray-400 text-sm mb-6 break-all">
+                                {team.description}
+                            </p>
 
                             <div className="flex items-center gap-3 mb-6 p-3 bg-gray-50 dark:bg-white/5 rounded-xl">
                                 <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-white/5 flex items-center justify-center font-bold text-brand-600 dark:text-brand-400">
@@ -184,13 +202,21 @@ export default function Team() {
                         </div>
                         <div className="p-6 max-h-[40vh] overflow-y-auto space-y-3 custom-scroll">
 
-                            {employees.map(emp => {
+                             {employees.map(emp => {
                                 const isSelected = selectedEmployees.includes(emp.id);
+                                const isManager = selectedManager === emp.id;
+
+                                let cardBgClass = "bg-gray-50 dark:bg-white/5 border border-transparent";
+                                if (isManager) {
+                                    cardBgClass = "bg-yellow-500/10 border border-yellow-500/30 dark:bg-yellow-500/10";
+                                } else if (isSelected) {
+                                    cardBgClass = "bg-green-500/10 border border-green-500/30 dark:bg-green-500/10";
+                                }
 
                                 return (
                                     <div
                                         key={emp.id}
-                                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 rounded-xl"
+                                        className={`flex items-center justify-between p-3 rounded-xl transition-all ${cardBgClass}`}
                                     >
                                         <div>
                                             <p className="font-semibold text-gray-800 dark:text-white text-sm">{emp.name}</p>
@@ -199,15 +225,15 @@ export default function Team() {
 
                                         <div className="flex items-center gap-3">
                                             <button
-                                                onClick={() => setSelectedManager(emp.id)}
-                                                className={`text-sm font-medium transition-all ${selectedManager === emp.id
-                                                    ? 'text-yellow-300'
-                                                    : 'text-gray-400 hover:text-blue-400'
+                                                onClick={() => setSelectedManager(isManager ? null : emp.id)}
+                                                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${isManager
+                                                    ? 'bg-yellow-500 text-white shadow-sm shadow-yellow-500/20'
+                                                    : 'text-gray-400 hover:text-yellow-500 hover:bg-yellow-500/5'
                                                     }`}
                                             >
                                                 Manager
                                             </button>
-                                            <div className="w-px h-4 bg-white/20"></div>
+                                            <div className="w-px h-4 bg-gray-200 dark:bg-white/20"></div>
                                             <button
                                                 onClick={() => {
                                                     if (isSelected) {
@@ -216,9 +242,9 @@ export default function Team() {
                                                         setSelectedEmployees(prev => [...prev, emp.id]);
                                                     }
                                                 }}
-                                                className={`text-sm font-medium transition-all ${isSelected
-                                                    ? 'text-green-400'
-                                                    : 'text-brand-400 hover:text-green-300'
+                                                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${isSelected
+                                                    ? 'bg-green-500 text-white shadow-sm shadow-green-500/20'
+                                                    : 'bg-brand-600 text-white hover:bg-brand-700 shadow-sm shadow-brand-500/20'
                                                     }`}
                                             >
                                                 {isSelected ? 'Added' : 'Add'}
@@ -378,7 +404,7 @@ export default function Team() {
                     <div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-scale-in">
                         <div className="p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50 dark:bg-white/5">
                             <div>
-                                <h3 className="text-xl font-bold text-gray-800 dark:text-white">{teams.find(t => t.id === selectedTeam)?.name}</h3>
+                                <h3 className="text-xl font-bold text-gray-800 dark:text-white break-all">{teams.find(t => t.id === selectedTeam)?.name}</h3>
                                 <p className="text-sm text-gray-500">Team Roster</p>
                             </div>
                             <button onClick={() => setSelectedTeam(null)} className="text-gray-400 hover:text-gray-600 transition-colors">
@@ -402,9 +428,9 @@ export default function Team() {
                                         <div className="w-8 h-8 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center font-bold text-xs">
                                             {emp.name.split(' ').map((n: string) => n[0]).join('')}
                                         </div>
-                                        <div>
-                                            <p className="font-semibold text-gray-800 dark:text-white text-sm">{emp.name}</p>
-                                            <p className="text-xs text-gray-500">{emp.role}</p>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="font-semibold text-gray-800 dark:text-white text-sm break-all">{emp.name}</p>
+                                            <p className="text-xs text-gray-500 truncate">{emp.role}</p>
                                         </div>
                                     </div>
                                     {canManageTeams && (
