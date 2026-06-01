@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Clock, Settings, Save, Plus, Calendar, Trash2, X, Loader2 } from 'lucide-react';
+import { Clock, Settings, Save, Plus, Calendar, Trash2, X, Loader2, Layers } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
 
@@ -18,6 +18,9 @@ export default function AttendanceMasters() {
         if (activeTab === 'shifts') fetchShifts();
         if (activeTab === 'policy') fetchPolicy();
         if (activeTab === 'holidays') fetchHolidays();
+         if (activeTab === 'sandwich') {
+        console.log('Sandwich Rule Tab Opened');
+    }
     }, [activeTab]);
 
     const fetchShifts = () => api.get('/masters/shifts').then(r => setShifts(r.data));
@@ -101,6 +104,8 @@ export default function AttendanceMasters() {
                     { id: 'shifts', label: 'Shifts & Rosters', icon: Clock },
                     { id: 'holidays', label: 'Holidays', icon: Calendar },
                     { id: 'policy', label: 'Attendance Rules', icon: Settings },
+                    { id: 'sandwich', label: 'Sandwich Rule', icon: Layers },
+
                 ].map(tab => (
                     <button
                         key={tab.id}
@@ -228,8 +233,88 @@ export default function AttendanceMasters() {
                         </div>
                     </div>
                 )}
+           
+            {/* 4. SANDWICH RULE */}
+{activeTab === 'sandwich' && (
+    <div className="space-y-6 animate-fade-in max-w-2xl">
+
+        <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold dark:text-white">
+                Sandwich Rule Configuration
+            </h3>
+
+            <button
+                className="flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+            >
+                <Save size={16} />
+                Save Rules
+            </button>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 space-y-6 shadow-sm">
+
+            {/* Enable Rule */}
+            <div>
+                <label className="flex items-center gap-3 text-sm font-medium dark:text-gray-300 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        className="w-4 h-4 rounded text-brand-600"
+                    />
+                    Enable Sandwich Rule
+                </label>
             </div>
 
+            {/* Apply On */}
+            <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+                <h4 className="font-bold text-sm text-gray-900 dark:text-white mb-3">
+                    Apply On
+                </h4>
+
+                <div className="space-y-3">
+
+                    <label className="flex items-center gap-3 text-sm dark:text-gray-300">
+                        <input type="checkbox" className="w-4 h-4 rounded text-brand-600" />
+                        Weekends Between Leaves
+                    </label>
+
+                    <label className="flex items-center gap-3 text-sm dark:text-gray-300">
+                        <input type="checkbox" className="w-4 h-4 rounded text-brand-600" />
+                        Holidays Between Leaves
+                    </label>
+
+                </div>
+            </div>
+
+            {/* Leave Types */}
+            <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+                <h4 className="font-bold text-sm text-gray-900 dark:text-white mb-3">
+                    Applicable Leave Types
+                </h4>
+
+                <div className="space-y-3">
+
+                    <label className="flex items-center gap-3 text-sm dark:text-gray-300">
+                        <input type="checkbox" className="w-4 h-4 rounded text-brand-600" />
+                        Casual Leave
+                    </label>
+
+                    <label className="flex items-center gap-3 text-sm dark:text-gray-300">
+                        <input type="checkbox" className="w-4 h-4 rounded text-brand-600" />
+                        Sick Leave
+                    </label>
+
+                    <label className="flex items-center gap-3 text-sm dark:text-gray-300">
+                        <input type="checkbox" className="w-4 h-4 rounded text-brand-600" />
+                        Earned Leave
+                    </label>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+)}
+         </div>
             {/* Modals */}
             {showShiftModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">

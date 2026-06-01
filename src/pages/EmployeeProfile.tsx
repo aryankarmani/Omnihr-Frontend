@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useRBAC } from '../hooks/useRBAC';
-import { ArrowLeft, User, FileText, CreditCard, Download, Upload, Briefcase, Save, X, Edit, Printer, Loader2 } from 'lucide-react';
+import { ArrowLeft, User, FileText, CreditCard, Download, Upload, Briefcase, Save, X, Edit, Printer, Loader2, Eye, Trash2 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import toast from 'react-hot-toast';
@@ -101,89 +101,102 @@ export default function EmployeeProfile() {
         setIsEditing(false);
     };
 
-    const validate = () => {
-        const newErrors: Record<string, string> = {};
-        const p = employee?.employeeProfile?.statutory || {};
-        const b = employee?.employeeProfile?.bank || {};
-        const pd = employee?.employeeProfile || {};
-        if (!employee.email) {
-            newErrors.email = "Email is required";
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(employee.email)) {
-            newErrors.email = "Invalid email format";
+   const validate = () => {
+    const newErrors: Record<string, string> = {};
+
+    const p = employee?.employeeProfile?.statutory || {};
+    const b = employee?.employeeProfile?.bank || {};
+    const pd = employee?.employeeProfile || {};
+    const s = employee?.employeeProfile?.salary || {};
+
+    if (!employee.email) newErrors.email = "Email is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(employee.email)) {
+        newErrors.email = "Please enter valid email";
+    }
+
+    if (!pd.phone) newErrors.phone = "Phone number is required";
+    else if (!/^\d{10}$/.test(pd.phone)) {
+        newErrors.phone = "Enter valid 10 digit phone number";
+    }
+    if (pd.dob && new Date(pd.dob) > new Date()) {
+    newErrors.dob = "Future date is not allowed";
+}
+
+    if (!employee.roleId && !employee.role?.id) newErrors.role = "Role is required";
+    if (!pd.designationId) newErrors.designationId = "Designation is required";
+    if (!pd.departmentId) newErrors.departmentId = "Department is required";
+
+    if (!p.pan) newErrors.pan = "PAN is required";
+    else if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(p.pan.trim().toUpperCase())) {
+        newErrors.pan = "Invalid PAN format";
+    }
+
+    if (!p.aadhaar) newErrors.aadhaar = "Aadhaar is required";
+    else if (!/^\d{12}$/.test(p.aadhaar)) newErrors.aadhaar = "Aadhaar must be 12 digits";
+
+    if (!p.uan) newErrors.uan = "UAN is required";
+    else if (!/^\d{12}$/.test(p.uan)) newErrors.uan = "UAN must be 12 digits";
+
+    if (!p.esic) newErrors.esic = "ESIC is required";
+    else if (!/^\d{17}$/.test(p.esic)) newErrors.esic = "ESIC must be 17 digits";
+
+    if (!b.bankName?.trim()) newErrors.bankName = "Bank Name is required";
+    else if (!/^[A-Za-z\s]{2,50}$/.test(b.bankName.trim())) {
+        newErrors.bankName = "Bank Name must contain only letters";
+    }
+
+    if (!b.ifsc) newErrors.ifsc = "IFSC is required";
+    else if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(b.ifsc.trim().toUpperCase())) {
+        newErrors.ifsc = "Invalid IFSC format";
+    }
+
+    if (!b.accountNumber) newErrors.accountNumber = "Account Number is required";
+    else if (!/^\d{9,18}$/.test(b.accountNumber)) {
+        newErrors.accountNumber = "Account Number must be 9–18 digits";
+    }
+
+    ["basic", "hra", "special", "medical", "pf", "pt", "tax"].forEach((field) => {
+        if (s[field] === "" || s[field] == null) {
+            newErrors[field] = `${field.toUpperCase()} is required`;
         }
+    });
 
-        if (pd.phone && !/^\d{10}$/.test(pd.phone)) newErrors.phone = "Phone must be 10 digits";
-        if (isEditing && !employee.roleId && !employee.role?.id) {
-            newErrors.role = "System Role is required";
-        }
+    setErrors(newErrors);
 
-        if (isEditing && !pd.designationId) {
-            newErrors.designationId = "Designation is required";
-        }
+   const salaryFields = ["basic", "hra", "special", "medical", "pf", "pt", "tax"];
 
-        if (isEditing && !pd.departmentId) {
-            newErrors.departmentId = "Department is required";
-        }
-        if (isEditing && !pd.bloodGroup) { newErrors.bloodGroup = "Blood Group is required"; }
-        if (pd.bloodGroup && !/^(A|B|AB|O)[+-]$/i.test(pd.bloodGroup)) newErrors.bloodGroup = "Invalid Blood Group (e.g. A+, O-)";
-        if (isEditing && !pd.address) newErrors.address = "Address is required";
-        if (isEditing && !pd.dob) newErrors.dob = "Date of Birth is required";
-        if (pd.dob) {
-            const dob = pd.dob.split('T')[0];
-            const year = dob.split('-')[0];
-            const today = new Date().toISOString().split('T')[0];
+const statutoryFields = [
+    "uan", "esic", "pan", "aadhaar",
+    "bankName", "accountNumber", "ifsc"
+];
 
-            if (year.length !== 4) {
-                newErrors.dob = "Year must be 4 digits";
-            } else if (dob > today) {
-                newErrors.dob = "Future date is not allowed";
-            }
-        }
+const personalFields = [
+    "email", "phone", "dob",
+    "role", "designationId", "departmentId",
+    "bloodGroup", "address"
+];
 
-        if (p.uan && !/^\d{12}$/.test(p.uan)) newErrors.uan = "UAN must be 12 digits";
-        if (p.esic && !/^\d{17}$/.test(p.esic)) newErrors.esic = "ESIC must be 17 digits";
-        if (p.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i.test(p.pan)) newErrors.pan = "Invalid PAN (e.g. ABCDE1234F)";
-        if (p.aadhaar && !/^\d{12}$/.test(p.aadhaar)) newErrors.aadhaar = "Aadhaar must be 12 digits";
+if (Object.keys(newErrors).length > 0) {
+    const hasSalaryError = salaryFields.some(field => newErrors[field]);
+    const hasStatutoryError = statutoryFields.some(field => newErrors[field]);
+    const hasPersonalError = personalFields.some(field => newErrors[field]);
 
-        if (b.accountNumber && !/^\d{9,18}$/.test(b.accountNumber)) newErrors.accountNumber = "Invalid Account Number";
-        if (b.ifsc && !/^[A-Z]{4}0[A-Z0-9]{6}$/i.test(b.ifsc)) newErrors.ifsc = "Invalid IFSC Code";
+    if (hasSalaryError) {
+        toast.error("Please fix validations in Salary Info");
+        setActiveTab("salary");
+    } else if (hasStatutoryError) {
+        toast.error("Please fix validations in Statutory & Bank Info");
+        setActiveTab("statutory");
+    } else if (hasPersonalError) {
+        toast.error("Please fix validations in Personal Details");
+        setActiveTab("personal");
+    }
 
-        setErrors(newErrors);
+    return false;
+}
 
-        const errorFields = Object.keys(newErrors);
-
-        if (errorFields.length > 0) {
-            if (
-                errorFields.includes('basic') ||
-                errorFields.includes('hra') ||
-                errorFields.includes('special') ||
-                errorFields.includes('medical') ||
-                errorFields.includes('pf') ||
-                errorFields.includes('pt') ||
-                errorFields.includes('tax')
-            ) {
-                toast.error('Please fix validation errors in Salary Info');
-                setActiveTab('salary');
-            } else if (
-                errorFields.includes('uan') ||
-                errorFields.includes('esic') ||
-                errorFields.includes('pan') ||
-                errorFields.includes('aadhaar') ||
-                errorFields.includes('accountNumber') ||
-                errorFields.includes('ifsc')
-            ) {
-                toast.error('Please fix validation errors in Statutory & Bank Info');
-                setActiveTab('statutory');
-            } else {
-                toast.error('Please fix validation errors in Personal Details');
-                setActiveTab('personal');
-            }
-
-            return false;
-        }
-
-        return true;
-    };
+return true;
+};
 
     const handleSave = async () => {
         if (!validate()) {
@@ -277,6 +290,8 @@ export default function EmployeeProfile() {
         }));
     };
     const handleSalaryChange = (field: string, value: string) => {
+            if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
+
         setEmployee((prev: any) => ({
             ...prev,
             employeeProfile: {
@@ -358,6 +373,7 @@ export default function EmployeeProfile() {
 
     const totalEarnings = basic + hra + special + medical;
     const totalDeductions = pf + pt + tax;
+    const totalSalary = totalEarnings - totalDeductions;
 
     return (
         <div className="animate-fade-in-up pb-8 relative">
@@ -466,9 +482,19 @@ export default function EmployeeProfile() {
                                                     type="text"
                                                     placeholder={field.placeholder}
                                                     value={(statutory as any)[field.key] || ''}
-                                                    onChange={(e) => handleStatutoryChange(field.key, e.target.value)}
-                                                    className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors[field.key] ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg focus:ring-2 focus:ring-brand-500/50 outline-none`}
-                                                />
+                                                    onChange={(e) =>
+    handleStatutoryChange(
+        field.key,
+        field.key === 'pan'
+            ? e.target.value.toUpperCase()
+            : e.target.value
+    )
+}
+                                              className={`appearance-none w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${
+                                              errors[field.key]
+        ? 'border-red-500'
+        : 'border-gray-200 dark:border-white/10'
+} rounded-lg outline-none text-gray-800 dark:text-white font-medium cursor-pointer`}  />
                                                 {errors[field.key] && <p className="text-red-500 text-xs mt-1">{errors[field.key]}</p>}
                                             </>
                                         ) : (
@@ -493,8 +519,15 @@ export default function EmployeeProfile() {
                                             placeholder='e.g. HDFC Bank'
                                             value={bank.bankName || ''}
                                             onChange={(e) => handleBankChange('bankName', e.target.value)}
-                                            className="w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-brand-500/50 outline-none"
-                                        />
+                                              className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${
+                                            errors.bankName ? 'border-red-500' : 'border-gray-200 dark:border-white/10'
+                                            } rounded-lg focus:ring-2 focus:ring-brand-500/50 outline-none`}
+                                              />
+                                              {errors.bankName && (
+                                             <p className="text-red-500 text-xs mt-1">
+                                              {errors.bankName}
+                                               </p>
+                                            )}
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-xs font-bold text-gray-400 uppercase">Account Number</label>
@@ -545,48 +578,69 @@ export default function EmployeeProfile() {
                                 <h3 className="text-xl font-bold flex items-center gap-2">
                                     <FileText className="text-orange-500" /> Document Vault
                                 </h3>
-                                {hasPermission(['HR_ADMIN']) && (
-                                    <>
-                                        <input type="file" id="document-upload" className="hidden" accept='.pdf' onChange={handleFileUpload} />
-                                        <label htmlFor="document-upload" className="flex items-center gap-2 text-sm font-medium text-brand-600 hover:bg-brand-50 px-3 py-1.5 rounded-lg transition-colors cursor-pointer">
-                                            <Upload size={16} /> Upload New
-                                        </label>
-                                    </>
-                                )}
+                                
                             </div>
 
-                            {profile.documents?.length > 0 ? (
-                                <div className="space-y-4">
-                                    {profile.documents.map((doc: any, i: number) => (
-                                        <div key={i} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-white/5 rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition-colors group">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-10 h-10 bg-red-100 text-red-500 rounded-lg flex items-center justify-center">
-                                                    <FileText size={20} />
-                                                </div>
-                                                <div>
-                                                    <p className="font-semibold text-gray-800 dark:text-gray-200">{doc.name}</p>
-                                                    <p className="text-xs text-gray-500">Added on {new Date(doc.uploadedAt).toLocaleDateString()}</p>
-                                                </div>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                {isEditing && (
-                                                    <button onClick={() => setDocToDelete(i)} className="p-2 text-gray-400 hover:text-red-600 transition-colors">
-                                                        <X size={20} />
-                                                    </button>
-                                                )}
-                                                <button onClick={() => handleDownload(doc)} className="p-2 text-gray-400 hover:text-brand-600 transition-colors">
-                                                    <Download size={20} />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="text-center py-8 bg-gray-50 dark:bg-white/5 rounded-xl border border-dashed border-gray-200 dark:border-white/10">
-                                    <FileText className="mx-auto text-gray-300 mb-2" size={32} />
-                                    <p className="text-gray-500">No documents uploaded yet.</p>
-                                </div>
-                            )}
+                           <div className="space-y-4">
+    {[
+    { key: 'aadhaar', name: 'Aadhaar Card' },
+    { key: 'pan', name: 'PAN Card' },
+    { key: 'degree', name: 'Highest Qualification Degree' }
+]
+    .map((doc) => (
+        <label
+            key={doc.name}
+            className="flex items-center justify-between p-4 rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 cursor-pointer hover:border-brand-500 transition-all"
+        >
+            <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gray-100 dark:bg-white/10 text-gray-400">
+                    <FileText size={20} />
+                </div>
+
+                <div>
+                    <p className="font-bold text-base text-gray-800 dark:text-white">
+                        {doc.name} <span className="text-red-500">*</span>
+                    </p>
+
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Click to upload document
+                    </p>
+                </div>
+            </div>
+
+          <div className="flex items-center gap-3">
+    <button
+        type="button"
+        onClick={(e) => {
+            e.preventDefault();
+            toast.error("View file will work after backend url is available");
+        }}
+        className="w-10 h-10 rounded-full bg-brand-500/10 text-brand-500 flex items-center justify-center hover:bg-brand-500 hover:text-white transition-all"
+    >
+        <Eye size={18} />
+    </button>
+
+    <button
+        type="button"
+        onClick={(e) => {
+            e.preventDefault();
+            toast.error("Delete file will work after saved document id is available");
+        }}
+        className="w-10 h-10 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all"
+    >
+        <Trash2 size={18} />
+    </button>
+</div>
+
+            <input
+                type="file"
+                className="hidden"
+                accept=".pdf"
+                onChange={handleFileUpload}
+            />
+        </label>
+    ))}
+</div>
                         </div>
                     )}
 
@@ -600,10 +654,14 @@ export default function EmployeeProfile() {
                                         <select
                                             value={profile.status || 'Active'}
                                             onChange={(e) => handleInputChange('status', e.target.value)}
-                                            className="bg-brand-50 dark:bg-white/5 border border-brand-200 dark:border-white/10 rounded-lg px-3 py-1 text-xs font-bold text-brand-600 outline-none"
-                                        >
-                                            <option value="Active">Active</option>
-                                            <option value="Inactive">Inactive</option>
+                                            className=" bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-1 text-xs font-bold text-gray-800 dark:text-white outline-none cursor-pointer"                                        >
+                                           <option value="Active" className="dark:bg-brand-900">
+    Active
+</option>
+
+<option value="Inactive" className="dark:bg-brand-900">
+    Inactive
+</option>
                                         </select>
                                     </div>
                                 )}
@@ -693,7 +751,13 @@ export default function EmployeeProfile() {
                                                     />
                                                 </svg>
                                             </div>
+                                            {errors.role && (
+    <p className="text-red-500 text-xs mt-1">
+        {errors.role}
+    </p>
+)}
                                         </div>
+                                        
                                     ) : (
                                         <p className="font-semibold">
                                             {employee.role?.name || employee.role?.title || employee.role || 'N/A'}
@@ -747,7 +811,14 @@ export default function EmployeeProfile() {
                                     ) : (
                                         <p className="font-semibold">{profile.title || 'N/A'}</p>
                                     )}
-                                </div>
+                               
+                                {errors.designationId && (
+    <p className="text-red-500 text-xs mt-1">
+        {errors.designationId}
+    </p>
+)}
+
+                             </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-400 uppercase">
                                         DEPARTMENT
@@ -816,7 +887,22 @@ export default function EmployeeProfile() {
                                     <label className="text-xs font-bold text-gray-400 uppercase">Blood Group</label>
                                     {isEditing ? (
                                         <>
-                                            <input type="text" value={profile.bloodGroup || ''} onChange={(e) => handleInputChange('bloodGroup', e.target.value.toUpperCase())} className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.bloodGroup ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg outline-none uppercase`} />
+                                          <select
+    value={profile.bloodGroup || ''}
+    onChange={(e) => handleInputChange('bloodGroup', e.target.value)}
+    className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${
+        errors.bloodGroup
+            ? 'border-red-500'
+            : 'border-gray-200 dark:border-white/10'
+    } rounded-lg outline-none`}
+>
+     <option value="" className="dark:bg-brand-900">Select Blood Group</option>
+    {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
+        <option key={bg} value={bg} className="dark:bg-brand-900">
+            {bg}
+        </option>
+    ))}
+</select>
                                             {errors.bloodGroup && <p className="text-red-500 text-xs mt-1">{errors.bloodGroup}</p>}
                                         </>
                                     ) : <p className="font-semibold">{profile.bloodGroup || 'N/A'}</p>}
@@ -991,28 +1077,43 @@ export default function EmployeeProfile() {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {[
-                                    { label: 'Basic', key: 'basic' },
-                                    { label: 'HRA', key: 'hra' },
-                                    { label: 'Special Allowance', key: 'special' },
-                                    { label: 'Medical', key: 'medical' },
-                                    { label: 'PF', key: 'pf' },
-                                    { label: 'PT', key: 'pt' },
-                                    { label: 'Tax / TDS', key: 'tax' },
+                                  { label: 'Basic', key: 'basic', placeholder: 'Enter basic salary' },
+                                  { label: 'HRA', key: 'hra', placeholder: 'Enter HRA' },
+                                  { label: 'Special Allowance', key: 'special', placeholder: 'Enter special allowance' },
+                                  { label: 'Medical', key: 'medical', placeholder: 'Enter medical amount' },
+                                  { label: 'PF', key: 'pf', placeholder: 'Enter PF amount' },
+                                  { label: 'PT', key: 'pt', placeholder: 'Enter PT amount' },
+                                  { label: 'Tax / TDS', key: 'tax', placeholder: 'Enter tax / TDS amount' },
                                 ].map((field) => (
                                     <div key={field.key} className="space-y-1">
                                         <label className="text-xs font-bold text-gray-400 uppercase">
                                             {field.label}
                                         </label>
 
-                                        {isEditing && hasPermission(['HR_ADMIN']) ? (
-                                            <input
-                                                type="text"
-                                                value={profile.salary?.[field.key] || ''}
-                                                onChange={(e) =>
-                                                    handleSalaryChange(field.key, e.target.value.replace(/\D/g, ''))
-                                                }
-                                                className="w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg outline-none"
-                                            />
+                                            {isEditing && hasPermission(['HR_ADMIN']) ? (
+    <>
+        <input
+            type="text"
+            value={profile.salary?.[field.key] || ''}
+            onChange={(e) =>
+                handleSalaryChange(field.key, e.target.value.replace(/\D/g, ''))
+            }
+            placeholder={field.placeholder}
+            className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${
+                errors[field.key]
+                    ? 'border-red-500'
+                    : 'border-gray-200 dark:border-white/10'
+            } rounded-lg outline-none`}
+        />
+
+        {errors[field.key] && (
+            <p className="text-red-500 text-xs mt-1">
+                {errors[field.key]}
+            </p>
+        )}
+    </>
+                                                
+                                                
                                         ) : (
                                             <p className="font-semibold">
                                                 ₹ {profile.salary?.[field.key] || '0'}
@@ -1050,8 +1151,8 @@ export default function EmployeeProfile() {
 
             {/* Payslip Modal (Keep original UI logic, but ensure it uses the dynamic data) */}
             {showPayslip && createPortal(
-                <div className="fixed inset-0 z-[999999] flex items-start justify-center pt-20 bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
-                    <div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden">
+<div className="fixed inset-0 z-[999999] flex items-start justify-center pt-20 bg-black/70 backdrop-blur-sm p-4 animate-fade-in overflow-y-auto custom-scrollbar scrollbar-thin scrollbar-thumb-brand-500/60">
+<div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden">
 
                         {/* Header */}
                         <div className="p-4 md:p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50 dark:bg-white/5 shrink-0">
@@ -1086,17 +1187,17 @@ export default function EmployeeProfile() {
                                             <span className="col-span-2 font-bold">{employee.name}</span>
                                             <span className="text-gray-500 font-medium">Employee ID:</span>
                                             <span className="col-span-2 font-bold">{employee.id}</span>
-                                            <span className="text-gray-500 font-medium">Role:</span>  //change to role
-                                            <span className="col-span-2 font-bold truncate">{profile.title || 'N/A'}</span>
+                                            <span className="text-gray-500 font-medium">Role:</span>  
+                                            <span className="col-span-2 font-bold break-words whitespace-normal">{profile.title || 'N/A'}</span>
                                             <span className="text-gray-500 font-medium">Department:</span>
-                                            <span className="col-span-2 font-bold truncate">{profile.department || 'N/A'}</span>
+                                            <span className="col-span-2 font-bold break-words whitespace-normal">{profile.department || 'N/A'}</span>
                                         </div>
                                     </div>
                                     <div className="space-y-2">
                                         <h4 className="font-bold text-brand-600 text-[10px] uppercase tracking-wider mb-1 border-b border-gray-100 pb-1">Bank & Pan Details</h4>
                                         <div className="grid grid-cols-3 gap-1 text-xs">
                                             <span className="text-gray-500 font-medium">Bank Name:</span>
-                                            <span className="col-span-2 font-bold truncate">{bank.bankName || 'N/A'}</span>
+                                            <span className="col-span-2 font-bold break-words whitespace-normal">{bank.bankName || 'N/A'}</span>
                                             <span className="text-gray-500 font-medium">Account No:</span>
                                             <span className="col-span-2 font-bold">XXXX{(bank.accountNumber || '').slice(-4)}</span>
                                             <span className="text-gray-500 font-medium">PAN Number:</span>
@@ -1176,10 +1277,19 @@ export default function EmployeeProfile() {
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="flex justify-between p-2 bg-gray-50 border-t border-gray-100 font-bold">
-                                                <span className="text-gray-700">Total Deductions</span>
-                                                <span className="text-red-700 font-bold">₹ {totalDeductions.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                            </div>
+                                          <div className="flex justify-between p-2 border-b border-gray-50 ">
+    <span className="text-gray-600">Total Deductions</span>
+    <span className="font-semibold">
+        ₹ {totalDeductions.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+    </span>
+</div>
+
+<div className="flex justify-between p-2 bg-gray-50 border-t border-gray-100 font-bold">
+    <span className="text-gray-700">Total Salary</span>
+    <span className="text-green-700 font-bold">
+        ₹ {totalSalary.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+    </span>
+</div>
                                         </div>
                                     </div>
                                 </div>
