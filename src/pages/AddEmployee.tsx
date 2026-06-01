@@ -67,7 +67,7 @@ export default function AddEmployee() {
         },
         joiningDate: new Date().toISOString().split('T')[0]
     });
-    const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
+
     const [documents, setDocuments] = useState<Record<string, any>>({
         aadhaar: null,
         pan: null,
@@ -285,9 +285,9 @@ if (Object.keys(newErrors).length > 0) {
         if (currentStep < 4) {
             setCurrentStep(c => c + 1);
         } else {
-
-            setLoading(true);
-            try {
+          setLoading(true);
+          try {
+                // Keep original submissionData exactly untouched
                 const submissionData = {
     ...formData,
     name: `${formData.firstName} ${formData.lastName}`.trim(),
@@ -844,14 +844,14 @@ await api.post('/employee', form, {
                                     <div
                                         key={i}
                                         onClick={() => document.getElementById(`fileInput-${doc.key}`)?.click()}
-                                        className={`flex items-center justify-between p-4 cursor-pointer border rounded-2xl transition-all ${documents[doc.key] 
-                                            ? 'border-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10' 
+                                        className={`flex items-center justify-between p-4 cursor-pointer border rounded-2xl transition-all ${documents[doc.key]
+                                            ? 'border-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10'
                                             : 'border-gray-200 dark:border-white/10 hover:border-brand-500 dark:hover:border-brand-500 bg-gray-50 dark:bg-white/5 hover:scale-[1.01] shadow-sm'
                                             }`}
                                     >
                                         <div className="flex items-center gap-4">
-                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${documents[doc.key] 
-                                                ? 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400' 
+                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${documents[doc.key]
+                                                ? 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
                                                 : 'bg-gray-100 dark:bg-white/10 text-gray-400'
                                                 }`}>
                                                 <FileText size={24} />
@@ -865,7 +865,7 @@ await api.post('/employee', form, {
                                                 </p>
                                             </div>
                                         </div>
-                                        
+
                                         <div className="flex items-center gap-3">
                                             {documents[doc.key] ? (
                                                 <button
