@@ -176,12 +176,17 @@ export default function Notifications() {
             ) : (
                 <div className="space-y-3">
                     {filteredNotifications.map((n) => (
-                        <div 
-                            key={n.id}
+                       <div 
+    key={n.id}
+    onClick={() => {
+        if (n.unread) {
+            markAsRead(n.id);
+        }
+    }}
                             className={`group relative p-4 rounded-2xl border transition-all hover:border-brand-500/30 ${
-                                n.unread 
-                                ? 'bg-brand-50/50 dark:bg-brand-500/5 border-brand-100 dark:border-brand-500/20' 
-                                : 'bg-white dark:bg-brand-900 border-gray-100 dark:border-white/5'
+                               n.unread 
+? 'bg-white dark:bg-brand-900 border-gray-100 dark:border-white/5'
+: 'bg-brand-50/50 dark:bg-brand-500/5 border-brand-100 dark:border-brand-500/20'
                             } ${selectedIds.includes(n.id) ? 'ring-2 ring-brand-500 ring-offset-2 dark:ring-offset-brand-950' : ''}`}
                         >
                             <div className="flex gap-5 items-center">
@@ -216,17 +221,7 @@ export default function Notifications() {
                                         {n.message}
                                     </p>
                                 </div>
-                                <div className="flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity pr-2">
-                                    {n.unread && (
-                                        <button 
-                                            onClick={() => markAsRead(n.id)}
-                                            className="p-2 text-brand-500 hover:bg-brand-500/10 rounded-lg transition-all"
-                                            title="Mark as read"
-                                        >
-                                            <Check size={20} />
-                                        </button>
-                                    )}
-                                </div>
+                               
                             </div>
                         </div>
                     ))}

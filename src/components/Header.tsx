@@ -40,11 +40,17 @@ export default function Header({ onMenuClick }: HeaderProps) {
             console.log(e);
         }
     };
+useEffect(() => {
+    fetchNotifications();
+    fetchEmployees();
 
-    useEffect(() => {
+    const interval = setInterval(() => {
         fetchNotifications();
-        fetchEmployees();
-    }, []);
+    }, 3000);
+
+    return () => clearInterval(interval);
+}, []);
+    
 
     
     const navItems = [
@@ -272,14 +278,21 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                     notifications.map((n: any) => (
                                         <div
                                             key={n.id}
-                                            onClick={async () => {
-                                                try {
-                                                    await api.patch(`/notifications/${n.id}/read`);
-                                                } catch(e) {}
-                                                fetchNotifications();
-                                                navigate('/notifications');
-                                                setShowNotifications(false);
-                                            }}
+                                           onClick={async () => {
+    setNotifications(prev =>
+        prev.map(item =>
+            item.id === n.id
+                ? { ...item, unread: false }
+                : item
+        )
+    );
+
+
+    try {
+        await api.patch(`/notifications/${n.id}/read`);
+    } catch (e) {}
+}}
+
                                             className={`group relative p-4 rounded-2xl border transition-all cursor-pointer ${
                                                 n.unread 
                                                 ? 'bg-brand-50/50 dark:bg-brand-500/10 border-brand-100 dark:border-brand-500/20' 

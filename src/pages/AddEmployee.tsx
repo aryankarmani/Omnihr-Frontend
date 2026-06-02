@@ -67,13 +67,14 @@ export default function AddEmployee() {
         },
         joiningDate: new Date().toISOString().split('T')[0]
     });
-    const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
+
     const [documents, setDocuments] = useState<Record<string, any>>({
         aadhaar: null,
         pan: null,
         degree: null,
     });
     const [confirmDeleteDoc, setConfirmDeleteDoc] = useState<string | null>(null);
+    const [errors, setErrors] = useState<any>({});
     const steps = [
         { id: 1, title: 'Personal Details', icon: User },
         { id: 2, title: 'Statutory Info', icon: CreditCard },
@@ -82,132 +83,198 @@ export default function AddEmployee() {
     ];
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
+    const { name, value } = e.target;
 
-
-    const handleSalaryChange = (field: string, value: string) => {
-        setFormData((prev: any) => ({
+    if (errors[name]) {
+        setErrors((prev: any) => ({
             ...prev,
-            salary: {
-                ...prev.salary,
-                [field]: value.replace(/\D/g, ''),
-            },
+            [name]: ''
         }));
-    };
+    }
+
+    setFormData(prev => ({ ...prev, [name]: value }));
+};
+
+
+  const handleSalaryChange = (field: string, value: string) => {
+
+    setErrors((prev: any) => ({
+        ...prev,
+        [field]: ''
+    }));
+
+    setFormData((prev: any) => ({
+        ...prev,
+        salary: {
+            ...prev.salary,
+            [field]: value.replace(/\D/g, ''),
+        },
+    }));
+};
 
     const handleNext = async () => {
         // STEP 1 VALIDATION
-        if (currentStep === 1) {
-            if (!formData.firstName || !formData.lastName || !formData.email || !formData.roleId || !formData.designationId || !formData.departmentId) {
-                toast.error('Please fill in all required fields');
-                return;
-            }
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(formData.email)) {
-                toast.error('Please enter a valid email address');
-                return;
-            }
-            if (formData.phone && !/^\d{10}$/.test(formData.phone.replace(/\D/g, ''))) {
-                toast.error('Phone number must be 10 digits');
-                return;
-            }
+           if (currentStep === 1) {
+
+           const newErrors: any = {};
+
+if (!formData.firstName) {
+    newErrors.firstName = 'First name is required';
+}
+
+if (!formData.lastName) {
+    newErrors.lastName = 'Last name is required';
+}
+
+if (!formData.email) {
+    newErrors.email = 'Email is required';
+} else {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(formData.email)) {
+        newErrors.email = 'Please enter a valid email address';
+    }
+}
+
+if (!formData.phone) {
+    newErrors.phone = 'Phone number is required';
+} else if (!/^\d{10}$/.test(formData.phone)) {
+    newErrors.phone = 'Enter valid 10 digit phone number';
+}
+
+if (!formData.departmentId) {
+    newErrors.departmentId = 'Select department';
+}
+
+if (!formData.roleId) {
+    newErrors.roleId = 'Select role';
+}
+
+if (!formData.designationId) {
+    newErrors.designationId = 'Select designation';
+}
+
+if (!formData.bloodGroup) {
+    newErrors.bloodGroup = 'Select blood group';
+}
+
+if (!formData.address.trim()) {
+    newErrors.address = 'Enter address';
+}
+
+setErrors(newErrors);
+
+if (Object.keys(newErrors).length > 0) {
+    return;
+}
         }
 
 
         if (currentStep === 2) {
+            const newErrors: any = {};
 
-            const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
-            if (!formData.pan) {
-                toast.error('PAN is required');
-                return;
-            }
-            if (!panRegex.test(formData.pan.trim().toUpperCase())) {
-                toast.error('Invalid PAN Number format (e.g. ABCDE1234F)');
-                return;
-            }
+           const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
 
-            if (!formData.aadhaar) {
-                toast.error('Aadhaar is required');
-                return;
-            }
-            if (!/^\d{12}$/.test(formData.aadhaar.replace(/\s/g, ''))) {
-                toast.error('Aadhaar Number must be 12 digits');
-                return;
-            }
+if (!formData.pan) {
+    newErrors.pan = 'PAN is required';
+} 
+else if (!panRegex.test(formData.pan.trim().toUpperCase())) {
+    newErrors.pan = 'Invalid PAN format';
+}
+
+           if (!formData.aadhaar) {
+    newErrors.aadhaar = 'Aadhaar is required';
+}
+else if (!/^\d{12}$/.test(formData.aadhaar)) {
+    newErrors.aadhaar = 'Aadhaar must be 12 digits';
+}
 
             const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
             if (!formData.ifsc) {
-                toast.error('IFSC is required');
-                return;
+                newErrors.ifsc = 'IFSC is required';
+                
             }
             if (!ifscRegex.test(formData.ifsc.trim().toUpperCase())) {
-                toast.error('Invalid IFSC Code format (e.g. SBIN0001234)');
-                return;
+               newErrors.ifsc = 'Invalid IFSC format';
+                
             }
 
-            if (!formData.accountNumber) {
-                toast.error('Account Number is required');
-                return;
-            }
-            if (!/^\d{9,18}$/.test(formData.accountNumber.trim())) {
-                toast.error('Account Number must be 9–18 digits');
-                return;
-            }
+                      if (!formData.accountNumber) {
+    newErrors.accountNumber = 'Account Number is required';
+} else if (!/^\d{9,18}$/.test(formData.accountNumber)) {
+    newErrors.accountNumber = 'Account Number must be 9–18 digits';
+}
+           
 
-            const uan = formData.uan.replace(/\s/g, '');
 
             if (!formData.uan) {
-                toast.error('UAN is required');
-                return;
-            }
-            if (!/^\d{12}$/.test(uan)) {
-                toast.error('UAN must be 12 digits');
-                return;
+    newErrors.uan = 'UAN is required';
+}
+else if (!/^\d{12}$/.test(formData.uan)) {
+    newErrors.uan = 'UAN must be 12 digits';
+}
 
-            }
-            const esic = formData.esic.replace(/\s/g, '');
+           if (!formData.esic) {
+    newErrors.esic = 'ESIC is required';
+}
+else if (!/^\d{17}$/.test(formData.esic)) {
+    newErrors.esic = 'ESIC must be 17 digits';
+}
+         const bankName = formData.bankName.trim();
 
-            if (!formData.esic) {
-                toast.error('ESIC is required');
-                return;
-            }
-            if (!/^\d{17}$/.test(esic)) {
-                toast.error('ESIC must be 17 digits');
-                return;
-            }
-            const bankName = formData.bankName.trim();
+if (!bankName) {
+    newErrors.bankName = 'Bank Name is required';
+} else if (!/^[A-Za-z\s]{2,50}$/.test(bankName)) {
+    newErrors.bankName = 'Bank Name must contain only letters';
+}
+setErrors(newErrors);
 
-            if (!bankName) {
-                toast.error('Bank Name is required');
-                return;
-            }
-
-            // allows only letters & spaces (2–50 chars)
-            if (!/^[A-Za-z\s]{2,50}$/.test(bankName)) {
-                toast.error('Bank Name must contain only letters (2-50 characters)');
-                return;
-            }
-
+if (Object.keys(newErrors).length > 0) {
+    return;
+}
         }
         // STEP 3 VALIDATION
-        if (currentStep === 3) {
-            const salary = formData.salary;
+              if (currentStep === 3) {
 
-            if (
-                !salary.basic ||
-                !salary.hra ||
-                !salary.special ||
-                !salary.medical ||
-                !salary.pf ||
-                !salary.pt ||
-                !salary.tax
-            ) {
-                toast.error('Please fill all salary details');
-                return;
-            }
-        }
+    const newErrors: any = {};
+
+    const salary = formData.salary;
+
+    if (salary.basic === '') {
+        newErrors.basic = 'Basic salary is required';
+    }
+
+    if (salary.hra === '') {
+        newErrors.hra = 'HRA is required';
+    }
+
+    if (salary.special === '') {
+        newErrors.special = 'Special Allowance is required';
+    }
+
+    if (salary.medical === '') {
+        newErrors.medical = 'Medical amount is required';
+    }
+
+    if (salary.pf === '') {
+        newErrors.pf = 'PF amount is required';
+    }
+
+    if (salary.pt === '') {
+        newErrors.pt = 'PT amount is required';
+    }
+
+    if (salary.tax === '') {
+        newErrors.tax = 'Tax / TDS amount is required';
+    }
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+        return;
+    }
+}
+
         // STEP 4 VALIDATION
         if (currentStep === 4) {
             if (!documents.aadhaar || !documents.pan || !documents.degree) {
@@ -218,23 +285,35 @@ export default function AddEmployee() {
         if (currentStep < 4) {
             setCurrentStep(c => c + 1);
         } else {
-
-            setLoading(true);
-            try {
+          setLoading(true);
+          try {
+                // Keep original submissionData exactly untouched
                 const submissionData = {
-                    ...formData,
-                    name: `${formData.firstName} ${formData.lastName}`.trim(),
-                    salary: {
-                        basic: formData.salary.basic,
-                        hra: formData.salary.hra,
-                        special: formData.salary.special,
-                        medical: formData.salary.medical,
-                        pf: formData.salary.pf,
-                        pt: formData.salary.pt,
-                        tax: formData.salary.tax,
-                    },
-                };
-                await api.post('/employee', submissionData);
+    ...formData,
+    name: `${formData.firstName} ${formData.lastName}`.trim(),
+};
+
+const form = new FormData();
+
+form.append("data", JSON.stringify(submissionData));
+
+if (documents.aadhaar) {
+    form.append("aadhaar", documents.aadhaar);
+}
+
+if (documents.pan) {
+    form.append("pan", documents.pan);
+}
+
+if (documents.degree) {
+    form.append("degree", documents.degree);
+}
+
+await api.post('/employee', form, {
+    headers: {
+        "Content-Type": "multipart/form-data",
+    },
+});
                 toast.success('Employee Onboarded Successfully!');
                 navigate('/employee');
             } catch (error: any) {
@@ -312,10 +391,14 @@ export default function AddEmployee() {
                                     type="text"
                                     className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                     placeholder="First"
-                                />
+                                />{errors.firstName && (
+    <p className="text-red-500 text-xs ml-1">
+        {errors.firstName}
+    </p>
+)}
                             </div>
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Last Name *</label>
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Last Name </label>
                                 <input
                                     autoComplete="new-password"
                                     name="lastName"
@@ -336,19 +419,38 @@ export default function AddEmployee() {
                                     type="email"
                                     className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                     placeholder="Enter your email"
+                                    
                                 />
+                                {errors.email && (
+    <p className="text-red-500 text-xs ml-1">
+        {errors.email}
+    </p>
+)}
                             </div>
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Phone Number</label>
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Phone Number *</label>
                                 <input
                                     autoComplete="off"
                                     name="phone"
                                     value={formData.phone}
-                                    onChange={handleInputChange}
+                                   onChange={(e) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+
+    setFormData(prev => ({
+        ...prev,
+        phone: value
+    }));
+
+    setErrors((prev: any) => ({
+        ...prev,
+        phone: ''
+    }));
+}}
                                     type="tel"
                                     className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                     placeholder="+91 "
                                 />
+                                {errors.phone && <p className="text-red-500 text-xs ml-1">{errors.phone}</p>}
                             </div>
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Blood Group</label>
@@ -368,9 +470,14 @@ export default function AddEmployee() {
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
                                     </div>
                                 </div>
+                                {errors.bloodGroup && (
+    <p className="text-red-500 text-xs ml-1">
+        {errors.bloodGroup}
+    </p>
+)}
                             </div>
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Date of Birth</label>
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Date of Birth *</label>
                                 <input
                                     autoComplete="off"
                                     name="dob"
@@ -397,11 +504,17 @@ export default function AddEmployee() {
                                     <select
                                         name="departmentId"
                                         value={formData.departmentId}
-                                        onChange={(e) => {
-                                            const id = e.target.value;
-                                            const name = masters.departments.find(d => d.id === id)?.name || '';
-                                            setFormData({ ...formData, departmentId: id, department: name });
-                                        }}
+                                       onChange={(e) => {
+    const id = e.target.value;
+    const name = masters.departments.find(d => d.id === id)?.name || '';
+
+    setFormData({ ...formData, departmentId: id, department: name });
+
+    setErrors((prev: any) => ({
+        ...prev,
+        departmentId: ''
+    }));
+}}
                                         className="appearance-none w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
                                     >
                                         <option value="" className="dark:bg-brand-900">Select Department</option>
@@ -413,6 +526,11 @@ export default function AddEmployee() {
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
                                     </div>
                                 </div>
+                                {errors.departmentId && (
+    <p className="text-red-500 text-xs ml-1">
+        {errors.departmentId}
+    </p>
+)}
                             </div>
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">System Role *</label>
@@ -420,11 +538,17 @@ export default function AddEmployee() {
                                     <select
                                         name="roleId"
                                         value={formData.roleId}
-                                        onChange={(e) => {
-                                            const id = e.target.value;
-                                            const name = masters.roles.find(r => r.id === id)?.name || '';
-                                            setFormData({ ...formData, roleId: id, role: name });
-                                        }}
+                                       onChange={(e) => {
+    const id = e.target.value;
+    const name = masters.roles.find(r => r.id === id)?.name || '';
+
+    setFormData({ ...formData, roleId: id, role: name });
+
+    setErrors((prev: any) => ({
+        ...prev,
+        roleId: ''
+    }));
+}}
                                         className="appearance-none w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
                                     >
                                         <option value="" className="dark:bg-brand-900">Select Role</option>
@@ -436,6 +560,11 @@ export default function AddEmployee() {
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
                                     </div>
                                 </div>
+                                {errors.roleId && (
+    <p className="text-red-500 text-xs ml-1">
+        {errors.roleId}
+    </p>
+)}
                             </div>
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Designation / Title *</label>
@@ -443,11 +572,17 @@ export default function AddEmployee() {
                                     <select
                                         name="designationId"
                                         value={formData.designationId}
-                                        onChange={(e) => {
-                                            const id = e.target.value;
-                                            const name = masters.designations.find(d => d.id === id)?.name || '';
-                                            setFormData({ ...formData, designationId: id, title: name });
-                                        }}
+                                       onChange={(e) => {
+    const id = e.target.value;
+    const name = masters.designations.find(d => d.id === id)?.name || '';
+
+    setFormData({ ...formData, designationId: id, title: name });
+
+    setErrors((prev: any) => ({
+        ...prev,
+        designationId: ''
+    }));
+}}
                                         className="appearance-none w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
                                     >
                                         <option value="" className="dark:bg-brand-900">Select Designation</option>
@@ -459,9 +594,14 @@ export default function AddEmployee() {
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
                                     </div>
                                 </div>
+                                {errors.designationId && (
+    <p className="text-red-500 text-xs ml-1">
+        {errors.designationId}
+    </p>
+)}
                             </div>
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Residential Address</label>
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Residential Address *</label>
                                 <div className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus-within:ring-4 focus-within:ring-brand-500/20 transition-all overflow-hidden h-[46px]">
                                     <textarea
                                         autoComplete="off"
@@ -473,6 +613,11 @@ export default function AddEmployee() {
                                         placeholder="Enter full residential address"
                                     />
                                 </div>
+                                {errors.address && (
+    <p className="text-red-500 text-xs ml-1">
+        {errors.address}
+    </p>
+)}
                             </div>
                         </div>
                     )}
@@ -488,16 +633,22 @@ export default function AddEmployee() {
                                             autoComplete="off"
                                             name="pan"
                                             value={formData.pan}
-                                            onChange={(e) => {
-                                                setFormData({
-                                                    ...formData,
-                                                    pan: e.target.value.toUpperCase()
-                                                });
-                                            }}
+                                           onChange={(e) => {
+    setFormData({
+        ...formData,
+        pan: e.target.value.toUpperCase()
+    });
+
+    setErrors((prev: any) => ({
+        ...prev,
+        pan: ''
+    }));
+}}
                                             type="text"
                                             className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                             placeholder="E.g. ABCDE1234F"
                                         />
+                                        {errors.pan && <p className="text-red-500 text-xs ml-1">{errors.pan}</p>}
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Aadhaar Number</label>
@@ -505,11 +656,24 @@ export default function AddEmployee() {
                                             autoComplete="off"
                                             name="aadhaar"
                                             value={formData.aadhaar}
-                                            onChange={handleInputChange}
+                                           onChange={(e) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 12);
+
+    setFormData({
+        ...formData,
+        aadhaar: value
+    });
+    setErrors((prev: any) => ({
+    ...prev,
+    aadhaar: ''
+}));
+}}
                                             type="text"
                                             className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                             placeholder="XXXX XXXX XXXX"
                                         />
+                                        {errors.aadhaar && <p className="text-red-500 text-xs ml-1">{errors.aadhaar}</p>}
+
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">UAN (PF)</label>
@@ -517,11 +681,23 @@ export default function AddEmployee() {
                                             autoComplete="off"
                                             name="uan"
                                             value={formData.uan}
-                                            onChange={handleInputChange}
+                                            onChange={(e) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 12);
+
+    setFormData({
+        ...formData,
+        uan: value
+    });
+    setErrors((prev: any) => ({
+        ...prev,
+        uan: ''
+    }));
+}}
                                             type="text"
                                             className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                             placeholder="Enter 12-digit UAN number"
                                         />
+                                        {errors.uan && <p className="text-red-500 text-xs ml-1">{errors.uan}</p>}
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">ESIC Number</label>
@@ -529,11 +705,24 @@ export default function AddEmployee() {
                                             autoComplete="off"
                                             name="esic"
                                             value={formData.esic}
-                                            onChange={handleInputChange}
+                                            onChange={(e) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 17);
+
+    setFormData({
+        ...formData,
+        esic: value
+    });
+    setErrors((prev: any) => ({
+    ...prev,
+    esic: ''
+}));
+}}
                                             type="text"
                                             className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                             placeholder="Enter 17-digit ESIC number "
                                         />
+                                        {errors.esic && <p className="text-red-500 text-xs ml-1">{errors.esic}</p>}
+
                                     </div>
                                 </div>
                             </div>
@@ -552,6 +741,8 @@ export default function AddEmployee() {
                                             className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                             placeholder="e.g. HDFC Bank"
                                         />
+                                        {errors.bankName && <p className="text-red-500 text-xs ml-1">{errors.bankName}</p>}
+
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">IFSC Code</label>
@@ -564,6 +755,8 @@ export default function AddEmployee() {
                                             className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all uppercase placeholder:normal-case placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                             placeholder="Enter IFSC code"
                                         />
+                                        {errors.ifsc && <p className="text-red-500 text-xs ml-1">{errors.ifsc}</p>}
+
                                     </div>
                                     <div className="space-y-2 md:col-span-2">
                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Account Number</label>
@@ -572,13 +765,23 @@ export default function AddEmployee() {
                                             autoComplete="off"
                                             value={formData.accountNumber}
                                             onChange={(e) => {
-                                                const value = e.target.value.replace(/\D/g, ""); // remove non-numbers
-                                                setFormData({ ...formData, accountNumber: value });
-                                            }}
+    const value = e.target.value.replace(/\D/g, "");
+
+    setFormData({
+        ...formData,
+        accountNumber: value
+    });
+
+    setErrors((prev: any) => ({
+        ...prev,
+        accountNumber: ''
+    }));
+}}
                                             className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
 
                                             placeholder="Enter 9-18 digit account number"
                                         />
+                                        {errors.accountNumber && <p className="text-red-500 text-xs ml-1">{errors.accountNumber}</p>}
                                     </div>
                                 </div>
                             </div>
@@ -594,13 +797,13 @@ export default function AddEmployee() {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {[
-                                    { label: 'Basic', key: 'basic' },
-                                    { label: 'HRA', key: 'hra' },
-                                    { label: 'Special Allowance', key: 'special' },
-                                    { label: 'Medical', key: 'medical' },
-                                    { label: 'PF', key: 'pf' },
-                                    { label: 'PT', key: 'pt' },
-                                    { label: 'Tax / TDS', key: 'tax' },
+                                    { label: 'Basic *', key: 'basic' },
+                                    { label: 'HRA *', key: 'hra' },
+                                    { label: 'Special Allowance *', key: 'special' },
+                                    { label: 'Medical *', key: 'medical' },
+                                    { label: 'PF *', key: 'pf' },
+                                    { label: 'PT *', key: 'pt' },
+                                    { label: 'Tax / TDS *', key: 'tax' },
                                 ].map((field) => (
                                     <div key={field.key} className="space-y-2">
                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">
@@ -612,8 +815,17 @@ export default function AddEmployee() {
                                             value={(formData.salary as any)[field.key] || ''}
                                             onChange={(e) => handleSalaryChange(field.key, e.target.value)}
                                             className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
-                                            placeholder={`Enter ${field.label}`}
+                                            placeholder={
+    field.key === 'basic'
+        ? 'Enter Basic Salary'
+        : `Enter ${field.label} Amount (Enter 0 if none)`
+}
                                         />
+                                             {errors[field.key] && (
+    <p className="text-red-500 text-xs ml-1">
+        {errors[field.key]}
+    </p>
+)}
                                     </div>
                                 ))}
                             </div>
