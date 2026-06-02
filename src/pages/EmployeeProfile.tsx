@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useRBAC } from '../hooks/useRBAC';
-import { ArrowLeft, User, FileText, CreditCard, Download, Upload, Briefcase, Save, X, Edit, Printer, Loader2, Eye, Trash2 } from 'lucide-react';
+import { ArrowLeft, User, FileText, CreditCard, Download, Briefcase, Save, X, Edit, Printer, Loader2, Eye, Trash2 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import toast from 'react-hot-toast';
@@ -329,16 +329,6 @@ return true;
         }
     };
 
-    const handleDownload = (doc: any) => {
-        if (doc.url) {
-            // Build the full URL (backend is on port 3001)
-            const baseUrl = 'http://localhost:3001';
-            const fullUrl = doc.url.startsWith('http') ? doc.url : `${baseUrl}${doc.url}`;
-            window.open(fullUrl, '_blank');
-        } else {
-            toast.error('Download link not available');
-        }
-    };
 
     if (loading) {
         return (

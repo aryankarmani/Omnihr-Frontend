@@ -25,6 +25,8 @@ export default function Leave() {
     const [leaveBalances, setLeaveBalances] = useState<any[]>([]);
     const [leaveHistory, setLeaveHistory] = useState<any[]>([]);
     const [allLeaves, setAllLeaves] = useState<any[]>([]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
     const [holidays, setHolidays] = useState<any[]>([]);
     const [showFilterDrawer, setShowFilterDrawer] = useState(false);
     const [filters, setFilters] = useState({
@@ -154,7 +156,12 @@ export default function Leave() {
 
         return matchesName && matchesType && matchesStatus && matchesStart && matchesEnd;
     });
+             const totalPages = Math.ceil(filteredLeaves.length / rowsPerPage);
 
+        const paginatedLeaves = filteredLeaves.slice(
+        (currentPage - 1) * rowsPerPage,
+       currentPage * rowsPerPage
+);
     // Helper to check if a date string matches a leave or holiday
     const getDateStatus = (dateStr: string) => {
         // Normalize date comparison by splitting at T
@@ -431,22 +438,24 @@ export default function Leave() {
                                     type="text"
                                     placeholder="Search employee..."
                                     value={filters.name}
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        setFilters({ ...filters, name: val });
-                                        setAppliedFilters({ ...appliedFilters, name: val });
-                                    }}
+                                   onChange={(e) => {
+                         const val = e.target.value;
+                         setFilters({ ...filters, name: val });
+                         setAppliedFilters({ ...appliedFilters, name: val });
+                         setCurrentPage(1);
+                   }}
                                     className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-sm text-gray-800 dark:text-white"
                                 />
                             </div>
                             <div className="relative group/dropdown hidden sm:block">
                                 <select
                                     value={filters.status}
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        setFilters({ ...filters, status: val });
-                                        setAppliedFilters({ ...appliedFilters, status: val });
-                                    }}
+                                   onChange={(e) => {
+                             const val = e.target.value;
+                             setFilters({ ...filters, status: val });
+                            setAppliedFilters({ ...appliedFilters, status: val });
+                            setCurrentPage(1);
+                        }}
                                     className="appearance-none px-4 py-2 bg-brand-600 dark:bg-brand-600/20 border-2 border-brand-500/50 rounded-xl text-white text-sm font-bold cursor-pointer transition-all hover:bg-brand-700 hover:border-brand-400 shadow-lg shadow-brand-500/20 focus:ring-4 focus:ring-brand-500/20 outline-none w-32 pr-8"
                                 >
                                     <option value="All" className="bg-white dark:bg-brand-900 text-gray-900 dark:text-white font-bold">All Status</option>
@@ -481,7 +490,7 @@ export default function Leave() {
                             </thead>
                             <tbody className="divide-y divide-gray-50 dark:divide-white/5 font-medium">
                                 {filteredLeaves.length > 0 ? (
-                                    filteredLeaves.map(l => (
+                                    paginatedLeaves.map(l => (
                                         <tr key={l.id} className="hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
                                             <td className="py-5 px-4">
                                                 <div className="flex items-center gap-3">
@@ -543,6 +552,63 @@ export default function Leave() {
                             </tbody>
                         </table>
                     </div>
+                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 pt-4 border-t border-gray-100 dark:border-white/5">
+    <div className="flex items-center gap-3">
+        <span className="text-xs font-bold text-gray-400 uppercase">Rows per page</span>
+      <select
+    value={rowsPerPage}
+    onChange={(e) => {
+        setRowsPerPage(Number(e.target.value));
+        setCurrentPage(1);
+    }}
+className="px-5 py-2 bg-brand-800 hover:bg-brand-900 border border-brand-700 rounded-xl text-white font-bold cursor-pointer">
+    <option value={5}>5</option>
+    <option value={10}>10</option>
+    <option value={20}>20</option>
+    <option value={50}>50</option>
+</select>
+    </div>
+
+    <div className="flex items-center gap-4">
+        <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
+            Page {currentPage} of {totalPages || 1}
+        </span>
+
+        <div className="flex items-center gap-2">
+            <button
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+                className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-500 disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
+            >
+                «
+            </button>
+
+            <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-500 disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
+            >
+                ‹
+            </button>
+
+            <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-500 disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
+            >
+                ›
+            </button>
+
+            <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-500 disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
+            >
+                »
+            </button>
+        </div>
+    </div>
+</div>
                 </div>
             )}
             {showApplyModal && createPortal(
@@ -744,10 +810,11 @@ export default function Leave() {
                                         Clear
                                     </button>
                                     <button
-                                        onClick={() => {
-                                            setAppliedFilters(filters);
-                                            setShowFilterDrawer(false);
-                                        }}
+                                      onClick={() => {
+                                 setAppliedFilters(filters);
+                                 setCurrentPage(1);
+                                setShowFilterDrawer(false);
+                        }}
                                         className="flex-1 py-3 rounded-xl bg-brand-600 text-white font-bold hover:bg-brand-700 shadow-lg shadow-brand-500/20 transition-all active:scale-95"
                                     >
                                         Apply Search

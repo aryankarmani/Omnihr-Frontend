@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
@@ -67,13 +68,13 @@ export default function AddEmployee() {
         },
         joiningDate: new Date().toISOString().split('T')[0]
     });
-    const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
     const [documents, setDocuments] = useState<Record<string, any>>({
         aadhaar: null,
         pan: null,
         degree: null,
     });
     const [confirmDeleteDoc, setConfirmDeleteDoc] = useState<string | null>(null);
+    
     const [errors, setErrors] = useState<any>({});
     const steps = [
         { id: 1, title: 'Personal Details', icon: User },
@@ -285,7 +286,6 @@ if (Object.keys(newErrors).length > 0) {
         if (currentStep < 4) {
             setCurrentStep(c => c + 1);
         } else {
-
             setLoading(true);
             try {
                 const submissionData = {

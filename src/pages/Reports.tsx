@@ -9,28 +9,51 @@ export default function Reports() {
     const [attendanceData, setAttendanceData] = useState<any[]>([]);
     const [payrollData, setPayrollData] = useState<any[]>([]);
     const [stats, setStats] = useState<any>({});
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const res1 = await api.get('/reports/dashboard');
-                const res2 = await api.get('/reports/attendance');
-                const res3 = await api.get('/reports/payroll');
+    const [period, setPeriod] = useState('monthly');
+   useEffect(() => {
+    const fetchData = async () => {
+        try {
+            const res1 = await api.get(`/reports/dashboard?period=${period}`);
+            const res2 = await api.get(`/reports/attendance?period=${period}`);
+            const res3 = await api.get(`/reports/payroll?period=${period}`);
 
-                setStats(res1.data || {});
-                setAttendanceData(res2.data?.data || res2.data || []);
-                setPayrollData(res3.data?.data || res3.data || []);
-            } catch (err) {
-                console.error('Reports API error:', err);
-            }
-        };
+            setStats(res1.data || {});
+            setAttendanceData(res2.data?.data || res2.data || []);
+            setPayrollData(res3.data?.data || res3.data || []);
+        } catch (err) {
+            console.error('Reports API error:', err);
+        }
+    };
 
-        fetchData();
-    }, []);
+    fetchData();
+}, [period]);
     return (
         <div className="animate-fade-in-up pb-8">
             <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Reports & Analytics</h2>
-            <p className="text-gray-500 dark:text-gray-400 mb-8">Comprehensive insights into workforce performance and payroll.</p>
+             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+    <p className="text-gray-500 dark:text-gray-400">
+        Comprehensive insights into workforce performance and payroll.
+    </p>
 
+    <div className="relative group/dropdown">
+        <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+            className="appearance-none px-5 py-3 bg-white dark:bg-brand-800 hover:bg-gray-50 dark:hover:bg-brand-900 border border-gray-200 dark:border-brand-700 rounded-2xl text-gray-600 dark:text-white font-bold cursor-pointer shadow-sm dark:shadow-lg dark:shadow-brand-500/20 outline-none pr-12 transition-all"        >
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+            <option value="quarter">Quarter</option>
+            <option value="semi-annual">Semi-Annual</option>
+            <option value="annual">Annual</option>
+        </select>
+
+<div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-white">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" />
+            </svg>
+        </div>
+    </div>
+</div>
             {/* Top Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div className="bg-white dark:bg-brand-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 flex flex-col justify-between">
