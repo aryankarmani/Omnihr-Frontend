@@ -101,102 +101,102 @@ export default function EmployeeProfile() {
         setIsEditing(false);
     };
 
-   const validate = () => {
-    const newErrors: Record<string, string> = {};
+    const validate = () => {
+        const newErrors: Record<string, string> = {};
 
-    const p = employee?.employeeProfile?.statutory || {};
-    const b = employee?.employeeProfile?.bank || {};
-    const pd = employee?.employeeProfile || {};
-    const s = employee?.employeeProfile?.salary || {};
+        const p = employee?.employeeProfile?.statutory || {};
+        const b = employee?.employeeProfile?.bank || {};
+        const pd = employee?.employeeProfile || {};
+        const s = employee?.employeeProfile?.salary || {};
 
-    if (!employee.email) newErrors.email = "Email is required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(employee.email)) {
-        newErrors.email = "Please enter valid email";
-    }
-
-    if (!pd.phone) newErrors.phone = "Phone number is required";
-    else if (!/^\d{10}$/.test(pd.phone)) {
-        newErrors.phone = "Enter valid 10 digit phone number";
-    }
-    if (pd.dob && new Date(pd.dob) > new Date()) {
-    newErrors.dob = "Future date is not allowed";
-}
-
-    if (!employee.roleId && !employee.role?.id) newErrors.role = "Role is required";
-    if (!pd.designationId) newErrors.designationId = "Designation is required";
-    if (!pd.departmentId) newErrors.departmentId = "Department is required";
-
-    if (!p.pan) newErrors.pan = "PAN is required";
-    else if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(p.pan.trim().toUpperCase())) {
-        newErrors.pan = "Invalid PAN format";
-    }
-
-    if (!p.aadhaar) newErrors.aadhaar = "Aadhaar is required";
-    else if (!/^\d{12}$/.test(p.aadhaar)) newErrors.aadhaar = "Aadhaar must be 12 digits";
-
-    if (!p.uan) newErrors.uan = "UAN is required";
-    else if (!/^\d{12}$/.test(p.uan)) newErrors.uan = "UAN must be 12 digits";
-
-    if (!p.esic) newErrors.esic = "ESIC is required";
-    else if (!/^\d{17}$/.test(p.esic)) newErrors.esic = "ESIC must be 17 digits";
-
-    if (!b.bankName?.trim()) newErrors.bankName = "Bank Name is required";
-    else if (!/^[A-Za-z\s]{2,50}$/.test(b.bankName.trim())) {
-        newErrors.bankName = "Bank Name must contain only letters";
-    }
-
-    if (!b.ifsc) newErrors.ifsc = "IFSC is required";
-    else if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(b.ifsc.trim().toUpperCase())) {
-        newErrors.ifsc = "Invalid IFSC format";
-    }
-
-    if (!b.accountNumber) newErrors.accountNumber = "Account Number is required";
-    else if (!/^\d{9,18}$/.test(b.accountNumber)) {
-        newErrors.accountNumber = "Account Number must be 9–18 digits";
-    }
-
-    ["basic", "hra", "special", "medical", "pf", "pt", "tax"].forEach((field) => {
-        if (s[field] === "" || s[field] == null) {
-            newErrors[field] = `${field.toUpperCase()} is required`;
+        if (!employee.email) newErrors.email = "Email is required";
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(employee.email)) {
+            newErrors.email = "Please enter valid email";
         }
-    });
 
-    setErrors(newErrors);
+        if (!pd.phone) newErrors.phone = "Phone number is required";
+        else if (!/^\d{10}$/.test(pd.phone)) {
+            newErrors.phone = "Enter valid 10 digit phone number";
+        }
+        if (pd.dob && new Date(pd.dob) > new Date()) {
+            newErrors.dob = "Future date is not allowed";
+        }
 
-   const salaryFields = ["basic", "hra", "special", "medical", "pf", "pt", "tax"];
+        if (!employee.roleId && !employee.role?.id) newErrors.role = "Role is required";
+        if (!pd.designationId) newErrors.designationId = "Designation is required";
+        if (!pd.departmentId) newErrors.departmentId = "Department is required";
 
-const statutoryFields = [
-    "uan", "esic", "pan", "aadhaar",
-    "bankName", "accountNumber", "ifsc"
-];
+        if (!p.pan) newErrors.pan = "PAN is required";
+        else if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(p.pan.trim().toUpperCase())) {
+            newErrors.pan = "Invalid PAN format";
+        }
 
-const personalFields = [
-    "email", "phone", "dob",
-    "role", "designationId", "departmentId",
-    "bloodGroup", "address"
-];
+        if (!p.aadhaar) newErrors.aadhaar = "Aadhaar is required";
+        else if (!/^\d{12}$/.test(p.aadhaar)) newErrors.aadhaar = "Aadhaar must be 12 digits";
 
-if (Object.keys(newErrors).length > 0) {
-    const hasSalaryError = salaryFields.some(field => newErrors[field]);
-    const hasStatutoryError = statutoryFields.some(field => newErrors[field]);
-    const hasPersonalError = personalFields.some(field => newErrors[field]);
+        if (!p.uan) newErrors.uan = "UAN is required";
+        else if (!/^\d{12}$/.test(p.uan)) newErrors.uan = "UAN must be 12 digits";
 
-    if (hasSalaryError) {
-        toast.error("Please fix validations in Salary Info");
-        setActiveTab("salary");
-    } else if (hasStatutoryError) {
-        toast.error("Please fix validations in Statutory & Bank Info");
-        setActiveTab("statutory");
-    } else if (hasPersonalError) {
-        toast.error("Please fix validations in Personal Details");
-        setActiveTab("personal");
-    }
+        if (!p.esic) newErrors.esic = "ESIC is required";
+        else if (!/^\d{17}$/.test(p.esic)) newErrors.esic = "ESIC must be 17 digits";
 
-    return false;
-}
+        if (!b.bankName?.trim()) newErrors.bankName = "Bank Name is required";
+        else if (!/^[A-Za-z\s]{2,50}$/.test(b.bankName.trim())) {
+            newErrors.bankName = "Bank Name must contain only letters";
+        }
 
-return true;
-};
+        if (!b.ifsc) newErrors.ifsc = "IFSC is required";
+        else if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(b.ifsc.trim().toUpperCase())) {
+            newErrors.ifsc = "Invalid IFSC format";
+        }
+
+        if (!b.accountNumber) newErrors.accountNumber = "Account Number is required";
+        else if (!/^\d{9,18}$/.test(b.accountNumber)) {
+            newErrors.accountNumber = "Account Number must be 9–18 digits";
+        }
+
+        ["basic", "hra", "special", "medical", "pf", "pt", "tax"].forEach((field) => {
+            if (s[field] === "" || s[field] == null) {
+                newErrors[field] = `${field.toUpperCase()} is required`;
+            }
+        });
+
+        setErrors(newErrors);
+
+        const salaryFields = ["basic", "hra", "special", "medical", "pf", "pt", "tax"];
+
+        const statutoryFields = [
+            "uan", "esic", "pan", "aadhaar",
+            "bankName", "accountNumber", "ifsc"
+        ];
+
+        const personalFields = [
+            "email", "phone", "dob",
+            "role", "designationId", "departmentId",
+            "bloodGroup", "address"
+        ];
+
+        if (Object.keys(newErrors).length > 0) {
+            const hasSalaryError = salaryFields.some(field => newErrors[field]);
+            const hasStatutoryError = statutoryFields.some(field => newErrors[field]);
+            const hasPersonalError = personalFields.some(field => newErrors[field]);
+
+            if (hasSalaryError) {
+                toast.error("Please fix validations in Salary Info");
+                setActiveTab("salary");
+            } else if (hasStatutoryError) {
+                toast.error("Please fix validations in Statutory & Bank Info");
+                setActiveTab("statutory");
+            } else if (hasPersonalError) {
+                toast.error("Please fix validations in Personal Details");
+                setActiveTab("personal");
+            }
+
+            return false;
+        }
+
+        return true;
+    };
 
     const handleSave = async () => {
         if (!validate()) {
@@ -290,7 +290,7 @@ return true;
         }));
     };
     const handleSalaryChange = (field: string, value: string) => {
-            if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
+        if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
 
         setEmployee((prev: any) => ({
             ...prev,
@@ -304,28 +304,51 @@ return true;
         }));
     };
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, docName: string) => {
         const file = e.target.files?.[0];
-        if (file) {
-            if (file.type !== "application/pdf") {
-                toast.error("Only PDF allowed");
-                return;
-            }
+        if (!file) return;
 
-            const newDoc = {
-                name: file.name,
-                uploadedAt: new Date().toISOString(),
-                // url: '' // Backend will provide this later
-            };
-            setEmployee((prev: any) => ({
-                ...prev,
-                employeeProfile: {
-                    ...(prev?.employeeProfile || {}),
-                    documents: [...(prev?.employeeProfile?.documents || []), newDoc]
+        if (file.type !== "application/pdf" && !file.type.startsWith("image/")) {
+            toast.error("Only PDF and image files are allowed");
+            return;
+        }
+
+        // Check if this file is a duplicate of other uploaded files using lightweight HEAD requests
+        const otherDocs = employee?.employeeProfile?.documents?.filter((d: any) => d.name !== docName) || [];
+        try {
+            for (const doc of otherDocs) {
+                const baseUrl = 'http://localhost:3001';
+                const fullUrl = doc.url.startsWith('http') ? doc.url : `${baseUrl}${doc.url}`;
+                const res = await api.head(fullUrl);
+                const existingSize = parseInt((res.headers as any)['content-length'] || '0', 10);
+                if (existingSize === file.size) {
+                    toast.error(`This file has already been uploaded/selected for another document slot! Please select a unique document.`);
+                    e.target.value = '';
+                    return;
                 }
-            }));
-            toast.success(`${file.name} uploaded successfully! Save changes to persist.`);
-            setIsEditing(true);
+            }
+        } catch (err) {
+            console.error("Duplicate file size check failed", err);
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('name', docName);
+        formData.append('type', file.type);
+
+        toast.loading(`Uploading ${docName}...`, { id: 'uploading-toast' });
+        try {
+            const employeeId = employee.id;
+            await api.post(`/employee/${employeeId}/documents`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+            toast.success(`${docName} uploaded successfully!`, { id: 'uploading-toast' });
+            fetchEmployee();
+        } catch (error) {
+            console.error("Upload failed", error);
+            toast.error(`Failed to upload ${docName}`, { id: 'uploading-toast' });
         }
     };
 
@@ -473,18 +496,17 @@ return true;
                                                     placeholder={field.placeholder}
                                                     value={(statutory as any)[field.key] || ''}
                                                     onChange={(e) =>
-    handleStatutoryChange(
-        field.key,
-        field.key === 'pan'
-            ? e.target.value.toUpperCase()
-            : e.target.value
-    )
-}
-                                              className={`appearance-none w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${
-                                              errors[field.key]
-        ? 'border-red-500'
-        : 'border-gray-200 dark:border-white/10'
-} rounded-lg outline-none text-gray-800 dark:text-white font-medium cursor-pointer`}  />
+                                                        handleStatutoryChange(
+                                                            field.key,
+                                                            field.key === 'pan'
+                                                                ? e.target.value.toUpperCase()
+                                                                : e.target.value
+                                                        )
+                                                    }
+                                                    className={`appearance-none w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors[field.key]
+                                                            ? 'border-red-500'
+                                                            : 'border-gray-200 dark:border-white/10'
+                                                        } rounded-lg outline-none text-gray-800 dark:text-white font-medium cursor-pointer`} />
                                                 {errors[field.key] && <p className="text-red-500 text-xs mt-1">{errors[field.key]}</p>}
                                             </>
                                         ) : (
@@ -509,15 +531,14 @@ return true;
                                             placeholder='e.g. HDFC Bank'
                                             value={bank.bankName || ''}
                                             onChange={(e) => handleBankChange('bankName', e.target.value)}
-                                              className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${
-                                            errors.bankName ? 'border-red-500' : 'border-gray-200 dark:border-white/10'
-                                            } rounded-lg focus:ring-2 focus:ring-brand-500/50 outline-none`}
-                                              />
-                                              {errors.bankName && (
-                                             <p className="text-red-500 text-xs mt-1">
-                                              {errors.bankName}
-                                               </p>
-                                            )}
+                                            className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.bankName ? 'border-red-500' : 'border-gray-200 dark:border-white/10'
+                                                } rounded-lg focus:ring-2 focus:ring-brand-500/50 outline-none`}
+                                        />
+                                        {errors.bankName && (
+                                            <p className="text-red-500 text-xs mt-1">
+                                                {errors.bankName}
+                                            </p>
+                                        )}
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-xs font-bold text-gray-400 uppercase">Account Number</label>
@@ -568,69 +589,107 @@ return true;
                                 <h3 className="text-xl font-bold flex items-center gap-2">
                                     <FileText className="text-orange-500" /> Document Vault
                                 </h3>
-                                
+
+                            </div>                           <div className="space-y-4">
+                                {[
+                                    { key: 'aadhaar', name: 'Aadhaar Card' },
+                                    { key: 'pan', name: 'PAN Card' },
+                                    { key: 'degree', name: 'Highest Qualification Degree' }
+                                ].map((doc) => {
+                                    const savedDoc = profile.documents?.find((d: any) => d.name === doc.name);
+                                    return (
+                                        <div
+                                            key={doc.name}
+                                            className="flex items-center justify-between p-4 rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 transition-all"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${savedDoc
+                                                        ? 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
+                                                        : 'bg-gray-100 dark:bg-white/10 text-gray-400'
+                                                    }`}>
+                                                    <FileText size={20} />
+                                                </div>
+
+                                                <div>
+                                                    <p className="font-bold text-base text-gray-800 dark:text-white">
+                                                        {doc.name} <span className="text-red-500">*</span>
+                                                    </p>
+
+                                                    <p className={`text-sm ${savedDoc ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                                                        {savedDoc ? 'Document uploaded' : 'No document uploaded'}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-3">
+                                                {/* Explicit Upload Button shown only during Edit Profile mode if no document exists */}
+                                                {isEditing && !savedDoc && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => document.getElementById(`file-input-${doc.key}`)?.click()}
+                                                        className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 cursor-pointer mr-2"
+                                                    >
+                                                        <Upload size={14} /> Upload
+                                                    </button>
+                                                )}
+
+                                                <button
+                                                    type="button"
+                                                    disabled={!savedDoc}
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        if (savedDoc?.url) {
+                                                            const baseUrl = 'http://localhost:3001';
+                                                            const fullUrl = savedDoc.url.startsWith('http') ? savedDoc.url : `${baseUrl}${savedDoc.url}`;
+                                                            window.open(fullUrl, '_blank');
+                                                        }
+                                                    }}
+                                                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${savedDoc
+                                                            ? 'bg-brand-500/10 text-brand-500 hover:bg-brand-500 hover:text-white cursor-pointer'
+                                                            : 'bg-gray-100 dark:bg-white/5 text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                                                        }`}
+                                                >
+                                                    <Eye size={18} />
+                                                </button>
+
+                                                {/* Explicit Delete Button shown only during Edit Profile mode if document exists */}
+                                                {isEditing && savedDoc && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={async (e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            if (savedDoc?.id) {
+                                                                toast.loading(`Deleting ${doc.name}...`, { id: 'deleting-toast' });
+                                                                try {
+                                                                    await api.delete(`/employee/${employee.id}/documents/${savedDoc.id}`);
+                                                                    toast.success(`${doc.name} deleted successfully!`, { id: 'deleting-toast' });
+                                                                    fetchEmployee();
+                                                                } catch (err) {
+                                                                    console.error("Delete failed", err);
+                                                                    toast.error(`Failed to delete ${doc.name}`, { id: 'deleting-toast' });
+                                                                }
+                                                            }
+                                                        }}
+                                                        className="w-10 h-10 rounded-full flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white cursor-pointer ml-1"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            <input
+                                                id={`file-input-${doc.key}`}
+                                                type="file"
+                                                className="hidden"
+                                                accept=".pdf,image/*"
+                                                onChange={(e) => handleFileUpload(e, doc.name)}
+                                            />
+                                        </div>
+                                    );
+                                })}
                             </div>
-
-                           <div className="space-y-4">
-    {[
-    { key: 'aadhaar', name: 'Aadhaar Card' },
-    { key: 'pan', name: 'PAN Card' },
-    { key: 'degree', name: 'Highest Qualification Degree' }
-]
-    .map((doc) => (
-        <label
-            key={doc.name}
-            className="flex items-center justify-between p-4 rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 cursor-pointer hover:border-brand-500 transition-all"
-        >
-            <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gray-100 dark:bg-white/10 text-gray-400">
-                    <FileText size={20} />
-                </div>
-
-                <div>
-                    <p className="font-bold text-base text-gray-800 dark:text-white">
-                        {doc.name} <span className="text-red-500">*</span>
-                    </p>
-
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Click to upload document
-                    </p>
-                </div>
-            </div>
-
-          <div className="flex items-center gap-3">
-    <button
-        type="button"
-        onClick={(e) => {
-            e.preventDefault();
-            toast.error("View file will work after backend url is available");
-        }}
-        className="w-10 h-10 rounded-full bg-brand-500/10 text-brand-500 flex items-center justify-center hover:bg-brand-500 hover:text-white transition-all"
-    >
-        <Eye size={18} />
-    </button>
-
-    <button
-        type="button"
-        onClick={(e) => {
-            e.preventDefault();
-            toast.error("Delete file will work after saved document id is available");
-        }}
-        className="w-10 h-10 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all"
-    >
-        <Trash2 size={18} />
-    </button>
-</div>
-
-            <input
-                type="file"
-                className="hidden"
-                accept=".pdf"
-                onChange={handleFileUpload}
-            />
-        </label>
-    ))}
-</div>
                         </div>
                     )}
 
@@ -645,13 +704,13 @@ return true;
                                             value={profile.status || 'Active'}
                                             onChange={(e) => handleInputChange('status', e.target.value)}
                                             className=" bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-1 text-xs font-bold text-gray-800 dark:text-white outline-none cursor-pointer"                                        >
-                                           <option value="Active" className="dark:bg-brand-900">
-    Active
-</option>
+                                            <option value="Active" className="dark:bg-brand-900">
+                                                Active
+                                            </option>
 
-<option value="Inactive" className="dark:bg-brand-900">
-    Inactive
-</option>
+                                            <option value="Inactive" className="dark:bg-brand-900">
+                                                Inactive
+                                            </option>
                                         </select>
                                     </div>
                                 )}
@@ -742,12 +801,12 @@ return true;
                                                 </svg>
                                             </div>
                                             {errors.role && (
-    <p className="text-red-500 text-xs mt-1">
-        {errors.role}
-    </p>
-)}
+                                                <p className="text-red-500 text-xs mt-1">
+                                                    {errors.role}
+                                                </p>
+                                            )}
                                         </div>
-                                        
+
                                     ) : (
                                         <p className="font-semibold">
                                             {employee.role?.name || employee.role?.title || employee.role || 'N/A'}
@@ -801,14 +860,14 @@ return true;
                                     ) : (
                                         <p className="font-semibold">{profile.title || 'N/A'}</p>
                                     )}
-                               
-                                {errors.designationId && (
-    <p className="text-red-500 text-xs mt-1">
-        {errors.designationId}
-    </p>
-)}
 
-                             </div>
+                                    {errors.designationId && (
+                                        <p className="text-red-500 text-xs mt-1">
+                                            {errors.designationId}
+                                        </p>
+                                    )}
+
+                                </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-400 uppercase">
                                         DEPARTMENT
@@ -877,22 +936,21 @@ return true;
                                     <label className="text-xs font-bold text-gray-400 uppercase">Blood Group</label>
                                     {isEditing ? (
                                         <>
-                                          <select
-    value={profile.bloodGroup || ''}
-    onChange={(e) => handleInputChange('bloodGroup', e.target.value)}
-    className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${
-        errors.bloodGroup
-            ? 'border-red-500'
-            : 'border-gray-200 dark:border-white/10'
-    } rounded-lg outline-none`}
->
-     <option value="" className="dark:bg-brand-900">Select Blood Group</option>
-    {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
-        <option key={bg} value={bg} className="dark:bg-brand-900">
-            {bg}
-        </option>
-    ))}
-</select>
+                                            <select
+                                                value={profile.bloodGroup || ''}
+                                                onChange={(e) => handleInputChange('bloodGroup', e.target.value)}
+                                                className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.bloodGroup
+                                                        ? 'border-red-500'
+                                                        : 'border-gray-200 dark:border-white/10'
+                                                    } rounded-lg outline-none`}
+                                            >
+                                                <option value="" className="dark:bg-brand-900">Select Blood Group</option>
+                                                {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
+                                                    <option key={bg} value={bg} className="dark:bg-brand-900">
+                                                        {bg}
+                                                    </option>
+                                                ))}
+                                            </select>
                                             {errors.bloodGroup && <p className="text-red-500 text-xs mt-1">{errors.bloodGroup}</p>}
                                         </>
                                     ) : <p className="font-semibold">{profile.bloodGroup || 'N/A'}</p>}
@@ -966,8 +1024,8 @@ return true;
                                                     }
                                                 }}
                                                 className={`p-4 rounded-xl border cursor-pointer transition-all ${String(profile.shiftId) === String(shift.id)
-                                                        ? 'border-brand-400 ring-2 ring-brand-500/50 bg-brand-500/10'
-                                                        : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5'
+                                                    ? 'border-brand-400 ring-2 ring-brand-500/50 bg-brand-500/10'
+                                                    : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5'
                                                     }`}
                                             >
 
@@ -1067,43 +1125,42 @@ return true;
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {[
-                                  { label: 'Basic', key: 'basic', placeholder: 'Enter basic salary' },
-                                  { label: 'HRA', key: 'hra', placeholder: 'Enter HRA' },
-                                  { label: 'Special Allowance', key: 'special', placeholder: 'Enter special allowance' },
-                                  { label: 'Medical', key: 'medical', placeholder: 'Enter medical amount' },
-                                  { label: 'PF', key: 'pf', placeholder: 'Enter PF amount' },
-                                  { label: 'PT', key: 'pt', placeholder: 'Enter PT amount' },
-                                  { label: 'Tax / TDS', key: 'tax', placeholder: 'Enter tax / TDS amount' },
+                                    { label: 'Basic', key: 'basic', placeholder: 'Enter basic salary' },
+                                    { label: 'HRA', key: 'hra', placeholder: 'Enter HRA' },
+                                    { label: 'Special Allowance', key: 'special', placeholder: 'Enter special allowance' },
+                                    { label: 'Medical', key: 'medical', placeholder: 'Enter medical amount' },
+                                    { label: 'PF', key: 'pf', placeholder: 'Enter PF amount' },
+                                    { label: 'PT', key: 'pt', placeholder: 'Enter PT amount' },
+                                    { label: 'Tax / TDS', key: 'tax', placeholder: 'Enter tax / TDS amount' },
                                 ].map((field) => (
                                     <div key={field.key} className="space-y-1">
                                         <label className="text-xs font-bold text-gray-400 uppercase">
                                             {field.label}
                                         </label>
 
-                                            {isEditing && hasPermission(['HR_ADMIN']) ? (
-    <>
-        <input
-            type="text"
-            value={profile.salary?.[field.key] || ''}
-            onChange={(e) =>
-                handleSalaryChange(field.key, e.target.value.replace(/\D/g, ''))
-            }
-            placeholder={field.placeholder}
-            className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${
-                errors[field.key]
-                    ? 'border-red-500'
-                    : 'border-gray-200 dark:border-white/10'
-            } rounded-lg outline-none`}
-        />
+                                        {isEditing && hasPermission(['HR_ADMIN']) ? (
+                                            <>
+                                                <input
+                                                    type="text"
+                                                    value={profile.salary?.[field.key] || ''}
+                                                    onChange={(e) =>
+                                                        handleSalaryChange(field.key, e.target.value.replace(/\D/g, ''))
+                                                    }
+                                                    placeholder={field.placeholder}
+                                                    className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors[field.key]
+                                                            ? 'border-red-500'
+                                                            : 'border-gray-200 dark:border-white/10'
+                                                        } rounded-lg outline-none`}
+                                                />
 
-        {errors[field.key] && (
-            <p className="text-red-500 text-xs mt-1">
-                {errors[field.key]}
-            </p>
-        )}
-    </>
-                                                
-                                                
+                                                {errors[field.key] && (
+                                                    <p className="text-red-500 text-xs mt-1">
+                                                        {errors[field.key]}
+                                                    </p>
+                                                )}
+                                            </>
+
+
                                         ) : (
                                             <p className="font-semibold">
                                                 ₹ {profile.salary?.[field.key] || '0'}
@@ -1141,8 +1198,8 @@ return true;
 
             {/* Payslip Modal (Keep original UI logic, but ensure it uses the dynamic data) */}
             {showPayslip && createPortal(
-<div className="fixed inset-0 z-[999999] flex items-start justify-center pt-20 bg-black/70 backdrop-blur-sm p-4 animate-fade-in overflow-y-auto custom-scrollbar scrollbar-thin scrollbar-thumb-brand-500/60">
-<div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden">
+                <div className="fixed inset-0 z-[999999] flex items-start justify-center pt-20 bg-black/70 backdrop-blur-sm p-4 animate-fade-in overflow-y-auto custom-scrollbar scrollbar-thin scrollbar-thumb-brand-500/60">
+                    <div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden">
 
                         {/* Header */}
                         <div className="p-4 md:p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50 dark:bg-white/5 shrink-0">
@@ -1177,7 +1234,7 @@ return true;
                                             <span className="col-span-2 font-bold">{employee.name}</span>
                                             <span className="text-gray-500 font-medium">Employee ID:</span>
                                             <span className="col-span-2 font-bold">{employee.id}</span>
-                                            <span className="text-gray-500 font-medium">Role:</span>  
+                                            <span className="text-gray-500 font-medium">Role:</span>
                                             <span className="col-span-2 font-bold break-words whitespace-normal">{profile.title || 'N/A'}</span>
                                             <span className="text-gray-500 font-medium">Department:</span>
                                             <span className="col-span-2 font-bold break-words whitespace-normal">{profile.department || 'N/A'}</span>
@@ -1267,19 +1324,19 @@ return true;
                                                     </div>
                                                 )}
                                             </div>
-                                          <div className="flex justify-between p-2 border-b border-gray-50 ">
-    <span className="text-gray-600">Total Deductions</span>
-    <span className="font-semibold">
-        ₹ {totalDeductions.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-    </span>
-</div>
+                                            <div className="flex justify-between p-2 border-b border-gray-50 ">
+                                                <span className="text-gray-600">Total Deductions</span>
+                                                <span className="font-semibold">
+                                                    ₹ {totalDeductions.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </span>
+                                            </div>
 
-<div className="flex justify-between p-2 bg-gray-50 border-t border-gray-100 font-bold">
-    <span className="text-gray-700">Total Salary</span>
-    <span className="text-green-700 font-bold">
-        ₹ {totalSalary.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-    </span>
-</div>
+                                            <div className="flex justify-between p-2 bg-gray-50 border-t border-gray-100 font-bold">
+                                                <span className="text-gray-700">Total Salary</span>
+                                                <span className="text-green-700 font-bold">
+                                                    ₹ {totalSalary.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

@@ -46,11 +46,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const res = await api.post('/auth/login', { email, password });
             const data = res.data;
 
-            const { token, user: userData } = data;
+            const { token, refreshToken, user: userData } = data;
 
             setUser(userData);
             sessionStorage.setItem('encalm_user', JSON.stringify(userData));
             sessionStorage.setItem('token', token);
+            if (refreshToken) {
+                sessionStorage.setItem('refreshToken', refreshToken);
+            }
+            if (userData?.tenantId) {
+                sessionStorage.setItem('tenantId', userData.tenantId);
+            }
         } catch (err: any) {
             setError(err.message || 'Login failed');
             throw err;
@@ -63,6 +69,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
         sessionStorage.removeItem('encalm_user');
         sessionStorage.removeItem('token');
+        sessionStorage.removeItem('refreshToken');
+        sessionStorage.removeItem('tenantId');
     };
 
     return (

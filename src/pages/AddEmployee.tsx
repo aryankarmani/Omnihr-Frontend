@@ -68,6 +68,7 @@ export default function AddEmployee() {
         },
         joiningDate: new Date().toISOString().split('T')[0]
     });
+
     const [documents, setDocuments] = useState<Record<string, any>>({
         aadhaar: null,
         pan: null,
@@ -84,197 +85,197 @@ export default function AddEmployee() {
     ];
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
+        const { name, value } = e.target;
 
-    if (errors[name]) {
+        if (errors[name]) {
+            setErrors((prev: any) => ({
+                ...prev,
+                [name]: ''
+            }));
+        }
+
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+
+    const handleSalaryChange = (field: string, value: string) => {
+
         setErrors((prev: any) => ({
             ...prev,
-            [name]: ''
+            [field]: ''
         }));
-    }
 
-    setFormData(prev => ({ ...prev, [name]: value }));
-};
-
-
-  const handleSalaryChange = (field: string, value: string) => {
-
-    setErrors((prev: any) => ({
-        ...prev,
-        [field]: ''
-    }));
-
-    setFormData((prev: any) => ({
-        ...prev,
-        salary: {
-            ...prev.salary,
-            [field]: value.replace(/\D/g, ''),
-        },
-    }));
-};
+        setFormData((prev: any) => ({
+            ...prev,
+            salary: {
+                ...prev.salary,
+                [field]: value.replace(/\D/g, ''),
+            },
+        }));
+    };
 
     const handleNext = async () => {
         // STEP 1 VALIDATION
-           if (currentStep === 1) {
+        if (currentStep === 1) {
 
-           const newErrors: any = {};
+            const newErrors: any = {};
 
-if (!formData.firstName) {
-    newErrors.firstName = 'First name is required';
-}
+            if (!formData.firstName) {
+                newErrors.firstName = 'First name is required';
+            }
 
-if (!formData.lastName) {
-    newErrors.lastName = 'Last name is required';
-}
+            if (!formData.lastName) {
+                newErrors.lastName = 'Last name is required';
+            }
 
-if (!formData.email) {
-    newErrors.email = 'Email is required';
-} else {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!formData.email) {
+                newErrors.email = 'Email is required';
+            } else {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (!emailRegex.test(formData.email)) {
-        newErrors.email = 'Please enter a valid email address';
-    }
-}
+                if (!emailRegex.test(formData.email)) {
+                    newErrors.email = 'Please enter a valid email address';
+                }
+            }
 
-if (!formData.phone) {
-    newErrors.phone = 'Phone number is required';
-} else if (!/^\d{10}$/.test(formData.phone)) {
-    newErrors.phone = 'Enter valid 10 digit phone number';
-}
+            if (!formData.phone) {
+                newErrors.phone = 'Phone number is required';
+            } else if (!/^\d{10}$/.test(formData.phone)) {
+                newErrors.phone = 'Enter valid 10 digit phone number';
+            }
 
-if (!formData.departmentId) {
-    newErrors.departmentId = 'Select department';
-}
+            if (!formData.departmentId) {
+                newErrors.departmentId = 'Select department';
+            }
 
-if (!formData.roleId) {
-    newErrors.roleId = 'Select role';
-}
+            if (!formData.roleId) {
+                newErrors.roleId = 'Select role';
+            }
 
-if (!formData.designationId) {
-    newErrors.designationId = 'Select designation';
-}
+            if (!formData.designationId) {
+                newErrors.designationId = 'Select designation';
+            }
 
-if (!formData.bloodGroup) {
-    newErrors.bloodGroup = 'Select blood group';
-}
+            if (!formData.bloodGroup) {
+                newErrors.bloodGroup = 'Select blood group';
+            }
 
-if (!formData.address.trim()) {
-    newErrors.address = 'Enter address';
-}
+            if (!formData.address.trim()) {
+                newErrors.address = 'Enter address';
+            }
 
-setErrors(newErrors);
+            setErrors(newErrors);
 
-if (Object.keys(newErrors).length > 0) {
-    return;
-}
+            if (Object.keys(newErrors).length > 0) {
+                return;
+            }
         }
 
 
         if (currentStep === 2) {
             const newErrors: any = {};
 
-           const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+            const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
 
-if (!formData.pan) {
-    newErrors.pan = 'PAN is required';
-} 
-else if (!panRegex.test(formData.pan.trim().toUpperCase())) {
-    newErrors.pan = 'Invalid PAN format';
-}
+            if (!formData.pan) {
+                newErrors.pan = 'PAN is required';
+            }
+            else if (!panRegex.test(formData.pan.trim().toUpperCase())) {
+                newErrors.pan = 'Invalid PAN format';
+            }
 
-           if (!formData.aadhaar) {
-    newErrors.aadhaar = 'Aadhaar is required';
-}
-else if (!/^\d{12}$/.test(formData.aadhaar)) {
-    newErrors.aadhaar = 'Aadhaar must be 12 digits';
-}
+            if (!formData.aadhaar) {
+                newErrors.aadhaar = 'Aadhaar is required';
+            }
+            else if (!/^\d{12}$/.test(formData.aadhaar)) {
+                newErrors.aadhaar = 'Aadhaar must be 12 digits';
+            }
 
             const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
             if (!formData.ifsc) {
                 newErrors.ifsc = 'IFSC is required';
-                
+
             }
             if (!ifscRegex.test(formData.ifsc.trim().toUpperCase())) {
-               newErrors.ifsc = 'Invalid IFSC format';
-                
+                newErrors.ifsc = 'Invalid IFSC format';
+
             }
 
-                      if (!formData.accountNumber) {
-    newErrors.accountNumber = 'Account Number is required';
-} else if (!/^\d{9,18}$/.test(formData.accountNumber)) {
-    newErrors.accountNumber = 'Account Number must be 9–18 digits';
-}
-           
+            if (!formData.accountNumber) {
+                newErrors.accountNumber = 'Account Number is required';
+            } else if (!/^\d{9,18}$/.test(formData.accountNumber)) {
+                newErrors.accountNumber = 'Account Number must be 9–18 digits';
+            }
+
 
 
             if (!formData.uan) {
-    newErrors.uan = 'UAN is required';
-}
-else if (!/^\d{12}$/.test(formData.uan)) {
-    newErrors.uan = 'UAN must be 12 digits';
-}
+                newErrors.uan = 'UAN is required';
+            }
+            else if (!/^\d{12}$/.test(formData.uan)) {
+                newErrors.uan = 'UAN must be 12 digits';
+            }
 
-           if (!formData.esic) {
-    newErrors.esic = 'ESIC is required';
-}
-else if (!/^\d{17}$/.test(formData.esic)) {
-    newErrors.esic = 'ESIC must be 17 digits';
-}
-         const bankName = formData.bankName.trim();
+            if (!formData.esic) {
+                newErrors.esic = 'ESIC is required';
+            }
+            else if (!/^\d{17}$/.test(formData.esic)) {
+                newErrors.esic = 'ESIC must be 17 digits';
+            }
+            const bankName = formData.bankName.trim();
 
-if (!bankName) {
-    newErrors.bankName = 'Bank Name is required';
-} else if (!/^[A-Za-z\s]{2,50}$/.test(bankName)) {
-    newErrors.bankName = 'Bank Name must contain only letters';
-}
-setErrors(newErrors);
+            if (!bankName) {
+                newErrors.bankName = 'Bank Name is required';
+            } else if (!/^[A-Za-z\s]{2,50}$/.test(bankName)) {
+                newErrors.bankName = 'Bank Name must contain only letters';
+            }
+            setErrors(newErrors);
 
-if (Object.keys(newErrors).length > 0) {
-    return;
-}
+            if (Object.keys(newErrors).length > 0) {
+                return;
+            }
         }
         // STEP 3 VALIDATION
-              if (currentStep === 3) {
+        if (currentStep === 3) {
 
-    const newErrors: any = {};
+            const newErrors: any = {};
 
-    const salary = formData.salary;
+            const salary = formData.salary;
 
-    if (salary.basic === '') {
-        newErrors.basic = 'Basic salary is required';
-    }
+            if (salary.basic === '') {
+                newErrors.basic = 'Basic salary is required';
+            }
 
-    if (salary.hra === '') {
-        newErrors.hra = 'HRA is required';
-    }
+            if (salary.hra === '') {
+                newErrors.hra = 'HRA is required';
+            }
 
-    if (salary.special === '') {
-        newErrors.special = 'Special Allowance is required';
-    }
+            if (salary.special === '') {
+                newErrors.special = 'Special Allowance is required';
+            }
 
-    if (salary.medical === '') {
-        newErrors.medical = 'Medical amount is required';
-    }
+            if (salary.medical === '') {
+                newErrors.medical = 'Medical amount is required';
+            }
 
-    if (salary.pf === '') {
-        newErrors.pf = 'PF amount is required';
-    }
+            if (salary.pf === '') {
+                newErrors.pf = 'PF amount is required';
+            }
 
-    if (salary.pt === '') {
-        newErrors.pt = 'PT amount is required';
-    }
+            if (salary.pt === '') {
+                newErrors.pt = 'PT amount is required';
+            }
 
-    if (salary.tax === '') {
-        newErrors.tax = 'Tax / TDS amount is required';
-    }
+            if (salary.tax === '') {
+                newErrors.tax = 'Tax / TDS amount is required';
+            }
 
-    setErrors(newErrors);
+            setErrors(newErrors);
 
-    if (Object.keys(newErrors).length > 0) {
-        return;
-    }
-}
+            if (Object.keys(newErrors).length > 0) {
+                return;
+            }
+        }
 
         // STEP 4 VALIDATION
         if (currentStep === 4) {
@@ -288,32 +289,33 @@ if (Object.keys(newErrors).length > 0) {
         } else {
             setLoading(true);
             try {
+                // Keep original submissionData exactly untouched
                 const submissionData = {
-    ...formData,
-    name: `${formData.firstName} ${formData.lastName}`.trim(),
-};
+                    ...formData,
+                    name: `${formData.firstName} ${formData.lastName}`.trim(),
+                };
 
-const form = new FormData();
+                const form = new FormData();
 
-form.append("data", JSON.stringify(submissionData));
+                form.append("data", JSON.stringify(submissionData));
 
-if (documents.aadhaar) {
-    form.append("aadhaar", documents.aadhaar);
-}
+                if (documents.aadhaar) {
+                    form.append("aadhaar", documents.aadhaar);
+                }
 
-if (documents.pan) {
-    form.append("pan", documents.pan);
-}
+                if (documents.pan) {
+                    form.append("pan", documents.pan);
+                }
 
-if (documents.degree) {
-    form.append("degree", documents.degree);
-}
+                if (documents.degree) {
+                    form.append("degree", documents.degree);
+                }
 
-await api.post('/employee', form, {
-    headers: {
-        "Content-Type": "multipart/form-data",
-    },
-});
+                await api.post('/employee', form, {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                    },
+                });
                 toast.success('Employee Onboarded Successfully!');
                 navigate('/employee');
             } catch (error: any) {
@@ -392,10 +394,10 @@ await api.post('/employee', form, {
                                     className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                     placeholder="First"
                                 />{errors.firstName && (
-    <p className="text-red-500 text-xs ml-1">
-        {errors.firstName}
-    </p>
-)}
+                                    <p className="text-red-500 text-xs ml-1">
+                                        {errors.firstName}
+                                    </p>
+                                )}
                             </div>
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Last Name </label>
@@ -419,13 +421,13 @@ await api.post('/employee', form, {
                                     type="email"
                                     className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                     placeholder="Enter your email"
-                                    
+
                                 />
                                 {errors.email && (
-    <p className="text-red-500 text-xs ml-1">
-        {errors.email}
-    </p>
-)}
+                                    <p className="text-red-500 text-xs ml-1">
+                                        {errors.email}
+                                    </p>
+                                )}
                             </div>
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Phone Number *</label>
@@ -433,19 +435,19 @@ await api.post('/employee', form, {
                                     autoComplete="off"
                                     name="phone"
                                     value={formData.phone}
-                                   onChange={(e) => {
-    const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                    onChange={(e) => {
+                                        const value = e.target.value.replace(/\D/g, '').slice(0, 10);
 
-    setFormData(prev => ({
-        ...prev,
-        phone: value
-    }));
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            phone: value
+                                        }));
 
-    setErrors((prev: any) => ({
-        ...prev,
-        phone: ''
-    }));
-}}
+                                        setErrors((prev: any) => ({
+                                            ...prev,
+                                            phone: ''
+                                        }));
+                                    }}
                                     type="tel"
                                     className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                     placeholder="+91 "
@@ -471,10 +473,10 @@ await api.post('/employee', form, {
                                     </div>
                                 </div>
                                 {errors.bloodGroup && (
-    <p className="text-red-500 text-xs ml-1">
-        {errors.bloodGroup}
-    </p>
-)}
+                                    <p className="text-red-500 text-xs ml-1">
+                                        {errors.bloodGroup}
+                                    </p>
+                                )}
                             </div>
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Date of Birth *</label>
@@ -504,17 +506,17 @@ await api.post('/employee', form, {
                                     <select
                                         name="departmentId"
                                         value={formData.departmentId}
-                                       onChange={(e) => {
-    const id = e.target.value;
-    const name = masters.departments.find(d => d.id === id)?.name || '';
+                                        onChange={(e) => {
+                                            const id = e.target.value;
+                                            const name = masters.departments.find(d => d.id === id)?.name || '';
 
-    setFormData({ ...formData, departmentId: id, department: name });
+                                            setFormData({ ...formData, departmentId: id, department: name });
 
-    setErrors((prev: any) => ({
-        ...prev,
-        departmentId: ''
-    }));
-}}
+                                            setErrors((prev: any) => ({
+                                                ...prev,
+                                                departmentId: ''
+                                            }));
+                                        }}
                                         className="appearance-none w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
                                     >
                                         <option value="" className="dark:bg-brand-900">Select Department</option>
@@ -527,10 +529,10 @@ await api.post('/employee', form, {
                                     </div>
                                 </div>
                                 {errors.departmentId && (
-    <p className="text-red-500 text-xs ml-1">
-        {errors.departmentId}
-    </p>
-)}
+                                    <p className="text-red-500 text-xs ml-1">
+                                        {errors.departmentId}
+                                    </p>
+                                )}
                             </div>
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">System Role *</label>
@@ -538,17 +540,17 @@ await api.post('/employee', form, {
                                     <select
                                         name="roleId"
                                         value={formData.roleId}
-                                       onChange={(e) => {
-    const id = e.target.value;
-    const name = masters.roles.find(r => r.id === id)?.name || '';
+                                        onChange={(e) => {
+                                            const id = e.target.value;
+                                            const name = masters.roles.find(r => r.id === id)?.name || '';
 
-    setFormData({ ...formData, roleId: id, role: name });
+                                            setFormData({ ...formData, roleId: id, role: name });
 
-    setErrors((prev: any) => ({
-        ...prev,
-        roleId: ''
-    }));
-}}
+                                            setErrors((prev: any) => ({
+                                                ...prev,
+                                                roleId: ''
+                                            }));
+                                        }}
                                         className="appearance-none w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
                                     >
                                         <option value="" className="dark:bg-brand-900">Select Role</option>
@@ -561,10 +563,10 @@ await api.post('/employee', form, {
                                     </div>
                                 </div>
                                 {errors.roleId && (
-    <p className="text-red-500 text-xs ml-1">
-        {errors.roleId}
-    </p>
-)}
+                                    <p className="text-red-500 text-xs ml-1">
+                                        {errors.roleId}
+                                    </p>
+                                )}
                             </div>
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Designation / Title *</label>
@@ -572,17 +574,17 @@ await api.post('/employee', form, {
                                     <select
                                         name="designationId"
                                         value={formData.designationId}
-                                       onChange={(e) => {
-    const id = e.target.value;
-    const name = masters.designations.find(d => d.id === id)?.name || '';
+                                        onChange={(e) => {
+                                            const id = e.target.value;
+                                            const name = masters.designations.find(d => d.id === id)?.name || '';
 
-    setFormData({ ...formData, designationId: id, title: name });
+                                            setFormData({ ...formData, designationId: id, title: name });
 
-    setErrors((prev: any) => ({
-        ...prev,
-        designationId: ''
-    }));
-}}
+                                            setErrors((prev: any) => ({
+                                                ...prev,
+                                                designationId: ''
+                                            }));
+                                        }}
                                         className="appearance-none w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
                                     >
                                         <option value="" className="dark:bg-brand-900">Select Designation</option>
@@ -595,10 +597,10 @@ await api.post('/employee', form, {
                                     </div>
                                 </div>
                                 {errors.designationId && (
-    <p className="text-red-500 text-xs ml-1">
-        {errors.designationId}
-    </p>
-)}
+                                    <p className="text-red-500 text-xs ml-1">
+                                        {errors.designationId}
+                                    </p>
+                                )}
                             </div>
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Residential Address *</label>
@@ -614,10 +616,10 @@ await api.post('/employee', form, {
                                     />
                                 </div>
                                 {errors.address && (
-    <p className="text-red-500 text-xs ml-1">
-        {errors.address}
-    </p>
-)}
+                                    <p className="text-red-500 text-xs ml-1">
+                                        {errors.address}
+                                    </p>
+                                )}
                             </div>
                         </div>
                     )}
@@ -633,17 +635,17 @@ await api.post('/employee', form, {
                                             autoComplete="off"
                                             name="pan"
                                             value={formData.pan}
-                                           onChange={(e) => {
-    setFormData({
-        ...formData,
-        pan: e.target.value.toUpperCase()
-    });
+                                            onChange={(e) => {
+                                                setFormData({
+                                                    ...formData,
+                                                    pan: e.target.value.toUpperCase()
+                                                });
 
-    setErrors((prev: any) => ({
-        ...prev,
-        pan: ''
-    }));
-}}
+                                                setErrors((prev: any) => ({
+                                                    ...prev,
+                                                    pan: ''
+                                                }));
+                                            }}
                                             type="text"
                                             className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                             placeholder="E.g. ABCDE1234F"
@@ -656,18 +658,18 @@ await api.post('/employee', form, {
                                             autoComplete="off"
                                             name="aadhaar"
                                             value={formData.aadhaar}
-                                           onChange={(e) => {
-    const value = e.target.value.replace(/\D/g, '').slice(0, 12);
+                                            onChange={(e) => {
+                                                const value = e.target.value.replace(/\D/g, '').slice(0, 12);
 
-    setFormData({
-        ...formData,
-        aadhaar: value
-    });
-    setErrors((prev: any) => ({
-    ...prev,
-    aadhaar: ''
-}));
-}}
+                                                setFormData({
+                                                    ...formData,
+                                                    aadhaar: value
+                                                });
+                                                setErrors((prev: any) => ({
+                                                    ...prev,
+                                                    aadhaar: ''
+                                                }));
+                                            }}
                                             type="text"
                                             className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                             placeholder="XXXX XXXX XXXX"
@@ -682,17 +684,17 @@ await api.post('/employee', form, {
                                             name="uan"
                                             value={formData.uan}
                                             onChange={(e) => {
-    const value = e.target.value.replace(/\D/g, '').slice(0, 12);
+                                                const value = e.target.value.replace(/\D/g, '').slice(0, 12);
 
-    setFormData({
-        ...formData,
-        uan: value
-    });
-    setErrors((prev: any) => ({
-        ...prev,
-        uan: ''
-    }));
-}}
+                                                setFormData({
+                                                    ...formData,
+                                                    uan: value
+                                                });
+                                                setErrors((prev: any) => ({
+                                                    ...prev,
+                                                    uan: ''
+                                                }));
+                                            }}
                                             type="text"
                                             className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                             placeholder="Enter 12-digit UAN number"
@@ -706,17 +708,17 @@ await api.post('/employee', form, {
                                             name="esic"
                                             value={formData.esic}
                                             onChange={(e) => {
-    const value = e.target.value.replace(/\D/g, '').slice(0, 17);
+                                                const value = e.target.value.replace(/\D/g, '').slice(0, 17);
 
-    setFormData({
-        ...formData,
-        esic: value
-    });
-    setErrors((prev: any) => ({
-    ...prev,
-    esic: ''
-}));
-}}
+                                                setFormData({
+                                                    ...formData,
+                                                    esic: value
+                                                });
+                                                setErrors((prev: any) => ({
+                                                    ...prev,
+                                                    esic: ''
+                                                }));
+                                            }}
                                             type="text"
                                             className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                             placeholder="Enter 17-digit ESIC number "
@@ -765,18 +767,18 @@ await api.post('/employee', form, {
                                             autoComplete="off"
                                             value={formData.accountNumber}
                                             onChange={(e) => {
-    const value = e.target.value.replace(/\D/g, "");
+                                                const value = e.target.value.replace(/\D/g, "");
 
-    setFormData({
-        ...formData,
-        accountNumber: value
-    });
+                                                setFormData({
+                                                    ...formData,
+                                                    accountNumber: value
+                                                });
 
-    setErrors((prev: any) => ({
-        ...prev,
-        accountNumber: ''
-    }));
-}}
+                                                setErrors((prev: any) => ({
+                                                    ...prev,
+                                                    accountNumber: ''
+                                                }));
+                                            }}
                                             className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
 
                                             placeholder="Enter 9-18 digit account number"
@@ -816,16 +818,16 @@ await api.post('/employee', form, {
                                             onChange={(e) => handleSalaryChange(field.key, e.target.value)}
                                             className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                             placeholder={
-    field.key === 'basic'
-        ? 'Enter Basic Salary'
-        : `Enter ${field.label} Amount (Enter 0 if none)`
-}
+                                                field.key === 'basic'
+                                                    ? 'Enter Basic Salary'
+                                                    : `Enter ${field.label} Amount (Enter 0 if none)`
+                                            }
                                         />
-                                             {errors[field.key] && (
-    <p className="text-red-500 text-xs ml-1">
-        {errors[field.key]}
-    </p>
-)}
+                                        {errors[field.key] && (
+                                            <p className="text-red-500 text-xs ml-1">
+                                                {errors[field.key]}
+                                            </p>
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -844,14 +846,14 @@ await api.post('/employee', form, {
                                     <div
                                         key={i}
                                         onClick={() => document.getElementById(`fileInput-${doc.key}`)?.click()}
-                                        className={`flex items-center justify-between p-4 cursor-pointer border rounded-2xl transition-all ${documents[doc.key] 
-                                            ? 'border-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10' 
+                                        className={`flex items-center justify-between p-4 cursor-pointer border rounded-2xl transition-all ${documents[doc.key]
+                                            ? 'border-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10'
                                             : 'border-gray-200 dark:border-white/10 hover:border-brand-500 dark:hover:border-brand-500 bg-gray-50 dark:bg-white/5 hover:scale-[1.01] shadow-sm'
                                             }`}
                                     >
                                         <div className="flex items-center gap-4">
-                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${documents[doc.key] 
-                                                ? 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400' 
+                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${documents[doc.key]
+                                                ? 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
                                                 : 'bg-gray-100 dark:bg-white/10 text-gray-400'
                                                 }`}>
                                                 <FileText size={24} />
@@ -865,7 +867,7 @@ await api.post('/employee', form, {
                                                 </p>
                                             </div>
                                         </div>
-                                        
+
                                         <div className="flex items-center gap-3">
                                             {documents[doc.key] ? (
                                                 <button
@@ -892,6 +894,20 @@ await api.post('/employee', form, {
                                             onChange={(e) => {
                                                 const file = e.target.files?.[0];
                                                 if (file) {
+                                                    // Check if this file is already selected for another slot
+                                                    const isDuplicate = Object.entries(documents).some(([key, val]) => {
+                                                        if (key !== doc.key && val) {
+                                                            return val.name === file.name && val.size === file.size;
+                                                        }
+                                                        return false;
+                                                    });
+
+                                                    if (isDuplicate) {
+                                                        toast.error(`This file has already been uploaded Please select a unique document.`);
+                                                        e.target.value = '';
+                                                        return;
+                                                    }
+
                                                     setDocuments(prev => ({
                                                         ...prev,
                                                         [doc.key]: file

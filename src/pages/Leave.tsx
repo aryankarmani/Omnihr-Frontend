@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { createPortal } from 'react-dom';
+import { getTeams } from '../utils/teamApi';
 
 export default function Leave() {
     const { user } = useAuth();
@@ -52,7 +53,29 @@ export default function Leave() {
     const [submitting, setSubmitting] = useState(false);
     const [selectedLeaveForReason, setSelectedLeaveForReason] = useState<any | null>(null);
 
+    const [teamMemberIds, setTeamMemberIds] = useState<number[]>([]);
     const isHrAdmin = user?.role === 'HR_ADMIN';
+    const isManager = user?.role === 'MANAGER';
+    const canSeeApprovals = isHrAdmin || isManager;
+
+    useEffect(() => {
+        const fetchManagerTeam = async () => {
+            if (user?.role === 'MANAGER') {
+                try {
+                    const res = await getTeams();
+                    const teams = res.data || [];
+                    const myTeam = teams.find((t: any) => t.managerId === user.id || t.manager?.id === user.id);
+                    if (myTeam) {
+                        const ids = myTeam.members.map((m: any) => m.id);
+                        setTeamMemberIds(ids);
+                    }
+                } catch (e) {
+                    console.error("Failed to load manager's team in Leave", e);
+                }
+            }
+        };
+        fetchManagerTeam();
+    }, [user]);
 
     const fetchData = async () => {
         setLoading(true);
@@ -63,7 +86,7 @@ export default function Leave() {
                 api.get('/masters/holidays')
             ];
 
-            if (isHrAdmin) {
+            if (canSeeApprovals) {
                 requests.push(api.get('/leave/history?all=true'));
             }
 
@@ -84,7 +107,7 @@ export default function Leave() {
 
     useEffect(() => {
         fetchData();
-    }, [isHrAdmin]);
+    }, [canSeeApprovals]);
 
     const handleApplyLeave = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -138,6 +161,10 @@ export default function Leave() {
 
     // Filter Logic for Approvals
     const filteredLeaves = allLeaves.filter(l => {
+        if (user?.role === 'MANAGER' && !teamMemberIds.includes(l.user?.id)) {
+            return false;
+        }
+
         const matchesName = !appliedFilters.name ||
             l.user?.name.toLowerCase().includes(appliedFilters.name.toLowerCase());
         const matchesType = appliedFilters.leaveType === 'All' ||
@@ -319,7 +346,7 @@ export default function Leave() {
                                     <div>
                                         <h3 className="text-gray-800 dark:text-white text-sm font-bold uppercase opacity-90">{bal.name}</h3>
                                         <div className="mt-2 flex items-baseline gap-1">
-                                          <span className="text-4xl font-bold text-gray-400 dark:text-white">{bal.balance}</span>
+                                            <span className="text-4xl font-bold text-gray-400 dark:text-white">{bal.balance}</span>
                                             <span className="text-gray-500 dark:text-white/80 text-sm">/ {bal.total}</span>
                                         </div>
                                     </div>
@@ -508,13 +535,13 @@ export default function Leave() {
                                             <td className="py-5 px-4 text-sm text-gray-600 dark:text-gray-400">
                                                 {new Date(l.startDate).toLocaleDateString()} - {new Date(l.endDate).toLocaleDateString()}
                                             </td>
-                                            <td 
-                                                 onClick={() => setSelectedLeaveForReason(l)}
-                                                 className="py-5 px-4 text-sm text-gray-600 dark:text-gray-400 max-w-xs truncate italic cursor-pointer hover:text-brand-500 hover:underline transition-all"
-                                                 title="Click to view full reason"
-                                             >
-                                                 "{l.reason}"
-                                             </td>
+                                            <td
+                                                onClick={() => setSelectedLeaveForReason(l)}
+                                                className="py-5 px-4 text-sm text-gray-600 dark:text-gray-400 max-w-xs truncate italic cursor-pointer hover:text-brand-500 hover:underline transition-all"
+                                                title="Click to view full reason"
+                                            >
+                                                "{l.reason}"
+                                            </td>
                                             <td className="py-5 px-4">
                                                 <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm ${l.status === 'APPROVED'
                                                     ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
@@ -836,7 +863,7 @@ className="px-5 py-2 bg-brand-800 hover:bg-brand-900 border border-brand-700 rou
                                 <XCircle size={20} />
                             </button>
                         </div>
-                        
+
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Employee Name</label>
@@ -844,7 +871,7 @@ className="px-5 py-2 bg-brand-800 hover:bg-brand-900 border border-brand-700 rou
                                     {selectedLeaveForReason.user?.name}
                                 </div>
                             </div>
-                            
+
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Leave Type</label>

@@ -12,6 +12,12 @@ api.interceptors.request.use(
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
+        // TENANT ID
+        const tenantId = sessionStorage.getItem('tenantId');
+
+        if (tenantId) {
+            config.headers['x-tenant-id'] = tenantId;
+        }
         return config;
     },
     (error) => {
@@ -28,6 +34,7 @@ api.interceptors.response.use(
 
         if (
             error.response?.status === 401 &&
+            !originalRequest.url?.includes('/auth/login') &&
             !originalRequest._retry &&
             !isRefreshing
         ) {
@@ -48,14 +55,24 @@ api.interceptors.response.use(
 
                 const newToken = res.data.token;
 
+
                 sessionStorage.setItem('token', newToken);
 
                 originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                // IMPORTANT FIX
+                const tenantId =
+                    sessionStorage.getItem('tenantId');
+
+                if (tenantId) {
+                    originalRequest.headers['x-tenant-id'] =
+                        tenantId;
+                }
 
                 return api(originalRequest);
             } catch (refreshError) {
                 sessionStorage.removeItem('token');
                 sessionStorage.removeItem('refreshToken');
+                sessionStorage.removeItem('tenantId');
 
                 window.location.href = '/signin';
 
