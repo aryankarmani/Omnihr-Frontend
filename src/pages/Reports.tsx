@@ -9,6 +9,8 @@ export default function Reports() {
     const [attendanceData, setAttendanceData] = useState<any[]>([]);
     const [payrollData, setPayrollData] = useState<any[]>([]);
     const [stats, setStats] = useState<any>({});
+    const [period, setPeriod] = useState('monthly');
+  
     const downloadFile = async (
         endpoint: string,
         filename: string
