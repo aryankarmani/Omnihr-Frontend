@@ -454,11 +454,14 @@ export default function Leave() {
                     </div>
                 </div>
             ) : (
-                <div className="bg-white dark:bg-brand-900 rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100 dark:border-white/5 min-h-[400px]">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-                        <h3 className="text-xl font-bold text-gray-800 dark:text-white">Leave Requests Overview</h3>
+                <div className="bg-white dark:bg-brand-900 rounded-3xl p-4 md:p-8 shadow-sm border border-gray-100 dark:border-white/5 min-h-[400px] w-full max-w-full overflow-hidden">
+                            <div className="overflow-x-auto max-w-full">
 
-                        <div className="flex items-center gap-3 w-full md:w-auto">
+                        <div className="min-w-[850px] flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                        <h3 className="text-xl font-bold text-gray-800 dark:text-white">Leave Requests Overview</h3>
+                             
+
+                       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
                             <div className="relative flex-1 md:w-64">
                                 <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                                 <input
@@ -503,8 +506,8 @@ export default function Leave() {
                         </div>
                     </div>
 
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
+                    
+                       <table className="w-full min-w-[850px] text-left border-collapse">
                             <thead>
                                 <tr className="border-b border-gray-50 dark:border-white/5">
                                     <th className="py-4 px-4 text-xs font-bold text-gray-400 uppercase">Employee</th>
@@ -605,7 +608,7 @@ className="px-5 py-2 bg-brand-800 hover:bg-brand-900 border border-brand-700 rou
             <button
                 onClick={() => setCurrentPage(1)}
                 disabled={currentPage === 1}
-                className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-500 disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
+                className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
             >
                 «
             </button>
@@ -613,7 +616,7 @@ className="px-5 py-2 bg-brand-800 hover:bg-brand-900 border border-brand-700 rou
             <button
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-500 disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
+                className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
             >
                 ‹
             </button>
@@ -621,7 +624,7 @@ className="px-5 py-2 bg-brand-800 hover:bg-brand-900 border border-brand-700 rou
             <button
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages || totalPages === 0}
-                className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-500 disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
+                className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
             >
                 ›
             </button>
@@ -629,7 +632,7 @@ className="px-5 py-2 bg-brand-800 hover:bg-brand-900 border border-brand-700 rou
             <button
                 onClick={() => setCurrentPage(totalPages)}
                 disabled={currentPage === totalPages || totalPages === 0}
-                className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-500 disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
+                className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
             >
                 »
             </button>
