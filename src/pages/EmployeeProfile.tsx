@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useRBAC } from '../hooks/useRBAC';
-import { ArrowLeft, User, FileText, CreditCard, Download, Upload, Briefcase, Save, X, Edit, Printer, Loader2, Eye, Trash2 } from 'lucide-react';
+import { ArrowLeft, User, FileText, CreditCard, Download, Briefcase, Save, X, Edit, Printer, Loader2, Eye, Trash2, Upload } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import toast from 'react-hot-toast';
@@ -352,16 +352,6 @@ export default function EmployeeProfile() {
         }
     };
 
-    const handleDownload = (doc: any) => {
-        if (doc.url) {
-            // Build the full URL (backend is on port 3001)
-            const baseUrl = 'http://localhost:3001';
-            const fullUrl = doc.url.startsWith('http') ? doc.url : (doc.url.startsWith('/uploads/') ? `${baseUrl}${doc.url}` : `${baseUrl}/uploads/${doc.url}`);
-            window.open(fullUrl, '_blank');
-        } else {
-            toast.error('Download link not available');
-        }
-    };
 
     if (loading) {
         return (
@@ -626,7 +616,7 @@ export default function EmployeeProfile() {
                                                     </p>
 
                                                     <p className={`text-sm ${savedDoc ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`}>
-                                                        {savedDoc ? 'Document uploaded' : 'No document uploaded'}
+                                                        {savedDoc ? (savedDoc.originalName || 'Document uploaded') : 'No document uploaded'}
                                                     </p>
                                                 </div>
                                             </div>
@@ -667,19 +657,12 @@ export default function EmployeeProfile() {
                                                 {isEditing && savedDoc && (
                                                     <button
                                                         type="button"
-                                                        onClick={async (e) => {
+                                                        onClick={(e) => {
                                                             e.preventDefault();
                                                             e.stopPropagation();
-                                                            if (savedDoc?.id) {
-                                                                toast.loading(`Deleting ${doc.name}...`, { id: 'deleting-toast' });
-                                                                try {
-                                                                    await api.delete(`/employee/${employee.id}/documents/${savedDoc.id}`);
-                                                                    toast.success(`${doc.name} deleted successfully!`, { id: 'deleting-toast' });
-                                                                    fetchEmployee();
-                                                                } catch (err) {
-                                                                    console.error("Delete failed", err);
-                                                                    toast.error(`Failed to delete ${doc.name}`, { id: 'deleting-toast' });
-                                                                }
+                                                            const docIndex = profile.documents?.findIndex((d: any) => d.id === savedDoc.id);
+                                                            if (docIndex !== -1 && docIndex !== undefined) {
+                                                                setDocToDelete(docIndex);
                                                             }
                                                         }}
                                                         className="w-10 h-10 rounded-full flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white cursor-pointer ml-1"
@@ -1567,6 +1550,7 @@ export default function EmployeeProfile() {
                                             }));
                                             setDocToDelete(null);
                                             toast.success('Document deleted from server');
+                                            fetchEmployee();
                                         } catch (error) {
                                             console.error('Delete error:', error);
                                             toast.error('Failed to delete document from server');

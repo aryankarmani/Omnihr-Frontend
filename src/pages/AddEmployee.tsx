@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
@@ -74,6 +75,7 @@ export default function AddEmployee() {
         degree: null,
     });
     const [confirmDeleteDoc, setConfirmDeleteDoc] = useState<string | null>(null);
+    
     const [errors, setErrors] = useState<any>({});
     const steps = [
         { id: 1, title: 'Personal Details', icon: User },

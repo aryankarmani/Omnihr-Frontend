@@ -56,6 +56,8 @@ export default function EmployeeList() {
 
     // Employee State
     const [employees, setEmployees] = useState<any[]>([]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
 
     useEffect(() => {
         const fetchEmployees = async () => {
@@ -142,6 +144,12 @@ export default function EmployeeList() {
             (appliedFilters.status === 'All' || (profile.status || 'Active') === appliedFilters.status)
         );
     });
+       const totalPages = Math.ceil(filteredEmployees.length / rowsPerPage);
+
+const paginatedEmployees = filteredEmployees.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
+);
 
     const handleViewProfile = (id: number) => {
         navigate(`/employee/${id}`);
@@ -266,6 +274,7 @@ export default function EmployeeList() {
                             const val = e.target.value;
                             setFilters({ ...filters, name: val });
                             setAppliedFilters({ ...appliedFilters, name: val });
+                            setCurrentPage(1);
                         }}
                         className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-gray-800 dark:text-white"
                     />
@@ -299,6 +308,8 @@ export default function EmployeeList() {
                                 const val = e.target.value;
                                 setFilters({ ...filters, status: val });
                                 setAppliedFilters({ ...appliedFilters, status: val });
+                                    setCurrentPage(1);
+
                             }}
                             className="appearance-none px-5 py-2.5 bg-brand-600 dark:bg-brand-600/20 border-2 border-brand-500/50 rounded-2xl text-white font-bold cursor-pointer transition-all hover:bg-brand-700 hover:border-brand-400 shadow-lg shadow-brand-500/20 focus:ring-4 focus:ring-brand-500/20 outline-none w-52 pr-10"
                         >
@@ -336,8 +347,7 @@ export default function EmployeeList() {
             ) : (
                 viewMode === 'grid' ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {filteredEmployees.map((emp, index) => {
-                            const profile = emp.employeeProfile || {};
+                {paginatedEmployees.map((emp, index) => {                            const profile = emp.employeeProfile || {};
                             const status = profile.status || 'Active';
                             // Generate color based on index or name hash
                             const colors = ['bg-blue-500', 'bg-purple-500', 'bg-orange-500', 'bg-pink-500', 'bg-teal-500'];
@@ -416,8 +426,9 @@ export default function EmployeeList() {
                         })}
                     </div>
                 ) : (
-                    <div className="bg-white dark:bg-brand-900 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm overflow-hidden">
-                        <div className="overflow-x-auto">
+
+                            <div className="bg-white dark:bg-brand-900 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm overflow-hidden">
+                            <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
                                 <thead className="bg-gray-50 dark:bg-white/5">
                                     <tr>
@@ -429,7 +440,7 @@ export default function EmployeeList() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                                    {filteredEmployees.map((emp, index) => {
+                                    {paginatedEmployees.map((emp, index) => {
                                         const profile = emp.employeeProfile || {};
                                         const status = profile.status || 'Active';
                                         const colors = ['bg-blue-500', 'bg-purple-500', 'bg-orange-500', 'bg-pink-500', 'bg-teal-500'];
@@ -480,12 +491,75 @@ export default function EmployeeList() {
                                             </tr>
                                         );
                                     })}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                             </tbody>
+</table>
+</div>
+
+<div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-6 py-5 border-t border-gray-100 dark:border-white/5">
+    <div className="flex items-center gap-3">
+        <span className="text-xs font-bold text-gray-400 uppercase">
+            Rows per page
+        </span>
+
+        <select
+            value={rowsPerPage}
+            onChange={(e) => {
+                setRowsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+            }}
+            className="px-5 py-2 bg-brand-800 hover:bg-brand-900 border border-brand-700 rounded-xl text-white font-bold cursor-pointer"
+        >
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={20}>20</option>
+            <option value={50}>50</option>
+        </select>
+    </div>
+
+    <div className="flex items-center gap-4">
+        <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
+            Page {currentPage} of {totalPages || 1}
+        </span>
+
+        <div className="flex items-center gap-2">
+            <button
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+                className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-500 disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
+            >
+                «
+            </button>
+
+            <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-500 disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
+            >
+                ‹
+            </button>
+
+            <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-500 disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
+            >
+                ›
+            </button>
+
+            <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-500 disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
+            >
+                »
+            </button>
+        </div>
+    </div>
+</div>
+</div>
                 )
             )}
+          
 
             {selectedEmployeeForActions && (
                 <div className="fixed inset-0 z-10" onClick={() => setSelectedEmployeeForActions(null)} />
