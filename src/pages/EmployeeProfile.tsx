@@ -318,7 +318,7 @@ export default function EmployeeProfile() {
         try {
             for (const doc of otherDocs) {
                 const baseUrl = 'http://localhost:3001';
-                const fullUrl = doc.url.startsWith('http') ? doc.url : `${baseUrl}${doc.url}`;
+                const fullUrl = doc.url.startsWith('http') ? doc.url : (doc.url.startsWith('/uploads/') ? `${baseUrl}${doc.url}` : `${baseUrl}/uploads/${doc.url}`);
                 const res = await api.head(fullUrl);
                 const existingSize = parseInt((res.headers as any)['content-length'] || '0', 10);
                 if (existingSize === file.size) {
@@ -356,7 +356,7 @@ export default function EmployeeProfile() {
         if (doc.url) {
             // Build the full URL (backend is on port 3001)
             const baseUrl = 'http://localhost:3001';
-            const fullUrl = doc.url.startsWith('http') ? doc.url : `${baseUrl}${doc.url}`;
+            const fullUrl = doc.url.startsWith('http') ? doc.url : (doc.url.startsWith('/uploads/') ? `${baseUrl}${doc.url}` : `${baseUrl}/uploads/${doc.url}`);
             window.open(fullUrl, '_blank');
         } else {
             toast.error('Download link not available');
@@ -651,7 +651,7 @@ export default function EmployeeProfile() {
                                                         e.stopPropagation();
                                                         if (savedDoc?.url) {
                                                             const baseUrl = 'http://localhost:3001';
-                                                            const fullUrl = savedDoc.url.startsWith('http') ? savedDoc.url : `${baseUrl}${savedDoc.url}`;
+                                                            const fullUrl = savedDoc.url.startsWith('http') ? savedDoc.url : (savedDoc.url.startsWith('/uploads/') ? `${baseUrl}${savedDoc.url}` : `${baseUrl}/uploads/${savedDoc.url}`);
                                                             window.open(fullUrl, '_blank');
                                                         }
                                                     }}
