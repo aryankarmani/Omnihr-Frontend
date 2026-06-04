@@ -139,3 +139,11 @@
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(139, 92, 246, 0.8);
 }
+
+/* Remove outline/border highlight when clicking on charts */
+.recharts-wrapper:focus,
+.recharts-wrapper *:focus,
+.recharts-responsive-container:focus,
+svg:focus {
+  outline: none !important;
+}

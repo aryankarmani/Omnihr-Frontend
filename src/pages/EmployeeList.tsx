@@ -57,6 +57,12 @@ export default function EmployeeList() {
         localStorage.setItem('employeeViewMode', viewMode);
     }, [viewMode]);
 
+    useEffect(() => {
+        if (!isAdmin) {
+            setViewMode('list');
+        }
+    }, [isAdmin]);
+
     // Employee State
     const [employees, setEmployees] = useState<any[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
@@ -258,13 +264,15 @@ const paginatedEmployees = filteredEmployees.slice(
                         <FileText size={18} />
                         <span className="hidden md:inline">Export</span>
                     </button>
-                    <button
-                        onClick={() => navigate('/employee/add')}
-                        className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-xl hover:bg-brand-700 active:scale-95 transition-all shadow-lg shadow-brand-500/20"
-                    >
-                        <Plus size={18} />
-                        <span>Add Employee</span>
-                    </button>
+                    {isAdmin && (
+                        <button
+                            onClick={() => navigate('/employee/add')}
+                            className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-xl hover:bg-brand-700 active:scale-95 transition-all shadow-lg shadow-brand-500/20"
+                        >
+                            <Plus size={18} />
+                            <span>Add Employee</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -287,24 +295,26 @@ const paginatedEmployees = filteredEmployees.slice(
                 </div>
                 <div className="flex gap-3 w-full md:w-auto">
                     {/* View Toggle */}
-                    <div className="flex bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-1">
-                        <button
-                            onClick={() => setViewMode('grid')}
-                            className={`p-2 rounded-xl transition-all ${viewMode === 'grid'
-                                ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20'
-                                : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}
-                        >
-                            <LayoutGrid size={20} />
-                        </button>
-                        <button
-                            onClick={() => setViewMode('list')}
-                            className={`p-2 rounded-xl transition-all ${viewMode === 'list'
-                                ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20'
-                                : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}
-                        >
-                            <List size={20} />
-                        </button>
-                    </div>
+                    {isAdmin && (
+                        <div className="flex bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-1">
+                            <button
+                                onClick={() => setViewMode('grid')}
+                                className={`p-2 rounded-xl transition-all ${viewMode === 'grid'
+                                    ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20'
+                                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}
+                            >
+                                <LayoutGrid size={20} />
+                            </button>
+                            <button
+                                onClick={() => setViewMode('list')}
+                                className={`p-2 rounded-xl transition-all ${viewMode === 'list'
+                                    ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20'
+                                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}
+                            >
+                                <List size={20} />
+                            </button>
+                        </div>
+                    )}
 
                     {/* Custom Styled Dropdown - Separately implemented here */}
                     <div className="relative group/dropdown">
@@ -442,7 +452,9 @@ const paginatedEmployees = filteredEmployees.slice(
                                         <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Email Address</th>
                                         <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Role / Designation</th>
                                         <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Status</th>
-                                        <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest text-right">Actions</th>
+                                        {isAdmin && (
+                                            <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest text-right">Actions</th>
+                                        )}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 dark:divide-white/5">
@@ -484,16 +496,18 @@ const paginatedEmployees = filteredEmployees.slice(
                                                         {status}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <div className="relative inline-block">
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); setSelectedEmployeeForActions(emp); }}
-                                                            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-white/5"
-                                                        >
-                                                            <MoreVertical size={18} />
-                                                        </button>
-                                                    </div>
-                                                </td>
+                                                {isAdmin && (
+                                                    <td className="px-6 py-4 text-right">
+                                                        <div className="relative inline-block">
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); setSelectedEmployeeForActions(emp); }}
+                                                                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-white/5"
+                                                            >
+                                                                <MoreVertical size={18} />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                )}
                                             </tr>
                                         );
                                     })}
