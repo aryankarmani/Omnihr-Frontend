@@ -17,6 +17,7 @@ export function useRBAC() {
         hasPermission,
         role: user?.role,
         isAdmin: user?.role === 'HR_ADMIN',
-        isManager: user?.role === 'MANAGER' || user?.role === 'HR_ADMIN', // Admins imply manager access usually
+        // ✅ CHANGED: Manager is no longer a role
+        isManager: user?.role === 'HR_ADMIN', // Admins imply manager access usually
     };
 }
