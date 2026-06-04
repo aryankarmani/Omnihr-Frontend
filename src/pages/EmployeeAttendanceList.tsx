@@ -3,32 +3,32 @@ import { useNavigate } from 'react-router-dom';
 import { Loader2, Search, Filter } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import api from '../utils/api';
-import { useAuth } from '../context/AuthContext';
-import { getTeams } from '../utils/teamApi';
+// import { useAuth } from '../context/AuthContext';
+// import { getTeams } from '../utils/teamApi';
 
 export default function EmployeeAttendanceList() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [teamMemberIds, setTeamMemberIds] = useState<number[]>([]);
+  // const { user } = useAuth();
+  // const [teamMemberIds, setTeamMemberIds] = useState<number[]>([]);
 
-  useEffect(() => {
-    const fetchManagerTeam = async () => {
-      if (user?.role === 'MANAGER') {
-        try {
-          const res = await getTeams();
-          const teams = res.data || [];
-          const myTeam = teams.find((t: any) => t.managerId === user.id || t.manager?.id === user.id);
-          if (myTeam) {
-            const ids = myTeam.members.map((m: any) => m.id);
-            setTeamMemberIds(ids);
-          }
-        } catch (e) {
-          console.error("Failed to load manager's team in EmployeeAttendanceList", e);
-        }
-      }
-    };
-    fetchManagerTeam();
-  }, [user]);
+  // useEffect(() => {
+  //   const fetchManagerTeam = async () => {
+  //     if (false) {
+  //       try {
+  //         const res = await getTeams();
+  //         const teams = res.data || [];
+  //         const myTeam = teams.find((t: any) => t.managerId === user.id || t.manager?.id === user.id);
+  //         if (myTeam) {
+  //           const ids = myTeam.members.map((m: any) => m.id);
+  //           setTeamMemberIds(ids);
+  //         }
+  //       } catch (e) {
+  //         console.error("Failed to load manager's team in EmployeeAttendanceList", e);
+  //       }
+  //     }
+  //   };
+  //   fetchManagerTeam();
+  // }, [user]);
   const [employees, setEmployees] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -67,9 +67,9 @@ export default function EmployeeAttendanceList() {
   const filteredEmployees = employees.filter(emp => {
     const profile = emp.employeeProfile || {};
 
-    if (user?.role === 'MANAGER' && !teamMemberIds.includes(emp.id)) {
-      return false;
-    }
+    // if (user?.role === 'MANAGER' && !teamMemberIds.includes(emp.id)) {
+    //   return false;
+    // }
 
     return (
       (!appliedFilters.name ||

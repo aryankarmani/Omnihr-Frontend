@@ -1,5 +1,5 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { FileText, TrendingUp, Users, DollarSign, Calendar } from 'lucide-react';
+import { FileText, TrendingUp, Users, DollarSign, Calendar, ChevronDown, Clock } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import api from '../utils/api';
 
@@ -10,6 +10,25 @@ export default function Reports() {
     const [payrollData, setPayrollData] = useState<any[]>([]);
     const [stats, setStats] = useState<any>({});
     const [period, setPeriod] = useState('monthly');
+    const [isOpen, setIsOpen] = useState(false);
+
+    const options = [
+        { value: 'weekly', label: 'Weekly', icon: Clock, color: 'text-blue-500 bg-blue-50 dark:bg-blue-900/20' },
+        { value: 'this month', label: 'This Month', icon: Calendar, color: 'text-purple-500 bg-purple-50 dark:bg-purple-900/20' },
+        { value: 'quarter', label: 'Quarter', icon: FileText, color: 'text-pink-500 bg-pink-50 dark:bg-pink-900/20' },
+        { value: 'semi-annual', label: 'Semi-Annual', icon: TrendingUp, color: 'text-orange-500 bg-orange-50 dark:bg-orange-900/20' },
+        { value: 'annual', label: 'Annual', icon: Users, color: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' }
+    ];
+
+    const selectedOption = options.find(o => o.value === period) || options[1];
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const closeDropdown = () => setIsOpen(false);
+        document.addEventListener('click', closeDropdown);
+        return () => document.removeEventListener('click', closeDropdown);
+    }, [isOpen]);
+  
     const downloadFile = async (
         endpoint: string,
         filename: string
@@ -21,7 +40,8 @@ export default function Reports() {
             const response = await api.get(endpoint, {
                 responseType: 'blob',
                 params: {
-                    tenantId
+                    tenantId,
+                    period
                 }
             });
 
@@ -55,20 +75,20 @@ export default function Reports() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const res1 = await api.get('/reports/dashboard');
-                const res2 = await api.get('/reports/attendance');
-                const res3 = await api.get('/reports/payroll');
+                const res1 = await api.get('/reports/dashboard', { params: { period } });
+                const res2 = await api.get('/reports/attendance', { params: { period } });
+                const res3 = await api.get('/reports/payroll', { params: { period } });
 
-            setStats(res1.data || {});
-            setAttendanceData(res2.data?.data || res2.data || []);
-            setPayrollData(res3.data?.data || res3.data || []);
-        } catch (err) {
-            console.error('Reports API error:', err);
-        }
-    };
+                setStats(res1.data || {});
+                setAttendanceData(res2.data?.data || res2.data || []);
+                setPayrollData(res3.data?.data || res3.data || []);
+            } catch (err) {
+                console.error('Reports API error:', err);
+            }
+        };
 
-    fetchData();
-}, [period]);
+        fetchData();
+    }, [period]);
     return (
         <div className="animate-fade-in-up pb-8">
             <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Reports & Analytics</h2>
@@ -77,23 +97,50 @@ export default function Reports() {
         Comprehensive insights into workforce performance and payroll.
     </p>
 
-    <div className="relative group/dropdown">
-        <select
-            value={period}
-            onChange={(e) => setPeriod(e.target.value)}
-            className="appearance-none px-5 py-3 bg-white dark:bg-brand-800 hover:bg-gray-50 dark:hover:bg-brand-900 border border-gray-200 dark:border-brand-700 rounded-2xl text-gray-600 dark:text-white font-bold cursor-pointer shadow-sm dark:shadow-lg dark:shadow-brand-500/20 outline-none pr-12 transition-all"        >
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-            <option value="quarter">Quarter</option>
-            <option value="semi-annual">Semi-Annual</option>
-            <option value="annual">Annual</option>
-        </select>
+    <div className="relative z-30">
+        <button
+            onClick={(e) => {
+                e.stopPropagation();
+                setIsOpen(!isOpen);
+            }}
+            className="flex items-center justify-between gap-3 px-5 py-3 bg-white dark:bg-brand-800 hover:bg-gray-50 dark:hover:bg-brand-900 border border-gray-200 dark:border-brand-700 rounded-2xl text-gray-700 dark:text-white font-bold cursor-pointer shadow-md dark:shadow-lg dark:shadow-brand-500/10 outline-none transition-all duration-300 min-w-[180px] hover:border-brand-500 dark:hover:border-brand-500"
+        >
+            <div className="flex items-center gap-2">
+                <selectedOption.icon size={18} className="text-brand-500" />
+                <span>{selectedOption.label}</span>
+            </div>
+            <ChevronDown size={18} className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} text-gray-400`} />
+        </button>
 
-<div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-white">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" />
-            </svg>
-        </div>
+        {isOpen && (
+            <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-brand-900 border border-gray-100 dark:border-brand-700/50 rounded-2xl shadow-xl dark:shadow-brand-500/5 py-2 z-50 animate-fade-in focus:outline-none overflow-hidden">
+                {options.map((opt) => {
+                    const isSelected = opt.value === period;
+                    return (
+                        <button
+                            key={opt.value}
+                            onClick={() => {
+                                setPeriod(opt.value);
+                                setIsOpen(false);
+                            }}
+                            className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-bold transition-all text-left border-0 outline-none cursor-pointer ${
+                                isSelected
+                                    ? 'bg-brand-50 dark:bg-white/5 text-brand-600 dark:text-brand-400'
+                                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 bg-transparent'
+                            }`}
+                        >
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${opt.color}`}>
+                                <opt.icon size={16} />
+                            </div>
+                            <span className="flex-1">{opt.label}</span>
+                            {isSelected && (
+                                <div className="w-1.5 h-1.5 rounded-full bg-brand-500" />
+                            )}
+                        </button>
+                    );
+                })}
+            </div>
+        )}
     </div>
 </div>
             {/* Top Cards */}
@@ -148,7 +195,7 @@ export default function Reports() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
                 {/* Attendance Chart */}
                 <div className="bg-white dark:bg-brand-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5">
-                    <h3 className="font-bold text-gray-800 dark:text-white mb-6">Weekly Attendance</h3>
+                    <h3 className="font-bold text-gray-800 dark:text-white mb-6 capitalize">{period} Attendance</h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={attendanceData}>
@@ -160,8 +207,7 @@ export default function Reports() {
                                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                                 />
                                 <Bar dataKey="present" stackId="a" fill="#8b5cf6" radius={[0, 0, 4, 4]} barSize={40} />
-                                <Bar dataKey="absent" stackId="a" fill="#ef4444" radius={[0, 0, 0, 0]} barSize={40} />
-                                <Bar dataKey="late" stackId="a" fill="#f97316" radius={[4, 4, 0, 0]} barSize={40} />
+                                <Bar dataKey="absent" stackId="a" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={40} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
@@ -206,32 +252,30 @@ export default function Reports() {
                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
 
                 <div className="relative z-10">
-                    <h3 className="text-xl font-bold mb-4">Generate Reports</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <h3 className="text-xl font-bold mb-4">Generate Reports</h3>                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div
-                            onClick={() => downloadFile('/reports/export/attendance', 'attendance.csv')}
+                            onClick={() => downloadFile('/reports/export/attendance', `${period.replace(/\s+/g, '_')}_attendance.csv`)}
                             className="bg-white/10 hover:bg-white/20 transition-colors p-4 rounded-xl cursor-pointer backdrop-blur-sm border border-white/10"
                         >
                             <FileText size={24} className="mb-3 opacity-80" />
-                            <h4 className="font-bold text-sm">Monthly Attendance</h4>
+                            <h4 className="font-bold text-sm capitalize">{period} Attendance</h4>
                             <p className="text-xs opacity-70 mt-1">Download CSV</p>
                         </div>
                         <div
-                            onClick={() => downloadFile('/reports/export/salary', 'salary.csv')}
-
+                            onClick={() => downloadFile('/reports/export/salary', `${period.replace(/\s+/g, '_')}_salary.csv`)}
                             className="bg-white/10 hover:bg-white/20 transition-colors p-4 rounded-xl cursor-pointer backdrop-blur-sm border border-white/10"
                         >
                             <DollarSign size={24} className="mb-3 opacity-80" />
-                            <h4 className="font-bold text-sm">Salary Register</h4>
+                            <h4 className="font-bold text-sm capitalize">{period} Salary Register</h4>
                             <p className="text-xs opacity-70 mt-1">Download CSV</p>
                         </div>
                         <div
-                            onClick={() => downloadFile('/reports/export/leave', 'leave.xlsx')}
+                            onClick={() => downloadFile('/reports/export/leave', `${period.replace(/\s+/g, '_')}_leave.xlsx`)}
                             className="bg-white/10 hover:bg-white/20 transition-colors p-4 rounded-xl cursor-pointer backdrop-blur-sm border border-white/10"
                         >
                             <Calendar size={24} className="mb-3 opacity-80" />
-                            <h4 className="font-bold text-sm">Leave Balance</h4>
-                            <p className="text-xs opacity-70 mt-1">Download CSV</p>
+                            <h4 className="font-bold text-sm capitalize">{period} Leave Balance</h4>
+                            <p className="text-xs opacity-70 mt-1">Download Excel</p>
                         </div>
                     </div>
                 </div>

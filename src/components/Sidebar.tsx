@@ -9,8 +9,8 @@ import {
 import { useAuth } from '../context/AuthContext';
 import vedaLogo from '../assets/veda-logo.png';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { getTeams } from '../utils/teamApi';
-import api from '../utils/api';
+
+import { getMyManagerAccess } from '../utils/teamApi';
 
 interface MenuItem {
     icon: any;
@@ -57,34 +57,50 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
     const location = useLocation();
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [openMenus, setOpenMenus] = useState<string[]>([]); // Start with all menus closed
-    const [managerPermissions, setManagerPermissions] = useState<any>(null);
+    // ✅ ADDED: manager status comes from Team.managerId
+    const [managerAccess, setManagerAccess] = useState({
+        isTeamManager: false,
+        access: {
+            list: false,
+            attendance: false,
+            leaveApproval: false,
+            regularization: false,
+        },
+    });
 
+    // ✅ CHANGED: do not check user.role === 'MANAGER'
     useEffect(() => {
-        if (user?.role === 'MANAGER') {
-            const fetchManagerTeamAndPermissions = async () => {
-                try {
-                    const res = await getTeams();
-                    const teams = res.data || [];
-                    const myTeam = teams.find((t: any) => t.managerId === user.id || t.manager?.id === user.id);
-                    if (myTeam) {
-                        const permRes = await api.get(`/teams/${myTeam.id}/access-control`);
-                        setManagerPermissions(permRes.data);
-                    } else {
-                        // Manager doesn't manage any team yet, or no teams
-                        setManagerPermissions({
-                            list: false,
-                            attendance: false,
-                            leaveApproval: false,
-                            regularization: false
-                        });
-                    }
-                } catch (e) {
-                    console.error("Failed to load teams or permissions in Sidebar", e);
-                }
-            };
-            fetchManagerTeamAndPermissions();
-        }
-    }, [user]);
+        const fetchManagerAccess = async () => {
+            if (!user?.id) return;
+
+            try {
+                const res = await getMyManagerAccess();
+
+                setManagerAccess({
+                    isTeamManager: !!res.data?.isTeamManager,
+                    access: {
+                        list: !!res.data?.access?.list,
+                        attendance: !!res.data?.access?.attendance,
+                        leaveApproval: !!res.data?.access?.leaveApproval,
+                        regularization: !!res.data?.access?.regularization,
+                    },
+                });
+            } catch (e) {
+                console.error("Failed to load manager access", e);
+                setManagerAccess({
+                    isTeamManager: false,
+                    access: {
+                        list: false,
+                        attendance: false,
+                        leaveApproval: false,
+                        regularization: false,
+                    },
+                });
+            }
+        };
+
+        fetchManagerAccess();
+    }, [user?.id]);
 
     let userModules = user?.accessibleModules || [];
 
@@ -112,14 +128,18 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
         userModules = userModules.length > 0
             ? Array.from(new Set([...adminDefaultModules, ...userModules]))
             : adminDefaultModules;
-    } else if (user?.role === 'MANAGER') {
-        const managerModules = [...employeeDefaultModules];
-        if (managerPermissions?.list) managerModules.push('EMPLOYEE');
-        if (managerPermissions?.attendance || managerPermissions?.regularization) managerModules.push('EMPLOYEE_ATTENDANCE');
-        if (managerPermissions?.leaveApproval) managerModules.push('EMPLOYEE'); // Needs to show employee parent menu
-        userModules = Array.from(new Set([...managerModules, ...userModules]));
     } else {
-        userModules = Array.from(new Set([...employeeDefaultModules, ...userModules]));
+        const baseModules = [...employeeDefaultModules];
+        // ✅ ADDED: if employee is team manager, add only allowed team modules
+        if (managerAccess.isTeamManager) {
+            if (managerAccess.access.list) baseModules.push('EMPLOYEE');
+            if (managerAccess.access.attendance || managerAccess.access.regularization) {
+                baseModules.push('EMPLOYEE_ATTENDANCE');
+            }
+            if (managerAccess.access.leaveApproval) baseModules.push('EMPLOYEE');
+        }
+
+        userModules = Array.from(new Set([...baseModules, ...userModules]));
     }
 
     const toggleMenu = (label: string) => {
@@ -180,7 +200,9 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                 <nav className="flex-1 px-4 space-y-1 mt-4 overflow-y-auto overflow-x-hidden custom-scrollbar">
                     {menuItems.filter(item => {
                         if (item.module === 'EMPLOYEE_ATTENDANCE') {
-                            return user?.role === 'HR_ADMIN' || (user?.role === 'MANAGER' && (managerPermissions?.attendance || managerPermissions?.regularization));
+                            return user?.role === 'HR_ADMIN' ||
+                                (managerAccess.isTeamManager &&
+                                    (managerAccess.access.attendance || managerAccess.access.regularization));
                         }
                         return userModules.includes(item.module);
                     }).map((item) => {
@@ -224,11 +246,11 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                                     <div className="space-y-1 ml-4 border-l border-white/10 pl-2 animate-fade-in">
                                         {item.children?.filter(child => {
                                             if (user?.role === 'HR_ADMIN') return true;
-                                            if (user?.role === 'MANAGER') {
-                                                if (child.label === 'List') return !!managerPermissions?.list;
-                                                if (child.label === 'Attendance') return !!managerPermissions?.attendance;
-                                                if (child.label === 'Leave Approval') return !!managerPermissions?.leaveApproval;
-                                                if (child.label === 'Regularizations') return !!managerPermissions?.regularization;
+                                            if (managerAccess.isTeamManager) {
+                                                if (child.label === 'List') return !!managerAccess.access.list;
+                                                if (child.label === 'Attendance') return !!managerAccess.access.attendance;
+                                                if (child.label === 'Leave Approval') return !!managerAccess.access.leaveApproval;
+                                                if (child.label === 'Regularizations') return !!managerAccess.access.regularization;
                                             }
                                             if (child.module === 'EMPLOYEE_ATTENDANCE') return false;
                                             return userModules.includes(child.module);

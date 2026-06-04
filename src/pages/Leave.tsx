@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { createPortal } from 'react-dom';
-import { getTeams } from '../utils/teamApi';
+// import { getTeams } from '../utils/teamApi';
 
 export default function Leave() {
     const { user } = useAuth();
@@ -53,29 +53,31 @@ export default function Leave() {
     const [submitting, setSubmitting] = useState(false);
     const [selectedLeaveForReason, setSelectedLeaveForReason] = useState<any | null>(null);
 
-    const [teamMemberIds, setTeamMemberIds] = useState<number[]>([]);
+   // const [teamMemberIds, setTeamMemberIds] = useState<number[]>([]);
     const isHrAdmin = user?.role === 'HR_ADMIN';
-    const isManager = user?.role === 'MANAGER';
-    const canSeeApprovals = isHrAdmin || isManager;
+    //const isManager = user?.role === 'MANAGER';
+    //const canSeeApprovals = isHrAdmin || isManager;
 
-    useEffect(() => {
-        const fetchManagerTeam = async () => {
-            if (user?.role === 'MANAGER') {
-                try {
-                    const res = await getTeams();
-                    const teams = res.data || [];
-                    const myTeam = teams.find((t: any) => t.managerId === user.id || t.manager?.id === user.id);
-                    if (myTeam) {
-                        const ids = myTeam.members.map((m: any) => m.id);
-                        setTeamMemberIds(ids);
-                    }
-                } catch (e) {
-                    console.error("Failed to load manager's team in Leave", e);
-                }
-            }
-        };
-        fetchManagerTeam();
-    }, [user]);
+    const canSeeApprovals = isHrAdmin;
+
+    // useEffect(() => {
+    //     const fetchManagerTeam = async () => {
+    //         if (user?.role === 'MANAGER') {
+    //             try {
+    //                 const res = await getTeams();
+    //                 const teams = res.data || [];
+    //                 const myTeam = teams.find((t: any) => t.managerId === user.id || t.manager?.id === user.id);
+    //                 if (myTeam) {
+    //                     const ids = myTeam.members.map((m: any) => m.id);
+    //                     setTeamMemberIds(ids);
+    //                 }
+    //             } catch (e) {
+    //                 console.error("Failed to load manager's team in Leave", e);
+    //             }
+    //         }
+    //     };
+    //     fetchManagerTeam();
+    // }, [user]);
 
     const fetchData = async () => {
         setLoading(true);
@@ -161,9 +163,9 @@ export default function Leave() {
 
     // Filter Logic for Approvals
     const filteredLeaves = allLeaves.filter(l => {
-        if (user?.role === 'MANAGER' && !teamMemberIds.includes(l.user?.id)) {
-            return false;
-        }
+        // if (user?.role === 'MANAGER' && !teamMemberIds.includes(l.user?.id)) {
+        //     return false;
+        // }
 
         const matchesName = !appliedFilters.name ||
             l.user?.name.toLowerCase().includes(appliedFilters.name.toLowerCase());
