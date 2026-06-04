@@ -21,7 +21,8 @@ export default function Team() {
     const { hasPermission } = useRBAC();
     const { user } = useAuth();
     const isAdmin = user?.role === 'HR_ADMIN';
-    const canManageTeams = hasPermission(['HR_ADMIN', 'MANAGER']);
+    // ✅ CHANGED: only HR admin can create/edit teams
+    const canManageTeams = user?.role === 'HR_ADMIN';
     const [teams, setTeams] = useState<any[]>([]);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedTeam, setSelectedTeam] = useState<number | null>(null);

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../utils/api';
 
 // Define available roles
-export type UserRole = 'HR_ADMIN' | 'EMPLOYEE' | 'MANAGER';
+export type UserRole = 'HR_ADMIN' | 'EMPLOYEE' ;
 
 interface User {
     id: number;

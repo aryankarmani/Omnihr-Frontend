@@ -10,8 +10,8 @@ import {
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { createPortal } from 'react-dom';
-import { useAuth } from '../context/AuthContext';
-import { getTeams } from '../utils/teamApi';
+// import { useAuth } from '../context/AuthContext';
+// import { getTeams } from '../utils/teamApi';
 
 interface RegularizationRequest {
   id: string;
@@ -37,27 +37,27 @@ interface RegularizationRequest {
 }
 
 export default function Regularizations() {
-  const { user } = useAuth();
-  const [teamMemberIds, setTeamMemberIds] = useState<number[]>([]);
+  // const { user } = useAuth();
+  // const [teamMemberIds, setTeamMemberIds] = useState<number[]>([]);
 
-  useEffect(() => {
-    const fetchManagerTeam = async () => {
-      if (user?.role === 'MANAGER') {
-        try {
-          const res = await getTeams();
-          const teams = res.data || [];
-          const myTeam = teams.find((t: any) => t.managerId === user.id || t.manager?.id === user.id);
-          if (myTeam) {
-            const ids = myTeam.members.map((m: any) => m.id);
-            setTeamMemberIds(ids);
-          }
-        } catch (e) {
-          console.error("Failed to load manager's team in Regularizations", e);
-        }
-      }
-    };
-    fetchManagerTeam();
-  }, [user]);
+  // useEffect(() => {
+  //   const fetchManagerTeam = async () => {
+  //     if (user?.role === 'MANAGER') {
+  //       try {
+  //         const res = await getTeams();
+  //         const teams = res.data || [];
+  //         const myTeam = teams.find((t: any) => t.managerId === user.id || t.manager?.id === user.id);
+  //         if (myTeam) {
+  //           const ids = myTeam.members.map((m: any) => m.id);
+  //           setTeamMemberIds(ids);
+  //         }
+  //       } catch (e) {
+  //         console.error("Failed to load manager's team in Regularizations", e);
+  //       }
+  //     }
+  //   };
+  //   fetchManagerTeam();
+  // }, [user]);
 
   const [requests, setRequests] = useState<RegularizationRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -164,9 +164,9 @@ export default function Regularizations() {
 
 
   const filteredRequests = requests.filter(req => {
-    if (user?.role === 'MANAGER' && !teamMemberIds.includes(req.userId || req.user?.id || 0)) {
-      return false;
-    }
+    // if (user?.role === 'MANAGER' && !teamMemberIds.includes(req.userId || req.user?.id || 0)) {
+    //   return false;
+    // }
 
     const name = req.user?.name || '';
     const email = req.user?.email || '';

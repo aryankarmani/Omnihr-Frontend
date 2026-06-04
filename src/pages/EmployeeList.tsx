@@ -5,31 +5,34 @@ import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
-import { getTeams } from '../utils/teamApi';
+// import { getTeams } from '../utils/teamApi';
 
 export default function EmployeeList() {
     const navigate = useNavigate();
     const { user } = useAuth();
-    const [teamMemberIds, setTeamMemberIds] = useState<number[]>([]);
 
-    useEffect(() => {
-        const fetchManagerTeam = async () => {
-            if (user?.role === 'MANAGER') {
-                try {
-                    const res = await getTeams();
-                    const teams = res.data || [];
-                    const myTeam = teams.find((t: any) => t.managerId === user.id || t.manager?.id === user.id);
-                    if (myTeam) {
-                        const ids = myTeam.members.map((m: any) => m.id);
-                        setTeamMemberIds(ids);
-                    }
-                } catch (e) {
-                    console.error("Failed to load manager's team in EmployeeList", e);
-                }
-            }
-        };
-        fetchManagerTeam();
-    }, [user]);
+    // ✅ ADDED: Only HR_ADMIN can see Add Employee and Actions
+    const isAdmin = user?.role === 'HR_ADMIN';
+    // const [teamMemberIds, setTeamMemberIds] = useState<number[]>([]);
+
+    // useEffect(() => {
+    //     const fetchManagerTeam = async () => {
+    //         if (user?.role === 'MANAGER') {
+    //             try {
+    //                 const res = await getTeams();
+    //                 const teams = res.data || [];
+    //                 const myTeam = teams.find((t: any) => t.managerId === user.id || t.manager?.id === user.id);
+    //                 if (myTeam) {
+    //                     const ids = myTeam.members.map((m: any) => m.id);
+    //                     setTeamMemberIds(ids);
+    //                 }
+    //             } catch (e) {
+    //                 console.error("Failed to load manager's team in EmployeeList", e);
+    //             }
+    //         }
+    //     };
+    //     fetchManagerTeam();
+    // }, [user]);
     const [showFilterDrawer, setShowFilterDrawer] = useState(false);
     const [filters, setFilters] = useState({
         name: '',
@@ -129,9 +132,12 @@ export default function EmployeeList() {
     const filteredEmployees = employees.filter(emp => {
         const profile = emp.employeeProfile || {};
 
-        if (user?.role === 'MANAGER' && !teamMemberIds.includes(emp.id)) {
-            return false;
-        }
+        // if (user?.role === 'MANAGER' && !teamMemberIds.includes(emp.id)) {
+        //     return false;
+        // }
+        const { user } = useAuth();
+        // ✅ ADDED: only HR admin can see employee actions
+        const isAdmin = user?.role === 'HR_ADMIN';
 
         return (
             (!appliedFilters.name ||
