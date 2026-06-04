@@ -118,13 +118,24 @@ export default function EmployeeProfile() {
         else if (!/^\d{10}$/.test(pd.phone)) {
             newErrors.phone = "Enter valid 10 digit phone number";
         }
-        if (pd.dob && new Date(pd.dob) > new Date()) {
-            newErrors.dob = "Future date is not allowed";
-        }
+       if (!pd.dob) {
+    newErrors.dob = "Date of birth is required";
+} else if (new Date(pd.dob) > new Date()) {
+    newErrors.dob = "Future date is not allowed";
+}
+
+if (!pd.bloodGroup) {
+    newErrors.bloodGroup = "Blood group is required";
+}
+
+if (!pd.address?.trim()) {
+    newErrors.address = "Address is required";
+}
 
         if (!employee.roleId && !employee.role?.id) newErrors.role = "Role is required";
         if (!pd.designationId) newErrors.designationId = "Designation is required";
         if (!pd.departmentId) newErrors.departmentId = "Department is required";
+        if (!pd.shiftId) newErrors.shiftId = "Select a shift";
 
         if (!p.pan) newErrors.pan = "PAN is required";
         else if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(p.pan.trim().toUpperCase())) {
@@ -138,7 +149,7 @@ export default function EmployeeProfile() {
         else if (!/^\d{12}$/.test(p.uan)) newErrors.uan = "UAN must be 12 digits";
 
         if (!p.esic) newErrors.esic = "ESIC is required";
-        else if (!/^\d{17}$/.test(p.esic)) newErrors.esic = "ESIC must be 17 digits";
+        else if (!/^\d{10}$/.test(p.esic)) newErrors.esic = "ESIC must be 10 digits";
 
         if (!b.bankName?.trim()) newErrors.bankName = "Bank Name is required";
         else if (!/^[A-Za-z\s]{2,50}$/.test(b.bankName.trim())) {
@@ -187,10 +198,15 @@ export default function EmployeeProfile() {
             } else if (hasStatutoryError) {
                 toast.error("Please fix validations in Statutory & Bank Info");
                 setActiveTab("statutory");
-            } else if (hasPersonalError) {
-                toast.error("Please fix validations in Personal Details");
-                setActiveTab("personal");
-            }
+            } 
+           else if (newErrors.shiftId) {
+    toast.error("Shift not assigned");
+    setActiveTab("shiftRoster");
+}
+else if (hasPersonalError) {
+    toast.error("Please fix validations in Personal Details");
+    setActiveTab("personal");
+}
 
             return false;
         }
@@ -483,7 +499,7 @@ export default function EmployeeProfile() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {[
                                     { label: 'UAN (Provident Fund)', key: 'uan', placeholder: '12-digit UAN' },
-                                    { label: 'ESIC Number', key: 'esic', placeholder: '17-digit ESIC Number' },
+                                    { label: 'ESIC Number', key: 'esic', placeholder: '10-digit ESIC Number' },
                                     { label: 'PAN Number', key: 'pan', placeholder: 'e.g. ABCDE1234F' },
                                     { label: 'Aadhaar Number', key: 'aadhaar', placeholder: '12-digit Aadhaar Number' },
                                 ].map((field) => (
@@ -755,7 +771,12 @@ export default function EmployeeProfile() {
                                                 value={employee.role?.id || employee.roleId || ''}
                                                 onChange={(e) => {
                                                     const selectedRole = roles.find((r: any) => String(r.id) === String(e.target.value));
-
+                                                    if (errors.role) {
+                                                    setErrors(prev => ({
+                                                     ...prev,
+                                                      role: ''
+                                           }));
+            }               
                                                     setEmployee((prev: any) => ({
                                                         ...prev,
                                                         roleId: e.target.value,
@@ -817,6 +838,12 @@ export default function EmployeeProfile() {
                                                     const selectedDesignation = designations.find(
                                                         (d: any) => String(d.id) === String(e.target.value)
                                                     );
+                                                    if (errors.designationId) {
+                                                 setErrors(prev => ({
+                                                     ...prev,
+                                                  designationId: ''
+                                                      }));
+                                                    }
 
                                                     setEmployee((prev: any) => ({
                                                         ...prev,
@@ -874,6 +901,12 @@ export default function EmployeeProfile() {
                                                     const selectedDepartment = departments.find(
                                                         (d: any) => String(d.id) === String(e.target.value)
                                                     );
+                                                    if (errors.departmentId) {
+                                                    setErrors(prev => ({
+                                                    ...prev,
+                                                    departmentId: ''
+    }));
+}
 
                                                     setEmployee((prev: any) => ({
                                                         ...prev,
@@ -922,6 +955,12 @@ export default function EmployeeProfile() {
                                             {profile.department || 'N/A'}
                                         </p>
                                     )}
+
+                                     {errors.departmentId && (
+                                   <p className="text-red-500 text-xs mt-1">
+                                Department is required
+                                     </p>
+                                  )}
                                 </div>
 
 
@@ -1006,16 +1045,25 @@ export default function EmployeeProfile() {
                                     Assigned Shift
                                 </label>
 
-                                {isEditing && hasPermission(['HR_ADMIN']) ? (
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                               {isEditing && hasPermission(['HR_ADMIN']) ? (
+    <>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         {shifts.map((shift: any) => (
                                             <div
                                                 key={shift.id}
-                                                onClick={() => {
-                                                    if (isEditing && hasPermission(['HR_ADMIN'])) {
-                                                        handleInputChange('shiftId', String(shift.id));
-                                                    }
-                                                }}
+                                               onClick={() => {
+    if (isEditing && hasPermission(['HR_ADMIN'])) {
+
+        if (errors.shiftId) {
+            setErrors(prev => ({
+                ...prev,
+                shiftId: ''
+            }));
+        }
+
+        handleInputChange('shiftId', String(shift.id));
+    }
+}}
                                                 className={`p-4 rounded-xl border cursor-pointer transition-all ${String(profile.shiftId) === String(shift.id)
                                                     ? 'border-brand-400 ring-2 ring-brand-500/50 bg-brand-500/10'
                                                     : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5'
@@ -1056,7 +1104,13 @@ export default function EmployeeProfile() {
                                             </div>
 
                                         ))}
-                                    </div>
+                                </div>
+                             {errors.shiftId && (
+                            <p className="text-red-500 text-sm mt-3 font-medium">
+                                Select a shift
+                              </p>
+                             )}
+                              </>       
                                 ) : (
                                     <div>
                                         {(() => {

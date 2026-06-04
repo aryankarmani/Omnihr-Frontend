@@ -159,6 +159,9 @@ export default function AddEmployee() {
             if (!formData.bloodGroup) {
                 newErrors.bloodGroup = 'Select blood group';
             }
+            if (!formData.dob) {
+            newErrors.dob = 'Date of birth is required';
+            }
 
             if (!formData.address.trim()) {
                 newErrors.address = 'Enter address';
@@ -219,8 +222,8 @@ export default function AddEmployee() {
             if (!formData.esic) {
                 newErrors.esic = 'ESIC is required';
             }
-            else if (!/^\d{17}$/.test(formData.esic)) {
-                newErrors.esic = 'ESIC must be 17 digits';
+            else if (!/^\d{10}$/.test(formData.esic)) {
+                newErrors.esic = 'ESIC must be 10 digits';
             }
             const bankName = formData.bankName.trim();
 
@@ -410,7 +413,13 @@ export default function AddEmployee() {
                                     className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                     placeholder="Last"
                                 />
+                                  {errors.lastName && (
+                               <p className="text-red-500 text-xs ml-1">
+                            {errors.lastName}
+                             </p>)}
                             </div>
+                          
+                        
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Email Address *</label>
                                 <input
@@ -499,6 +508,11 @@ export default function AddEmployee() {
                                     type="date"
                                     className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                 />
+                                {errors.dob && (
+                                <p className="text-red-500 text-xs ml-1">
+                                  {errors.dob}
+                                   </p>
+                               )}
                             </div>
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Department *</label>
@@ -518,7 +532,7 @@ export default function AddEmployee() {
                                             }));
                                         }}
                                         className="appearance-none w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
-                                    >
+                                    > 
                                         <option value="" className="dark:bg-brand-900">Select Department</option>
                                         {masters.departments.map(dept => (
                                             <option key={dept.id} value={dept.id} className="dark:bg-brand-900">{dept.name}</option>
@@ -708,7 +722,7 @@ export default function AddEmployee() {
                                             name="esic"
                                             value={formData.esic}
                                             onChange={(e) => {
-                                                const value = e.target.value.replace(/\D/g, '').slice(0, 17);
+                                                const value = e.target.value.replace(/\D/g, '').slice(0, 10);
 
                                                 setFormData({
                                                     ...formData,
@@ -721,7 +735,7 @@ export default function AddEmployee() {
                                             }}
                                             type="text"
                                             className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
-                                            placeholder="Enter 17-digit ESIC number "
+                                            placeholder="Enter 10-digit ESIC number "
                                         />
                                         {errors.esic && <p className="text-red-500 text-xs ml-1">{errors.esic}</p>}
 
