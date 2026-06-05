@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
@@ -516,7 +517,7 @@ else if (hasPersonalError) {
                                                             field.key,
                                                             field.key === 'pan'
                                                                 ? e.target.value.toUpperCase()
-                                                                : e.target.value
+                                                                : e.target.value.replace(/\D/g, '')
                                                         )
                                                     }
                                                     className={`appearance-none w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors[field.key]
@@ -562,7 +563,8 @@ else if (hasPersonalError) {
                                             type="text"
                                             placeholder="9 to 18 digits"
                                             value={bank.accountNumber || ''}
-                                            onChange={(e) => handleBankChange('accountNumber', e.target.value)}
+                                            onChange={(e) =>
+                                            handleBankChange('accountNumber', e.target.value.replace(/\D/g, ''))}
                                             className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.accountNumber ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg focus:ring-2 focus:ring-brand-500/50 outline-none`}
                                         />
                                         {errors.accountNumber && <p className="text-red-500 text-xs mt-1">{errors.accountNumber}</p>}
@@ -758,7 +760,12 @@ else if (hasPersonalError) {
                                     <label className="text-xs font-bold text-gray-400 uppercase">Date of Birth</label>
                                     {isEditing ? (
                                         <>
-                                            <input type="date" value={profile.dob ? profile.dob.split('T')[0] : ''} onChange={(e) => handleInputChange('dob', e.target.value)} className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.dob ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg outline-none`} />
+                                            <input type="date" 
+                                            value={profile.dob ? profile.dob.split('T')[0] : ''} 
+                                             max={new Date().toISOString().split('T')[0]}
+                                            onChange={(e) => handleInputChange('dob', e.target.value)} 
+                                            className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.dob ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg outline-none`} />
+
                                             {errors.dob && <p className="text-red-500 text-xs mt-1">{errors.dob}</p>}
                                         </>
                                     ) : <p className="font-semibold">{profile.dob ? new Date(profile.dob).toLocaleDateString() : 'N/A'}</p>}
