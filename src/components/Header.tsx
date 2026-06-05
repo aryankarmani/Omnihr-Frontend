@@ -20,8 +20,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
     const { theme, toggleTheme } = useTheme();
     const { user } = useAuth();
 
-    const fetchNotifications = async () => {
-        setLoading(true);
+    const fetchNotifications = async (silent = false) => {
+        if (!silent) setLoading(true);
         try {
              const res = await api.get('/notifications');
         setNotifications(Array.isArray(res.data) ? res.data : []);
@@ -29,7 +29,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
         console.error('Failed to fetch notifications:', e);
         setNotifications([]);
     } finally {
-        setLoading(false);
+        if (!silent) setLoading(false);
     }
 };
     const fetchEmployees = async () => {
@@ -45,7 +45,7 @@ useEffect(() => {
     fetchEmployees();
 
     const interval = setInterval(() => {
-        fetchNotifications();
+        fetchNotifications(true);
     }, 3000);
 
     return () => clearInterval(interval);
