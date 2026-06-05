@@ -157,7 +157,13 @@ export default function Reports() {
                         </div>
                     </div>
                     <div className="mt-4 flex items-center gap-1 text-xs font-medium text-green-600">
-                        <TrendingUp size={14} /> {stats?.payrollGrowth || '0%'} from last month
+                        <TrendingUp size={14} /> {stats?.payrollGrowth || '0%'} {
+                            period === 'weekly' ? 'from last week' :
+                            period === 'this month' || period === 'monthly' ? 'from last month' :
+                            period === 'quarter' ? 'from last quarter' :
+                            period === 'semi-annual' ? 'from last 6 months' :
+                            period === 'annual' ? 'from last year' : 'from last month'
+                        }
                     </div>
                 </div>
 
@@ -205,7 +211,14 @@ export default function Reports() {
                                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 12 }} />
                                 <Tooltip
                                     cursor={{ fill: 'transparent' }}
-                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                    contentStyle={{
+                                        backgroundColor: '#1f2937',
+                                        border: 'none',
+                                        borderRadius: '12px',
+                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                                    }}
+                                    labelStyle={{ color: '#9CA3AF', fontWeight: 'bold' }}
+                                    itemStyle={{ color: '#ffffff' }}
                                 />
                                 <Bar dataKey="present" stackId="a" fill="#8b5cf6" radius={[0, 0, 4, 4]} barSize={40} />
                                 <Bar dataKey="absent" stackId="a" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={40} />
@@ -233,7 +246,15 @@ export default function Reports() {
                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                     ))}
                                 </Pie>
-                                <Tooltip />
+                                <Tooltip
+                                    contentStyle={{
+                                        backgroundColor: '#1f2937',
+                                        border: 'none',
+                                        borderRadius: '12px',
+                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                                    }}
+                                    itemStyle={{ color: '#ffffff' }}
+                                />
                             </PieChart>
                         </ResponsiveContainer>
                         <div className="space-y-2 ml-4">
