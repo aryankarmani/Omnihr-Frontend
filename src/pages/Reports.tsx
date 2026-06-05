@@ -2,6 +2,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { FileText, TrendingUp, Users, DollarSign, Calendar, ChevronDown, Clock } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import api from '../utils/api';
+import toast from 'react-hot-toast';
 
 const COLORS = ['#8b5cf6', '#3b82f6', '#ec4899', '#f97316'];
 
@@ -68,7 +69,7 @@ export default function Reports() {
 
             console.error('Download failed:', err);
 
-            alert('Download failed');
+            toast.error('Download failed');
         }
     };
 
