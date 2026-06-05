@@ -124,9 +124,7 @@ export default function AddEmployee() {
                 newErrors.firstName = 'First name is required';
             }
 
-            if (!formData.lastName) {
-                newErrors.lastName = 'Last name is required';
-            }
+          
 
             if (!formData.email) {
                 newErrors.email = 'Email is required';
@@ -422,10 +420,7 @@ export default function AddEmployee() {
                                     className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                     placeholder="Last"
                                 />
-                                  {errors.lastName && (
-                               <p className="text-red-500 text-xs ml-1">
-                            {errors.lastName}
-                             </p>)}
+                                
                             </div>
                           
                         

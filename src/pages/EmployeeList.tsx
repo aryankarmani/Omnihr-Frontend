@@ -363,7 +363,8 @@ const paginatedEmployees = filteredEmployees.slice(
             ) : (
                 viewMode === 'grid' ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {paginatedEmployees.map((emp, index) => {                            const profile = emp.employeeProfile || {};
+               {filteredEmployees.map((emp, index) => {
+                                            const profile = emp.employeeProfile || {};
                             const status = profile.status || 'Active';
                             // Generate color based on index or name hash
                             const colors = ['bg-blue-500', 'bg-purple-500', 'bg-orange-500', 'bg-pink-500', 'bg-teal-500'];
@@ -585,7 +586,8 @@ className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark
 
             {/* Delete Confirmation Modal */}
             {employeeToDelete && createPortal(
-                <div className="fixed inset-0 z-[999999] flex items-start justify-center bg-black/80 backdrop-blur-xl pt-30">
+                <div 
+               className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/80 backdrop-blur-xl">
                     <div className="bg-white dark:bg-brand-950 rounded-3xl shadow-2xl w-full max-w-md p-8 border border-gray-100 dark:border-white/10 text-center relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-2 bg-red-500"></div>
 
