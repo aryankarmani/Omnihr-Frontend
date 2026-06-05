@@ -7,6 +7,7 @@ import vedaLogo from '../assets/veda-logo.png';
 import { Captcha } from '../components/auth/Captcha';
 import { OtpInput } from '../components/auth/OtpInput';
 import api from '../utils/api';
+import toast from 'react-hot-toast';
 
 type AuthStep = 'INITIAL_FORM' | 'OTP_VERIFICATION';
 
@@ -62,7 +63,7 @@ export default function ForgotPassword() {
                 otp
             });
 
-            alert('Password reset successfully! Please login.');
+            toast.success('Password reset successfully! Please login.');
             navigate('/signin');
         } catch (err: any) {
             setError(err.response?.data?.message || "Verification failed. Invalid OTP.");
@@ -82,7 +83,7 @@ export default function ForgotPassword() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 focus:border-brand-400 focus:bg-white focus:ring-4 focus:ring-brand-500/10 rounded-xl text-gray-700 font-medium transition-all"
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 focus:border-brand-400 focus:bg-white focus:ring-4 focus:ring-brand-500/10 rounded-xl text-gray-700 font-medium transition-all shadow-sm hover:border-gray-400"
                     placeholder="admin@gmail.com"
                 />
             </div>
@@ -95,7 +96,7 @@ export default function ForgotPassword() {
                         required
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 focus:border-brand-400 focus:bg-white focus:ring-4 focus:ring-brand-500/10 rounded-xl text-gray-700 font-medium transition-all"
+                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 focus:border-brand-400 focus:bg-white focus:ring-4 focus:ring-brand-500/10 rounded-xl text-gray-700 font-medium transition-all shadow-sm hover:border-gray-400"
                         placeholder="Enter New Password"
                     />
                     <button
@@ -116,7 +117,7 @@ export default function ForgotPassword() {
                         required
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 focus:border-brand-400 focus:bg-white focus:ring-4 focus:ring-brand-500/10 rounded-xl text-gray-700 font-medium transition-all"
+                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 focus:border-brand-400 focus:bg-white focus:ring-4 focus:ring-brand-500/10 rounded-xl text-gray-700 font-medium transition-all shadow-sm hover:border-gray-400"
                         placeholder="Enter Confirm Password"
                     />
                     <button
@@ -129,20 +130,16 @@ export default function ForgotPassword() {
                 </div>
             </div>
 
-            <div className="space-y-1.5 pt-1">
-                <label className="text-[10px] font-bold text-gray-500 ml-1 uppercase tracking-wide">Enter Captcha *</label>
-                <div className="flex gap-2">
-                    <Captcha onVerify={setGeneratedCaptcha} className="flex-1" />
-                    <input
-                        type="text"
-                        required
-                        value={captchaInput}
-                        onChange={(e) => setCaptchaInput(e.target.value)}
-                        className="w-28 h-12 bg-gray-100 border border-gray-200 focus:border-brand-500 rounded-xl text-center font-black tracking-widest text-gray-900 shadow-inner uppercase"
-                        placeholder="----"
-                    />
-                </div>
-            </div>
+            <Captcha onVerify={setGeneratedCaptcha} className="pt-1">
+                <input
+                    type="text"
+                    required
+                    value={captchaInput}
+                    onChange={(e) => setCaptchaInput(e.target.value)}
+                    className="w-32 h-12 bg-gray-50 border border-gray-300 focus:border-brand-500 rounded-xl text-center font-black tracking-widest text-gray-900 shadow-inner uppercase hover:border-gray-400 transition-all"
+                    placeholder="----"
+                />
+            </Captcha>
 
             {error && <p className="text-[10px] text-red-500 font-bold text-center">{error}</p>}
 

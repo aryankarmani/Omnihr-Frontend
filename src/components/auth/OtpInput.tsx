@@ -53,7 +53,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({ length = 6, onComplete }) =>
           value={data}
           onChange={(e) => handleChange(e.target, index)}
           onKeyDown={(e) => handleKeyDown(e, index)}
-          className="w-12 h-14 text-center text-2xl font-bold text-gray-900 border-2 border-gray-200 rounded-xl bg-gray-50/50 focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 transition-all outline-none"
+          className="w-12 h-14 text-center text-2xl font-bold text-gray-900 border-2 border-gray-300 rounded-xl bg-gray-50 focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 transition-all outline-none shadow-sm hover:border-gray-400"
           maxLength={1}
         />
       ))}
