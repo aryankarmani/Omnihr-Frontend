@@ -159,9 +159,18 @@ export default function AddEmployee() {
             if (!formData.bloodGroup) {
                 newErrors.bloodGroup = 'Select blood group';
             }
-            if (!formData.dob) {
-            newErrors.dob = 'Date of birth is required';
-            }
+             if (!formData.dob) {
+             newErrors.dob = 'Date of birth is required';  
+              } else {
+             const selectedDate = new Date(formData.dob);
+             const today = new Date();
+
+             today.setHours(0, 0, 0, 0);
+
+            if (selectedDate > today) {
+            newErrors.dob = 'Future date is not allowed';
+          }
+    }
 
             if (!formData.address.trim()) {
                 newErrors.address = 'Enter address';
@@ -490,10 +499,11 @@ export default function AddEmployee() {
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Date of Birth *</label>
                                 <input
-                                    autoComplete="off"
-                                    name="dob"
-                                    value={formData.dob}
-                                    onChange={(e) => {
+                                   autoComplete="off"
+                                 name="dob"
+                                  value={formData.dob}
+                                 max={new Date().toISOString().split('T')[0]}
+                                 onChange={(e) => {
                                         const val = e.target.value;
                                         if (val) {
                                             const parts = val.split('-');

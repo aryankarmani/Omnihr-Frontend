@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { FileText, TrendingUp, Users, DollarSign, Calendar, ChevronDown, Clock } from 'lucide-react';
 import { useEffect, useState } from 'react';
