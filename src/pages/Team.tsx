@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useEffect } from 'react';
 import { Users, Plus, MoreVertical, Briefcase, UserPlus, X, Trash2 } from 'lucide-react';
-import { useRBAC } from '../hooks/useRBAC';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
@@ -18,7 +17,6 @@ import {
 
 export default function Team() {
     const [employees, setEmployees] = useState<any[]>([]);
-    const { hasPermission } = useRBAC();
     const { user } = useAuth();
     const isAdmin = user?.role === 'HR_ADMIN';
     // ✅ CHANGED: only HR admin can create/edit teams

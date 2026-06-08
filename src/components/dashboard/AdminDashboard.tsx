@@ -27,7 +27,7 @@ export default function AdminDashboard({
             <header className="mb-10 lg:flex lg:justify-between lg:items-end">
                 <div>
                     <h2 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 mb-2">Admin Dashboard</h2>
-                    <p className="text-gray-500 dark:text-gray-400 font-medium tracking-wide">Welcome back HR Admin, here's the organizational overview.</p>
+                    <p className="text-gray-500 dark:text-gray-400 font-medium tracking-wide">WelcomeHR Admin, here's the organizational overview.</p>
                 </div>
             </header>
 

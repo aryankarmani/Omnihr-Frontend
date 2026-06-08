@@ -6,7 +6,7 @@ import api from '../utils/api';
 import { createPortal } from 'react-dom';
 
 // Types for Attendance Data
-type AttendanceStatus = 'Present' | 'Absent' | 'Late' | 'Half Day' | 'Holiday' | 'Weekend' | 'Pending';
+type AttendanceStatus = 'Present' | 'Absent' | 'Late' | 'Half Day' | 'Holiday' | 'Weekend' | 'Pending' | 'Leave' | 'Leave (Pending)';
 
 interface DailyLog {
     date: string; // YYYY-MM-DD
@@ -31,6 +31,7 @@ export default function Attendance() {
     const [holidays, setHolidays] = useState<any[]>([]);
     const [joiningDate, setJoiningDate] = useState<Date | null>(null);
     const [attendanceHistory, setAttendanceHistory] = useState<DailyLog[]>([]);
+    const [leaveHistory, setLeaveHistory] = useState<any[]>([]);
 
     // Attendance Regularization State
     const [regularizationRequests, setRegularizationRequests] = useState<any[]>([]);
@@ -109,7 +110,7 @@ export default function Attendance() {
             setIsPunchedIn(res.data.isPunchedIn);
             if (res.data.punchInTime) setPunchInTime(new Date(res.data.punchInTime));
 
-            
+
             const empRes = await api.get('/employee/me');
             const jd = empRes.data.employeeProfile?.joiningDate || empRes.data.createdAt;
             if (jd) {
@@ -163,6 +164,14 @@ export default function Attendance() {
             // Fetch regularization requests to show Pending approval status
             const reqRes = await api.get('/attendance/regularize/my-requests');
             setRegularizationRequests(Array.isArray(reqRes.data) ? reqRes.data : []);
+
+            // Fetch leave history to show leaves on the calendar
+            try {
+                const leaveRes = await api.get('/leave/history');
+                setLeaveHistory(Array.isArray(leaveRes.data) ? leaveRes.data : []);
+            } catch (leaveErr) {
+                console.error("Failed to fetch leave history in Attendance:", leaveErr);
+            }
         } catch (error) {
             console.error("Failed to fetch history or regularization requests:", error);
         } finally {
@@ -265,7 +274,13 @@ export default function Attendance() {
         }
     };
 
-    const getStatusColor = (status: AttendanceStatus) => {
+    const getStatusColor = (status: string) => {
+        if (status.startsWith('Leave (Pending)')) {
+            return 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 border border-dashed border-amber-300 dark:border-amber-500/30 font-semibold';
+        }
+        if (status.startsWith('Leave')) {
+            return 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 font-semibold';
+        }
         switch (status) {
             case 'Present': return 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300';
             case 'Absent': return 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300';
@@ -309,6 +324,13 @@ export default function Attendance() {
             // Precise future date checking (tomorrow or later)
             const isFuture = currentLoopDate > todayMidnight;
 
+            // Find matching leave (APPROVED or PENDING)
+            const leave = leaveHistory.find(l => {
+                const start = l.startDate.split('T')[0];
+                const end = l.endDate.split('T')[0];
+                return dateStr >= start && dateStr <= end;
+            });
+
             // Default logic if no log exists
             let displayStatus: AttendanceStatus = log ? log.status : holiday ? 'Holiday' : isWeekend ? 'Weekend' : isBeforeJoining ? 'Weekend' : isFuture ? 'Weekend' : 'Absent';
 
@@ -321,8 +343,35 @@ export default function Attendance() {
                 displayStatus = 'Pending';
             }
 
-            const statusLabel = isBeforeJoining || isFuture ? '-' : (holiday ? 'Holiday' : displayStatus);
+            let statusLabel: string = isBeforeJoining || isFuture ? '-' : (holiday ? 'Holiday' : displayStatus);
+
+            if (!isBeforeJoining && !holiday) {
+                if ((displayStatus === 'Absent' || isFuture) && leave) {
+                    if (leave.status === 'APPROVED') {
+                        statusLabel = 'Leave (Approved)';
+                    } else if (leave.status === 'PENDING') {
+                        statusLabel = 'Leave (Pending)';
+                    }
+                }
+            }
+
             const isToday = day === new Date().getDate() && month === new Date().getMonth() && year === new Date().getFullYear();
+
+            let containerBg = 'bg-white dark:bg-brand-800';
+            let borderStyle = 'border-gray-100 dark:border-white/10';
+
+            if (holiday) {
+                containerBg = 'bg-purple-50 dark:bg-purple-900/20';
+                borderStyle = 'border-purple-200';
+            } else if (!isBeforeJoining && (displayStatus === 'Absent' || isFuture) && leave) {
+                if (leave.status === 'APPROVED') {
+                    containerBg = 'bg-blue-50/50 dark:bg-blue-950/10';
+                    borderStyle = 'border-blue-200 dark:border-blue-500/20';
+                } else if (leave.status === 'PENDING') {
+                    containerBg = 'bg-amber-50/30 dark:bg-amber-950/5';
+                    borderStyle = 'border-amber-200/80 dark:border-amber-500/20 border-dashed';
+                }
+            }
 
             const targetMidnight = new Date(currentLoopDate);
             targetMidnight.setHours(23, 59, 59, 999);
@@ -331,10 +380,10 @@ export default function Attendance() {
             const isTooOld = diffDays > (attendancePolicy?.regularizationDays ?? 3);
 
             days.push(
-                <div key={day} className={`h-24 p-2 rounded-xl border ${isToday ? 'border-brand-500 ring-1 ring-brand-500' : 'border-gray-100 dark:border-white/10'} ${holiday ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200' : 'bg-white dark:bg-brand-800'} hover:shadow-md transition-shadow relative group cursor-pointer`}>
+                <div key={day} className={`h-24 p-2 rounded-xl border ${isToday ? 'border-brand-500 ring-1 ring-brand-500' : borderStyle} ${containerBg} hover:shadow-md transition-shadow relative group cursor-pointer`}>
                     <div className="flex justify-between items-start">
                         <span className={`font-semibold text-sm ${isToday ? 'text-brand-600 dark:text-brand-400' : 'text-gray-700 dark:text-gray-300'}`}>{day}</span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${holiday ? 'bg-purple-100 text-purple-700' : getStatusColor(isBeforeJoining || isFuture ? 'Weekend' : displayStatus)}`}>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${holiday ? 'bg-purple-100 text-purple-700' : getStatusColor(isBeforeJoining || (isFuture && !leave) ? 'Weekend' : statusLabel)}`}>
                             {statusLabel}
                         </span>
                     </div>
@@ -342,6 +391,16 @@ export default function Attendance() {
                     {holiday && (
                         <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-1 rounded truncate w-full block text-center mt-1 font-bold shadow-sm">
                             {holiday.name}
+                        </span>
+                    )}
+
+                    {!holiday && leave && !isBeforeJoining && (displayStatus === 'Absent' || isFuture) && (
+                        <span className={`text-[10px] px-1.5 py-1 rounded truncate w-full block text-center mt-1 font-bold shadow-sm ${
+                            leave.status === 'APPROVED'
+                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                                : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+                        }`}>
+                            {leave.leaveType?.name || 'Leave'}
                         </span>
                     )}
 
@@ -370,7 +429,7 @@ export default function Attendance() {
                     )}
 
                     {/* Add Regularize Button for Absent/Late/Missing Punch (strictly past 3 days and not future/today) */}
-                    {!isToday && !isFuture && !isTooOld && !hasPendingRequest && !hasRejectedRequest && (displayStatus === 'Absent' || displayStatus === 'Late') && (
+                    {!isToday && !isFuture && !isTooOld && !hasPendingRequest && !hasRejectedRequest && !leave && (displayStatus === 'Absent' || displayStatus === 'Late') && (
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -655,18 +714,16 @@ export default function Attendance() {
                                             value={inInputText}
                                             onChange={(e) => setInInputText(e.target.value)}
                                             placeholder="09:00 AM"
-                                            className={`w-full pl-10 pr-3 py-2.5 bg-gray-50 dark:bg-white/5 border rounded-xl outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-sm font-semibold animate-none ${
-                                                inInputText && !parse12hTo24h(inInputText)
+                                            className={`w-full pl-10 pr-3 py-2.5 bg-gray-50 dark:bg-white/5 border rounded-xl outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-sm font-semibold animate-none ${inInputText && !parse12hTo24h(inInputText)
                                                     ? 'border-rose-500/60 focus:ring-rose-500/30'
                                                     : 'border-gray-200 dark:border-white/10'
-                                            }`}
+                                                }`}
                                         />
                                     </div>
-                                    <p className={`text-[10px] mt-1 font-semibold ${
-                                        inInputText && !parse12hTo24h(inInputText)
+                                    <p className={`text-[10px] mt-1 font-semibold ${inInputText && !parse12hTo24h(inInputText)
                                             ? 'text-rose-500'
                                             : 'text-gray-400 dark:text-gray-500'
-                                    }`}>
+                                        }`}>
                                         {inInputText && parse12hTo24h(inInputText)
                                             ? `✓ Set: ${format24to12(parse12hTo24h(inInputText)!)}`
                                             : 'Format: HH:MM AM/PM'}
@@ -681,18 +738,16 @@ export default function Attendance() {
                                             value={outInputText}
                                             onChange={(e) => setOutInputText(e.target.value)}
                                             placeholder="06:00 PM"
-                                            className={`w-full pl-10 pr-3 py-2.5 bg-gray-50 dark:bg-white/5 border rounded-xl outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-sm font-semibold animate-none ${
-                                                outInputText && !parse12hTo24h(outInputText)
+                                            className={`w-full pl-10 pr-3 py-2.5 bg-gray-50 dark:bg-white/5 border rounded-xl outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-sm font-semibold animate-none ${outInputText && !parse12hTo24h(outInputText)
                                                     ? 'border-rose-500/60 focus:ring-rose-500/30'
                                                     : 'border-gray-200 dark:border-white/10'
-                                            }`}
+                                                }`}
                                         />
                                     </div>
-                                    <p className={`text-[10px] mt-1 font-semibold ${
-                                        outInputText && !parse12hTo24h(outInputText)
+                                    <p className={`text-[10px] mt-1 font-semibold ${outInputText && !parse12hTo24h(outInputText)
                                             ? 'text-rose-500'
                                             : 'text-gray-400 dark:text-gray-500'
-                                    }`}>
+                                        }`}>
                                         {outInputText && parse12hTo24h(outInputText)
                                             ? `✓ Set: ${format24to12(parse12hTo24h(outInputText)!)}`
                                             : 'Format: HH:MM AM/PM'}

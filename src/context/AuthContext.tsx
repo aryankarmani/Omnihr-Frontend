@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 sessionStorage.setItem('tenantId', userData.tenantId);
             }
         } catch (err: any) {
-            setError(err.message || 'Login failed');
+            setError(err.response?.data?.message || err.message || 'Login failed');
             throw err;
         } finally {
             setIsLoading(false);

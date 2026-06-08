@@ -141,9 +141,6 @@ export default function EmployeeList() {
         // if (user?.role === 'MANAGER' && !teamMemberIds.includes(emp.id)) {
         //     return false;
         // }
-        const { user } = useAuth();
-        // ✅ ADDED: only HR admin can see employee actions
-        const isAdmin = user?.role === 'HR_ADMIN';
 
         return (
             (!appliedFilters.name ||

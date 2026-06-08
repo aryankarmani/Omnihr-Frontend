@@ -89,12 +89,55 @@ export default function EmployeeProfile() {
         }
     };
 
+    // Payslip month state
+    const [leaves, setLeaves] = useState<any[]>([]);
+    const [selectedPayslipYear, setSelectedPayslipYear] = useState<number>(() => {
+        return new Date().getFullYear();
+    });
+    const [selectedPayslipMonth, setSelectedPayslipMonth] = useState<number>(() => {
+        return new Date().getMonth(); // 0-indexed
+    });
+
+    // Draft inputs for month/year selector (prefilled with current month/year)
+    const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const [inputMonth, setInputMonth] = useState(() => MONTH_NAMES[new Date().getMonth()]);
+    const [inputYear, setInputYear] = useState(() => String(new Date().getFullYear()));
+    const [payslipError, setPayslipError] = useState('');
+
+    const applyPayslipMonth = () => {
+        const trimmedMonth = inputMonth.trim();
+        const trimmedYear = inputYear.trim();
+        if (!trimmedMonth || !trimmedYear) {
+            setPayslipError('Please enter both Month and Year');
+            return;
+        }
+        const monthIdx = MONTH_NAMES.findIndex(m => m.toLowerCase().startsWith(trimmedMonth.toLowerCase()));
+        const year = Number(trimmedYear);
+        if (monthIdx === -1) { setPayslipError('Invalid month — enter e.g. June'); return; }
+        if (isNaN(year) || year < 2000 || year > 2100) { setPayslipError('Invalid year — enter e.g. 2026'); return; }
+        setPayslipError('');
+        setSelectedPayslipMonth(monthIdx);
+        setSelectedPayslipYear(year);
+    };
+
+    const fetchEmployeeLeaves = async () => {
+        try {
+            const empId = id || '';
+            const endpoint = empId ? `/leave/history?employeeId=${empId}` : '/leave/history';
+            const res = await api.get(endpoint);
+            setLeaves(res.data);
+        } catch (error) {
+            console.error('Error fetching employee leaves:', error);
+        }
+    };
+
     useEffect(() => {
         fetchEmployee();
         fetchShifts();
         fetchRoles();
         fetchDesignations();
         fetchDepartments();
+        fetchEmployeeLeaves();
     }, [id]);
 
     const handleCancel = () => {
@@ -119,19 +162,19 @@ export default function EmployeeProfile() {
         else if (!/^\d{10}$/.test(pd.phone)) {
             newErrors.phone = "Enter valid 10 digit phone number";
         }
-       if (!pd.dob) {
-    newErrors.dob = "Date of birth is required";
-} else if (new Date(pd.dob) > new Date()) {
-    newErrors.dob = "Future date is not allowed";
-}
+        if (!pd.dob) {
+            newErrors.dob = "Date of birth is required";
+        } else if (new Date(pd.dob) > new Date()) {
+            newErrors.dob = "Future date is not allowed";
+        }
 
-if (!pd.bloodGroup) {
-    newErrors.bloodGroup = "Blood group is required";
-}
+        if (!pd.bloodGroup) {
+            newErrors.bloodGroup = "Blood group is required";
+        }
 
-if (!pd.address?.trim()) {
-    newErrors.address = "Address is required";
-}
+        if (!pd.address?.trim()) {
+            newErrors.address = "Address is required";
+        }
 
         if (!employee.roleId && !employee.role?.id) newErrors.role = "Role is required";
         if (!pd.designationId) newErrors.designationId = "Designation is required";
@@ -199,15 +242,15 @@ if (!pd.address?.trim()) {
             } else if (hasStatutoryError) {
                 toast.error("Please fix validations in Statutory & Bank Info");
                 setActiveTab("statutory");
-            } 
-           else if (newErrors.shiftId) {
-    toast.error("Shift not assigned");
-    setActiveTab("shiftRoster");
-}
-else if (hasPersonalError) {
-    toast.error("Please fix validations in Personal Details");
-    setActiveTab("personal");
-}
+            }
+            else if (newErrors.shiftId) {
+                toast.error("Shift not assigned");
+                setActiveTab("shiftRoster");
+            }
+            else if (hasPersonalError) {
+                toast.error("Please fix validations in Personal Details");
+                setActiveTab("personal");
+            }
 
             return false;
         }
@@ -402,8 +445,42 @@ else if (hasPersonalError) {
     const tax = Number(profile.salary?.tax || 0);
 
     const totalEarnings = basic + hra + special + medical;
-    const totalDeductions = pf + pt + tax;
-    const totalSalary = totalEarnings - totalDeductions;
+
+    // Month info for payslip
+    const calendarDays = new Date(selectedPayslipYear, selectedPayslipMonth + 1, 0).getDate();
+    const selectedMonthLabel = new Date(selectedPayslipYear, selectedPayslipMonth, 1)
+        .toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    const selectedMonthShort = new Date(selectedPayslipYear, selectedPayslipMonth, 1)
+        .toLocaleString('en-US', { month: 'short', year: 'numeric' }).replace(' ', '_');
+
+    // Calculate LWP days for selected month from approved leaves
+    let lwpDays = 0;
+    if (Array.isArray(leaves)) {
+        leaves.forEach((leave: any) => {
+            const isApproved = leave.status === 'APPROVED' || leave.status === 'Approved';
+            const isLWP = leave.leaveType?.code === 'LWP';
+            if (!isApproved || !isLWP) return;
+            const start = new Date(leave.startDate);
+            const end = new Date(leave.endDate);
+            let current = new Date(start);
+            while (current <= end) {
+                if (current.getFullYear() === selectedPayslipYear && current.getMonth() === selectedPayslipMonth) {
+                    lwpDays++;
+                }
+                current.setDate(current.getDate() + 1);
+            }
+        });
+    }
+
+    const lwpDeduction = lwpDays > 0 ? Number(((totalEarnings / calendarDays) * lwpDays).toFixed(2)) : 0;
+    const totalDeductions = pf + pt + tax + lwpDeduction;
+    const totalSalary = Math.max(0, totalEarnings - totalDeductions);
+    const paidDays = calendarDays - lwpDays;
+
+    // Date of joining
+    const joiningDate = profile.joiningDate
+        ? new Date(profile.joiningDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+        : 'N/A';
 
     return (
         <div className="animate-fade-in-up pb-8 relative">
@@ -459,9 +536,11 @@ else if (hasPersonalError) {
                                 </button>
                             </>
                         ) : (
-                            <button onClick={() => setIsEditing(true)} className="px-4 py-2 bg-brand-600 text-white rounded-xl shadow-lg shadow-brand-500/20 hover:bg-brand-700 transition-all font-bold flex items-center gap-2">
-                                <Edit size={18} /> Edit Profile
-                            </button>
+                            hasPermission(['HR_ADMIN']) && (
+                                <button onClick={() => setIsEditing(true)} className="px-4 py-2 bg-brand-600 text-white rounded-xl shadow-lg shadow-brand-500/20 hover:bg-brand-700 transition-all font-bold flex items-center gap-2">
+                                    <Edit size={18} /> Edit Profile
+                                </button>
+                            )
                         )}
                     </div>
                 </div>
@@ -521,8 +600,8 @@ else if (hasPersonalError) {
                                                         )
                                                     }
                                                     className={`appearance-none w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors[field.key]
-                                                            ? 'border-red-500'
-                                                            : 'border-gray-200 dark:border-white/10'
+                                                        ? 'border-red-500'
+                                                        : 'border-gray-200 dark:border-white/10'
                                                         } rounded-lg outline-none text-gray-800 dark:text-white font-medium cursor-pointer`} />
                                                 {errors[field.key] && <p className="text-red-500 text-xs mt-1">{errors[field.key]}</p>}
                                             </>
@@ -622,8 +701,8 @@ else if (hasPersonalError) {
                                         >
                                             <div className="flex items-center gap-3">
                                                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${savedDoc
-                                                        ? 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
-                                                        : 'bg-gray-100 dark:bg-white/10 text-gray-400'
+                                                    ? 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
+                                                    : 'bg-gray-100 dark:bg-white/10 text-gray-400'
                                                     }`}>
                                                     <FileText size={20} />
                                                 </div>
@@ -664,8 +743,8 @@ else if (hasPersonalError) {
                                                         }
                                                     }}
                                                     className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${savedDoc
-                                                            ? 'bg-brand-500/10 text-brand-500 hover:bg-brand-500 hover:text-white cursor-pointer'
-                                                            : 'bg-gray-100 dark:bg-white/5 text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                                                        ? 'bg-brand-500/10 text-brand-500 hover:bg-brand-500 hover:text-white cursor-pointer'
+                                                        : 'bg-gray-100 dark:bg-white/5 text-gray-300 dark:text-gray-600 cursor-not-allowed'
                                                         }`}
                                                 >
                                                     <Eye size={18} />
@@ -779,11 +858,11 @@ else if (hasPersonalError) {
                                                 onChange={(e) => {
                                                     const selectedRole = roles.find((r: any) => String(r.id) === String(e.target.value));
                                                     if (errors.role) {
-                                                    setErrors(prev => ({
-                                                     ...prev,
-                                                      role: ''
-                                           }));
-            }               
+                                                        setErrors(prev => ({
+                                                            ...prev,
+                                                            role: ''
+                                                        }));
+                                                    }
                                                     setEmployee((prev: any) => ({
                                                         ...prev,
                                                         roleId: e.target.value,
@@ -846,10 +925,10 @@ else if (hasPersonalError) {
                                                         (d: any) => String(d.id) === String(e.target.value)
                                                     );
                                                     if (errors.designationId) {
-                                                 setErrors(prev => ({
-                                                     ...prev,
-                                                  designationId: ''
-                                                      }));
+                                                        setErrors(prev => ({
+                                                            ...prev,
+                                                            designationId: ''
+                                                        }));
                                                     }
 
                                                     setEmployee((prev: any) => ({
@@ -909,11 +988,11 @@ else if (hasPersonalError) {
                                                         (d: any) => String(d.id) === String(e.target.value)
                                                     );
                                                     if (errors.departmentId) {
-                                                    setErrors(prev => ({
-                                                    ...prev,
-                                                    departmentId: ''
-    }));
-}
+                                                        setErrors(prev => ({
+                                                            ...prev,
+                                                            departmentId: ''
+                                                        }));
+                                                    }
 
                                                     setEmployee((prev: any) => ({
                                                         ...prev,
@@ -963,11 +1042,11 @@ else if (hasPersonalError) {
                                         </p>
                                     )}
 
-                                     {errors.departmentId && (
-                                   <p className="text-red-500 text-xs mt-1">
-                                Department is required
-                                     </p>
-                                  )}
+                                    {errors.departmentId && (
+                                        <p className="text-red-500 text-xs mt-1">
+                                            Department is required
+                                        </p>
+                                    )}
                                 </div>
 
 
@@ -979,8 +1058,8 @@ else if (hasPersonalError) {
                                                 value={profile.bloodGroup || ''}
                                                 onChange={(e) => handleInputChange('bloodGroup', e.target.value)}
                                                 className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.bloodGroup
-                                                        ? 'border-red-500'
-                                                        : 'border-gray-200 dark:border-white/10'
+                                                    ? 'border-red-500'
+                                                    : 'border-gray-200 dark:border-white/10'
                                                     } rounded-lg outline-none`}
                                             >
                                                 <option value="" className="dark:bg-brand-900">Select Blood Group</option>
@@ -1052,72 +1131,72 @@ else if (hasPersonalError) {
                                     Assigned Shift
                                 </label>
 
-                               {isEditing && hasPermission(['HR_ADMIN']) ? (
-    <>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        {shifts.map((shift: any) => (
-                                            <div
-                                                key={shift.id}
-                                               onClick={() => {
-    if (isEditing && hasPermission(['HR_ADMIN'])) {
+                                {isEditing && hasPermission(['HR_ADMIN']) ? (
+                                    <>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            {shifts.map((shift: any) => (
+                                                <div
+                                                    key={shift.id}
+                                                    onClick={() => {
+                                                        if (isEditing && hasPermission(['HR_ADMIN'])) {
 
-        if (errors.shiftId) {
-            setErrors(prev => ({
-                ...prev,
-                shiftId: ''
-            }));
-        }
+                                                            if (errors.shiftId) {
+                                                                setErrors(prev => ({
+                                                                    ...prev,
+                                                                    shiftId: ''
+                                                                }));
+                                                            }
 
-        handleInputChange('shiftId', String(shift.id));
-    }
-}}
-                                                className={`p-4 rounded-xl border cursor-pointer transition-all ${String(profile.shiftId) === String(shift.id)
-                                                    ? 'border-brand-400 ring-2 ring-brand-500/50 bg-brand-500/10'
-                                                    : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5'
-                                                    }`}
-                                            >
+                                                            handleInputChange('shiftId', String(shift.id));
+                                                        }
+                                                    }}
+                                                    className={`p-4 rounded-xl border cursor-pointer transition-all ${String(profile.shiftId) === String(shift.id)
+                                                        ? 'border-brand-400 ring-2 ring-brand-500/50 bg-brand-500/10'
+                                                        : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5'
+                                                        }`}
+                                                >
 
 
-                                                <div className="space-y-1 text-xs text-gray-500 dark:text-gray-300">
-                                                    <div className="space-y-2 text-sm text-gray-700 dark:text-gray-200">
+                                                    <div className="space-y-1 text-xs text-gray-500 dark:text-gray-300">
+                                                        <div className="space-y-2 text-sm text-gray-700 dark:text-gray-200">
 
-                                                        <h4 className="font-bold text-lg text-gray-800 dark:text-white">
-                                                            {shift.name}
-                                                        </h4>
-                                                        <p className="flex justify-between">
-                                                            <span className="font-semibold">Timing:</span>
-                                                            <span>
-                                                                {shift.startTime} - {shift.endTime}
-                                                            </span>
-                                                        </p>
-                                                        <p className="flex justify-between">
-                                                            <span className="font-semibold">Break:</span>
-                                                            <span>{shift.breakDuration} mins</span>
-                                                        </p>
+                                                            <h4 className="font-bold text-lg text-gray-800 dark:text-white">
+                                                                {shift.name}
+                                                            </h4>
+                                                            <p className="flex justify-between">
+                                                                <span className="font-semibold">Timing:</span>
+                                                                <span>
+                                                                    {shift.startTime} - {shift.endTime}
+                                                                </span>
+                                                            </p>
+                                                            <p className="flex justify-between">
+                                                                <span className="font-semibold">Break:</span>
+                                                                <span>{shift.breakDuration} mins</span>
+                                                            </p>
 
-                                                        <p className="flex justify-between">
-                                                            <span className="font-semibold">Grace Time:</span>
-                                                            <span>{shift.graceTime} mins</span>
-                                                        </p>
+                                                            <p className="flex justify-between">
+                                                                <span className="font-semibold">Grace Time:</span>
+                                                                <span>{shift.graceTime} mins</span>
+                                                            </p>
 
-                                                        <p className="flex justify-between">
-                                                            <span className="font-semibold">Night Shift:</span>
-                                                            <span>{shift.isNightShift ? "Yes" : "No"}</span>
-                                                        </p>
+                                                            <p className="flex justify-between">
+                                                                <span className="font-semibold">Night Shift:</span>
+                                                                <span>{shift.isNightShift ? "Yes" : "No"}</span>
+                                                            </p>
+
+                                                        </div>
 
                                                     </div>
-
                                                 </div>
-                                            </div>
 
-                                        ))}
-                                </div>
-                             {errors.shiftId && (
-                            <p className="text-red-500 text-sm mt-3 font-medium">
-                                Select a shift
-                              </p>
-                             )}
-                              </>       
+                                            ))}
+                                        </div>
+                                        {errors.shiftId && (
+                                            <p className="text-red-500 text-sm mt-3 font-medium">
+                                                Select a shift
+                                            </p>
+                                        )}
+                                    </>
                                 ) : (
                                     <div>
                                         {(() => {
@@ -1202,8 +1281,8 @@ else if (hasPersonalError) {
                                                     }
                                                     placeholder={field.placeholder}
                                                     className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors[field.key]
-                                                            ? 'border-red-500'
-                                                            : 'border-gray-200 dark:border-white/10'
+                                                        ? 'border-red-500'
+                                                        : 'border-gray-200 dark:border-white/10'
                                                         } rounded-lg outline-none`}
                                                 />
 
@@ -1256,11 +1335,55 @@ else if (hasPersonalError) {
                     <div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden">
 
                         {/* Header */}
-                        <div className="p-4 md:p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50 dark:bg-white/5 shrink-0">
-                            <h3 className="text-xl font-bold font-mono text-gray-800 dark:text-white">Payslip Preview</h3>
-                            <button onClick={() => setShowPayslip(false)} className="bg-gray-200 dark:bg-white/10 p-2 rounded-full hover:bg-gray-300 dark:hover:bg-white/20 transition-colors">
-                                <X size={20} className="text-gray-600 dark:text-gray-300" />
-                            </button>
+                        <div className="px-6 py-4 border-b border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 shrink-0">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                {/* Left title */}
+                                <div>
+                                    <h3 className="text-lg font-bold text-gray-800 dark:text-white">Payslip Preview</h3>
+                                    {selectedMonthLabel && (
+                                        <p className="text-xs text-brand-600 font-semibold mt-0.5">Payslip for {selectedMonthLabel}</p>
+                                    )}
+                                </div>
+
+                                {/* Right: month + year fields */}
+                                <div className="flex items-center gap-3">
+                                    <div className="flex items-center border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden bg-white dark:bg-brand-800 shadow-sm">
+                                        <input
+                                            type="text"
+                                            value={inputMonth}
+                                            onChange={(e) => { setInputMonth(e.target.value); setPayslipError(''); }}
+                                            onKeyDown={(e) => e.key === 'Enter' && applyPayslipMonth()}
+                                            placeholder="Month"
+                                            maxLength={12}
+                                            className="px-4 py-2 text-sm font-medium bg-transparent outline-none text-gray-800 dark:text-white placeholder-gray-400 w-24 border-r border-gray-200 dark:border-white/10"
+                                        />
+                                        <input
+                                            type="text"
+                                            value={inputYear}
+                                            onChange={(e) => { setInputYear(e.target.value); setPayslipError(''); }}
+                                            onKeyDown={(e) => e.key === 'Enter' && applyPayslipMonth()}
+                                            placeholder="Year"
+                                            maxLength={4}
+                                            className="px-4 py-2 text-sm font-medium bg-transparent outline-none text-gray-800 dark:text-white placeholder-gray-400 w-24"
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={applyPayslipMonth}
+                                        className="px-5 py-2 bg-brand-600 text-white text-sm font-bold rounded-xl hover:bg-brand-700 active:scale-95 transition-all shadow-sm"
+                                    >
+                                        Apply
+                                    </button>
+                                    {payslipError && (
+                                        <span className="text-xs text-rose-500 font-semibold">{payslipError}</span>
+                                    )}
+                                    <button
+                                        onClick={() => setShowPayslip(false)}
+                                        className="p-2 bg-gray-200 dark:bg-white/10 rounded-full hover:bg-gray-300 dark:hover:bg-white/20 transition-colors"
+                                    >
+                                        <X size={18} className="text-gray-600 dark:text-gray-300" />
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Content (Scrollable if absolutely necessary, but designed to fit) */}
@@ -1280,7 +1403,7 @@ else if (hasPersonalError) {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-6 mb-6">
+                                <div className="grid grid-cols-2 gap-6 mb-4">
                                     <div className="space-y-2">
                                         <h4 className="font-bold text-brand-600 text-[10px] uppercase tracking-wider mb-1 border-b border-gray-100 pb-1">Employee Details</h4>
                                         <div className="grid grid-cols-3 gap-1 text-xs">
@@ -1292,6 +1415,8 @@ else if (hasPersonalError) {
                                             <span className="col-span-2 font-bold break-words whitespace-normal">{profile.title || 'N/A'}</span>
                                             <span className="text-gray-500 font-medium">Department:</span>
                                             <span className="col-span-2 font-bold break-words whitespace-normal">{profile.department || 'N/A'}</span>
+                                            <span className="text-gray-500 font-medium">Date of Joining:</span>
+                                            <span className="col-span-2 font-bold">{joiningDate}</span>
                                         </div>
                                     </div>
                                     <div className="space-y-2">
@@ -1306,6 +1431,22 @@ else if (hasPersonalError) {
                                             <span className="text-gray-500 font-medium">UAN:</span>
                                             <span className="col-span-2 font-bold">{statutory.uan || 'N/A'}</span>
                                         </div>
+                                    </div>
+                                </div>
+
+                                {/* Payroll Summary Bar */}
+                                <div className="flex items-center gap-0 mb-4 border border-gray-200 rounded-lg overflow-hidden text-xs">
+                                    <div className="flex-1 bg-gray-50 px-3 py-2 text-center border-r border-gray-200">
+                                        <p className="text-gray-400 font-medium uppercase tracking-wider text-[9px]">Total Working Days</p>
+                                        <p className="font-bold text-gray-800 text-sm mt-0.5">{calendarDays}</p>
+                                    </div>
+                                    <div className="flex-1 bg-gray-50 px-3 py-2 text-center border-r border-gray-200">
+                                        <p className="text-gray-400 font-medium uppercase tracking-wider text-[9px]">Paid Days</p>
+                                        <p className="font-bold text-green-700 text-sm mt-0.5">{paidDays}</p>
+                                    </div>
+                                    <div className="flex-1 bg-gray-50 px-3 py-2 text-center">
+                                        <p className="text-gray-400 font-medium uppercase tracking-wider text-[9px]">Leave Taken (LWP)</p>
+                                        <p className="font-bold text-sm mt-0.5" style={{ color: lwpDays > 0 ? '#e11d48' : '#1f2937' }}>{lwpDays}</p>
                                     </div>
                                 </div>
 
@@ -1370,6 +1511,12 @@ else if (hasPersonalError) {
                                                     <div className="flex justify-between p-2 border-b border-gray-50">
                                                         <span className="text-gray-600">Income Tax / TDS</span>
                                                         <span className="font-semibold">₹ {tax.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                    </div>
+                                                )}
+                                                {lwpDeduction > 0 && (
+                                                    <div className="flex justify-between p-2 border-b border-gray-50" style={{ color: '#e11d48', backgroundColor: 'rgba(255, 241, 242, 0.5)' }}>
+                                                        <span className="font-semibold">LWP Deduction ({lwpDays} days)</span>
+                                                        <span className="font-semibold">₹ {lwpDeduction.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                     </div>
                                                 )}
                                                 {totalDeductions === 0 && (
@@ -1443,7 +1590,7 @@ else if (hasPersonalError) {
                                         const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
                                         pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-                                        pdf.save(`Payslip_${employee.name}_${new Date().toLocaleDateString()}.pdf`);
+                                        pdf.save(`Payslip_${employee.name}_${selectedMonthShort}.pdf`);
 
                                         toast.success("PDF Downloaded", { id: toastId });
                                     } catch (err) {
