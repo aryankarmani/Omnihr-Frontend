@@ -435,6 +435,22 @@ export default function EmployeeProfile() {
     const profile = employee.employeeProfile || {};
     const statutory = profile.statutory || {};
     const bank = profile.bank || {};
+            const isHRAdminProfile =
+    employee?.role?.name === 'HR_ADMIN' ||
+    employee?.role?.title === 'HR_ADMIN' ||
+    employee?.role === 'HR_ADMIN';
+
+    const adminSignatureDoc = profile.documents?.find(
+    (d: any) => d.name === 'Admin Signature'
+    );
+
+    const adminSignatureUrl = adminSignatureDoc?.url
+    ? adminSignatureDoc.url.startsWith('http')
+        ? adminSignatureDoc.url
+        : adminSignatureDoc.url.startsWith('/uploads/')
+            ? `http://localhost:3001${adminSignatureDoc.url}`
+            : `http://localhost:3001/uploads/${adminSignatureDoc.url}`
+    : null;
 
     // Dynamic salary calculations for payslip preview
     const basic = Number(profile.salary?.basic || 0);
@@ -592,14 +608,18 @@ export default function EmployeeProfile() {
                                                     type="text"
                                                     placeholder={field.placeholder}
                                                     value={(statutory as any)[field.key] || ''}
-                                                    onChange={(e) =>
-                                                        handleStatutoryChange(
-                                                            field.key,
-                                                            field.key === 'pan'
-                                                                ? e.target.value.toUpperCase()
-                                                                : e.target.value.replace(/\D/g, '')
-                                                        )
-                                                    }
+                                                     onChange={(e) => {
+    let value =
+        field.key === 'pan'
+            ? e.target.value.toUpperCase()
+            : e.target.value.replace(/\D/g, '');
+
+    if (field.key === 'uan') value = value.slice(0, 12);
+    if (field.key === 'esic') value = value.slice(0, 10);
+    if (field.key === 'aadhaar') value = value.slice(0, 12);
+
+    handleStatutoryChange(field.key, value);
+}}
                                                     className={`appearance-none w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors[field.key]
                                                         ? 'border-red-500'
                                                         : 'border-gray-200 dark:border-white/10'
@@ -644,7 +664,7 @@ export default function EmployeeProfile() {
                                             placeholder="9 to 18 digits"
                                             value={bank.accountNumber || ''}
                                             onChange={(e) =>
-                                            handleBankChange('accountNumber', e.target.value.replace(/\D/g, ''))}
+                                           handleBankChange('accountNumber', e.target.value.replace(/\D/g, '').slice(0, 18))}
                                             className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.accountNumber ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg focus:ring-2 focus:ring-brand-500/50 outline-none`}
                                         />
                                         {errors.accountNumber && <p className="text-red-500 text-xs mt-1">{errors.accountNumber}</p>}
@@ -690,9 +710,13 @@ export default function EmployeeProfile() {
 
                             </div>                           <div className="space-y-4">
                                 {[
-                                    { key: 'aadhaar', name: 'Aadhaar Card' },
-                                    { key: 'pan', name: 'PAN Card' },
-                                    { key: 'degree', name: 'Highest Qualification Degree' }
+                            { key: 'aadhaar', name: 'Aadhaar Card' },
+                            { key: 'pan', name: 'PAN Card' },
+                            { key: 'degree', name: 'Highest Qualification Degree' },
+
+                                ...(isHRAdminProfile
+                                ? [{ key: 'adminSignature', name: 'Admin Signature' }]
+                                : [])
                                 ].map((doc) => {
                                     const savedDoc = profile.documents?.find((d: any) => d.name === doc.name);
                                     return (
@@ -811,7 +835,8 @@ export default function EmployeeProfile() {
                                     <label className="text-xs font-bold text-gray-400 uppercase">Phone</label>
                                     {isEditing ? (
                                         <>
-                                            <input type="text" value={profile.phone || ''} onChange={(e) => handleInputChange('phone', e.target.value)} className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.phone ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg outline-none`} />
+                                            <input type="text" value={profile.phone || ''} onChange={(e) => handleInputChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} 
+                                            className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.phone ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg outline-none`} />
                                             {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
                                         </>
                                     ) : <p className="font-semibold">{profile.phone || 'N/A'}</p>}
@@ -1332,7 +1357,7 @@ export default function EmployeeProfile() {
 
             {/* Payslip Modal (Keep original UI logic, but ensure it uses the dynamic data) */}
             {showPayslip && createPortal(
-                <div className="fixed inset-0 z-[999999] flex items-start justify-center pt-20 bg-black/70 backdrop-blur-sm p-4 animate-fade-in overflow-y-auto custom-scrollbar scrollbar-thin scrollbar-thumb-brand-500/60">
+                <div className="fixed inset-0 z-[999999] flex items-center justify-center  bg-black/70 backdrop-blur-sm p-4 animate-fade-in overflow-y-auto custom-scrollbar scrollbar-thin scrollbar-thumb-brand-500/60">
                     <div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden">
 
                         {/* Header */}
@@ -1662,8 +1687,7 @@ export default function EmployeeProfile() {
                                         className="w-full h-full object-contain"
                                     />
                                 </div>
-                                <div className="text-right italic text-gray-400 text-xs">Authorized Sig.</div>
-                            </div>
+                           <div className="text-right flex flex-col items-end">{isHRAdminProfile && adminSignatureUrl && <img src={adminSignatureUrl} alt="Admin Signature" className="w-20 h-8 object-contain mb-1" />}<div className="italic text-gray-400 text-xs">Authorized Sig.</div></div> </div>
                         </div>
                         <div className="flex justify-center mt-6">
                             <button
