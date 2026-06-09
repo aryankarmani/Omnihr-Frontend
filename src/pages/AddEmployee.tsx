@@ -786,7 +786,7 @@ export default function AddEmployee() {
                                             autoComplete="off"
                                             value={formData.accountNumber}
                                             onChange={(e) => {
-                                                const value = e.target.value.replace(/\D/g, "");
+                                                const value = e.target.value.replace(/\D/g, "").slice(0, 18);
 
                                                 setFormData({
                                                     ...formData,
