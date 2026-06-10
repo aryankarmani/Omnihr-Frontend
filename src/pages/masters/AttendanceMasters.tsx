@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Clock, Settings, Save, Plus, Calendar, Trash2, X, Loader2, Layers } from 'lucide-react';
@@ -41,7 +42,7 @@ export default function AttendanceMasters() {
             setShowShiftModal(false);
             toast.success("Shift saved!");
             setNewShift({ name: '', startTime: '09:00', endTime: '18:00', breakDuration: 60, graceTime: 15, isNightShift: false });
-        } catch (e) { toast.error("Failed to save shift"); }
+        } catch  { toast.error("Failed to save shift"); }
         finally { setLoading(false); }
     };
 
@@ -57,7 +58,7 @@ export default function AttendanceMasters() {
             setShowHolidayModal(false);
             toast.success("Holiday added!");
             setNewHoliday({ name: '', date: '', type: 'PUBLIC' });
-        } catch (e) { toast.error("Failed to add holiday"); }
+        } catch  { toast.error("Failed to add holiday"); }
         finally { setLoading(false); }
     };
 
@@ -66,7 +67,7 @@ export default function AttendanceMasters() {
             setLoading(true);
             await api.post('/masters/attendance-policy', policy);
             toast.success("Policy updated!");
-        } catch (e) { toast.error("Failed to update policy"); }
+        } catch  { toast.error("Failed to update policy"); }
         finally { setLoading(false); }
     };
 
@@ -76,7 +77,7 @@ export default function AttendanceMasters() {
             setLoading(true);
             await api.delete(`/masters/${itemToDelete.type}s/${itemToDelete.id}`);
             toast.success(`${itemToDelete.name} deleted!`);
-        } catch (error) {
+        } catch  {
             console.warn("Backend delete not available.");
             toast.success(`${itemToDelete.name} removed from UI.`);
         } finally {

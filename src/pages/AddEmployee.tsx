@@ -124,9 +124,7 @@ export default function AddEmployee() {
                 newErrors.firstName = 'First name is required';
             }
 
-            if (!formData.lastName) {
-                newErrors.lastName = 'Last name is required';
-            }
+          
 
             if (!formData.email) {
                 newErrors.email = 'Email is required';
@@ -159,9 +157,18 @@ export default function AddEmployee() {
             if (!formData.bloodGroup) {
                 newErrors.bloodGroup = 'Select blood group';
             }
-            if (!formData.dob) {
-            newErrors.dob = 'Date of birth is required';
-            }
+             if (!formData.dob) {
+             newErrors.dob = 'Date of birth is required';  
+              } else {
+             const selectedDate = new Date(formData.dob);
+             const today = new Date();
+
+             today.setHours(0, 0, 0, 0);
+
+            if (selectedDate > today) {
+            newErrors.dob = 'Future date is not allowed';
+          }
+    }
 
             if (!formData.address.trim()) {
                 newErrors.address = 'Enter address';
@@ -413,10 +420,7 @@ export default function AddEmployee() {
                                     className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                     placeholder="Last"
                                 />
-                                  {errors.lastName && (
-                               <p className="text-red-500 text-xs ml-1">
-                            {errors.lastName}
-                             </p>)}
+                                
                             </div>
                           
                         
@@ -490,10 +494,11 @@ export default function AddEmployee() {
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Date of Birth *</label>
                                 <input
-                                    autoComplete="off"
-                                    name="dob"
-                                    value={formData.dob}
-                                    onChange={(e) => {
+                                   autoComplete="off"
+                                 name="dob"
+                                  value={formData.dob}
+                                 max={new Date().toISOString().split('T')[0]}
+                                 onChange={(e) => {
                                         const val = e.target.value;
                                         if (val) {
                                             const parts = val.split('-');
@@ -781,7 +786,7 @@ export default function AddEmployee() {
                                             autoComplete="off"
                                             value={formData.accountNumber}
                                             onChange={(e) => {
-                                                const value = e.target.value.replace(/\D/g, "");
+                                                const value = e.target.value.replace(/\D/g, "").slice(0, 18);
 
                                                 setFormData({
                                                     ...formData,
