@@ -18,7 +18,7 @@ export default function EmployeeProfile() {
     const queryParams = new URLSearchParams(location.search);
     const initialEditMode = queryParams.get('edit') === 'true';
 
-    const [activeTab, setActiveTab] = useState<'personal' | 'statutory' | 'documents' | 'shiftRoster' | 'salary'>('statutory');
+    const [activeTab, setActiveTab] = useState<'personal' | 'statutory' | 'documents' | 'shiftRoster' | 'salary' | 'team'>('statutory');
     const [isEditing, setIsEditing] = useState(initialEditMode);
     const [showPayslip, setShowPayslip] = useState(false);
     const [showIDCard, setShowIDCard] = useState(false);
@@ -565,7 +565,7 @@ export default function EmployeeProfile() {
 
             {/* Tabs */}
             <div className="flex gap-4 mb-6 border-b border-gray-200 dark:border-white/10 overflow-x-auto pb-1">
-                {['statutory', 'documents', 'personal', 'shiftRoster', 'salary'].map((tab) => (<button
+                {['statutory', 'documents', 'personal', 'shiftRoster', 'salary', 'team'].map((tab) => (<button
                     key={tab}
                     onClick={() => setActiveTab(tab as any)}
                     className={`pb-3 px-2 font-medium transition-all whitespace-nowrap capitalize ${activeTab === tab ? 'text-brand-600 border-b-2 border-brand-600' : 'text-gray-500 hover:text-gray-700'}`}
@@ -578,7 +578,9 @@ export default function EmployeeProfile() {
                                 ? 'Shift & Roster'
                                 : tab === 'salary'
                                     ? 'Salary Info'
-                                    : 'Document Vault'}
+                                    : tab === 'team'
+                                        ? 'Team Info'
+                                        : 'Document Vault'}
                 </button>
                 ))}
             </div>
@@ -1134,7 +1136,7 @@ export default function EmployeeProfile() {
                                             ))}
                                         </div>
                                     ) : (
-                                        <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider shadow-sm transition-all hover:scale-105 ${profile.status === 'Active'
+                                        <span className={`inline-block ml-2 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider shadow-sm transition-all hover:scale-105 ${profile.status === 'Active'
                                             ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 dark:text-emerald-400'
                                             : 'bg-rose-500/10 text-rose-600 border border-rose-500/20 dark:text-rose-400'
                                             }`}>
@@ -1327,6 +1329,54 @@ export default function EmployeeProfile() {
                                         )}
                                     </div>
                                 ))}
+                            </div>
+                        </div>
+                    )}
+                    {activeTab === 'team' && (
+                        <div className="bg-white dark:bg-brand-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-white/5 animate-fade-in-up space-y-6">
+                            {/* Team & Manager Details */}
+                            <div>
+                                <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-gray-800 dark:text-white">
+                                    <Briefcase className="text-green-500" size={20} /> Team & Manager Details
+                                </h3>
+                                {employee.teamMembers && employee.teamMembers.length > 0 ? (
+                                    <div className="space-y-4">
+                                        {employee.teamMembers.map((membership: any) => {
+                                            const team = membership.team;
+                                            const teamManager = team?.manager;
+                                            return (
+                                                <div key={membership.id} className="bg-gray-55/50 dark:bg-white/5 p-4 rounded-xl border border-gray-100 dark:border-white/10 space-y-4">
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Team Name</label>
+                                                        <p className="font-bold text-brand-600 dark:text-brand-400 text-lg">{team?.name || 'N/A'}</p>
+                                                        {team?.description && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{team.description}</p>}
+                                                    </div>
+                                                    
+                                                    {teamManager ? (
+                                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-gray-200/50 dark:border-white/10 pt-3">
+                                                            <div className="space-y-1">
+                                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Team Manager Name</label>
+                                                                <p className="font-semibold text-gray-800 dark:text-gray-200 text-sm">{teamManager.name}</p>
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Team Manager Email</label>
+                                                                <p className="font-semibold text-gray-800 dark:text-gray-200 text-sm break-all">{teamManager.email}</p>
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Team Manager Phone</label>
+                                                                <p className="font-semibold text-gray-800 dark:text-gray-200 text-sm">{teamManager.employeeProfile?.phone || 'N/A'}</p>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-gray-550 dark:text-gray-400 italic border-t border-gray-200/50 dark:border-white/10 pt-3 text-xs">No Team Manager Assigned for this Team</p>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <p className="text-gray-500 dark:text-gray-400 italic bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-gray-100 dark:border-white/10">No Team Assigned</p>
+                                )}
                             </div>
                         </div>
                     )}
