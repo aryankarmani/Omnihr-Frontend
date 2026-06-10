@@ -52,8 +52,11 @@ export default function Leave() {
     const [reason, setReason] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [selectedLeaveForReason, setSelectedLeaveForReason] = useState<any | null>(null);
+    const [rejectingLeaveId, setRejectingLeaveId] = useState<number | null>(null);
+    const [leaveRejectComment, setLeaveRejectComment] = useState('');
+    const [submittingLeaveReject, setSubmittingLeaveReject] = useState(false);
 
-   // const [teamMemberIds, setTeamMemberIds] = useState<number[]>([]);
+    // const [teamMemberIds, setTeamMemberIds] = useState<number[]>([]);
     const isHrAdmin = user?.role === 'HR_ADMIN';
     //const isManager = user?.role === 'MANAGER';
     //const canSeeApprovals = isHrAdmin || isManager;
@@ -151,13 +154,27 @@ export default function Leave() {
         }
     };
 
-    const handleUpdateStatus = async (leaveId: number, status: 'APPROVED' | 'REJECTED') => {
+    const handleUpdateStatus = async (leaveId: number, status: 'APPROVED' | 'REJECTED', rejectionReason?: string) => {
         try {
-            await api.put(`/leave/${leaveId}/status`, { status });
+            await api.put(`/leave/${leaveId}/status`, { status, rejectionReason });
             toast.success(`Leave ${status.toLowerCase()} successfully`);
             fetchData();
         } catch (error: any) {
             toast.error(error.response?.data?.message || `Failed to ${status.toLowerCase()} leave`);
+        }
+    };
+
+    const handleRejectLeaveSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!rejectingLeaveId || !leaveRejectComment.trim()) return;
+
+        setSubmittingLeaveReject(true);
+        try {
+            await handleUpdateStatus(rejectingLeaveId, 'REJECTED', leaveRejectComment);
+            setRejectingLeaveId(null);
+            setLeaveRejectComment('');
+        } finally {
+            setSubmittingLeaveReject(false);
         }
     };
 
@@ -185,12 +202,12 @@ export default function Leave() {
 
         return matchesName && matchesType && matchesStatus && matchesStart && matchesEnd;
     });
-             const totalPages = Math.ceil(filteredLeaves.length / rowsPerPage);
+    const totalPages = Math.ceil(filteredLeaves.length / rowsPerPage);
 
-        const paginatedLeaves = filteredLeaves.slice(
+    const paginatedLeaves = filteredLeaves.slice(
         (currentPage - 1) * rowsPerPage,
-       currentPage * rowsPerPage
-);
+        currentPage * rowsPerPage
+    );
     // Helper to check if a date string matches a leave or holiday
     const getDateStatus = (dateStr: string) => {
         // Normalize date comparison by splitting at T
@@ -457,59 +474,59 @@ export default function Leave() {
                 </div>
             ) : (
                 <div className="bg-white dark:bg-brand-900 rounded-3xl p-4 md:p-8 shadow-sm border border-gray-100 dark:border-white/5 min-h-[400px] w-full max-w-full overflow-hidden">
-                            <div className="overflow-x-auto max-w-full">
+                    <div className="overflow-x-auto max-w-full">
 
                         <div className="min-w-[850px] flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-                        <h3 className="text-xl font-bold text-gray-800 dark:text-white">Leave Requests Overview</h3>
-                             
+                            <h3 className="text-xl font-bold text-gray-800 dark:text-white">Leave Requests Overview</h3>
 
-                       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
-                            <div className="relative flex-1 md:w-64">
-                                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                                <input
-                                    type="text"
-                                    placeholder="Search employee..."
-                                    value={filters.name}
-                                   onChange={(e) => {
-                         const val = e.target.value;
-                         setFilters({ ...filters, name: val });
-                         setAppliedFilters({ ...appliedFilters, name: val });
-                         setCurrentPage(1);
-                   }}
-                                    className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-sm text-gray-800 dark:text-white"
-                                />
-                            </div>
-                            <div className="relative group/dropdown hidden sm:block">
-                                <select
-                                    value={filters.status}
-                                   onChange={(e) => {
-                             const val = e.target.value;
-                             setFilters({ ...filters, status: val });
-                            setAppliedFilters({ ...appliedFilters, status: val });
-                            setCurrentPage(1);
-                        }}
-                                    className="appearance-none px-4 py-2 bg-brand-600 dark:bg-brand-600/20 border-2 border-brand-500/50 rounded-xl text-white text-sm font-bold cursor-pointer transition-all hover:bg-brand-700 hover:border-brand-400 shadow-lg shadow-brand-500/20 focus:ring-4 focus:ring-brand-500/20 outline-none w-32 pr-8"
-                                >
-                                    <option value="All" className="bg-white dark:bg-brand-900 text-gray-900 dark:text-white font-bold">All Status</option>
-                                    <option value="PENDING" className="bg-white dark:bg-brand-900 text-gray-900 dark:text-white font-bold">Pending</option>
-                                    <option value="APPROVED" className="bg-white dark:bg-brand-900 text-gray-900 dark:text-white font-bold">Approved</option>
-                                    <option value="REJECTED" className="bg-white dark:bg-brand-900 text-gray-900 dark:text-white font-bold">Rejected</option>
-                                </select>
-                                <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-white transition-transform group-hover/dropdown:scale-110">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
+
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+                                <div className="relative flex-1 md:w-64">
+                                    <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search employee..."
+                                        value={filters.name}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setFilters({ ...filters, name: val });
+                                            setAppliedFilters({ ...appliedFilters, name: val });
+                                            setCurrentPage(1);
+                                        }}
+                                        className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-sm text-gray-800 dark:text-white"
+                                    />
                                 </div>
+                                <div className="relative group/dropdown hidden sm:block">
+                                    <select
+                                        value={filters.status}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setFilters({ ...filters, status: val });
+                                            setAppliedFilters({ ...appliedFilters, status: val });
+                                            setCurrentPage(1);
+                                        }}
+                                        className="appearance-none px-4 py-2 bg-brand-600 dark:bg-brand-600/20 border-2 border-brand-500/50 rounded-xl text-white text-sm font-bold cursor-pointer transition-all hover:bg-brand-700 hover:border-brand-400 shadow-lg shadow-brand-500/20 focus:ring-4 focus:ring-brand-500/20 outline-none w-32 pr-8"
+                                    >
+                                        <option value="All" className="bg-white dark:bg-brand-900 text-gray-900 dark:text-white font-bold">All Status</option>
+                                        <option value="PENDING" className="bg-white dark:bg-brand-900 text-gray-900 dark:text-white font-bold">Pending</option>
+                                        <option value="APPROVED" className="bg-white dark:bg-brand-900 text-gray-900 dark:text-white font-bold">Approved</option>
+                                        <option value="REJECTED" className="bg-white dark:bg-brand-900 text-gray-900 dark:text-white font-bold">Rejected</option>
+                                    </select>
+                                    <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-white transition-transform group-hover/dropdown:scale-110">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setShowFilterDrawer(true)}
+                                    className="p-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-brand-500 hover:text-white transition-all shadow-sm flex items-center justify-center"
+                                >
+                                    <Filter size={18} />
+                                </button>
                             </div>
-                            <button
-                                onClick={() => setShowFilterDrawer(true)}
-                                className="p-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-brand-500 hover:text-white transition-all shadow-sm flex items-center justify-center"
-                            >
-                                <Filter size={18} />
-                            </button>
                         </div>
-                    </div>
 
-                    
-                       <table className="w-full min-w-[850px] text-left border-collapse">
+
+                        <table className="w-full min-w-[850px] text-left border-collapse">
                             <thead>
                                 <tr className="border-b border-gray-50 dark:border-white/5">
                                     <th className="py-4 px-4 text-xs font-bold text-gray-400 uppercase">Employee</th>
@@ -566,7 +583,10 @@ export default function Leave() {
                                                             <CheckCircle size={18} />
                                                         </button>
                                                         <button
-                                                            onClick={() => handleUpdateStatus(l.id, 'REJECTED')}
+                                                            onClick={() => {
+                                                                setRejectingLeaveId(l.id);
+                                                                setLeaveRejectComment('');
+                                                            }}
                                                             className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors" title="Reject"
                                                         >
                                                             <XIcon size={18} />
@@ -585,62 +605,62 @@ export default function Leave() {
                         </table>
                     </div>
                     <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 pt-4 border-t border-gray-100 dark:border-white/5">
-    <div className="flex items-center gap-3">
-        <span className="text-xs font-bold text-gray-400 uppercase">Rows per page</span>
-      <select
-    value={rowsPerPage}
-    onChange={(e) => {
-        setRowsPerPage(Number(e.target.value));
-        setCurrentPage(1);
-    }}
-className="px-5 py-2 bg-brand-800 hover:bg-brand-900 border border-brand-700 rounded-xl text-white font-bold cursor-pointer">
-    <option value={5}>5</option>
-    <option value={10}>10</option>
-    <option value={20}>20</option>
-    <option value={50}>50</option>
-</select>
-    </div>
+                        <div className="flex items-center gap-3">
+                            <span className="text-xs font-bold text-gray-400 uppercase">Rows per page</span>
+                            <select
+                                value={rowsPerPage}
+                                onChange={(e) => {
+                                    setRowsPerPage(Number(e.target.value));
+                                    setCurrentPage(1);
+                                }}
+                                className="px-5 py-2 bg-brand-800 hover:bg-brand-900 border border-brand-700 rounded-xl text-white font-bold cursor-pointer">
+                                <option value={5}>5</option>
+                                <option value={10}>10</option>
+                                <option value={20}>20</option>
+                                <option value={50}>50</option>
+                            </select>
+                        </div>
 
-    <div className="flex items-center gap-4">
-        <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
-            Page {currentPage} of {totalPages || 1}
-        </span>
+                        <div className="flex items-center gap-4">
+                            <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                                Page {currentPage} of {totalPages || 1}
+                            </span>
 
-        <div className="flex items-center gap-2">
-            <button
-                onClick={() => setCurrentPage(1)}
-                disabled={currentPage === 1}
-                className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
-            >
-                «
-            </button>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setCurrentPage(1)}
+                                    disabled={currentPage === 1}
+                                    className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
+                                >
+                                    «
+                                </button>
 
-            <button
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
-            >
-                ‹
-            </button>
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                    disabled={currentPage === 1}
+                                    className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
+                                >
+                                    ‹
+                                </button>
 
-            <button
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages || totalPages === 0}
-                className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
-            >
-                ›
-            </button>
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                    disabled={currentPage === totalPages || totalPages === 0}
+                                    className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
+                                >
+                                    ›
+                                </button>
 
-            <button
-                onClick={() => setCurrentPage(totalPages)}
-                disabled={currentPage === totalPages || totalPages === 0}
-                className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
-            >
-                »
-            </button>
-        </div>
-    </div>
-</div>
+                                <button
+                                    onClick={() => setCurrentPage(totalPages)}
+                                    disabled={currentPage === totalPages || totalPages === 0}
+                                    className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
+                                >
+                                    »
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
             {showApplyModal && createPortal(
@@ -842,11 +862,11 @@ className="px-5 py-2 bg-brand-800 hover:bg-brand-900 border border-brand-700 rou
                                         Clear
                                     </button>
                                     <button
-                                      onClick={() => {
-                                 setAppliedFilters(filters);
-                                 setCurrentPage(1);
-                                setShowFilterDrawer(false);
-                        }}
+                                        onClick={() => {
+                                            setAppliedFilters(filters);
+                                            setCurrentPage(1);
+                                            setShowFilterDrawer(false);
+                                        }}
                                         className="flex-1 py-3 rounded-xl bg-brand-600 text-white font-bold hover:bg-brand-700 shadow-lg shadow-brand-500/20 transition-all active:scale-95"
                                     >
                                         Apply Search
@@ -908,6 +928,17 @@ className="px-5 py-2 bg-brand-800 hover:bg-brand-900 border border-brand-700 rou
                                 </div>
                             </div>
 
+                            {selectedLeaveForReason.status === 'REJECTED' && selectedLeaveForReason.rejectionReason && (
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 text-rose-500">Manager's Rejection Reason</label>
+                                    <div className="p-4 bg-rose-50/50 dark:bg-rose-950/10 border border-rose-250 dark:border-rose-500/20 rounded-2xl text-sm text-gray-700 dark:text-rose-300 font-bold leading-relaxed shadow-sm">
+                                        <div className="max-h-[150px] overflow-y-auto custom-scrollbar break-all pr-2">
+                                            {selectedLeaveForReason.rejectionReason}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="pt-4">
                                 <button
                                     type="button"
@@ -918,6 +949,42 @@ className="px-5 py-2 bg-brand-800 hover:bg-brand-900 border border-brand-700 rou
                                 </button>
                             </div>
                         </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {rejectingLeaveId && createPortal(
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+                    <div className="relative bg-white dark:bg-brand-950 w-full max-w-md rounded-[2.5rem] shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden p-8 animate-scale-in animate-none">
+                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-rose-500 to-orange-500"></div>
+                        <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Reject Leave Request</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Please provide a reason for rejecting this leave request.</p>
+                        <form onSubmit={handleRejectLeaveSubmit}>
+                            <textarea
+                                value={leaveRejectComment}
+                                onChange={(e) => setLeaveRejectComment(e.target.value)}
+                                placeholder="Enter rejection reason..."
+                                required
+                                className="w-full px-4 py-3 rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-rose-500/50 min-h-[100px] mb-6 font-semibold"
+                            />
+                            <div className="flex gap-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setRejectingLeaveId(null)}
+                                    className="flex-1 py-3 px-4 bg-gray-150 dark:bg-white/5 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-white/10 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={submittingLeaveReject}
+                                    className="flex-1 py-3 px-4 bg-rose-500 text-white font-bold rounded-xl hover:bg-rose-600 transition-colors shadow-lg shadow-rose-500/20 flex items-center justify-center gap-2"
+                                >
+                                    {submittingLeaveReject ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Reject'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>,
                 document.body
