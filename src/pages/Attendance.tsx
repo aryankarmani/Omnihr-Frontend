@@ -37,6 +37,7 @@ export default function Attendance() {
     const [regularizationRequests, setRegularizationRequests] = useState<any[]>([]);
     const [regularizeDate, setRegularizeDate] = useState<string | null>(null);
     const [rejectedRequestToShow, setRejectedRequestToShow] = useState<any | null>(null);
+    const [rejectedLeaveToShow, setRejectedLeaveToShow] = useState<any | null>(null);
     const [reason, setReason] = useState('');
     const [customReason, setCustomReason] = useState('');
     const [submittingRequest, setSubmittingRequest] = useState(false);
@@ -278,8 +279,17 @@ export default function Attendance() {
         if (status.startsWith('Leave (Pending)')) {
             return 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 border border-dashed border-amber-300 dark:border-amber-500/30 font-semibold';
         }
+        if (status.startsWith('Leave (Rejected)')) {
+            return 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 border border-dashed border-rose-300 dark:border-rose-500/30 font-semibold hover:scale-105 active:scale-95 transition-all duration-150 cursor-pointer';
+        }
         if (status.startsWith('Leave')) {
             return 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 font-semibold';
+        }
+        if (status.startsWith('Regularization (Pending)')) {
+            return 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 border border-dashed border-amber-300 dark:border-amber-500/30 font-semibold';
+        }
+        if (status.startsWith('Regularization (Rejected)')) {
+            return 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 border border-dashed border-rose-300 dark:border-rose-500/30 font-semibold hover:scale-105 active:scale-95 transition-all duration-150 cursor-pointer';
         }
         switch (status) {
             case 'Present': return 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300';
@@ -343,14 +353,20 @@ export default function Attendance() {
                 displayStatus = 'Pending';
             }
 
-            let statusLabel: string = isBeforeJoining || isFuture ? '-' : (holiday ? 'Holiday' : displayStatus);
+            let statusLabel: string = isBeforeJoining || (isFuture && !isWeekend) ? '-' : (holiday ? 'Holiday' : displayStatus);
 
             if (!isBeforeJoining && !holiday) {
-                if ((displayStatus === 'Absent' || isFuture) && leave) {
+                if (hasPendingRequest) {
+                    statusLabel = 'Regularization (Pending)';
+                } else if (hasRejectedRequest) {
+                    statusLabel = 'Regularization (Rejected)';
+                } else if ((displayStatus === 'Absent' || isFuture) && leave) {
                     if (leave.status === 'APPROVED') {
                         statusLabel = 'Leave (Approved)';
                     } else if (leave.status === 'PENDING') {
                         statusLabel = 'Leave (Pending)';
+                    } else if (leave.status === 'REJECTED') {
+                        statusLabel = 'Leave (Rejected)';
                     }
                 }
             }
@@ -363,6 +379,12 @@ export default function Attendance() {
             if (holiday) {
                 containerBg = 'bg-purple-50 dark:bg-purple-900/20';
                 borderStyle = 'border-purple-200';
+            } else if (!isBeforeJoining && hasPendingRequest) {
+                containerBg = 'bg-amber-50/30 dark:bg-amber-950/5';
+                borderStyle = 'border-amber-200/80 dark:border-amber-500/20 border-dashed';
+            } else if (!isBeforeJoining && hasRejectedRequest) {
+                containerBg = 'bg-rose-50/30 dark:bg-rose-950/5';
+                borderStyle = 'border-rose-200/80 dark:border-rose-500/20 border-dashed';
             } else if (!isBeforeJoining && (displayStatus === 'Absent' || isFuture) && leave) {
                 if (leave.status === 'APPROVED') {
                     containerBg = 'bg-blue-50/50 dark:bg-blue-950/10';
@@ -370,6 +392,9 @@ export default function Attendance() {
                 } else if (leave.status === 'PENDING') {
                     containerBg = 'bg-amber-50/30 dark:bg-amber-950/5';
                     borderStyle = 'border-amber-200/80 dark:border-amber-500/20 border-dashed';
+                } else if (leave.status === 'REJECTED') {
+                    containerBg = 'bg-rose-50/30 dark:bg-rose-950/5';
+                    borderStyle = 'border-rose-200/80 dark:border-rose-500/20 border-dashed';
                 }
             }
 
@@ -380,7 +405,17 @@ export default function Attendance() {
             const isTooOld = diffDays > (attendancePolicy?.regularizationDays ?? 3);
 
             days.push(
-                <div key={day} className={`h-24 p-2 rounded-xl border ${isToday ? 'border-brand-500 ring-1 ring-brand-500' : borderStyle} ${containerBg} hover:shadow-md transition-shadow relative group cursor-pointer`}>
+                <div
+                    key={day}
+                    onClick={() => {
+                        if (hasRejectedRequest) {
+                            setRejectedRequestToShow(request);
+                        } else if (leave && leave.status === 'REJECTED') {
+                            setRejectedLeaveToShow(leave);
+                        }
+                    }}
+                    className={`h-24 p-2 rounded-xl border ${isToday ? 'border-brand-500 ring-1 ring-brand-500' : borderStyle} ${containerBg} hover:shadow-md transition-shadow relative group cursor-pointer`}
+                >
                     <div className="flex justify-between items-start">
                         <span className={`font-semibold text-sm ${isToday ? 'text-brand-600 dark:text-brand-400' : 'text-gray-700 dark:text-gray-300'}`}>{day}</span>
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${holiday ? 'bg-purple-100 text-purple-700' : getStatusColor(isBeforeJoining || (isFuture && !leave) ? 'Weekend' : statusLabel)}`}>
@@ -395,27 +430,17 @@ export default function Attendance() {
                     )}
 
                     {!holiday && leave && !isBeforeJoining && (displayStatus === 'Absent' || isFuture) && (
-                        <span className={`text-[10px] px-1.5 py-1 rounded truncate w-full block text-center mt-1 font-bold shadow-sm ${
-                            leave.status === 'APPROVED'
-                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
-                                : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
-                        }`}>
+                        <span className={`text-[10px] px-1.5 py-1 rounded truncate w-full block text-center mt-1 font-bold shadow-sm ${leave.status === 'APPROVED'
+                            ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                            : leave.status === 'PENDING'
+                                ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+                                : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300'
+                            }`}>
                             {leave.leaveType?.name || 'Leave'}
                         </span>
                     )}
 
-                    {hasRejectedRequest && (
-                        <div
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setRejectedRequestToShow(request);
-                            }}
-                            className="text-[9px] bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 border border-rose-100 dark:border-rose-500/20 px-1 py-0.5 rounded mt-1 truncate hover:bg-rose-100 dark:hover:bg-rose-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all font-semibold shadow-sm cursor-pointer"
-                            title={`Rejected comment: ${request.approverComment || 'No comment'}`}
-                        >
-                            Rejected: {request.approverComment || 'no reason'}
-                        </div>
-                    )}
+
 
                     {log && displayStatus !== 'Weekend' && log.inTime && (
                         <div className="mt-2 space-y-1">
@@ -515,27 +540,38 @@ export default function Attendance() {
                             return hDate.getTime() === today.getTime();
                         });
 
+                        const isOnLeaveToday = leaveHistory.some(l => {
+                            if (l.status !== 'APPROVED') return false;
+                            const start = new Date(l.startDate);
+                            start.setHours(0, 0, 0, 0);
+                            const end = new Date(l.endDate);
+                            end.setHours(23, 59, 59, 999);
+                            return today >= start && today <= end;
+                        });
+
                         return (
                             <div className="relative group">
-                                <div className={`absolute -inset-1 bg-gradient-to-r ${isHolidayToday ? 'from-purple-600 to-brand-600' : isPunchedIn ? 'from-red-600 to-orange-600' : 'from-green-600 to-emerald-600'} rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200`}></div>
+                                <div className={`absolute -inset-1 bg-gradient-to-r ${isHolidayToday ? 'from-purple-600 to-brand-600' : isOnLeaveToday ? 'from-rose-600 to-orange-600' : isPunchedIn ? 'from-red-600 to-orange-600' : 'from-green-600 to-emerald-600'} rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200`}></div>
                                 <button
                                     onClick={handlePunch}
-                                    disabled={isHolidayToday || punchMutation.isPending}
+                                    disabled={isHolidayToday || isOnLeaveToday || punchMutation.isPending}
                                     className={`relative w-48 h-48 rounded-full border-4 flex flex-col items-center justify-center transition-all transform active:scale-95 shadow-xl disabled:opacity-80 disabled:cursor-not-allowed ${isHolidayToday
                                         ? 'border-purple-500 bg-purple-50 dark:bg-purple-500/10 text-purple-600'
-                                        : isPunchedIn
-                                            ? 'border-red-500 bg-red-50 dark:bg-red-500/10 text-red-600 hover:bg-red-100 dark:hover:bg-red-500/20'
-                                            : 'border-green-500 bg-green-50 dark:bg-green-500/10 text-green-600 hover:bg-green-100 dark:hover:bg-green-500/20'
+                                        : isOnLeaveToday
+                                            ? 'border-rose-500 bg-rose-50 dark:bg-rose-500/10 text-rose-600'
+                                            : isPunchedIn
+                                                ? 'border-red-500 bg-red-50 dark:bg-red-500/10 text-red-600 hover:bg-red-100 dark:hover:bg-red-500/20'
+                                                : 'border-green-500 bg-green-50 dark:bg-green-500/10 text-green-600 hover:bg-green-100 dark:hover:bg-green-500/20'
                                         }`}
                                 >
                                     <div className="mb-2">
-                                        {isHolidayToday ? <Calendar size={48} /> : isPunchedIn ? <Coffee size={48} /> : <MapPin size={48} />}
+                                        {isHolidayToday ? <Calendar size={48} /> : isOnLeaveToday ? <Calendar size={48} /> : isPunchedIn ? <Coffee size={48} /> : <MapPin size={48} />}
                                     </div>
                                     <span className="text-xl font-bold uppercase tracking-wider">
-                                        {isHolidayToday ? 'Holiday' : isPunchedIn ? 'Punch Out' : 'Punch In'}
+                                        {isHolidayToday ? 'Holiday' : isOnLeaveToday ? 'On Leave' : isPunchedIn ? 'Punch Out' : 'Punch In'}
                                     </span>
                                     <span className="text-xs mt-1 font-medium opacity-70">
-                                        {isHolidayToday ? 'Relax & Enjoy!' : isPunchedIn ? 'Enjoy your evening!' : 'Delhi Office (GPS)'}
+                                        {isHolidayToday ? 'Relax & Enjoy!' : isOnLeaveToday ? 'Enjoy your leave!' : isPunchedIn ? 'Enjoy your evening!' : 'Delhi Office (GPS)'}
                                     </span>
                                 </button>
                             </div>
@@ -715,14 +751,14 @@ export default function Attendance() {
                                             onChange={(e) => setInInputText(e.target.value)}
                                             placeholder="09:00 AM"
                                             className={`w-full pl-10 pr-3 py-2.5 bg-gray-50 dark:bg-white/5 border rounded-xl outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-sm font-semibold animate-none ${inInputText && !parse12hTo24h(inInputText)
-                                                    ? 'border-rose-500/60 focus:ring-rose-500/30'
-                                                    : 'border-gray-200 dark:border-white/10'
+                                                ? 'border-rose-500/60 focus:ring-rose-500/30'
+                                                : 'border-gray-200 dark:border-white/10'
                                                 }`}
                                         />
                                     </div>
                                     <p className={`text-[10px] mt-1 font-semibold ${inInputText && !parse12hTo24h(inInputText)
-                                            ? 'text-rose-500'
-                                            : 'text-gray-400 dark:text-gray-500'
+                                        ? 'text-rose-500'
+                                        : 'text-gray-400 dark:text-gray-500'
                                         }`}>
                                         {inInputText && parse12hTo24h(inInputText)
                                             ? `✓ Set: ${format24to12(parse12hTo24h(inInputText)!)}`
@@ -739,14 +775,14 @@ export default function Attendance() {
                                             onChange={(e) => setOutInputText(e.target.value)}
                                             placeholder="06:00 PM"
                                             className={`w-full pl-10 pr-3 py-2.5 bg-gray-50 dark:bg-white/5 border rounded-xl outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-sm font-semibold animate-none ${outInputText && !parse12hTo24h(outInputText)
-                                                    ? 'border-rose-500/60 focus:ring-rose-500/30'
-                                                    : 'border-gray-200 dark:border-white/10'
+                                                ? 'border-rose-500/60 focus:ring-rose-500/30'
+                                                : 'border-gray-200 dark:border-white/10'
                                                 }`}
                                         />
                                     </div>
                                     <p className={`text-[10px] mt-1 font-semibold ${outInputText && !parse12hTo24h(outInputText)
-                                            ? 'text-rose-500'
-                                            : 'text-gray-400 dark:text-gray-500'
+                                        ? 'text-rose-500'
+                                        : 'text-gray-400 dark:text-gray-500'
                                         }`}>
                                         {outInputText && parse12hTo24h(outInputText)
                                             ? `✓ Set: ${format24to12(parse12hTo24h(outInputText)!)}`
@@ -845,6 +881,73 @@ export default function Attendance() {
                                 <button
                                     type="button"
                                     onClick={() => setRejectedRequestToShow(null)}
+                                    className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-rose-500/20 text-sm tracking-wider uppercase cursor-pointer"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {rejectedLeaveToShow && createPortal(
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white dark:bg-brand-900 rounded-[2.5rem] p-8 max-w-md w-full border border-gray-100 dark:border-white/10 shadow-2xl animate-scale-in relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-rose-500 to-orange-500"></div>
+                        <div className="flex justify-between items-center mb-6">
+                            <div className="flex items-center gap-2">
+                                <span className="p-2 bg-rose-50 dark:bg-rose-500/10 text-rose-500 rounded-xl">
+                                    <AlertCircle size={20} />
+                                </span>
+                                <h3 className="text-xl font-bold text-gray-800 dark:text-white">Leave Rejected</h3>
+                            </div>
+                            <button type="button" onClick={() => setRejectedLeaveToShow(null)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4 font-sans">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Leave Type</label>
+                                    <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl font-bold text-sm text-gray-700 dark:text-gray-200">
+                                        {rejectedLeaveToShow.leaveType?.name || rejectedLeaveToShow.leaveType?.code || 'Leave'}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Dates</label>
+                                    <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl font-bold text-xs text-gray-700 dark:text-gray-200 leading-tight">
+                                        {new Date(rejectedLeaveToShow.startDate).toLocaleDateString()} - {new Date(rejectedLeaveToShow.endDate).toLocaleDateString()}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Your Reason</label>
+                                <div className="p-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm text-gray-600 dark:text-gray-300 italic font-semibold leading-relaxed">
+                                    <div className="max-h-[120px] overflow-y-auto custom-scrollbar break-words pr-2">
+                                        "{rejectedLeaveToShow.reason}"
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-2">
+                                <label className="block text-xs font-bold text-rose-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                                    Manager's Rejection Reason
+                                </label>
+                                <div className="p-4 bg-rose-50/50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/20 rounded-2xl text-sm text-rose-700 dark:text-rose-300 font-bold leading-relaxed shadow-sm">
+                                    <div className="max-h-[120px] overflow-y-auto custom-scrollbar break-words pr-2">
+                                        {rejectedLeaveToShow.rejectionReason || 'No comment provided.'}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setRejectedLeaveToShow(null)}
                                     className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-rose-500/20 text-sm tracking-wider uppercase cursor-pointer"
                                 >
                                     Close
