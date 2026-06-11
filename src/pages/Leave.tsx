@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, XCircle, Loader2, CheckCircle, XIcon, Search, Filter } from 'lucide-react';
@@ -517,7 +518,7 @@ export default function Leave() {
                                     <th className="py-4 px-4 text-xs font-bold text-gray-400 uppercase">Dates</th>
                                     <th className="py-4 px-4 text-xs font-bold text-gray-400 uppercase">Reason</th>
                                     <th className="py-4 px-4 text-xs font-bold text-gray-400 uppercase">Status</th>
-                                    <th className="py-4 px-4 text-xs font-bold text-gray-400 uppercase text-right">Actions</th>
+                                    <th className="py-4 px-4 text-xs font-bold text-gray-400 uppercase text-right">Action</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50 dark:divide-white/5 font-medium">
