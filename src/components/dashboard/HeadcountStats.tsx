@@ -22,8 +22,7 @@ export default function HeadcountStats({ headcount, onLeaveToday, newJoiners, av
                 <div 
                     key={index} 
                     onClick={() => navigate(stat.path)}
-                    className="group bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-6 rounded-3xl border border-gray-100/50 dark:border-gray-700/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 relative overflow-hidden cursor-pointer"
-                >
+className="group bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-6 rounded-3xl border border-gray-100/50 dark:border-gray-700/50 shadow-[0_15px_45px_rgba(0,0,0,0.22)] hover:shadow-[0_20px_60px_rgba(0,0,0,0.30)] hover:-translate-y-1 transition-all duration-300 relative overflow-hidden cursor-pointer"                >
                     <div className="absolute -right-6 -top-6 w-24 h-24 bg-gradient-to-br from-current to-transparent opacity-[0.03] dark:opacity-[0.05] rounded-full group-hover:scale-150 transition-transform duration-500" style={{ color: 'inherit' }}></div>
                     <div className="flex justify-between items-start relative z-10">
                         <div className="space-y-2">
