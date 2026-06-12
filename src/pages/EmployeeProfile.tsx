@@ -14,7 +14,7 @@ export default function EmployeeProfile() {
     const navigate = useNavigate();
     const location = useLocation();
     const { hasPermission } = useRBAC();
-
+    
     const queryParams = new URLSearchParams(location.search);
     const initialEditMode = queryParams.get('edit') === 'true';
 
