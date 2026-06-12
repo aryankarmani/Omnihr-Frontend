@@ -23,7 +23,11 @@ export default function EmployeeProfile() {
     const [showIDCard, setShowIDCard] = useState(false);
     const [loading, setLoading] = useState(true);
     const [docToDelete, setDocToDelete] = useState<number | null>(null);
+<<<<<<< HEAD
     const [companySetting, setCompanySetting] = useState<any>(null);
+=======
+    const [companySignature, setCompanySignature] = useState<string | null>(null);
+>>>>>>> origin/release
 
     // Employee State
     const [employee, setEmployee] = useState<any>(null);
@@ -48,6 +52,21 @@ export default function EmployeeProfile() {
             setLoading(false);
         }
     };
+    const fetchCompanySignature = async () => {
+
+  try {
+
+    const res = await api.get('/company-setting');
+
+    setCompanySignature(res.data?.authorizedSignature || null);
+
+  } catch (error) {
+
+    console.error(error);
+
+  }
+
+};
     const fetchShifts = async () => {
         try {
             const res = await api.get('/masters/shifts');
@@ -138,8 +157,12 @@ export default function EmployeeProfile() {
         fetchDesignations();
         fetchDepartments();
         fetchEmployeeLeaves();
+<<<<<<< HEAD
         fetchCompanySetting();
      
+=======
+        fetchCompanySignature();
+>>>>>>> origin/release
     }, [id]);
 
     const handleCancel = () => {
@@ -485,11 +508,23 @@ const handleAuthorizedSignatureUpload = async (
     employee?.role?.title === 'HR_ADMIN' ||
     employee?.role === 'HR_ADMIN';
 
+<<<<<<< HEAD
     //  ✅ ADDED: company-level signature used for all employee ID cards
     const authorizedSignatureUrl = companySetting?.authorizedSignImage
         ? `http://localhost:3001/uploads/${companySetting.authorizedSignImage}`
         : null;
 
+=======
+    const adminSignatureDoc = profile.documents?.find(
+    (d: any) => d.name === 'Admin Signature'
+    );
+
+   const adminSignatureUrl = companySignature
+  ? companySignature.startsWith('http')
+    ? companySignature
+    : `http://localhost:3001${companySignature}`
+  : null;
+>>>>>>> origin/release
     // Dynamic salary calculations for payslip preview
     const basic = Number(profile.salary?.basic || 0);
     const hra = Number(profile.salary?.hra || 0);
@@ -751,11 +786,19 @@ const handleAuthorizedSignatureUpload = async (
 
                             <div className="space-y-4">
                                 {[
+<<<<<<< HEAD
                                     // ✅ Employee documents only
                                     // ❌ Authorized Signature is NOT stored as employee document
                                     { key: "aadhaar", name: "Aadhaar Card" },
                                     { key: "pan", name: "PAN Card" },
                                     { key: "degree", name: "Highest Qualification Degree" },
+=======
+                            { key: 'aadhaar', name: 'Aadhaar Card' },
+                            { key: 'pan', name: 'PAN Card' },
+                            { key: 'degree', name: 'Highest Qualification Degree' },
+
+                               
+>>>>>>> origin/release
                                 ].map((doc) => {
                                     const savedDoc = profile.documents?.find((d: any) => d.name === doc.name);
 
@@ -1845,6 +1888,7 @@ const handleAuthorizedSignatureUpload = async (
                                         className="w-full h-full object-contain"
                                     />
                                 </div>
+<<<<<<< HEAD
                                 <div className="text-right flex flex-col items-end">
                                     {authorizedSignatureUrl && (
                                         <img
@@ -1870,6 +1914,10 @@ const handleAuthorizedSignatureUpload = async (
                                 </div>   
                                  </div>
                                  </div>
+=======
+                           <div className="text-right flex flex-col items-end">{adminSignatureUrl && <img src={adminSignatureUrl} alt="Admin Signature" className="w-20 h-8 object-contain mb-1" />}<div className="italic text-gray-400 text-xs">Authorized Sig.</div></div> </div>
+                        </div>
+>>>>>>> origin/release
                         <div className="flex justify-center mt-6">
                             <button
                                 onClick={() => {

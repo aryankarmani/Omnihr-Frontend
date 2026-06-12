@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Building2, Plus, Save, MapPin, Trash2, Users, Briefcase, X, Edit, Loader2 } from 'lucide-react';
+import { Building2, Plus, Save, MapPin, Trash2, Users, Briefcase, X, Edit, Loader2,Eye,Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
 
@@ -12,6 +12,7 @@ export default function OrgMasters() {
     const [company, setCompany] = useState<any>({
         legalName: '', cin: '', pan: '', tan: '', gstin: '', regAddress: '', website: '', primaryColor: '#6366f1', secondaryColor: '#ec4899'
     });
+    const [signature, setSignature] = useState<any>(null);
 
     const fetchCompany = async () => {
         try {
@@ -33,6 +34,49 @@ export default function OrgMasters() {
         } catch (error) { toast.error("Failed to save company details"); }
         finally { setLoading(false); }
     };
+    const fetchSignature = async () => {
+  try {
+    const res = await api.get('/company-setting');
+    setSignature(res.data?.authorizedSignature || null);
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const uploadSignature = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append('signature', file);
+
+  try {
+    setLoading(true);
+    await api.post('/company-setting/authorized-signature', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    toast.success('Signature uploaded successfully');
+    fetchSignature();
+  } catch (error) {
+    toast.error('Failed to upload signature');
+  } finally {
+    setLoading(false);
+  }
+};
+
+const deleteSignature = async () => {
+  try {
+    setLoading(true);
+    await api.delete('/company-setting/authorized-signature');
+    toast.success('Signature deleted successfully');
+    setSignature(null);
+  } catch (error) {
+    toast.error('Failed to delete signature');
+  } finally {
+    setLoading(false);
+  }
+};
+    
 
     // --- LOCATIONS STATE ---
     const [locations, setLocations] = useState<any[]>([]);
@@ -194,6 +238,7 @@ export default function OrgMasters() {
     };
 
     useEffect(() => {
+        fetchSignature();
         fetchCompany();
         fetchLocations();
         fetchDepartments();
@@ -226,7 +271,7 @@ export default function OrgMasters() {
         <div className="space-y-6 relative">
             {/* Sub-tabs for Org */}
             <div className="flex gap-4 border-b border-gray-200 dark:border-gray-700 pb-2 overflow-x-auto">
-                {['Company', 'Locations', 'Departments', 'Designations'].map((tab) => (
+                {['Company', 'Locations', 'Departments', 'Designations','Signature'].map((tab) => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab.toLowerCase())}
@@ -435,8 +480,129 @@ export default function OrgMasters() {
                         </div>
                     </div>
                 )}
+              {activeTab === 'signature' && (
+  <div className="space-y-6 animate-fade-in">
+    <div className="flex items-center gap-3">
+      <div className="w-10 h-10 rounded-xl bg-brand-500/10 flex items-center justify-center">
+        <Briefcase size={20} className="text-brand-500" />
+      </div>
+      <div>
+        <h3 className="text-lg font-semibold dark:text-white">Signature</h3>
+        <p className="text-sm text-gray-500">
+          Manage authorized signature that will be used in official documents.
+        </p>
+      </div>
+    </div>
+
+    <div className="p-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        {/* LEFT SIDE */}
+        <div className="space-y-5">
+          <div>
+            <label className="block text-sm font-bold text-gray-800 dark:text-white mb-2">
+              Authorized Signatory Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              placeholder="Enter authorized signatory name"
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-gray-700 rounded-xl text-sm dark:text-white outline-none focus:ring-2 focus:ring-brand-500"
+            />
+          </div>
+
+          <div>
+            <p className="font-bold text-gray-800 dark:text-white mb-3">
+              Signature Preview
+            </p>
+
+            <div className="h-48 rounded-xl bg-white border border-gray-200 flex items-center justify-center overflow-hidden">
+              {signature ? (
+                <img
+                  src={signature.startsWith('http') ? signature : `http://localhost:3001${signature}`}
+                  alt="Signature Preview"
+                  className="max-h-36 max-w-full object-contain"
+                />
+              ) : (
+                <p className="text-sm text-gray-400">No signature uploaded</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT SIDE */}
+        <div
+          onClick={() => document.getElementById('admin-signature-input')?.click()}
+          className="min-h-[320px] border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl flex flex-col items-center justify-center text-center cursor-pointer hover:border-brand-500 transition-all"
+        >
+          <div className="w-16 h-16 rounded-full bg-brand-500/10 flex items-center justify-center mb-4">
+            <Upload size={28} className="text-brand-500" />
+          </div>
+
+          <p className="font-bold text-gray-800 dark:text-white">
+            Upload Signature
+          </p>
+
+          <p className="text-sm text-gray-500 mt-1">
+            PNG, JPG or JPEG (Max. 2MB)
+          </p>
+
+          <button
+            type="button"
+            className="mt-5 flex items-center gap-2 px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-medium"
+          >
+            <Upload size={16} /> Upload
+          </button>
+
+          <input
+            id="admin-signature-input"
+            type="file"
+            className="hidden"
+            accept="image/*"
+            onChange={uploadSignature}
+          />
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-4 mt-6">
+        {signature && (
+          <>
+            <button
+              type="button"
+              onClick={() =>
+                window.open(
+                  signature.startsWith('http') ? signature : `http://localhost:3001${signature}`,
+                  '_blank'
+                )
+              }
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm dark:text-white"
+            >
+              <Eye size={16} /> View Full Size
+            </button>
+
+            <button
+              type="button"
+              onClick={deleteSignature}
+              className="flex items-center gap-2 px-4 py-2 border border-red-500/40 text-red-500 rounded-lg text-sm"
+            >
+              <Trash2 size={16} /> Delete
+            </button>
+          </>
+        )}
+
+        <button
+          type="button"
+          className="flex items-center gap-2 px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-medium"
+        >
+          <Save size={16} /> Save
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+                
 
             </div>
+            
 
             {/* --- MODALS --- */}
 
