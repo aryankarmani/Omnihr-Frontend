@@ -360,7 +360,7 @@ export default function EmployeeList() {
             ) : (
                 viewMode === 'grid' ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {paginatedEmployees.map((emp, index) => {
+                        {filteredEmployees.map((emp, index) => {
                             const profile = emp.employeeProfile || {};
                             const status = profile.status || 'Active';
                             // Generate color based on index or name hash
@@ -513,6 +513,10 @@ export default function EmployeeList() {
                             </table>
                         </div>
 
+                    </div>
+                )
+            )}
+                  
                         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-6 py-5 border-t border-gray-100 dark:border-white/5">
                             <div className="flex items-center gap-3">
                                 <span className="text-xs font-bold text-gray-400 uppercase">
@@ -572,10 +576,6 @@ export default function EmployeeList() {
                                 </div>
                             </div>
                         </div>
-                    </div>
-                )
-            )}
-
 
             {selectedEmployeeForActions && (
                 <div className="fixed inset-0 z-10" onClick={() => setSelectedEmployeeForActions(null)} />

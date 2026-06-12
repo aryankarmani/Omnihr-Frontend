@@ -24,6 +24,7 @@ export default function EmployeeProfile() {
     const [showIDCard, setShowIDCard] = useState(false);
     const [loading, setLoading] = useState(true);
     const [docToDelete, setDocToDelete] = useState<number | null>(null);
+    const [companySignature, setCompanySignature] = useState<string | null>(null);
 
     // Employee State
     const [employee, setEmployee] = useState<any>(null);
@@ -48,6 +49,21 @@ export default function EmployeeProfile() {
             setLoading(false);
         }
     };
+    const fetchCompanySignature = async () => {
+
+  try {
+
+    const res = await api.get('/company-setting');
+
+    setCompanySignature(res.data?.authorizedSignature || null);
+
+  } catch (error) {
+
+    console.error(error);
+
+  }
+
+};
     const fetchShifts = async () => {
         try {
             const res = await api.get('/masters/shifts');
@@ -138,6 +154,7 @@ export default function EmployeeProfile() {
         fetchDesignations();
         fetchDepartments();
         fetchEmployeeLeaves();
+        fetchCompanySignature();
     }, [id]);
 
     const handleCancel = () => {
@@ -443,14 +460,11 @@ export default function EmployeeProfile() {
     (d: any) => d.name === 'Admin Signature'
     );
 
-    const adminSignatureUrl = adminSignatureDoc?.url
-    ? adminSignatureDoc.url.startsWith('http')
-        ? adminSignatureDoc.url
-        : adminSignatureDoc.url.startsWith('/uploads/')
-            ? `http://localhost:3001${adminSignatureDoc.url}`
-            : `http://localhost:3001/uploads/${adminSignatureDoc.url}`
-    : null;
-
+   const adminSignatureUrl = companySignature
+  ? companySignature.startsWith('http')
+    ? companySignature
+    : `http://localhost:3001${companySignature}`
+  : null;
     // Dynamic salary calculations for payslip preview
     const basic = Number(profile.salary?.basic || 0);
     const hra = Number(profile.salary?.hra || 0);
@@ -715,9 +729,7 @@ export default function EmployeeProfile() {
                             { key: 'pan', name: 'PAN Card' },
                             { key: 'degree', name: 'Highest Qualification Degree' },
 
-                                ...(isHRAdminProfile
-                                ? [{ key: 'adminSignature', name: 'Admin Signature' }]
-                                : [])
+                               
                                 ].map((doc) => {
                                     const savedDoc = profile.documents?.find((d: any) => d.name === doc.name);
                                     return (
@@ -1736,7 +1748,7 @@ export default function EmployeeProfile() {
                                         className="w-full h-full object-contain"
                                     />
                                 </div>
-                           <div className="text-right flex flex-col items-end">{isHRAdminProfile && adminSignatureUrl && <img src={adminSignatureUrl} alt="Admin Signature" className="w-20 h-8 object-contain mb-1" />}<div className="italic text-gray-400 text-xs">Authorized Sig.</div></div> </div>
+                           <div className="text-right flex flex-col items-end">{adminSignatureUrl && <img src={adminSignatureUrl} alt="Admin Signature" className="w-20 h-8 object-contain mb-1" />}<div className="italic text-gray-400 text-xs">Authorized Sig.</div></div> </div>
                         </div>
                         <div className="flex justify-center mt-6">
                             <button
