@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
@@ -24,6 +23,7 @@ export default function EmployeeProfile() {
     const [showIDCard, setShowIDCard] = useState(false);
     const [loading, setLoading] = useState(true);
     const [docToDelete, setDocToDelete] = useState<number | null>(null);
+    const [companySetting, setCompanySetting] = useState<any>(null);
 
     // Employee State
     const [employee, setEmployee] = useState<any>(null);
@@ -138,12 +138,22 @@ export default function EmployeeProfile() {
         fetchDesignations();
         fetchDepartments();
         fetchEmployeeLeaves();
+        fetchCompanySetting();
      
     }, [id]);
 
     const handleCancel = () => {
         fetchEmployee();
         setIsEditing(false);
+    };
+
+    const fetchCompanySetting = async () => {
+        try {
+            const res = await api.get("/company-settings");
+            setCompanySetting(res.data);
+        } catch (error) {
+            console.error("Error fetching company setting:", error);
+        }
     };
 
     const validate = () => {
@@ -365,53 +375,88 @@ export default function EmployeeProfile() {
         }));
     };
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, docName: string) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+    // ✅ UPDATED: Upload employee documents only (Aadhaar, PAN, Degree)
+// This uses your existing employee document API: POST /api/employee/:id/documents
+const handleFileUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    docName: string
+) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-        if (file.type !== "application/pdf" && !file.type.startsWith("image/")) {
-            toast.error("Only PDF and image files are allowed");
-            return;
-        }
+    if (file.type !== "application/pdf" && !file.type.startsWith("image/")) {
+        toast.error("Only PDF and image files are allowed");
+        return;
+    }
 
-        // Check if this file is a duplicate of other uploaded files using lightweight HEAD requests
-        const otherDocs = employee?.employeeProfile?.documents?.filter((d: any) => d.name !== docName) || [];
-        try {
-            for (const doc of otherDocs) {
-                const baseUrl = 'http://localhost:3001';
-                const fullUrl = doc.url.startsWith('http') ? doc.url : (doc.url.startsWith('/uploads/') ? `${baseUrl}${doc.url}` : `${baseUrl}/uploads/${doc.url}`);
-                const res = await api.head(fullUrl);
-                const existingSize = parseInt((res.headers as any)['content-length'] || '0', 10);
-                if (existingSize === file.size) {
-                    toast.error(`This file has already been uploaded/selected for another document slot! Please select a unique document.`);
-                    e.target.value = '';
-                    return;
-                }
-            }
-        } catch (err) {
-            console.error("Duplicate file size check failed", err);
-        }
+    const formData = new FormData();
 
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('name', docName);
-        formData.append('type', file.type);
+    // ✅ Backend employee document upload expects these fields
+    formData.append("file", file);
+    formData.append("name", docName);
+    formData.append("type", file.type);
 
-        toast.loading(`Uploading ${docName}...`, { id: 'uploading-toast' });
-        try {
-            const employeeId = employee.id;
-            await api.post(`/employee/${employeeId}/documents`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                }
-            });
-            toast.success(`${docName} uploaded successfully!`, { id: 'uploading-toast' });
-            fetchEmployee();
-        } catch (error) {
-            console.error("Upload failed", error);
-            toast.error(`Failed to upload ${docName}`, { id: 'uploading-toast' });
-        }
-    };
+    toast.loading(`Uploading ${docName}...`, { id: "uploading-toast" });
+
+    try {
+        const employeeId = employee.id;
+
+        await api.post(`/employee/${employeeId}/documents`, formData, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+            },
+        });
+
+        toast.success(`${docName} uploaded successfully!`, {
+            id: "uploading-toast",
+        });
+
+        fetchEmployee();
+    } catch (error) {
+        console.error("Upload failed", error);
+        toast.error(`Failed to upload ${docName}`, {
+            id: "uploading-toast",
+        });
+    }
+};
+
+// ✅ ADDED: Upload company-level authorized signature
+// This does NOT save inside employee documents.
+// It saves in CompanySetting using: POST /api/company-settings/authorized-signature
+const handleAuthorizedSignatureUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+        toast.error("Only image files are allowed for signature");
+        return;
+    }
+
+    const formData = new FormData();
+
+    // ✅ Backend company setting upload expects field name "signature"
+    formData.append("signature", file);
+    formData.append("authorizedSignName", employee.name || "System Admin");
+    formData.append("authorizedSignTitle", profile.title || "HR Admin");
+
+    try {
+        await api.post("/company-settings/authorized-signature", formData, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+            },
+        });
+
+        toast.success("Authorized signature uploaded successfully");
+
+        // ✅ Refresh setting so preview and ID card update immediately
+        fetchCompanySetting();
+    } catch (error) {
+        console.error("Signature upload error:", error);
+        toast.error("Failed to upload authorized signature");
+    }
+};
 
 
     if (loading) {
@@ -440,17 +485,10 @@ export default function EmployeeProfile() {
     employee?.role?.title === 'HR_ADMIN' ||
     employee?.role === 'HR_ADMIN';
 
-    const adminSignatureDoc = profile.documents?.find(
-    (d: any) => d.name === 'Admin Signature'
-    );
-
-    const adminSignatureUrl = adminSignatureDoc?.url
-    ? adminSignatureDoc.url.startsWith('http')
-        ? adminSignatureDoc.url
-        : adminSignatureDoc.url.startsWith('/uploads/')
-            ? `http://localhost:3001${adminSignatureDoc.url}`
-            : `http://localhost:3001/uploads/${adminSignatureDoc.url}`
-    : null;
+    //  ✅ ADDED: company-level signature used for all employee ID cards
+    const authorizedSignatureUrl = companySetting?.authorizedSignImage
+        ? `http://localhost:3001/uploads/${companySetting.authorizedSignImage}`
+        : null;
 
     // Dynamic salary calculations for payslip preview
     const basic = Number(profile.salary?.basic || 0);
@@ -709,18 +747,18 @@ export default function EmployeeProfile() {
                                 <h3 className="text-xl font-bold flex items-center gap-2">
                                     <FileText className="text-orange-500" /> Document Vault
                                 </h3>
+                            </div>
 
-                            </div>                           <div className="space-y-4">
+                            <div className="space-y-4">
                                 {[
-                            { key: 'aadhaar', name: 'Aadhaar Card' },
-                            { key: 'pan', name: 'PAN Card' },
-                            { key: 'degree', name: 'Highest Qualification Degree' },
-
-                                ...(isHRAdminProfile
-                                ? [{ key: 'adminSignature', name: 'Admin Signature' }]
-                                : [])
+                                    // ✅ Employee documents only
+                                    // ❌ Authorized Signature is NOT stored as employee document
+                                    { key: "aadhaar", name: "Aadhaar Card" },
+                                    { key: "pan", name: "PAN Card" },
+                                    { key: "degree", name: "Highest Qualification Degree" },
                                 ].map((doc) => {
                                     const savedDoc = profile.documents?.find((d: any) => d.name === doc.name);
+
                                     return (
                                         <div
                                             key={doc.name}
@@ -746,7 +784,6 @@ export default function EmployeeProfile() {
                                             </div>
 
                                             <div className="flex items-center gap-3">
-                                                {/* Explicit Upload Button shown only during Edit Profile mode if no document exists */}
                                                 {isEditing && !savedDoc && (
                                                     <button
                                                         type="button"
@@ -763,9 +800,15 @@ export default function EmployeeProfile() {
                                                     onClick={(e) => {
                                                         e.preventDefault();
                                                         e.stopPropagation();
+
                                                         if (savedDoc?.url) {
                                                             const baseUrl = 'http://localhost:3001';
-                                                            const fullUrl = savedDoc.url.startsWith('http') ? savedDoc.url : (savedDoc.url.startsWith('/uploads/') ? `${baseUrl}${savedDoc.url}` : `${baseUrl}/uploads/${savedDoc.url}`);
+                                                            const fullUrl = savedDoc.url.startsWith('http')
+                                                                ? savedDoc.url
+                                                                : savedDoc.url.startsWith('/uploads/')
+                                                                    ? `${baseUrl}${savedDoc.url}`
+                                                                    : `${baseUrl}/uploads/${savedDoc.url}`;
+
                                                             window.open(fullUrl, '_blank');
                                                         }
                                                     }}
@@ -777,14 +820,15 @@ export default function EmployeeProfile() {
                                                     <Eye size={18} />
                                                 </button>
 
-                                                {/* Explicit Delete Button shown only during Edit Profile mode if document exists */}
                                                 {isEditing && savedDoc && (
                                                     <button
                                                         type="button"
                                                         onClick={(e) => {
                                                             e.preventDefault();
                                                             e.stopPropagation();
+
                                                             const docIndex = profile.documents?.findIndex((d: any) => d.id === savedDoc.id);
+
                                                             if (docIndex !== -1 && docIndex !== undefined) {
                                                                 setDocToDelete(docIndex);
                                                             }
@@ -806,6 +850,70 @@ export default function EmployeeProfile() {
                                         </div>
                                     );
                                 })}
+
+                                {/* ✅ ADDED: Company-level Authorized Signature */}
+                                {/* This is visible only to HR Admin/System Admin profile and updates all employee ID cards */}
+                                {isHRAdminProfile && (
+                                    <div className="flex items-center justify-between p-4 rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 transition-all">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400">
+                                                <FileText size={20} />
+                                            </div>
+
+                                            <div>
+                                                <p className="font-bold text-base text-gray-800 dark:text-white">
+                                                    Authorized Signature
+                                                    <span className="text-red-500">*</span>
+                                                </p>
+
+                                                <p className="text-sm text-emerald-600 dark:text-emerald-400">
+                                                    {companySetting?.authorizedSignImage
+                                                        ? "Signature uploaded"
+                                                        : "No signature uploaded"}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-3">
+                                            {companySetting?.authorizedSignImage && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const signatureUrl = `http://localhost:3001/uploads/${companySetting.authorizedSignImage}`;
+                                                        window.open(signatureUrl, "_blank");
+                                                    }}
+                                                    className="w-10 h-10 rounded-full flex items-center justify-center bg-brand-500/10 text-brand-500 hover:bg-brand-500 hover:text-white cursor-pointer transition-all"
+                                                    title="View Authorized Signature"
+                                                >
+                                                    <Eye size={18} />
+                                                </button>
+                                            )}
+
+                                            {isEditing && (
+                                                <>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            document.getElementById("authorized-signature-input")?.click()
+                                                        }
+                                                       className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
+                                                    >
+                                                        <Upload size={14} /> Upload
+                                                    </button>
+
+                                                    <input
+                                                        id="authorized-signature-input"
+                                                        type="file"
+                                                        className="hidden"
+                                                        accept="image/*"
+                                                        onChange={handleAuthorizedSignatureUpload}
+                                                    />
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                    
+                                )}
                             </div>
                         </div>
                     )}
@@ -1737,8 +1845,31 @@ export default function EmployeeProfile() {
                                         className="w-full h-full object-contain"
                                     />
                                 </div>
-                           <div className="text-right flex flex-col items-end">{isHRAdminProfile && adminSignatureUrl && <img src={adminSignatureUrl} alt="Admin Signature" className="w-20 h-8 object-contain mb-1" />}<div className="italic text-gray-400 text-xs">Authorized Sig.</div></div> </div>
-                        </div>
+                                <div className="text-right flex flex-col items-end">
+                                    {authorizedSignatureUrl && (
+                                        <img
+                                            src={authorizedSignatureUrl}
+                                            alt="Authorized Signature"
+                                            className="w-24 h-10 object-contain mb-1"
+                                        />
+                                    )}
+
+                                    <div className="italic text-gray-400 text-xs">Authorized Sig.</div>
+
+                                    {companySetting?.authorizedSignName && (
+                                        <div className="text-[10px] font-bold text-gray-700">
+                                            {companySetting.authorizedSignName}
+                                        </div>
+                                    )}
+
+                                    {companySetting?.authorizedSignTitle && (
+                                        <div className="text-[9px] text-gray-500">
+                                            {companySetting.authorizedSignTitle}
+                                        </div>
+                                    )}
+                                </div>   
+                                 </div>
+                                 </div>
                         <div className="flex justify-center mt-6">
                             <button
                                 onClick={() => {
@@ -1799,7 +1930,7 @@ export default function EmployeeProfile() {
                     </div>
                 </div>,
                 document.body
-            )}
+              )}
             {/* Document Deletion Confirmation */}
             {docToDelete !== null && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
