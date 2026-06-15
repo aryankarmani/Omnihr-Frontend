@@ -15,6 +15,7 @@ export default function OrgMasters() {
     const [signature, setSignature] = useState<any>(null);
     const [authorizedSignatoryName, setAuthorizedSignatoryName] = useState('');
     const [signatureFile, setSignatureFile] = useState<File | null>(null);
+    const [showDeleteSignatureModal, setShowDeleteSignatureModal] = useState(false);
 
 
     const fetchCompany = async () => {
@@ -111,6 +112,7 @@ export default function OrgMasters() {
             );
 
             setSignatureFile(null);
+            setShowDeleteSignatureModal(false);
             await fetchSignature();
         } catch (error: any) {
             console.error('Save signature error:', error);
@@ -139,6 +141,7 @@ export default function OrgMasters() {
 
             setSignature(null);
             setSignatureFile(null);
+            setShowDeleteSignatureModal(false);
         } catch (error: any) {
             toast.error(
                 error.response?.data?.message ||
@@ -642,7 +645,7 @@ export default function OrgMasters() {
                                         {signature && (
                                             <button
                                                 type="button"
-                                                onClick={deleteSignature}
+                                                onClick={() => setShowDeleteSignatureModal(true)}
                                                 className="flex items-center gap-2 px-3 py-1.5 border border-red-500/40 text-red-500 rounded-lg text-sm hover:bg-red-500/10"
                                             >
                                                 <Trash2 size={16} /> Delete
@@ -654,9 +657,11 @@ export default function OrgMasters() {
                                         {signature ? (
                                             <img
                                                 src={
-                                                    signature.startsWith('http')
+                                                    signature.startsWith('http') ||
+                                                        signature.startsWith('blob:') ||
+                                                        signature.startsWith('data:')
                                                         ? signature
-                                                        : `http://localhost:3001${signature}`
+                                                        : `http://localhost:3001${signature.startsWith('/') ? '' : '/'}${signature}`
                                                 }
                                                 alt="Signature Preview"
                                                 className="max-h-full max-w-full object-contain p-4"
@@ -906,7 +911,62 @@ export default function OrgMasters() {
                     </div>
                 </div>
             )}
+            {/* SIGNATURE DELETE CONFIRMATION */}
+            {showDeleteSignatureModal && createPortal(
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-[2px] p-4 animate-fade-in">
 
+                    <div className="bg-[#0b0b24] rounded-2xl shadow-2xl w-full max-w-[450px] border border-white/10 border-t-[6px] border-t-[#ff3344] text-center relative overflow-hidden px-8 pb-8">
+
+                        {/* Delete icon */}
+                        <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mt-7 mb-6">
+                            <Trash2 size={36} className="text-[#ff3344]" />
+                        </div>
+
+                        {/* Heading */}
+                        <h3 className="text-2xl font-bold text-white mb-3">
+                            Delete Signature?
+                        </h3>
+
+                        {/* Message */}
+                        <p className="text-gray-400 text-base leading-relaxed mb-8">
+                            Are you sure you want to delete this signature?
+                            <br />
+                            This action cannot be undone.
+                        </p>
+
+                        {/* Buttons */}
+                        <div className="flex gap-4">
+
+                            <button
+                                type="button"
+                                onClick={() => setShowDeleteSignatureModal(false)}
+                                disabled={loading}
+                                className="flex-1 py-3.5 px-4 bg-[#1c1d35] text-white font-bold rounded-xl hover:bg-[#25263f] transition-all active:scale-95 disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={deleteSignature}
+                                disabled={loading}
+                                className="flex-1 py-3.5 px-4 bg-[#ff3344] text-white font-bold rounded-xl hover:bg-[#ff4857] transition-all shadow-lg shadow-red-500/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                                {loading ? (
+                                    <>
+                                        <Loader2 size={18} className="animate-spin" />
+                                        Deleting...
+                                    </>
+                                ) : (
+                                    'Yes, Delete'
+                                )}
+                            </button>
+
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
             {/* Delete Confirmation Modal (MATCHING THEME) */}
             {itemToDelete && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-[2px] p-4 animate-fade-in">
