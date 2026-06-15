@@ -14,7 +14,7 @@ export default function EmployeeProfile() {
     const navigate = useNavigate();
     const location = useLocation();
     const { hasPermission } = useRBAC();
-    
+
     const queryParams = new URLSearchParams(location.search);
     const initialEditMode = queryParams.get('edit') === 'true';
 
@@ -51,19 +51,19 @@ export default function EmployeeProfile() {
     };
     const fetchCompanySignature = async () => {
 
-  try {
+        try {
 
-    const res = await api.get('/company-setting');
+            const res = await api.get('/company-setting');
 
-    setCompanySignature(res.data?.authorizedSignature || null);
+            setCompanySignature(res.data?.authorizedSignature || null);
 
-  } catch (error) {
+        } catch (error) {
 
-    console.error(error);
+            console.error(error);
 
-  }
+        }
 
-};
+    };
     const fetchShifts = async () => {
         try {
             const res = await api.get('/masters/shifts');
@@ -184,6 +184,11 @@ export default function EmployeeProfile() {
         } else if (new Date(pd.dob) > new Date()) {
             newErrors.dob = "Future date is not allowed";
         }
+        if (!pd.joiningDate) {
+            newErrors.joiningDate = "Date of joining is required";
+        } else if (new Date(pd.joiningDate) > new Date()) {
+            newErrors.joiningDate = "Future date is not allowed";
+        }
 
         if (!pd.bloodGroup) {
             newErrors.bloodGroup = "Blood group is required";
@@ -243,7 +248,7 @@ export default function EmployeeProfile() {
         ];
 
         const personalFields = [
-            "email", "phone", "dob",
+            "email", "phone", "dob", "joiningDate",
             "role", "designationId", "departmentId",
             "bloodGroup", "address"
         ];
@@ -283,6 +288,7 @@ export default function EmployeeProfile() {
             const profileData = {
                 phone: employee.employeeProfile?.phone,
                 dob: employee.employeeProfile?.dob,
+                joiningDate: employee.employeeProfile?.joiningDate,
                 bloodGroup: employee.employeeProfile?.bloodGroup,
                 address: employee.employeeProfile?.address,
                 location: employee.employeeProfile?.location,
@@ -451,20 +457,20 @@ export default function EmployeeProfile() {
     const profile = employee.employeeProfile || {};
     const statutory = profile.statutory || {};
     const bank = profile.bank || {};
-            const isHRAdminProfile =
-    employee?.role?.name === 'HR_ADMIN' ||
-    employee?.role?.title === 'HR_ADMIN' ||
-    employee?.role === 'HR_ADMIN';
+    const isHRAdminProfile =
+        employee?.role?.name === 'HR_ADMIN' ||
+        employee?.role?.title === 'HR_ADMIN' ||
+        employee?.role === 'HR_ADMIN';
 
     const adminSignatureDoc = profile.documents?.find(
-    (d: any) => d.name === 'Admin Signature'
+        (d: any) => d.name === 'Admin Signature'
     );
 
-   const adminSignatureUrl = companySignature
-  ? companySignature.startsWith('http')
-    ? companySignature
-    : `http://localhost:3001${companySignature}`
-  : null;
+    const adminSignatureUrl = companySignature
+        ? companySignature.startsWith('http')
+            ? companySignature
+            : `http://localhost:3001${companySignature}`
+        : null;
     // Dynamic salary calculations for payslip preview
     const basic = Number(profile.salary?.basic || 0);
     const hra = Number(profile.salary?.hra || 0);
@@ -473,11 +479,25 @@ export default function EmployeeProfile() {
     const pf = Number(profile.salary?.pf || 0);
     const pt = Number(profile.salary?.pt || 0);
     const tax = Number(profile.salary?.tax || 0);
-
-    const totalEarnings = basic + hra + special + medical;
-
-    // Month info for payslip
     const calendarDays = new Date(selectedPayslipYear, selectedPayslipMonth + 1, 0).getDate();
+
+
+    const fullMonthEarnings = basic + hra + special + medical;
+
+    const joiningDateForSalary = profile.joiningDate ? new Date(profile.joiningDate) : null;
+
+    let payableDays = calendarDays;
+
+    if (
+        joiningDateForSalary &&
+        joiningDateForSalary.getFullYear() === selectedPayslipYear &&
+        joiningDateForSalary.getMonth() === selectedPayslipMonth
+    ) {
+        payableDays = calendarDays - joiningDateForSalary.getDate() + 1;
+    }
+
+    const totalEarnings = Number(((fullMonthEarnings / calendarDays) * payableDays).toFixed(2));
+    // Month info for payslip
     const selectedMonthLabel = new Date(selectedPayslipYear, selectedPayslipMonth, 1)
         .toLocaleString('en-US', { month: 'long', year: 'numeric' });
     const selectedMonthShort = new Date(selectedPayslipYear, selectedPayslipMonth, 1)
@@ -505,12 +525,86 @@ export default function EmployeeProfile() {
     const lwpDeduction = lwpDays > 0 ? Number(((totalEarnings / calendarDays) * lwpDays).toFixed(2)) : 0;
     const totalDeductions = pf + pt + tax + lwpDeduction;
     const totalSalary = Math.max(0, totalEarnings - totalDeductions);
-    const paidDays = calendarDays - lwpDays;
+    const paidDays = payableDays - lwpDays;
+    const today = new Date();
+
+    const currentMonthStart = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        1
+    );
+
+    const selectedMonthStart = new Date(
+        selectedPayslipYear,
+        selectedPayslipMonth,
+        1
+    );
+
+    const joiningDateRaw = profile.joiningDate
+        ? new Date(profile.joiningDate)
+        : null;
+
+    const hasCompletedOneMonth = joiningDateRaw
+        ? new Date(
+            joiningDateRaw.getFullYear(),
+            joiningDateRaw.getMonth() + 1,
+            joiningDateRaw.getDate()
+        ) <= today
+        : true;
+
+    const joiningMonthStart = joiningDateRaw
+        ? new Date(
+            joiningDateRaw.getFullYear(),
+            joiningDateRaw.getMonth(),
+            1
+        )
+        : null;
+    const isCurrentMonth =
+        selectedMonthStart.getMonth() === currentMonthStart.getMonth() &&
+        selectedMonthStart.getFullYear() === currentMonthStart.getFullYear();
+
+    const isFutureMonth =
+        selectedMonthStart > currentMonthStart;
+
+    const isBeforeJoiningMonth =
+        joiningMonthStart &&
+        selectedMonthStart < joiningMonthStart;
+
+    let payslipBlockMessage = '';
+
+    if (isBeforeJoiningMonth) {
+        payslipBlockMessage =
+            'No salary slip is available because you were not employed during the selected month.';
+    }
+    else if (!hasCompletedOneMonth) {
+        payslipBlockMessage =
+            'Salary slip will be available after you complete one full month of service.';
+    }
+    else if (isCurrentMonth) {
+        payslipBlockMessage =
+            'Salary slip for the current month is not available yet. Please select a completed past month.';
+    }
+    else if (isFutureMonth) {
+        payslipBlockMessage =
+            'Salary slip cannot be generated for a future month. Please select a completed past month.';
+    }
+
 
     // Date of joining
     const joiningDate = profile.joiningDate
         ? new Date(profile.joiningDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
         : 'N/A';
+    const currentDate = new Date();
+
+    const availableMonths =
+        Number(inputYear) === currentDate.getFullYear()
+            ? MONTH_NAMES.slice(0, currentDate.getMonth())
+            : MONTH_NAMES;
+
+    const availableYears = Array.from(
+        { length: currentDate.getFullYear() - 2024 + 1 },
+        (_, i) => 2024 + i
+    );
 
     return (
         <div className="animate-fade-in-up pb-8 relative">
@@ -623,18 +717,18 @@ export default function EmployeeProfile() {
                                                     type="text"
                                                     placeholder={field.placeholder}
                                                     value={(statutory as any)[field.key] || ''}
-                                                     onChange={(e) => {
-    let value =
-        field.key === 'pan'
-            ? e.target.value.toUpperCase()
-            : e.target.value.replace(/\D/g, '');
+                                                    onChange={(e) => {
+                                                        let value =
+                                                            field.key === 'pan'
+                                                                ? e.target.value.toUpperCase()
+                                                                : e.target.value.replace(/\D/g, '');
 
-    if (field.key === 'uan') value = value.slice(0, 12);
-    if (field.key === 'esic') value = value.slice(0, 10);
-    if (field.key === 'aadhaar') value = value.slice(0, 12);
+                                                        if (field.key === 'uan') value = value.slice(0, 12);
+                                                        if (field.key === 'esic') value = value.slice(0, 10);
+                                                        if (field.key === 'aadhaar') value = value.slice(0, 12);
 
-    handleStatutoryChange(field.key, value);
-}}
+                                                        handleStatutoryChange(field.key, value);
+                                                    }}
                                                     className={`appearance-none w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors[field.key]
                                                         ? 'border-red-500'
                                                         : 'border-gray-200 dark:border-white/10'
@@ -679,7 +773,7 @@ export default function EmployeeProfile() {
                                             placeholder="9 to 18 digits"
                                             value={bank.accountNumber || ''}
                                             onChange={(e) =>
-                                           handleBankChange('accountNumber', e.target.value.replace(/\D/g, '').slice(0, 18))}
+                                                handleBankChange('accountNumber', e.target.value.replace(/\D/g, '').slice(0, 18))}
                                             className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.accountNumber ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg focus:ring-2 focus:ring-brand-500/50 outline-none`}
                                         />
                                         {errors.accountNumber && <p className="text-red-500 text-xs mt-1">{errors.accountNumber}</p>}
@@ -725,11 +819,11 @@ export default function EmployeeProfile() {
 
                             </div>                           <div className="space-y-4">
                                 {[
-                            { key: 'aadhaar', name: 'Aadhaar Card' },
-                            { key: 'pan', name: 'PAN Card' },
-                            { key: 'degree', name: 'Highest Qualification Degree' },
+                                    { key: 'aadhaar', name: 'Aadhaar Card' },
+                                    { key: 'pan', name: 'PAN Card' },
+                                    { key: 'degree', name: 'Highest Qualification Degree' },
 
-                               
+
                                 ].map((doc) => {
                                     const savedDoc = profile.documents?.find((d: any) => d.name === doc.name);
                                     return (
@@ -848,8 +942,8 @@ export default function EmployeeProfile() {
                                     <label className="text-xs font-bold text-gray-400 uppercase">Phone</label>
                                     {isEditing ? (
                                         <>
-                                            <input type="text" value={profile.phone || ''} onChange={(e) => handleInputChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} 
-                                            className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.phone ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg outline-none`} />
+                                            <input type="text" value={profile.phone || ''} onChange={(e) => handleInputChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                                                className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.phone ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg outline-none`} />
                                             {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
                                         </>
                                     ) : <p className="font-semibold">{profile.phone || 'N/A'}</p>}
@@ -878,15 +972,43 @@ export default function EmployeeProfile() {
                                     <label className="text-xs font-bold text-gray-400 uppercase">Date of Birth</label>
                                     {isEditing ? (
                                         <>
-                                            <input type="date" 
-                                            value={profile.dob ? profile.dob.split('T')[0] : ''} 
-                                             max={new Date().toISOString().split('T')[0]}
-                                            onChange={(e) => handleInputChange('dob', e.target.value)} 
-                                            className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.dob ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg outline-none`} />
+                                            <input type="date"
+                                                value={profile.dob ? profile.dob.split('T')[0] : ''}
+                                                max={new Date().toISOString().split('T')[0]}
+                                                onChange={(e) => handleInputChange('dob', e.target.value)}
+                                                className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.dob ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg outline-none`} />
 
                                             {errors.dob && <p className="text-red-500 text-xs mt-1">{errors.dob}</p>}
                                         </>
                                     ) : <p className="font-semibold">{profile.dob ? new Date(profile.dob).toLocaleDateString() : 'N/A'}</p>}
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-gray-400 uppercase">
+                                        Date of Joining
+                                    </label>
+
+                                    {isEditing && hasPermission(['HR_ADMIN']) ? (
+                                        <>
+                                            <input
+                                                type="date"
+                                                value={profile.joiningDate ? profile.joiningDate.split('T')[0] : ''}
+                                                max={new Date().toISOString().split('T')[0]}
+                                                onChange={(e) => handleInputChange('joiningDate', e.target.value)}
+                                                className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.joiningDate ? 'border-red-500' : 'border-gray-200 dark:border-white/10'
+                                                    } rounded-lg outline-none`}
+                                            />
+
+                                            {errors.joiningDate && (
+                                                <p className="text-red-500 text-xs mt-1">{errors.joiningDate}</p>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <p className="font-semibold">
+                                            {profile.joiningDate
+                                                ? new Date(profile.joiningDate).toLocaleDateString('en-IN')
+                                                : 'N/A'}
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-400 uppercase">SYSTEM ROLE</label>
@@ -1362,7 +1484,7 @@ export default function EmployeeProfile() {
                                                         <p className="font-bold text-brand-600 dark:text-brand-400 text-lg">{team?.name || 'N/A'}</p>
                                                         {team?.description && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{team.description}</p>}
                                                     </div>
-                                                    
+
                                                     {teamManager ? (
                                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-gray-200/50 dark:border-white/10 pt-3">
                                                             <div className="space-y-1">
@@ -1399,7 +1521,17 @@ export default function EmployeeProfile() {
                         <h4 className="font-bold text-gray-800 dark:text-white mb-4">Quick Actions</h4>
                         <div className="space-y-3">
                             <button
-                                onClick={() => setShowPayslip(true)}
+                                onClick={() => {
+                                    const lastMonth = new Date();
+                                    lastMonth.setMonth(lastMonth.getMonth() - 1);
+
+                                    setSelectedPayslipMonth(lastMonth.getMonth());
+                                    setSelectedPayslipYear(lastMonth.getFullYear());
+                                    setInputMonth(MONTH_NAMES[lastMonth.getMonth()]);
+                                    setInputYear(String(lastMonth.getFullYear()));
+
+                                    setShowPayslip(true);
+                                }}
                                 className="w-full py-2.5 px-4 bg-brand-50 dark:bg-white/5 text-brand-700 dark:text-brand-300 rounded-xl text-sm font-medium hover:bg-brand-700 hover:text-white transition-colors text-left flex items-center gap-3"
                             >
                                 <FileText size={16} /> Generate Payslip
@@ -1435,24 +1567,44 @@ export default function EmployeeProfile() {
                                 {/* Right: month + year fields */}
                                 <div className="flex items-center gap-3">
                                     <div className="flex items-center border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden bg-white dark:bg-brand-800 shadow-sm">
-                                        <input
-                                            type="text"
-                                            value={inputMonth}
-                                            onChange={(e) => { setInputMonth(e.target.value); setPayslipError(''); }}
-                                            onKeyDown={(e) => e.key === 'Enter' && applyPayslipMonth()}
-                                            placeholder="Month"
-                                            maxLength={12}
-                                            className="px-4 py-2 text-sm font-medium bg-transparent outline-none text-gray-800 dark:text-white placeholder-gray-400 w-24 border-r border-gray-200 dark:border-white/10"
-                                        />
-                                        <input
-                                            type="text"
-                                            value={inputYear}
-                                            onChange={(e) => { setInputYear(e.target.value); setPayslipError(''); }}
-                                            onKeyDown={(e) => e.key === 'Enter' && applyPayslipMonth()}
-                                            placeholder="Year"
-                                            maxLength={4}
-                                            className="px-4 py-2 text-sm font-medium bg-transparent outline-none text-gray-800 dark:text-white placeholder-gray-400 w-24"
-                                        />
+                                        <div className="relative">
+                                            <select
+                                                value={inputMonth}
+                                                onChange={(e) => {
+                                                    setInputMonth(e.target.value);
+                                                    setPayslipError('');
+                                                }}
+                                                className="appearance-none px-4 pr-8 py-2 text-sm font-bold bg-brand-700 outline-none text-white cursor-pointer w-32 border-r border-brand-600">
+                                                {availableMonths.map((month) => (
+                                                    <option key={month} value={month} className="dark:bg-brand-900">
+                                                        {month}
+                                                    </option>
+                                                ))}
+                                            </select>
+
+                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-white pointer-events-none text-xs">
+                                                ▼
+                                            </span>
+                                        </div>
+                                        <div className="relative">
+                                            <select
+                                                value={inputYear}
+                                                onChange={(e) => {
+                                                    setInputYear(e.target.value);
+                                                    setPayslipError('');
+                                                }}
+                                                className="appearance-none px-4 pr-8 py-2 text-sm font-bold bg-brand-700 outline-none text-white cursor-pointer w-24">
+                                                {availableYears.map((year) => (
+                                                    <option key={year} value={String(year)} className="dark:bg-brand-900">
+                                                        {year}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-white pointer-events-none text-xs">
+                                                ▼
+                                            </span>
+                                        </div>
+
                                     </div>
                                     <button
                                         onClick={applyPayslipMonth}
@@ -1475,165 +1627,194 @@ export default function EmployeeProfile() {
 
                         {/* Content (Scrollable if absolutely necessary, but designed to fit) */}
                         <div className="p-4 md:p-6 bg-gray-100 dark:bg-brand-950 overflow-y-auto custom-scrollbar flex-1 flex justify-center items-start">
-                            <div id="payslip-content" className="w-full max-w-3xl bg-white border border-gray-200 p-6 md:p-8 shadow-sm rounded-xl relative text-gray-900 text-sm">
-                                <div className="flex justify-between items-start border-b-2 border-brand-900 pb-4 mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 md:w-14 md:h-14 bg-brand-900 text-white flex items-center justify-center font-bold text-xl rounded-lg">EH</div>
-                                        <div className="text-left">
-                                            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">EnCalm <span className="text-brand-600">HRX</span></h1>
-                                        </div>
-                                    </div>
-                                    <div className="text-right text-xs text-gray-600">
-                                        <p className="font-bold text-gray-800">EncalmIT Consultancy Pvt. Ltd.</p>
-                                        <p>Gurgaon, Haryana, India</p>
-                                        <p>CIN: U12345HR2023PTC123456</p>
-                                    </div>
-                                </div>
 
-                                <div className="grid grid-cols-2 gap-6 mb-4">
-                                    <div className="space-y-2">
-                                        <h4 className="font-bold text-brand-600 text-[10px] uppercase tracking-wider mb-1 border-b border-gray-100 pb-1">Employee Details</h4>
-                                        <div className="grid grid-cols-3 gap-1 text-xs">
-                                            <span className="text-gray-500 font-medium">Name:</span>
-                                            <span className="col-span-2 font-bold">{employee.name}</span>
-                                            <span className="text-gray-500 font-medium">Employee ID:</span>
-                                            <span className="col-span-2 font-bold">{employee.id}</span>
-                                            <span className="text-gray-500 font-medium">Role:</span>
-                                            <span className="col-span-2 font-bold break-words whitespace-normal">{profile.title || 'N/A'}</span>
-                                            <span className="text-gray-500 font-medium">Department:</span>
-                                            <span className="col-span-2 font-bold break-words whitespace-normal">{profile.department || 'N/A'}</span>
-                                            <span className="text-gray-500 font-medium">Date of Joining:</span>
-                                            <span className="col-span-2 font-bold">{joiningDate}</span>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <h4 className="font-bold text-brand-600 text-[10px] uppercase tracking-wider mb-1 border-b border-gray-100 pb-1">Bank & Pan Details</h4>
-                                        <div className="grid grid-cols-3 gap-1 text-xs">
-                                            <span className="text-gray-500 font-medium">Bank Name:</span>
-                                            <span className="col-span-2 font-bold break-words whitespace-normal">{bank.bankName || 'N/A'}</span>
-                                            <span className="text-gray-500 font-medium">Account No:</span>
-                                            <span className="col-span-2 font-bold">XXXX{(bank.accountNumber || '').slice(-4)}</span>
-                                            <span className="text-gray-500 font-medium">PAN Number:</span>
-                                            <span className="col-span-2 font-bold">{statutory.pan || 'N/A'}</span>
-                                            <span className="text-gray-500 font-medium">UAN:</span>
-                                            <span className="col-span-2 font-bold">{statutory.uan || 'N/A'}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Payroll Summary Bar */}
-                                <div className="flex items-center gap-0 mb-4 border border-gray-200 rounded-lg overflow-hidden text-xs">
-                                    <div className="flex-1 bg-gray-50 px-3 py-2 text-center border-r border-gray-200">
-                                        <p className="text-gray-400 font-medium uppercase tracking-wider text-[9px]">Total Working Days</p>
-                                        <p className="font-bold text-gray-800 text-sm mt-0.5">{calendarDays}</p>
-                                    </div>
-                                    <div className="flex-1 bg-gray-50 px-3 py-2 text-center border-r border-gray-200">
-                                        <p className="text-gray-400 font-medium uppercase tracking-wider text-[9px]">Paid Days</p>
-                                        <p className="font-bold text-green-700 text-sm mt-0.5">{paidDays}</p>
-                                    </div>
-                                    <div className="flex-1 bg-gray-50 px-3 py-2 text-center">
-                                        <p className="text-gray-400 font-medium uppercase tracking-wider text-[9px]">Leave Taken (LWP)</p>
-                                        <p className="font-bold text-sm mt-0.5" style={{ color: lwpDays > 0 ? '#e11d48' : '#1f2937' }}>{lwpDays}</p>
-                                    </div>
-                                </div>
-
-                                <div className="border border-gray-200 rounded-lg overflow-hidden mb-6">
-                                    <div className="grid grid-cols-2 bg-gray-50 border-b border-gray-200">
-                                        <div className="p-2 font-bold text-gray-700 text-xs uppercase text-center border-r border-gray-200">Earnings</div>
-                                        <div className="p-2 font-bold text-gray-700 text-xs uppercase text-center">Deductions</div>
-                                    </div>
-                                    <div className="grid grid-cols-2 text-xs min-h-[120px]">
-                                        <div className="border-r border-gray-200 p-0 flex flex-col justify-between">
+                            {payslipBlockMessage ? (
+                                <div className="min-h-[520px] flex items-center justify-center">
+                                    <div className="max-w-sm w-full bg-[#0b0b24] rounded-2xl p-5 text-center shadow-xl border border-white/10 border-t-[5px] border-t-red-500">
+                                        <div className="flex justify-center mb-4">
                                             <div>
-                                                <div className="flex justify-between p-2 border-b border-gray-50">
-                                                    <span className="text-gray-600 font-semibold">Basic Salary</span>
-                                                    <span className="font-semibold">₹ {basic.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                                </div>
-                                                {hra > 0 && (
-                                                    <div className="flex justify-between p-2 border-b border-gray-50">
-                                                        <span className="text-gray-600">HRA</span>
-                                                        <span className="font-semibold">₹ {hra.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                                    </div>
-                                                )}
-                                                {special > 0 && (
-                                                    <div className="flex justify-between p-2 border-b border-gray-50">
-                                                        <span className="text-gray-600">Special Allowance</span>
-                                                        <span className="font-semibold">₹ {special.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                                    </div>
-                                                )}
-                                                {medical > 0 && (
-                                                    <div className="flex justify-between p-2 border-b border-gray-50">
-                                                        <span className="text-gray-600">Medical Allowance</span>
-                                                        <span className="font-semibold">₹ {medical.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                                    </div>
-                                                )}
-                                                {totalEarnings === 0 && (
-                                                    <div className="flex justify-between p-2 md:p-3 italic text-gray-400">
-                                                        <span>Salary structure pending setup...</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            {totalEarnings > 0 && (
-                                                <div className="flex justify-between p-2 bg-gray-50 border-t border-gray-100 font-bold text-gray-800">
-                                                    <span>Total Earnings</span>
-                                                    <span>₹ {totalEarnings.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="p-0 flex flex-col justify-between">
-                                            <div>
-                                                {pf > 0 && (
-                                                    <div className="flex justify-between p-2 border-b border-gray-50">
-                                                        <span className="text-gray-600">Provident Fund (PF)</span>
-                                                        <span className="font-semibold">₹ {pf.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                                    </div>
-                                                )}
-                                                {pt > 0 && (
-                                                    <div className="flex justify-between p-2 border-b border-gray-50">
-                                                        <span className="text-gray-600">Professional Tax (PT)</span>
-                                                        <span className="font-semibold">₹ {pt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                                    </div>
-                                                )}
-                                                {tax > 0 && (
-                                                    <div className="flex justify-between p-2 border-b border-gray-50">
-                                                        <span className="text-gray-600">Income Tax / TDS</span>
-                                                        <span className="font-semibold">₹ {tax.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                                    </div>
-                                                )}
-                                                {lwpDeduction > 0 && (
-                                                    <div className="flex justify-between p-2 border-b border-gray-50" style={{ color: '#e11d48', backgroundColor: 'rgba(255, 241, 242, 0.5)' }}>
-                                                        <span className="font-semibold">LWP Deduction ({lwpDays} days)</span>
-                                                        <span className="font-semibold">₹ {lwpDeduction.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                                    </div>
-                                                )}
-                                                {totalDeductions === 0 && (
-                                                    <div className="flex justify-between p-2 md:p-3 italic text-gray-400">
-                                                        <span>No deductions applicable</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="flex justify-between p-2 border-b border-gray-50 ">
-                                                <span className="text-gray-600">Total Deductions</span>
-                                                <span className="font-semibold">
-                                                    ₹ {totalDeductions.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                </span>
-                                            </div>
 
-                                            <div className="flex justify-between p-2 bg-gray-50 border-t border-gray-100 font-bold">
-                                                <span className="text-gray-700">Total Salary</span>
-                                                <span className="text-green-700 font-bold">
-                                                    ₹ {totalSalary.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                <div className=" w-12 h-12 rounded-full bg-red-600 flex items-center justify-center">
+                                                    <span className="text-white text-2xl font-bold">!</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <h4 className="text-2xl font-extrabold text-white mb-3">                                            No Salary Slip
+                                        </h4>
+
+
+
+                                        <p className="text-base text-gray-400 leading-relaxed">                                            {payslipBlockMessage}
+                                        </p>
+
+                                    </div>
+                                </div>
+                            ) : (
+
+                                <div id="payslip-content" className="w-full max-w-3xl bg-white border border-gray-200 p-6 md:p-8 shadow-sm rounded-xl relative text-gray-900 text-sm">
+                                    <div className="flex justify-between items-start border-b-2 border-brand-900 pb-4 mb-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-12 h-12 md:w-14 md:h-14 bg-brand-900 text-white flex items-center justify-center font-bold text-xl rounded-lg">EH</div>
+                                            <div className="text-left">
+                                                <h1 className="text-2xl font-bold text-gray-900 tracking-tight">EnCalm <span className="text-brand-600">HRX</span></h1>
+                                            </div>
+                                        </div>
+                                        <div className="text-right text-xs text-gray-600">
+                                            <p className="font-bold text-gray-800">EncalmIT Consultancy Pvt. Ltd.</p>
+                                            <p>Gurgaon, Haryana, India</p>
+                                            <p>CIN: U12345HR2023PTC123456</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-6 mb-4">
+                                        <div className="space-y-2">
+                                            <h4 className="font-bold text-brand-600 text-[10px] uppercase tracking-wider mb-1 border-b border-gray-100 pb-1">Employee Details</h4>
+                                            <div className="grid grid-cols-3 gap-1 text-xs">
+                                                <span className="text-gray-500 font-medium">Name:</span>
+                                                <span className="col-span-2 font-bold">{employee.name}</span>
+                                                <span className="text-gray-500 font-medium">Employee ID:</span>
+                                                <span className="col-span-2 font-bold">{employee.id}</span>
+                                                <span className="text-gray-500 font-medium">Role:</span>
+                                                <span className="col-span-2 font-bold break-words whitespace-normal">{profile.title || 'N/A'}</span>
+                                                <span className="text-gray-500 font-medium">Department:</span>
+                                                <span className="col-span-2 font-bold break-words whitespace-normal">{profile.department || 'N/A'}</span>
+                                                <span className="text-gray-500 font-medium">DOB:</span>
+                                                <span className="col-span-2 font-bold">
+                                                    {profile.dob ? new Date(profile.dob).toLocaleDateString('en-IN') : 'N/A'}
                                                 </span>
+                                                <span className="text-gray-500 font-medium">Date of Joining:</span>
+                                                <span className="col-span-2 font-bold">{joiningDate}</span>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <h4 className="font-bold text-brand-600 text-[10px] uppercase tracking-wider mb-1 border-b border-gray-100 pb-1">Bank & Pan Details</h4>
+                                            <div className="grid grid-cols-3 gap-1 text-xs">
+                                                <span className="text-gray-500 font-medium">Bank Name:</span>
+                                                <span className="col-span-2 font-bold break-words whitespace-normal">{bank.bankName || 'N/A'}</span>
+                                                <span className="text-gray-500 font-medium">Account No:</span>
+                                                <span className="col-span-2 font-bold">XXXX{(bank.accountNumber || '').slice(-4)}</span>
+                                                <span className="text-gray-500 font-medium">PAN Number:</span>
+                                                <span className="col-span-2 font-bold">{statutory.pan || 'N/A'}</span>
+                                                <span className="text-gray-500 font-medium">UAN:</span>
+                                                <span className="col-span-2 font-bold">{statutory.uan || 'N/A'}</span>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div className="text-center text-[10px] text-gray-400 mt-4 pt-4 border-t border-gray-100">
-                                    <p>This is a computer-generated document and does not require a signature.</p>
-                                    <p className="mt-1">Generated on {new Date().toLocaleDateString()}</p>
+                                    {/* Payroll Summary Bar */}
+                                    <div className="flex items-center gap-0 mb-4 border border-gray-200 rounded-lg overflow-hidden text-xs">
+                                        <div className="flex-1 bg-gray-50 px-3 py-2 text-center border-r border-gray-200">
+                                            <p className="text-gray-400 font-medium uppercase tracking-wider text-[9px]">Total Working Days</p>
+                                            <p className="font-bold text-gray-800 text-sm mt-0.5">{calendarDays}</p>
+                                        </div>
+                                        <div className="flex-1 bg-gray-50 px-3 py-2 text-center border-r border-gray-200">
+                                            <p className="text-gray-400 font-medium uppercase tracking-wider text-[9px]">Paid Days</p>
+                                            <p className="font-bold text-green-700 text-sm mt-0.5">{paidDays}</p>
+                                        </div>
+                                        <div className="flex-1 bg-gray-50 px-3 py-2 text-center">
+                                            <p className="text-gray-400 font-medium uppercase tracking-wider text-[9px]">Leave Taken (LWP)</p>
+                                            <p className="font-bold text-sm mt-0.5" style={{ color: lwpDays > 0 ? '#e11d48' : '#1f2937' }}>{lwpDays}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="border border-gray-200 rounded-lg overflow-hidden mb-6">
+                                        <div className="grid grid-cols-2 bg-gray-50 border-b border-gray-200">
+                                            <div className="p-2 font-bold text-gray-700 text-xs uppercase text-center border-r border-gray-200">Earnings</div>
+                                            <div className="p-2 font-bold text-gray-700 text-xs uppercase text-center">Deductions</div>
+                                        </div>
+                                        <div className="grid grid-cols-2 text-xs min-h-[120px]">
+                                            <div className="border-r border-gray-200 p-0 flex flex-col justify-between">
+                                                <div>
+                                                    <div className="flex justify-between p-2 border-b border-gray-50">
+                                                        <span className="text-gray-600 font-semibold">Basic Salary</span>
+                                                        <span className="font-semibold">₹ {basic.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                    </div>
+                                                    {hra > 0 && (
+                                                        <div className="flex justify-between p-2 border-b border-gray-50">
+                                                            <span className="text-gray-600">HRA</span>
+                                                            <span className="font-semibold">₹ {hra.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                        </div>
+                                                    )}
+                                                    {special > 0 && (
+                                                        <div className="flex justify-between p-2 border-b border-gray-50">
+                                                            <span className="text-gray-600">Special Allowance</span>
+                                                            <span className="font-semibold">₹ {special.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                        </div>
+                                                    )}
+                                                    {medical > 0 && (
+                                                        <div className="flex justify-between p-2 border-b border-gray-50">
+                                                            <span className="text-gray-600">Medical Allowance</span>
+                                                            <span className="font-semibold">₹ {medical.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                        </div>
+                                                    )}
+                                                    {totalEarnings === 0 && (
+                                                        <div className="flex justify-between p-2 md:p-3 italic text-gray-400">
+                                                            <span>Salary structure pending setup...</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                {totalEarnings > 0 && (
+                                                    <div className="flex justify-between p-2 bg-gray-50 border-t border-gray-100 font-bold text-gray-800">
+                                                        <span>Total Earnings</span>
+                                                        <span>₹ {totalEarnings.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="p-0 flex flex-col justify-between">
+                                                <div>
+                                                    {pf > 0 && (
+                                                        <div className="flex justify-between p-2 border-b border-gray-50">
+                                                            <span className="text-gray-600">Provident Fund (PF)</span>
+                                                            <span className="font-semibold">₹ {pf.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                        </div>
+                                                    )}
+                                                    {pt > 0 && (
+                                                        <div className="flex justify-between p-2 border-b border-gray-50">
+                                                            <span className="text-gray-600">Professional Tax (PT)</span>
+                                                            <span className="font-semibold">₹ {pt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                        </div>
+                                                    )}
+                                                    {tax > 0 && (
+                                                        <div className="flex justify-between p-2 border-b border-gray-50">
+                                                            <span className="text-gray-600">Income Tax / TDS</span>
+                                                            <span className="font-semibold">₹ {tax.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                        </div>
+                                                    )}
+                                                    {lwpDeduction > 0 && (
+                                                        <div className="flex justify-between p-2 border-b border-gray-50" style={{ color: '#e11d48', backgroundColor: 'rgba(255, 241, 242, 0.5)' }}>
+                                                            <span className="font-semibold">LWP Deduction ({lwpDays} days)</span>
+                                                            <span className="font-semibold">₹ {lwpDeduction.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                        </div>
+                                                    )}
+                                                    {totalDeductions === 0 && (
+                                                        <div className="flex justify-between p-2 md:p-3 italic text-gray-400">
+                                                            <span>No deductions applicable</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex justify-between p-2 border-b border-gray-50 ">
+                                                    <span className="text-gray-600">Total Deductions</span>
+                                                    <span className="font-semibold">
+                                                        ₹ {totalDeductions.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex justify-between p-2 bg-gray-50 border-t border-gray-100 font-bold">
+                                                    <span className="text-gray-700">Total Salary</span>
+                                                    <span className="text-green-700 font-bold">
+                                                        ₹ {totalSalary.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="text-center text-[10px] text-gray-400 mt-4 pt-4 border-t border-gray-100">
+                                        <p>This is a computer-generated document and does not require a signature.</p>
+                                        <p className="mt-1">Generated on {new Date().toLocaleDateString()}</p>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
 
                         {/* Footer Buttons */}
@@ -1644,51 +1825,57 @@ export default function EmployeeProfile() {
                             >
                                 Back
                             </button>
-                            <button
-                                onClick={async () => {
-                                    const input = document.getElementById('payslip-content');
-                                    if (!input) {
-                                        toast.error("Could not find payslip content");
-                                        return;
-                                    }
+                            {!payslipBlockMessage && (
 
-                                    try {
-                                        const toastId = toast.loading("Generating PDF...");
-                                        const canvas = await html2canvas(input, {
-                                            scale: 2,
-                                            useCORS: true,
-                                            allowTaint: true,
-                                            backgroundColor: '#ffffff',
-                                            onclone: (clonedDoc) => {
-                                                const elements = clonedDoc.querySelectorAll('*');
-                                                elements.forEach((el) => {
-                                                    const HTMLElement = el as HTMLElement;
-                                                    const style = window.getComputedStyle(HTMLElement);
-                                                    if (style.color.includes('oklch')) HTMLElement.style.color = '#000000';
-                                                    if (style.backgroundColor.includes('oklch')) HTMLElement.style.backgroundColor = '#ffffff';
-                                                    if (style.borderColor.includes('oklch')) HTMLElement.style.borderColor = '#e5e7eb';
-                                                });
-                                            }
-                                        });
+                                <button
 
-                                        const imgData = canvas.toDataURL('image/png');
-                                        const pdf = new jsPDF('p', 'mm', 'a4');
-                                        const pdfWidth = pdf.internal.pageSize.getWidth();
-                                        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+                                    onClick={async () => {
 
-                                        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-                                        pdf.save(`Payslip_${employee.name}_${selectedMonthShort}.pdf`);
+                                        const input = document.getElementById('payslip-content');
+                                        if (!input) {
+                                            toast.error("Could not find payslip content");
+                                            return;
+                                        }
 
-                                        toast.success("PDF Downloaded", { id: toastId });
-                                    } catch (err) {
-                                        console.error("PDF Export Error:", err);
-                                        toast.error("Failed to generate PDF");
-                                    }
-                                }}
-                                className="flex items-center gap-2 px-6 py-2.5 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 transition-colors shadow-lg shadow-brand-500/20"
-                            >
-                                <Download size={18} /> Download PDF
-                            </button>
+                                        try {
+                                            const toastId = toast.loading("Generating PDF...");
+                                            const canvas = await html2canvas(input, {
+                                                scale: 2,
+                                                useCORS: true,
+                                                allowTaint: true,
+                                                backgroundColor: '#ffffff',
+                                                onclone: (clonedDoc) => {
+                                                    const elements = clonedDoc.querySelectorAll('*');
+                                                    elements.forEach((el) => {
+                                                        const HTMLElement = el as HTMLElement;
+                                                        const style = window.getComputedStyle(HTMLElement);
+                                                        if (style.color.includes('oklch')) HTMLElement.style.color = '#000000';
+                                                        if (style.backgroundColor.includes('oklch')) HTMLElement.style.backgroundColor = '#ffffff';
+                                                        if (style.borderColor.includes('oklch')) HTMLElement.style.borderColor = '#e5e7eb';
+                                                    });
+                                                }
+                                            });
+
+                                            const imgData = canvas.toDataURL('image/png');
+                                            const pdf = new jsPDF('p', 'mm', 'a4');
+                                            const pdfWidth = pdf.internal.pageSize.getWidth();
+                                            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+                                            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                                            pdf.save(`Payslip_${employee.name}_${selectedMonthShort}.pdf`);
+
+                                            toast.success("PDF Downloaded", { id: toastId });
+                                        } catch (err) {
+                                            console.error("PDF Export Error:", err);
+                                            toast.error("Failed to generate PDF");
+                                        }
+                                    }}
+                                    className="flex items-center gap-2 px-6 py-2.5 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 transition-colors shadow-lg shadow-brand-500/20"
+                                >
+                                    <Download size={18} /> Download PDF
+                                </button>
+                            )}
+
                         </div>
                     </div>
                 </div>,
@@ -1748,7 +1935,7 @@ export default function EmployeeProfile() {
                                         className="w-full h-full object-contain"
                                     />
                                 </div>
-                           <div className="text-right flex flex-col items-end">{adminSignatureUrl && <img src={adminSignatureUrl} alt="Admin Signature" className="w-20 h-8 object-contain mb-1" />}<div className="italic text-gray-400 text-xs">Authorized Sig.</div></div> </div>
+                                <div className="text-right flex flex-col items-end">{adminSignatureUrl && <img src={adminSignatureUrl} alt="Admin Signature" className="w-20 h-8 object-contain mb-1" />}<div className="italic text-gray-400 text-xs">Authorized Sig.</div></div> </div>
                         </div>
                         <div className="flex justify-center mt-6">
                             <button

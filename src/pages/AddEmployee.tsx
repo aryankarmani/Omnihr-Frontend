@@ -75,7 +75,7 @@ export default function AddEmployee() {
         degree: null,
     });
     const [confirmDeleteDoc, setConfirmDeleteDoc] = useState<string | null>(null);
-    
+
     const [errors, setErrors] = useState<any>({});
     const steps = [
         { id: 1, title: 'Personal Details', icon: User },
@@ -124,7 +124,7 @@ export default function AddEmployee() {
                 newErrors.firstName = 'First name is required';
             }
 
-          
+
 
             if (!formData.email) {
                 newErrors.email = 'Email is required';
@@ -157,18 +157,36 @@ export default function AddEmployee() {
             if (!formData.bloodGroup) {
                 newErrors.bloodGroup = 'Select blood group';
             }
-             if (!formData.dob) {
-             newErrors.dob = 'Date of birth is required';  
-              } else {
-             const selectedDate = new Date(formData.dob);
-             const today = new Date();
+            if (!formData.dob) {
+                newErrors.dob = 'Date of birth is required';
+            } else {
+                const selectedDate = new Date(formData.dob);
+                const today = new Date();
 
-             today.setHours(0, 0, 0, 0);
+                today.setHours(0, 0, 0, 0);
 
-            if (selectedDate > today) {
-            newErrors.dob = 'Future date is not allowed';
-          }
-    }
+                if (selectedDate > today) {
+                    newErrors.dob = 'Future date is not allowed';
+                }
+            }
+            if (!formData.dob) {
+                newErrors.dob = 'Date of birth is required';
+            }
+
+            // ADD HERE
+
+            if (!formData.joiningDate) {
+                newErrors.joiningDate = 'Date of joining is required';
+            } else {
+                const selectedJoiningDate = new Date(formData.joiningDate);
+                const today = new Date();
+
+                today.setHours(0, 0, 0, 0);
+
+                if (selectedJoiningDate > today) {
+                    newErrors.joiningDate = 'Future date is not allowed';
+                }
+            }
 
             if (!formData.address.trim()) {
                 newErrors.address = 'Enter address';
@@ -420,10 +438,10 @@ export default function AddEmployee() {
                                     className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
                                     placeholder="Last"
                                 />
-                                
+
                             </div>
-                          
-                        
+
+
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Email Address *</label>
                                 <input
@@ -467,58 +485,48 @@ export default function AddEmployee() {
                                 />
                                 {errors.phone && <p className="text-red-500 text-xs ml-1">{errors.phone}</p>}
                             </div>
+
+
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Blood Group</label>
-                                <div className="relative group/select">
-                                    <select
-                                        name="bloodGroup"
-                                        value={formData.bloodGroup}
-                                        onChange={handleInputChange}
-                                        className="appearance-none w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
-                                    >
-                                        <option value="" className="dark:bg-brand-900">Select Blood Group</option>
-                                        {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
-                                            <option key={bg} value={bg} className="dark:bg-brand-900">{bg}</option>
-                                        ))}
-                                    </select>
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover/select:text-brand-500 transition-colors">
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
-                                    </div>
-                                </div>
-                                {errors.bloodGroup && (
-                                    <p className="text-red-500 text-xs ml-1">
-                                        {errors.bloodGroup}
-                                    </p>
+                                <label className="text-xs font-bold text-gray-400 uppercase">
+                                    Date of Birth *
+                                </label>
+
+                                <input
+                                    type="date"
+                                    name="dob"
+                                    value={formData.dob}
+                                    max={new Date().toISOString().split('T')[0]}
+                                    onChange={handleInputChange}
+                                    className={`w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border ${errors.dob ? 'border-red-500' : 'border-gray-200 dark:border-white/10'
+                                        } rounded-2xl outline-none text-gray-800 dark:text-white`}
+                                />
+
+                                {errors.dob && (
+                                    <p className="text-red-500 text-xs mt-1">{errors.dob}</p>
                                 )}
                             </div>
+
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Date of Birth *</label>
+                                <label className="text-xs font-bold text-gray-400 uppercase">
+                                    Date of Joining *
+                                </label>
+
                                 <input
-                                   autoComplete="off"
-                                 name="dob"
-                                  value={formData.dob}
-                                 max={new Date().toISOString().split('T')[0]}
-                                 onChange={(e) => {
-                                        const val = e.target.value;
-                                        if (val) {
-                                            const parts = val.split('-');
-                                            if (parts[0] && parts[0].length > 4) {
-                                                parts[0] = parts[0].substring(0, 4);
-                                                setFormData(prev => ({ ...prev, dob: parts.join('-') }));
-                                                return;
-                                            }
-                                        }
-                                        handleInputChange(e);
-                                    }}
                                     type="date"
-                                    className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
+                                    name="joiningDate"
+                                    value={formData.joiningDate}
+                                    max={new Date().toISOString().split('T')[0]}
+                                    onChange={handleInputChange}
+                                    className={`w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border ${errors.joiningDate ? 'border-red-500' : 'border-gray-200 dark:border-white/10'
+                                        } rounded-2xl outline-none text-gray-800 dark:text-white`}
                                 />
-                                {errors.dob && (
-                                <p className="text-red-500 text-xs ml-1">
-                                  {errors.dob}
-                                   </p>
-                               )}
+
+                                {errors.joiningDate && (
+                                    <p className="text-red-500 text-xs mt-1">{errors.joiningDate}</p>
+                                )}
                             </div>
+
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Department *</label>
                                 <div className="relative group/select">
@@ -537,7 +545,7 @@ export default function AddEmployee() {
                                             }));
                                         }}
                                         className="appearance-none w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
-                                    > 
+                                    >
                                         <option value="" className="dark:bg-brand-900">Select Department</option>
                                         {masters.departments.map(dept => (
                                             <option key={dept.id} value={dept.id} className="dark:bg-brand-900">{dept.name}</option>
@@ -622,6 +630,40 @@ export default function AddEmployee() {
                                 )}
                             </div>
                             <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">
+                                    Blood Group
+                                </label>
+
+                                <div className="relative group/select">
+                                    <select
+                                        name="bloodGroup"
+                                        value={formData.bloodGroup}
+                                        onChange={handleInputChange}
+                                        className="appearance-none w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
+                                    >
+                                        <option value="" className="dark:bg-brand-900">Select Blood Group</option>
+                                        {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
+                                            <option key={bg} value={bg} className="dark:bg-brand-900">
+                                                {bg}
+                                            </option>
+                                        ))}
+                                    </select>
+
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover/select:text-brand-500 transition-colors">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path>
+                                        </svg>
+                                    </div>
+                                </div>
+
+                                {errors.bloodGroup && (
+                                    <p className="text-red-500 text-xs ml-1">
+                                        {errors.bloodGroup}
+                                    </p>
+                                )}
+                            </div>
+
+                            <div className="md:col-span-2 space-y-2">
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Residential Address *</label>
                                 <div className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus-within:ring-4 focus-within:ring-brand-500/20 transition-all overflow-hidden h-[46px]">
                                     <textarea

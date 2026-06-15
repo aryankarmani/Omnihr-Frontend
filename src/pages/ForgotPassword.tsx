@@ -136,8 +136,7 @@ export default function ForgotPassword() {
                     required
                     value={captchaInput}
                     onChange={(e) => setCaptchaInput(e.target.value)}
-                    className="w-32 h-12 bg-gray-50 border border-gray-300 focus:border-brand-500 rounded-xl text-center font-black tracking-widest text-gray-900 shadow-inner uppercase hover:border-gray-400 transition-all"
-                    placeholder="----"
+                className="w-32 h-12 bg-gray-50 border border-gray-300 focus:border-brand-500 rounded-xl text-center font-black tracking-widest text-gray-900 shadow-inner hover:border-gray-400 transition-all"                    placeholder="----"
                 />
             </Captcha>
 

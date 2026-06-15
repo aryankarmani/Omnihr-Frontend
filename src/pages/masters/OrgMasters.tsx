@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Building2, Plus, Save, MapPin, Trash2, Users, Briefcase, X, Edit, Loader2,Eye,Upload } from 'lucide-react';
+import { Building2, Plus, Save, MapPin, Trash2, Users, Briefcase, X, Edit, Loader2, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
 
@@ -13,12 +13,15 @@ export default function OrgMasters() {
         legalName: '', cin: '', pan: '', tan: '', gstin: '', regAddress: '', website: '', primaryColor: '#6366f1', secondaryColor: '#ec4899'
     });
     const [signature, setSignature] = useState<any>(null);
+    const [authorizedSignatoryName, setAuthorizedSignatoryName] = useState('');
+    const [signatureFile, setSignatureFile] = useState<File | null>(null);
+
 
     const fetchCompany = async () => {
         try {
             const res = await api.get('/masters/company');
             if (res.data) setCompany(res.data);
-        } catch (error) { console.error(error); }
+        } catch { console.error(error); }
     };
 
     const handleCompanyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -31,52 +34,121 @@ export default function OrgMasters() {
             await api.post('/masters/company', company);
             toast.success("Company details saved successfully!");
             fetchCompany();
-        } catch (error) { toast.error("Failed to save company details"); }
+        } catch { toast.error("Failed to save company details"); }
         finally { setLoading(false); }
     };
     const fetchSignature = async () => {
-  try {
-    const res = await api.get('/company-setting');
-    setSignature(res.data?.authorizedSignature || null);
-  } catch (error) {
-    console.error(error);
-  }
-};
+        try {
+            const res = await api.get('/company-setting');
 
-const uploadSignature = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
+            setAuthorizedSignatoryName(
+                res.data?.authorizedSignName || ''
+            );
 
-  const formData = new FormData();
-  formData.append('signature', file);
+            setSignature(
+                res.data?.authorizedSignature || null
+            );
+        } catch (error) {
+            console.error('Fetch signature error:', error);
+        }
+    };
 
-  try {
-    setLoading(true);
-    await api.post('/company-setting/authorized-signature', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-    toast.success('Signature uploaded successfully');
-    fetchSignature();
-  } catch (error) {
-    toast.error('Failed to upload signature');
-  } finally {
-    setLoading(false);
-  }
-};
+    const uploadSignature = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
 
-const deleteSignature = async () => {
-  try {
-    setLoading(true);
-    await api.delete('/company-setting/authorized-signature');
-    toast.success('Signature deleted successfully');
-    setSignature(null);
-  } catch (error) {
-    toast.error('Failed to delete signature');
-  } finally {
-    setLoading(false);
-  }
-};
-    
+        if (!file) return;
+
+        if (!['image/png', 'image/jpeg'].includes(file.type)) {
+            toast.error('Only PNG, JPG or JPEG files are allowed');
+            e.target.value = '';
+            return;
+        }
+
+        if (file.size > 2 * 1024 * 1024) {
+            toast.error('Signature size must be less than 2MB');
+            e.target.value = '';
+            return;
+        }
+
+        setSignatureFile(file);
+        setSignature(URL.createObjectURL(file));
+
+        toast.success('Signature selected. Click Save to upload.');
+    };
+    const saveSignature = async () => {
+        if (!authorizedSignatoryName.trim()) {
+            toast.error('Authorized Signatory Name is required');
+            return;
+        }
+
+        if (!signatureFile && !signature) {
+            toast.error('Please upload a signature');
+            return;
+        }
+
+        const formData = new FormData();
+
+        formData.append(
+            'authorizedSignName',
+            authorizedSignatoryName.trim()
+        );
+
+        if (signatureFile) {
+            formData.append('signature', signatureFile);
+        }
+
+        try {
+            setLoading(true);
+
+            const res = await api.put(
+                '/company-setting/signature',
+                formData
+            );
+
+            toast.success(
+                res.data?.message ||
+                'Signature uploaded successfully'
+            );
+
+            setSignatureFile(null);
+            await fetchSignature();
+        } catch (error: any) {
+            console.error('Save signature error:', error);
+
+            toast.error(
+                error.response?.data?.message ||
+                'Failed to save signature'
+            );
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const deleteSignature = async () => {
+        try {
+            setLoading(true);
+
+            const res = await api.delete(
+                '/company-setting/signature'
+            );
+
+            toast.success(
+                res.data?.message ||
+                'Signature deleted successfully'
+            );
+
+            setSignature(null);
+            setSignatureFile(null);
+        } catch (error: any) {
+            toast.error(
+                error.response?.data?.message ||
+                'Failed to delete signature'
+            );
+        } finally {
+            setLoading(false);
+        }
+    };
+
 
     // --- LOCATIONS STATE ---
     const [locations, setLocations] = useState<any[]>([]);
@@ -151,7 +223,7 @@ const deleteSignature = async () => {
             setShowDeptModal(false);
             setNewDept({ name: '', headId: null });
             setEditingDeptId(null);
-        } catch (error) { toast.error("Failed"); }
+        } catch { toast.error("Failed"); }
         finally { setLoading(false); }
     };
 
@@ -191,7 +263,7 @@ const deleteSignature = async () => {
             setNewDesig({ name: '', grade: '', reportTo: '' });
             setEditingDesigId(null);
             toast.success("Success");
-        } catch (error) { toast.error("Failed"); }
+        } catch { toast.error("Failed"); }
         finally { setLoading(false); }
     };
 
@@ -212,7 +284,7 @@ const deleteSignature = async () => {
             setNewLoc({ name: '', address: '', city: '', state: '', license: '' });
             setEditingLocId(null);
             toast.success("Success");
-        } catch (error) { toast.error("Failed"); }
+        } catch { toast.error("Failed"); }
         finally { setLoading(false); }
     };
 
@@ -224,14 +296,14 @@ const deleteSignature = async () => {
             // If they are not ready, I am adding a try/catch to gracefully handle it
             await api.delete(`/masters/${itemToDelete.type}s/${itemToDelete.id}`);
             toast.success(`${itemToDelete.name} deleted!`);
-        } catch (error) {
+        } catch {
             console.warn("Backend delete not available, removing from UI only.");
             toast.success(`${itemToDelete.name} removed from UI.`);
         } finally {
             if (itemToDelete.type === 'location') setLocations(locations.filter(l => l.id !== itemToDelete.id));
             if (itemToDelete.type === 'department') setDepartments(departments.filter(d => d.id !== itemToDelete.id));
             if (itemToDelete.type === 'designation') setDesignations(designations.filter(d => d.id !== itemToDelete.id));
-            
+
             setLoading(false);
             setItemToDelete(null);
         }
@@ -271,7 +343,7 @@ const deleteSignature = async () => {
         <div className="space-y-6 relative">
             {/* Sub-tabs for Org */}
             <div className="flex gap-4 border-b border-gray-200 dark:border-gray-700 pb-2 overflow-x-auto">
-                {['Company', 'Locations', 'Departments', 'Designations','Signature'].map((tab) => (
+                {['Company', 'Locations', 'Departments', 'Designations', 'Signature'].map((tab) => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab.toLowerCase())}
@@ -384,9 +456,9 @@ const deleteSignature = async () => {
                                     <div key={dept.id} className="group p-5 bg-white dark:bg-[#1a1c24] rounded-2xl border border-gray-200 dark:border-white/10 flex flex-col justify-between hover:shadow-2xl hover:border-brand-500/50 transition-all relative overflow-hidden">
                                         {/* Background Decoration */}
                                         <div className="absolute -right-4 -top-4 w-24 h-24 bg-brand-500/5 rounded-full blur-2xl group-hover:bg-brand-500/10 transition-all" />
-                                        
+
                                         <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
-                                            <button onClick={() => handleEditDept(dept)} className="p-1.5 bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 rounded-lg hover:bg-brand-100 transition-colors"><Edit size={14}/></button>
+                                            <button onClick={() => handleEditDept(dept)} className="p-1.5 bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 rounded-lg hover:bg-brand-100 transition-colors"><Edit size={14} /></button>
                                             <button onClick={() => setItemToDelete({ id: dept.id, name: dept.name, type: 'department' })} className="p-1.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 transition-colors"><Trash2 size={14} /></button>
                                         </div>
 
@@ -470,7 +542,7 @@ const deleteSignature = async () => {
                                             <td className="px-6 py-4"><span className="px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-xs font-mono">{des.grade || 'N/A'}</span></td>
                                             <td className="px-6 py-4">{des.reportTo || '-'}</td>
                                             <td className="px-6 py-4 flex gap-3">
-                                                <button onClick={() => handleEditDesig(des)} className="text-gray-400 hover:text-brand-500"><Edit size={16}/></button>
+                                                <button onClick={() => handleEditDesig(des)} className="text-gray-400 hover:text-brand-500"><Edit size={16} /></button>
                                                 <button onClick={() => setItemToDelete({ id: des.id, name: des.name, type: 'designation' })} className="text-red-500 hover:text-red-700"><Trash2 size={16} /></button>
                                             </td>
                                         </tr>
@@ -480,129 +552,155 @@ const deleteSignature = async () => {
                         </div>
                     </div>
                 )}
-              {activeTab === 'signature' && (
-  <div className="space-y-6 animate-fade-in">
-    <div className="flex items-center gap-3">
-      <div className="w-10 h-10 rounded-xl bg-brand-500/10 flex items-center justify-center">
-        <Briefcase size={20} className="text-brand-500" />
-      </div>
-      <div>
-        <h3 className="text-lg font-semibold dark:text-white">Signature</h3>
-        <p className="text-sm text-gray-500">
-          Manage authorized signature that will be used in official documents.
-        </p>
-      </div>
-    </div>
+                {activeTab === 'signature' && (
+                    <div className="space-y-6 animate-fade-in">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-brand-500/10 flex items-center justify-center">
+                                <Briefcase size={20} className="text-brand-500" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold dark:text-white">Signature</h3>
+                                <p className="text-sm text-gray-500">
+                                    Manage authorized signature that will be used in official documents.
+                                </p>
+                            </div>
+                        </div>
 
-    <div className="p-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
-        {/* LEFT SIDE */}
-        <div className="space-y-5">
-          <div>
-            <label className="block text-sm font-bold text-gray-800 dark:text-white mb-2">
-              Authorized Signatory Name <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              placeholder="Enter authorized signatory name"
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-gray-700 rounded-xl text-sm dark:text-white outline-none focus:ring-2 focus:ring-brand-500"
-            />
-          </div>
+                        <div className="p-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
 
-          <div>
-            <p className="font-bold text-gray-800 dark:text-white mb-3">
-              Signature Preview
-            </p>
+                                {/* LEFT COLUMN */}
+                                <div className="space-y-5 flex flex-col">
 
-            <div className="h-48 rounded-xl bg-white border border-gray-200 flex items-center justify-center overflow-hidden">
-              {signature ? (
-                <img
-                  src={signature.startsWith('http') ? signature : `http://localhost:3001${signature}`}
-                  alt="Signature Preview"
-                  className="max-h-36 max-w-full object-contain"
-                />
-              ) : (
-                <p className="text-sm text-gray-400">No signature uploaded</p>
-              )}
+                                    {/* Authorized Signatory Name */}
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-800 dark:text-white mb-2">
+                                            Authorized Signatory Name <span className="text-red-500">*</span>
+                                        </label>
+
+                                        <input
+                                            type="text"
+                                            value={authorizedSignatoryName}
+                                            onChange={(e) =>
+                                                setAuthorizedSignatoryName(e.target.value)
+                                            }
+                                            placeholder="Enter authorized signatory name"
+                                            className="w-full px-4 py-3 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-gray-700 rounded-xl text-sm dark:text-white outline-none focus:ring-2 focus:ring-brand-500"
+                                        />
+                                    </div>
+
+                                    {/* Upload Signature */}
+                                    <div className="flex-1 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+                                        <p className="font-bold text-gray-800 dark:text-white mb-3">
+                                            Upload Signature
+                                        </p>
+
+                                        <div
+                                            onClick={() =>
+                                                document.getElementById('admin-signature-input')?.click()
+                                            }
+                                            className="min-h-[320px] border-2 border-dashed border-brand-500 rounded-xl flex flex-col items-center justify-center text-center cursor-pointer hover:border-brand-400 transition-all"
+                                        >
+                                            <div className="w-16 h-16 rounded-full bg-brand-500/10 flex items-center justify-center mb-4">
+                                                <Upload size={28} className="text-brand-500" />
+                                            </div>
+
+                                            <p className="font-bold text-gray-800 dark:text-white">
+                                                Upload Signature
+                                            </p>
+
+                                            <p className="text-sm text-gray-500 mt-1">
+                                                PNG, JPG or JPEG (Max. 2MB)
+                                            </p>
+
+                                            <button
+                                                type="button"
+                                                className="mt-5 flex items-center gap-2 px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-medium"
+                                            >
+                                                <Upload size={16} /> Upload
+                                            </button>
+
+                                            <input
+                                                id="admin-signature-input"
+                                                type="file"
+                                                className="hidden"
+                                                accept="image/*"
+                                                onChange={uploadSignature}
+                                            />
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                                {/* RIGHT COLUMN: FULL HEIGHT PREVIEW */}
+                                <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col h-full">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <p className="font-bold text-gray-800 dark:text-white">
+                                            Signature Preview
+                                        </p>
+
+                                        {signature && (
+                                            <button
+                                                type="button"
+                                                onClick={deleteSignature}
+                                                className="flex items-center gap-2 px-3 py-1.5 border border-red-500/40 text-red-500 rounded-lg text-sm hover:bg-red-500/10"
+                                            >
+                                                <Trash2 size={16} /> Delete
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    <div className="flex-1 min-h-[420px] rounded-xl bg-white border border-gray-200 flex items-center justify-center overflow-hidden">
+                                        {signature ? (
+                                            <img
+                                                src={
+                                                    signature.startsWith('http')
+                                                        ? signature
+                                                        : `http://localhost:3001${signature}`
+                                                }
+                                                alt="Signature Preview"
+                                                className="max-h-full max-w-full object-contain p-4"
+                                            />
+                                        ) : (
+                                            <p className="text-sm text-gray-400">
+                                                No signature uploaded
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <div className="flex justify-end gap-4 mt-6">
+                                {signature && (
+                                    <>
+
+
+                                    </>
+                                )}
+
+                                <button
+                                    type="button"
+                                    onClick={saveSignature}
+                                    disabled={loading}
+                                    className="flex items-center gap-2 px-5 py-2.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium"
+                                >
+                                    {loading ? (
+                                        <Loader2 size={16} className="animate-spin" />
+                                    ) : (
+                                        <Save size={16} />
+                                    )}
+
+                                    {loading ? 'Saving...' : 'Save'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+
             </div>
-          </div>
-        </div>
 
-        {/* RIGHT SIDE */}
-        <div
-          onClick={() => document.getElementById('admin-signature-input')?.click()}
-          className="min-h-[320px] border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl flex flex-col items-center justify-center text-center cursor-pointer hover:border-brand-500 transition-all"
-        >
-          <div className="w-16 h-16 rounded-full bg-brand-500/10 flex items-center justify-center mb-4">
-            <Upload size={28} className="text-brand-500" />
-          </div>
-
-          <p className="font-bold text-gray-800 dark:text-white">
-            Upload Signature
-          </p>
-
-          <p className="text-sm text-gray-500 mt-1">
-            PNG, JPG or JPEG (Max. 2MB)
-          </p>
-
-          <button
-            type="button"
-            className="mt-5 flex items-center gap-2 px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-medium"
-          >
-            <Upload size={16} /> Upload
-          </button>
-
-          <input
-            id="admin-signature-input"
-            type="file"
-            className="hidden"
-            accept="image/*"
-            onChange={uploadSignature}
-          />
-        </div>
-      </div>
-
-      <div className="flex justify-end gap-4 mt-6">
-        {signature && (
-          <>
-            <button
-              type="button"
-              onClick={() =>
-                window.open(
-                  signature.startsWith('http') ? signature : `http://localhost:3001${signature}`,
-                  '_blank'
-                )
-              }
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm dark:text-white"
-            >
-              <Eye size={16} /> View Full Size
-            </button>
-
-            <button
-              type="button"
-              onClick={deleteSignature}
-              className="flex items-center gap-2 px-4 py-2 border border-red-500/40 text-red-500 rounded-lg text-sm"
-            >
-              <Trash2 size={16} /> Delete
-            </button>
-          </>
-        )}
-
-        <button
-          type="button"
-          className="flex items-center gap-2 px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-medium"
-        >
-          <Save size={16} /> Save
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-                
-
-            </div>
-            
 
             {/* --- MODALS --- */}
 
@@ -623,7 +721,7 @@ const deleteSignature = async () => {
                             <div><label className="block text-sm font-medium mb-1 dark:text-gray-300">Address</label><textarea className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" rows={2} value={newLoc.address} onChange={e => setNewLoc({ ...newLoc, address: e.target.value })}></textarea></div>
                             <div><label className="block text-sm font-medium mb-1 dark:text-gray-300">Shop License No.</label><input type="text" className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" value={newLoc.license} onChange={e => setNewLoc({ ...newLoc, license: e.target.value })} /></div>
                             <button onClick={saveLocation} className="w-full py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 font-medium mt-2">
-                                {loading ? <Loader2 size={16} className="animate-spin inline mr-2"/> : null}
+                                {loading ? <Loader2 size={16} className="animate-spin inline mr-2" /> : null}
                                 {editingLocId ? 'Update Location' : 'Save Location'}
                             </button>
                         </div>
@@ -641,7 +739,7 @@ const deleteSignature = async () => {
                             </div>
                             <button onClick={() => setShowDeptModal(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 transition-colors"><X size={20} /></button>
                         </div>
-                        
+
                         <div className="p-6 space-y-6">
                             {/* Department Name */}
                             <div>
@@ -650,12 +748,12 @@ const deleteSignature = async () => {
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <Users size={16} className="text-gray-400" />
                                     </div>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         placeholder="e.g. Information Technology"
-                                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white" 
-                                        value={newDept.name} 
-                                        onChange={e => setNewDept({ ...newDept, name: e.target.value })} 
+                                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white"
+                                        value={newDept.name}
+                                        onChange={e => setNewDept({ ...newDept, name: e.target.value })}
                                     />
                                 </div>
                             </div>
@@ -668,21 +766,21 @@ const deleteSignature = async () => {
                                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                             <Briefcase size={16} className="text-brand-500" />
                                         </div>
-                                        <input 
-                                            type="text" 
+                                        <input
+                                            type="text"
                                             placeholder="Search employee..."
-                                            className="w-full pl-10 pr-10 py-2.5 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white" 
-                                            value={headSearch || (employees.find(e => e.id === newDept.headId)?.name || '')} 
+                                            className="w-full pl-10 pr-10 py-2.5 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 outline-none transition-all dark:text-white"
+                                            value={headSearch || (employees.find(e => e.id === newDept.headId)?.name || '')}
                                             onFocus={() => setShowHeadDropdown(true)}
                                             onChange={e => {
                                                 setHeadSearch(e.target.value);
                                                 setShowHeadDropdown(true);
-                                                if (!e.target.value) setNewDept({...newDept, headId: null});
+                                                if (!e.target.value) setNewDept({ ...newDept, headId: null });
                                             }}
                                         />
                                         {newDept.headId && (
-                                            <button 
-                                                onClick={() => {setNewDept({...newDept, headId: null}); setHeadSearch('');}}
+                                            <button
+                                                onClick={() => { setNewDept({ ...newDept, headId: null }); setHeadSearch(''); }}
                                                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-red-500"
                                             >
                                                 <X size={14} />
@@ -769,17 +867,17 @@ const deleteSignature = async () => {
                             )}
 
                             <div className="flex gap-4 pt-4">
-                                <button 
+                                <button
                                     onClick={() => setShowDeptModal(false)}
                                     className="flex-1 py-3 bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 rounded-2xl hover:bg-gray-200 dark:hover:bg-white/10 font-bold transition-all text-sm"
                                 >
                                     Discard
                                 </button>
-                                <button 
-                                    onClick={saveDepartment} 
+                                <button
+                                    onClick={saveDepartment}
                                     className="flex-[2] py-3 bg-gradient-to-r from-brand-600 to-brand-500 text-white rounded-2xl hover:scale-[1.02] active:scale-95 font-bold shadow-lg shadow-brand-500/25 transition-all flex items-center justify-center gap-2 text-sm"
                                 >
-                                    {loading ? <Loader2 size={18} className="animate-spin"/> : <Save size={18} />}
+                                    {loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                                     {editingDeptId ? 'Update Changes' : 'Confirm Department'}
                                 </button>
                             </div>
@@ -801,7 +899,7 @@ const deleteSignature = async () => {
                             <div><label className="block text-sm font-medium mb-1 dark:text-gray-300">Grade / Level</label><input type="text" className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" value={newDesig.grade} onChange={e => setNewDesig({ ...newDesig, grade: e.target.value })} /></div>
                             <div><label className="block text-sm font-medium mb-1 dark:text-gray-300">Reports To</label><input type="text" className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" value={newDesig.reportTo} onChange={e => setNewDesig({ ...newDesig, reportTo: e.target.value })} /></div>
                             <button onClick={saveDesignation} className="w-full py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 font-medium mt-2">
-                                {loading ? <Loader2 size={16} className="animate-spin inline mr-2"/> : null}
+                                {loading ? <Loader2 size={16} className="animate-spin inline mr-2" /> : null}
                                 {editingDesigId ? 'Update Designation' : 'Save Designation'}
                             </button>
                         </div>
@@ -818,7 +916,7 @@ const deleteSignature = async () => {
                         </div>
                         <h3 className="text-xl font-bold text-white mb-2">Delete {itemToDelete.type === 'location' ? 'Location' : itemToDelete.type === 'department' ? 'Department' : 'Designation'}?</h3>
                         <p className="text-[#8a8b94] mb-8 text-sm leading-relaxed px-2">
-                            Are you sure you want to delete <span className="font-bold text-gray-200">{itemToDelete.name}</span>? <br/>
+                            Are you sure you want to delete <span className="font-bold text-gray-200">{itemToDelete.name}</span>? <br />
                             This action cannot be undone and will permanently remove all associated data.
                         </p>
                         <div className="flex gap-4 px-2">
