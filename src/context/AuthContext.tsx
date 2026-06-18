@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../utils/api';
+import { requestFcmToken, listenToForegroundMessages } from "../firebase";
 
-// Define available roles
-export type UserRole = 'HR_ADMIN' | 'EMPLOYEE' ;
+export type UserRole = "HR_ADMIN" | "EMPLOYEE" | "SYSTEM_ADMIN" | "MANAGER";
 
 interface User {
     id: number;
@@ -35,6 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const storedUser = sessionStorage.getItem('encalm_user');
         if (storedUser) {
             setUser(JSON.parse(storedUser));
+              listenToForegroundMessages();
         }
         setIsLoading(false);
     }, []);
@@ -43,6 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             setError(null);
             setIsLoading(true);
+
             const res = await api.post('/auth/login', { email, password });
             const data = res.data;
 
@@ -57,15 +59,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (userData?.tenantId) {
                 sessionStorage.setItem('tenantId', userData.tenantId);
             }
+
+            // ✅ Get FCM token from browser
+            const fcmToken = await requestFcmToken();
+
+            // ✅ Send FCM token to backend
+            if (fcmToken) {
+                await api.post("/push-notification/save-token", {
+                    fcmToken,
+                });
+            }
+
+            // ✅ Listen notification when app is open
+            listenToForegroundMessages();
         } catch (err: any) {
-            setError(err.response?.data?.message || err.message || 'Login failed');
+            setError(err.response?.data?.message || err.message || "Login failed");
             throw err;
         } finally {
             setIsLoading(false);
         }
     };
 
-    const logout = () => {
+    const logout = async () => {
+        try {
+      // ✅ Remove FCM token from backend before clearing token
+      await api.delete("/push-notification/remove-token");
+    } catch (error) {
+      console.log("Failed to remove FCM token:", error);
+    }
         setUser(null);
         sessionStorage.removeItem('encalm_user');
         sessionStorage.removeItem('token');
