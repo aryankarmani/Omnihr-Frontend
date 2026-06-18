@@ -276,9 +276,29 @@ export default function Leave() {
                 bgClass = "bg-purple-50 dark:bg-purple-900/20 border-purple-200";
                 statusBadge = <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 rounded truncate w-full block text-center mt-1">{status.label}</span>;
             } else if (status?.type === 'Leave') {
-                const isApproved = status.status === 'APPROVED' || status.status === 'Approved';
-                bgClass = isApproved ? "bg-green-50 dark:bg-green-900/20 border-green-200" : "bg-orange-50 dark:bg-orange-900/20 border-orange-200";
-                statusBadge = <span className={`text-[10px] px-1.5 rounded w-full block text-center mt-1 ${isApproved ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>{status.label}</span>;
+                const leaveStatus = String(status.status).toUpperCase();
+
+                const isApproved = leaveStatus === 'APPROVED';
+                const isRejected = leaveStatus === 'REJECTED';
+
+                bgClass = isApproved
+                    ? "bg-green-50 dark:bg-green-900/20 border-green-200"
+                    : isRejected
+                        ? "bg-red-50 dark:bg-red-900/20 border-red-200"
+                        : "bg-orange-50 dark:bg-orange-900/20 border-orange-200";
+
+                statusBadge = (
+                    <span
+                        className={`text-[10px] px-1.5 rounded w-full block text-center mt-1 ${isApproved
+                            ? 'bg-green-100 text-green-700'
+                            : isRejected
+                                ? 'bg-red-100 text-red-700'
+                                : 'bg-orange-100 text-orange-700'
+                            }`}
+                    >
+                        {status.label}
+                    </span>
+                );
             } else if (isPast) {
                 bgClass = "bg-gray-50/50 dark:bg-white/5 opacity-60 grayscale-[0.5]";
             }
@@ -412,14 +432,29 @@ export default function Leave() {
                             <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4">My Leave History</h3>
                             <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                                 {leaveHistory.length > 0 ? leaveHistory.map(leave => {
-                                    const isApproved = leave.status === 'APPROVED' || leave.status === 'Approved';
+                                    const leaveStatus = String(leave.status).toUpperCase();
+                                    const isApproved = leaveStatus === 'APPROVED';
+                                    const isRejected = leaveStatus === 'REJECTED';
                                     return (
                                         <div key={leave.id} className="flex items-start gap-4 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-colors border border-transparent hover:border-gray-100 dark:hover:border-white/5">
-                                            <div className={`mt-1 w-2 h-2 rounded-full ${isApproved ? 'bg-green-500' : 'bg-orange-500'}`}></div>
-                                            <div className="flex-1">
+                                            <div
+                                                className={`mt-1 w-2 h-2 rounded-full ${isApproved
+                                                    ? 'bg-green-500'
+                                                    : isRejected
+                                                        ? 'bg-red-500'
+                                                        : 'bg-orange-500'
+                                                    }`}
+                                            ></div>                                            <div className="flex-1">
                                                 <div className="flex justify-between items-start">
                                                     <h4 className="font-bold text-gray-800 dark:text-white text-sm break-all">{leave.leaveType?.code} - {leave.reason}</h4>
-                                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${isApproved ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                                                    <span
+                                                        className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${isApproved
+                                                            ? 'bg-green-100 text-green-700'
+                                                            : isRejected
+                                                                ? 'bg-red-100 text-red-700'
+                                                                : 'bg-orange-100 text-orange-700'
+                                                            }`}
+                                                    >
                                                         {leave.status}
                                                     </span>
                                                 </div>
