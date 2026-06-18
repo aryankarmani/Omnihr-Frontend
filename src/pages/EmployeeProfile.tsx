@@ -457,14 +457,6 @@ export default function EmployeeProfile() {
     const profile = employee.employeeProfile || {};
     const statutory = profile.statutory || {};
     const bank = profile.bank || {};
-    const isHRAdminProfile =
-        employee?.role?.name === 'HR_ADMIN' ||
-        employee?.role?.title === 'HR_ADMIN' ||
-        employee?.role === 'HR_ADMIN';
-
-    const adminSignatureDoc = profile.documents?.find(
-        (d: any) => d.name === 'Admin Signature'
-    );
 
     const adminSignatureUrl = companySignature
         ? companySignature.startsWith('http')
@@ -512,7 +504,7 @@ export default function EmployeeProfile() {
             if (!isApproved || !isLWP) return;
             const start = new Date(leave.startDate);
             const end = new Date(leave.endDate);
-            let current = new Date(start);
+            const current = new Date(start);
             while (current <= end) {
                 if (current.getFullYear() === selectedPayslipYear && current.getMonth() === selectedPayslipMonth) {
                     lwpDays++;
@@ -1630,27 +1622,26 @@ export default function EmployeeProfile() {
 
                             {payslipBlockMessage ? (
                                 <div className="min-h-[520px] flex items-center justify-center">
-                                    <div className="max-w-sm w-full bg-[#0b0b24] rounded-2xl p-5 text-center shadow-xl border border-white/10 border-t-[5px] border-t-red-500">
-                                        <div className="flex justify-center mb-4">
-                                            <div>
-
-                                                <div className=" w-12 h-12 rounded-full bg-red-600 flex items-center justify-center">
+                                    <div className="max-w-sm w-full bg-white rounded-2xl p-7 text-center shadow-[0_18px_45px_rgba(0,0,0,0.22)] border-2 border-gray-300 dark:bg-[#0b0b24] dark:border-white/10">
+                                        <div className="flex justify-center mb-5">
+                                            <div className="w-14 h-14 rounded-full bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
+                                                <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center">
                                                     <span className="text-white text-2xl font-bold">!</span>
                                                 </div>
                                             </div>
                                         </div>
-                                        <h4 className="text-2xl font-extrabold text-white mb-3">                                            No Salary Slip
+
+                                        <h4 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-3">
+                                            No Salary Slip
                                         </h4>
 
-
-
-                                        <p className="text-base text-gray-400 leading-relaxed">                                            {payslipBlockMessage}
+                                        <p className="text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+                                            {payslipBlockMessage}
                                         </p>
-
                                     </div>
                                 </div>
                             ) : (
-
+  
                                 <div id="payslip-content" className="w-full max-w-3xl bg-white border border-gray-200 p-6 md:p-8 shadow-sm rounded-xl relative text-gray-900 text-sm">
                                     <div className="flex justify-between items-start border-b-2 border-brand-900 pb-4 mb-4">
                                         <div className="flex items-center gap-3">
@@ -1935,7 +1926,21 @@ export default function EmployeeProfile() {
                                         className="w-full h-full object-contain"
                                     />
                                 </div>
-                                <div className="text-right flex flex-col items-end">{adminSignatureUrl && <img src={adminSignatureUrl} alt="Admin Signature" className="w-20 h-8 object-contain mb-1" />}<div className="italic text-gray-400 text-xs">Authorized Sig.</div></div> </div>
+                                <div className="text-right flex flex-col items-end justify-end">
+                                    {adminSignatureUrl && (
+                                        <img
+                                            src={adminSignatureUrl}
+                                            alt="Admin Signature"
+                                            className="w-25 h-20 object-contain object-bottom -mb-4"
+                                        />
+                                    )}
+
+                                    <div className="italic text-gray-400 text-xs leading-none">
+                                        Authorized Sig.
+                                    </div>
+                                </div>
+
+                            </div>
                         </div>
                         <div className="flex justify-center mt-6">
                             <button

@@ -22,7 +22,7 @@ export default function OrgMasters() {
         try {
             const res = await api.get('/masters/company');
             if (res.data) setCompany(res.data);
-        } catch { console.error(error); }
+        } catch (error){ console.error(error); }
     };
 
     const handleCompanyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
