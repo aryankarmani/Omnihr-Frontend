@@ -457,14 +457,6 @@ export default function EmployeeProfile() {
     const profile = employee.employeeProfile || {};
     const statutory = profile.statutory || {};
     const bank = profile.bank || {};
-    const isHRAdminProfile =
-        employee?.role?.name === 'HR_ADMIN' ||
-        employee?.role?.title === 'HR_ADMIN' ||
-        employee?.role === 'HR_ADMIN';
-
-    const adminSignatureDoc = profile.documents?.find(
-        (d: any) => d.name === 'Admin Signature'
-    );
 
     const adminSignatureUrl = companySignature
         ? companySignature.startsWith('http')
@@ -512,7 +504,7 @@ export default function EmployeeProfile() {
             if (!isApproved || !isLWP) return;
             const start = new Date(leave.startDate);
             const end = new Date(leave.endDate);
-            let current = new Date(start);
+            const current = new Date(start);
             while (current <= end) {
                 if (current.getFullYear() === selectedPayslipYear && current.getMonth() === selectedPayslipMonth) {
                     lwpDays++;
@@ -1939,7 +1931,7 @@ export default function EmployeeProfile() {
                                         <img
                                             src={adminSignatureUrl}
                                             alt="Admin Signature"
-                                            className="w-25 h-15 object-contain object-bottom -mb-4"
+                                            className="w-25 h-20 object-contain object-bottom -mb-4"
                                         />
                                     )}
 
