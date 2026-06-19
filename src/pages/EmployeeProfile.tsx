@@ -25,7 +25,8 @@ export default function EmployeeProfile() {
     const [loading, setLoading] = useState(true);
     const [docToDelete, setDocToDelete] = useState<number | null>(null);
     const [companySignature, setCompanySignature] = useState<string | null>(null);
-
+    const [salaryComponents, setSalaryComponents] = useState<any[]>([]);
+    const [componentPickerType, setComponentPickerType] = useState<'EARNING' | 'DEDUCTION' | null>(null);
     // Employee State
     const [employee, setEmployee] = useState<any>(null);
     const [shifts, setShifts] = useState<any[]>([]);
@@ -104,6 +105,14 @@ export default function EmployeeProfile() {
             toast.error('Failed to load departments');
         }
     };
+    const fetchSalaryComponents = async () => {
+        try {
+            const res = await api.get('/masters/salary-components');
+            setSalaryComponents(res.data || []);
+        } catch (error) {
+            console.error('Error fetching salary components:', error);
+        }
+    };
 
     // Payslip month state
     const [leaves, setLeaves] = useState<any[]>([]);
@@ -155,6 +164,7 @@ export default function EmployeeProfile() {
         fetchDepartments();
         fetchEmployeeLeaves();
         fetchCompanySignature();
+        fetchSalaryComponents();
     }, [id]);
 
     const handleCancel = () => {
@@ -232,16 +242,14 @@ export default function EmployeeProfile() {
             newErrors.accountNumber = "Account Number must be 9–18 digits";
         }
 
-        ["basic", "hra", "special", "medical", "pf", "pt", "tax"].forEach((field) => {
-            if (s[field] === "" || s[field] == null) {
-                newErrors[field] = `${field.toUpperCase()} is required`;
-            }
-        });
+        if (s.basic === "" || s.basic == null) {
+            newErrors.basic = "Basic salary is required";
+        }
+
 
         setErrors(newErrors);
 
-        const salaryFields = ["basic", "hra", "special", "medical", "pf", "pt", "tax"];
-
+        const salaryFields = ["basic"];
         const statutoryFields = [
             "uan", "esic", "pan", "aadhaar",
             "bankName", "accountNumber", "ifsc"
@@ -299,7 +307,8 @@ export default function EmployeeProfile() {
                 status: employee.employeeProfile?.status || 'Active',
                 shiftId: employee.employeeProfile?.shiftId,
                 salary: employee.employeeProfile?.salary,
-                // Statutory
+                selectedSalaryComponents: employee.employeeProfile?.selectedSalaryComponents || [],
+                salaryComponents: employee.employeeProfile?.selectedSalaryComponents || [],                // Statutory
                 uan: employee.employeeProfile?.statutory?.uan,
                 pfNumber: employee.employeeProfile?.statutory?.pfNumber,
                 esic: employee.employeeProfile?.statutory?.esic,
@@ -386,6 +395,48 @@ export default function EmployeeProfile() {
             }
         }));
     };
+    const toggleSalaryComponent = (component: any) => {
+        setEmployee((prev: any) => {
+            const oldComponents = prev.employeeProfile?.selectedSalaryComponents || [];
+
+            const alreadySelected = oldComponents.some(
+                (item: any) => item.id === component.id
+            );
+
+            const updatedComponents = alreadySelected
+                ? oldComponents.filter((item: any) => item.id !== component.id)
+                : [
+                    ...oldComponents,
+                    {
+                        id: component.id,
+                        name: component.name,
+                        type: component.type,
+                        calculationType: component.calculationType,
+                        value: component.value,
+                    },
+                ];
+
+            return {
+                ...prev,
+                employeeProfile: {
+                    ...prev.employeeProfile,
+                    selectedSalaryComponents: updatedComponents,
+                },
+            };
+        });
+    };
+
+    const removeSalaryComponent = (componentId: number) => {
+        setEmployee((prev: any) => ({
+            ...prev,
+            employeeProfile: {
+                ...prev.employeeProfile,
+                selectedSalaryComponents: (prev.employeeProfile?.selectedSalaryComponents || []).filter(
+                    (component: any) => component.id !== componentId
+                ),
+            },
+        }));
+    };
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, docName: string) => {
         const file = e.target.files?.[0];
@@ -457,6 +508,42 @@ export default function EmployeeProfile() {
     const profile = employee.employeeProfile || {};
     const statutory = profile.statutory || {};
     const bank = profile.bank || {};
+    const selectedSalaryComponents =
+        profile.selectedSalaryComponents ||
+        profile.salaryComponents ||
+        profile.salary?.selectedSalaryComponents ||
+        [];
+    const getComponentAmount = (component: any) => {
+        const basicSalary = Number(profile.salary?.basic || 0);
+
+        if (component.calculationType === 'FLAT') {
+            return Number(component.value || 0);
+        }
+
+        if (component.calculationType === '%_BASIC') {
+            return Number(((basicSalary * Number(component.value || 0)) / 100).toFixed(2));
+        }
+
+        return Number(component.value || 0);
+    };
+
+    const earningsComponents = selectedSalaryComponents.filter(
+        (component: any) => component.type === 'EARNING'
+    );
+
+    const deductionComponents = selectedSalaryComponents.filter(
+        (component: any) => component.type === 'DEDUCTION'
+    );
+
+    const totalEarningComponents = earningsComponents.reduce(
+        (sum: number, component: any) => sum + getComponentAmount(component),
+        0
+    );
+
+    const totalDeductionComponents = deductionComponents.reduce(
+        (sum: number, component: any) => sum + getComponentAmount(component),
+        0
+    );
 
     const adminSignatureUrl = companySignature
         ? companySignature.startsWith('http')
@@ -1405,56 +1492,241 @@ export default function EmployeeProfile() {
                     )}
                     {activeTab === 'salary' && (
                         <div className="bg-white dark:bg-brand-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-white/5 animate-fade-in-up">
-                            <h3 className="text-xl font-bold mb-6 text-gray-800 dark:text-white">
-                                Salary Info
-                            </h3>
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-xl font-bold text-gray-800 dark:text-white">
+                                    Salary Overview
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {[
-                                    { label: 'Basic', key: 'basic', placeholder: 'Enter basic salary' },
-                                    { label: 'HRA', key: 'hra', placeholder: 'Enter HRA' },
-                                    { label: 'Special Allowance', key: 'special', placeholder: 'Enter special allowance' },
-                                    { label: 'Medical', key: 'medical', placeholder: 'Enter medical amount' },
-                                    { label: 'PF', key: 'pf', placeholder: 'Enter PF amount' },
-                                    { label: 'PT', key: 'pt', placeholder: 'Enter PT amount' },
-                                    { label: 'Tax / TDS', key: 'tax', placeholder: 'Enter tax / TDS amount' },
-                                ].map((field) => (
-                                    <div key={field.key} className="space-y-1">
-                                        <label className="text-xs font-bold text-gray-400 uppercase">
-                                            {field.label}
-                                        </label>
+                                </h3>
+                            </div>
 
-                                        {isEditing && hasPermission(['HR_ADMIN']) ? (
-                                            <>
-                                                <input
-                                                    type="text"
-                                                    value={profile.salary?.[field.key] || ''}
-                                                    onChange={(e) =>
-                                                        handleSalaryChange(field.key, e.target.value.replace(/\D/g, ''))
-                                                    }
-                                                    placeholder={field.placeholder}
-                                                    className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors[field.key]
-                                                        ? 'border-red-500'
-                                                        : 'border-gray-200 dark:border-white/10'
-                                                        } rounded-lg outline-none`}
-                                                />
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div className="rounded-2xl border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-5">
+                                    <h4 className="text-lg font-bold text-green-500 mb-4">
+                                        Earnings
+                                    </h4>
 
-                                                {errors[field.key] && (
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between gap-4 border-b border-gray-200 dark:border-white/10 pb-3">
+                                            <div className="flex-1">
+                                                <p className="font-bold text-gray-800 dark:text-white">
+                                                    Basic Salary
+                                                </p>
+
+                                                {errors.basic && (
                                                     <p className="text-red-500 text-xs mt-1">
-                                                        {errors[field.key]}
+                                                        {errors.basic}
                                                     </p>
                                                 )}
-                                            </>
+                                            </div>
 
+                                            {isEditing && hasPermission(['HR_ADMIN']) ? (
+                                                <input
+                                                    type="text"
+                                                    value={profile.salary?.basic || ''}
+                                                    onChange={(e) =>
+                                                        handleSalaryChange('basic', e.target.value.replace(/\D/g, ''))
+                                                    }
+                                                    placeholder="Enter salary"
+                                                    className={`w-36 px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.basic ? 'border-red-500' : 'border-gray-200 dark:border-white/10'
+                                                        } rounded-lg outline-none text-gray-800 dark:text-white font-bold text-right`}
+                                                />
+                                            ) : (
+                                                <p className="font-bold text-gray-800 dark:text-white">
+                                                    ₹ {Number(profile.salary?.basic || 0).toLocaleString('en-IN')}
+                                                </p>
+                                            )}
+                                        </div>
 
-                                        ) : (
-                                            <p className="font-semibold">
-                                                ₹ {profile.salary?.[field.key] || '0'}
-                                            </p>
+                                        {earningsComponents.map((component: any) => (
+                                            <div
+                                                key={component.id}
+                                                className="flex items-center justify-between gap-4 border-b border-gray-200 dark:border-white/10 pb-3"
+                                            >
+                                                <div>
+                                                    <p className="font-bold text-gray-800 dark:text-white">
+                                                        {component.name}
+                                                    </p>
+
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                        {component.calculationType === 'FLAT'
+                                                            ? 'Fixed'
+                                                            : `${component.value}% of Basic`}
+                                                    </p>
+                                                </div>
+
+                                                <div className="flex items-center gap-3">
+                                                    <p className="font-bold text-gray-800 dark:text-white">
+                                                        ₹ {getComponentAmount(component).toLocaleString('en-IN')}
+                                                    </p>
+
+                                                    {isEditing && hasPermission(['HR_ADMIN']) && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeSalaryComponent(component.id)}
+                                                            className="p-2 rounded-lg text-red-500 hover:bg-red-500/10 transition"
+                                                        >
+                                                            <Trash2 size={18} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        {isEditing && hasPermission(['HR_ADMIN']) && (
+                                            <div className="relative">
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setComponentPickerType(componentPickerType === 'EARNING' ? null : 'EARNING')
+                                                    }
+                                                    className="w-full mt-4 py-3 rounded-xl border border-dashed border-green-500/40 text-green-500 font-bold hover:bg-green-500/10 transition"
+                                                >
+                                                    + Add Earnings Component
+                                                </button>
+
+                                                {componentPickerType === 'EARNING' && (
+                                                    <div className="absolute z-[9999] mt-2 w-full max-h-64 overflow-y-auto rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-brand-950 shadow-2xl p-3 space-y-2">
+                                                        {salaryComponents
+                                                            .filter((component: any) => component.type === 'EARNING')
+                                                            .filter((component: any) =>
+                                                                !selectedSalaryComponents.some((item: any) => item.id === component.id)
+                                                            )
+                                                            .map((component: any) => (
+                                                                <button
+                                                                    key={component.id}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        toggleSalaryComponent(component);
+                                                                        setComponentPickerType(null);
+                                                                    }}
+                                                                    className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 text-left"
+                                                                >
+                                                                    <span className="font-bold text-gray-800 dark:text-white">
+                                                                        {component.name}
+                                                                    </span>
+
+                                                                    <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">
+                                                                        EARNING
+                                                                    </span>
+                                                                </button>
+                                                            ))}
+
+                                                        {salaryComponents.filter((component: any) => component.type === 'EARNING')
+                                                            .filter((component: any) =>
+                                                                !selectedSalaryComponents.some((item: any) => item.id === component.id)
+                                                            ).length === 0 && (
+                                                                <p className="text-sm text-gray-400 text-center py-3">
+                                                                    No earning component available
+                                                                </p>
+                                                            )}
+                                                    </div>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
-                                ))}
+                                </div>
+
+                                <div className="rounded-2xl border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-5">
+                                    <h4 className="text-lg font-bold text-red-500 mb-4">
+                                        Deductions
+                                    </h4>
+
+                                    <div className="space-y-3">
+                                        {deductionComponents.map((component: any) => (
+                                            <div
+                                                key={component.id}
+                                                className="flex items-center justify-between gap-4 border-b border-gray-200 dark:border-white/10 pb-3"
+                                            >
+                                                <div>
+                                                    <p className="font-bold text-gray-800 dark:text-white">
+                                                        {component.name}
+                                                    </p>
+
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                        {component.calculationType === 'FLAT'
+                                                            ? 'Fixed'
+                                                            : `${component.value}% of Basic`}
+                                                    </p>
+                                                </div>
+
+                                                <div className="flex items-center gap-3">
+                                                    <p className="font-bold text-gray-800 dark:text-white">
+                                                        ₹ {getComponentAmount(component).toLocaleString('en-IN')}
+                                                    </p>
+
+                                                    {isEditing && hasPermission(['HR_ADMIN']) && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeSalaryComponent(component.id)}
+                                                            className="p-2 rounded-lg text-red-500 hover:bg-red-500/10 transition"
+                                                        >
+                                                            <Trash2 size={18} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        {isEditing && hasPermission(['HR_ADMIN']) && (
+                                            <div className="relative">
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setComponentPickerType(componentPickerType === 'DEDUCTION' ? null : 'DEDUCTION')
+                                                    }
+                                                    className="w-full mt-4 py-3 rounded-xl border border-dashed border-red-500/40 text-red-500 font-bold hover:bg-red-500/10 transition"
+                                                >
+                                                    + Add Deduction Component
+                                                </button>
+
+                                                {componentPickerType === 'DEDUCTION' && (
+                                                    <div className="absolute z-[9999] mt-2 w-full max-h-64 overflow-y-auto rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-brand-950 shadow-2xl p-3 space-y-2">
+                                                        {salaryComponents
+                                                            .filter((component: any) => component.type === 'DEDUCTION')
+                                                            .filter((component: any) =>
+                                                                !selectedSalaryComponents.some((item: any) => item.id === component.id)
+                                                            )
+                                                            .map((component: any) => (
+                                                                <button
+                                                                    key={component.id}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        toggleSalaryComponent(component);
+                                                                        setComponentPickerType(null);
+                                                                    }}
+                                                                    className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 text-left"
+                                                                >
+                                                                    <span className="font-bold text-gray-800 dark:text-white">
+                                                                        {component.name}
+                                                                    </span>
+
+                                                                    <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400">
+                                                                        DEDUCTION
+                                                                    </span>
+                                                                </button>
+                                                            ))}
+
+                                                        {salaryComponents.filter((component: any) => component.type === 'DEDUCTION')
+                                                            .filter((component: any) =>
+                                                                !selectedSalaryComponents.some((item: any) => item.id === component.id)
+                                                            ).length === 0 && (
+                                                                <p className="text-sm text-gray-400 text-center py-3">
+                                                                    No deduction component available
+                                                                </p>
+                                                            )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
+
+                            {isEditing && hasPermission(['HR_ADMIN']) && (
+                                <p className="text-center text-sm text-gray-400 mt-6">
+                                    Changes will be reflected after saving.
+                                </p>
+                            )}
                         </div>
                     )}
                     {activeTab === 'team' && (

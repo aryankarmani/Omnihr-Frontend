@@ -2,14 +2,15 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, ChevronRight, Upload, FileText, User, CreditCard, Loader2, Trash2 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { ArrowLeft, Check, ChevronRight, ChevronDown, Upload, FileText, User, CreditCard, Loader2, Trash2 } from 'lucide-react'; import toast from 'react-hot-toast';
 import api from '../utils/api';
 
 export default function AddEmployee() {
     const navigate = useNavigate();
     const [currentStep, setCurrentStep] = useState(1);
     const [loading, setLoading] = useState(false);
+    const [salaryComponents, setSalaryComponents] = useState<any[]>([]);
+    const [showComponentDropdown, setShowComponentDropdown] = useState(false);
     const [masters, setMasters] = useState({
         departments: [] as any[],
         roles: [] as any[],
@@ -19,20 +20,25 @@ export default function AddEmployee() {
     useEffect(() => {
         const fetchMasters = async () => {
             try {
-                const [deptRes, roleRes, desigRes] = await Promise.all([
+                const [deptRes, roleRes, desigRes, salaryCompRes] = await Promise.all([
                     api.get('/masters/departments'),
                     api.get('/masters/roles'),
-                    api.get('/masters/designations')
+                    api.get('/masters/designations'),
+                    api.get('/masters/salary-components')
                 ]);
+
                 setMasters({
                     departments: deptRes.data,
                     roles: roleRes.data,
                     designations: desigRes.data
                 });
+
+                setSalaryComponents(salaryCompRes.data || []);
             } catch (error) {
                 console.error('Error fetching masters:', error);
             }
         };
+
         fetchMasters();
     }, []);
 
@@ -59,13 +65,8 @@ export default function AddEmployee() {
         accountNumber: '',
         salary: {
             basic: '',
-            hra: '',
-            special: '',
-            medical: '',
-            pf: '',
-            pt: '',
-            tax: '',
         },
+        selectedSalaryComponents: [] as any[],
         joiningDate: new Date().toISOString().split('T')[0]
     });
 
@@ -98,19 +99,58 @@ export default function AddEmployee() {
     };
 
 
-    const handleSalaryChange = (field: string, value: string) => {
-
+    const handleBasicSalaryChange = (value: string) => {
         setErrors((prev: any) => ({
             ...prev,
-            [field]: ''
+            basic: ''
         }));
 
         setFormData((prev: any) => ({
             ...prev,
             salary: {
                 ...prev.salary,
-                [field]: value.replace(/\D/g, ''),
+                basic: value.replace(/\D/g, ''),
             },
+        }));
+    };
+
+   const toggleSalaryComponent = (component: any) => {
+    setFormData((prev: any) => {
+        const alreadySelected = prev.selectedSalaryComponents.some(
+            (item: any) => item.id === component.id
+        );
+
+        if (alreadySelected) {
+            return {
+                ...prev,
+                selectedSalaryComponents: prev.selectedSalaryComponents.filter(
+                    (item: any) => item.id !== component.id
+                ),
+            };
+        }
+
+        return {
+            ...prev,
+            selectedSalaryComponents: [
+                ...prev.selectedSalaryComponents,
+                {
+                    id: component.id,
+                    name: component.name,
+                    type: component.type,
+                    calculationType: component.calculationType,
+                    value: component.value,
+                },
+            ],
+        };
+    });
+};
+
+    const removeSelectedComponent = (componentId: number) => {
+        setFormData((prev: any) => ({
+            ...prev,
+            selectedSalaryComponents: prev.selectedSalaryComponents.filter(
+                (item: any) => item.id !== componentId
+            ),
         }));
     };
 
@@ -264,46 +304,6 @@ export default function AddEmployee() {
             }
         }
         // STEP 3 VALIDATION
-        if (currentStep === 3) {
-
-            const newErrors: any = {};
-
-            const salary = formData.salary;
-
-            if (salary.basic === '') {
-                newErrors.basic = 'Basic salary is required';
-            }
-
-            if (salary.hra === '') {
-                newErrors.hra = 'HRA is required';
-            }
-
-            if (salary.special === '') {
-                newErrors.special = 'Special Allowance is required';
-            }
-
-            if (salary.medical === '') {
-                newErrors.medical = 'Medical amount is required';
-            }
-
-            if (salary.pf === '') {
-                newErrors.pf = 'PF amount is required';
-            }
-
-            if (salary.pt === '') {
-                newErrors.pt = 'PT amount is required';
-            }
-
-            if (salary.tax === '') {
-                newErrors.tax = 'Tax / TDS amount is required';
-            }
-
-            setErrors(newErrors);
-
-            if (Object.keys(newErrors).length > 0) {
-                return;
-            }
-        }
 
         // STEP 4 VALIDATION
         if (currentStep === 4) {
@@ -370,8 +370,7 @@ export default function AddEmployee() {
                 <ArrowLeft size={20} /> Back to List
             </button>
 
-            <div className="bg-white dark:bg-brand-900 rounded-3xl shadow-sm border border-gray-100 dark:border-white/5 overflow-hidden">
-
+            <div className="bg-white dark:bg-brand-900 rounded-3xl shadow-sm border border-gray-100 dark:border-white/5 overflow-visible">
                 <div className="bg-brand-50/50 dark:bg-white/5 p-8 border-b border-gray-100 dark:border-white/10">
                     <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Onboard New Employee</h1>
                     <p className="text-gray-500 dark:text-gray-400 mb-8">Complete the following steps to add a new team member.</p>
@@ -853,45 +852,178 @@ export default function AddEmployee() {
                         </div>
                     )}
                     {currentStep === 3 && (
-                        <div className="space-y-4 animate-fade-in">
+                        <div className="space-y-6 animate-fade-in">
                             <h3 className="font-bold text-gray-800 dark:text-white border-b border-gray-100 dark:border-white/10 pb-2">
                                 Salary Info
                             </h3>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {[
-                                    { label: 'Basic *', key: 'basic' },
-                                    { label: 'HRA *', key: 'hra' },
-                                    { label: 'Special Allowance *', key: 'special' },
-                                    { label: 'Medical *', key: 'medical' },
-                                    { label: 'PF *', key: 'pf' },
-                                    { label: 'PT *', key: 'pt' },
-                                    { label: 'Tax / TDS *', key: 'tax' },
-                                ].map((field) => (
-                                    <div key={field.key} className="space-y-2">
-                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">
-                                            {field.label}
-                                        </label>
+                                {/* Basic Salary */}
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">
+                                        Basic Salary *
+                                    </label>
 
-                                        <input
-                                            type="text"
-                                            value={(formData.salary as any)[field.key] || ''}
-                                            onChange={(e) => handleSalaryChange(field.key, e.target.value)}
-                                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
-                                            placeholder={
-                                                field.key === 'basic'
-                                                    ? 'Enter Basic Salary'
-                                                    : `Enter ${field.label} Amount (Enter 0 if none)`
-                                            }
+                                    <input
+                                        type="text"
+                                        value={formData.salary.basic}
+                                        onChange={(e) => handleBasicSalaryChange(e.target.value)}
+                                        className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
+                                        placeholder="Enter Basic Salary"
+                                    />
+
+                                    {errors.basic && (
+                                        <p className="text-red-500 text-xs ml-1">
+                                            {errors.basic}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Component Dropdown */}
+                                <div className="space-y-2 relative">
+                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">
+                                        Select Components
+                                    </label>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowComponentDropdown(!showComponentDropdown)}
+                                        className="w-full min-h-[42px] px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all flex items-center justify-between gap-3"
+                                    >
+                                        <div className="flex flex-wrap gap-2 text-left">
+                                            {formData.selectedSalaryComponents.length > 0 ? (
+                                                formData.selectedSalaryComponents.map((component: any) => (
+                                                    <span
+                                                        key={component.id}
+                                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-brand-600 text-white text-xs font-bold"
+                                                    >
+                                                        {component.name}
+                                                        <span
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                removeSelectedComponent(component.id);
+                                                            }}
+                                                            className="cursor-pointer text-white/80 hover:text-white"
+                                                        >
+                                                            ×
+                                                        </span>
+                                                    </span>
+                                                ))
+                                            ) : (
+                                                <span className="text-gray-400">Select components</span>
+                                            )}
+                                        </div>
+
+                                        <ChevronDown
+                                            size={18}
+                                            className={`shrink-0 transition-transform ${showComponentDropdown ? 'rotate-180' : ''}`}
                                         />
-                                        {errors[field.key] && (
-                                            <p className="text-red-500 text-xs ml-1">
-                                                {errors[field.key]}
+                                    </button>
+
+                                    {showComponentDropdown && (
+                                        <div className="absolute z-[9999] mt-2 w-full max-h-64 overflow-y-auto rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-brand-950 shadow-2xl p-3 space-y-2">                                            {salaryComponents.length > 0 ? (
+                                            salaryComponents.map((component: any) => {
+                                                const checked = formData.selectedSalaryComponents.some(
+                                                    (item: any) => item.id === component.id
+                                                );
+
+                                                return (
+                                                    <label
+                                                        key={component.id}
+                                                        className="flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5 text-gray-700 dark:text-white text-sm font-medium"
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={checked}
+                                                            onChange={() => toggleSalaryComponent(component)}
+                                                            className="w-4 h-4 accent-brand-600"
+                                                        />
+
+                                                        <span className="flex-1">{component.name}</span>
+
+                                                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${component.type === 'EARNING'
+                                                            ? 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400'
+                                                            : 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400'
+                                                            }`}>
+                                                            {component.type}
+                                                        </span>
+                                                    </label>
+                                                );
+                                            })
+                                        ) : (
+                                            <p className="text-sm text-gray-400 px-3 py-4 text-center">
+                                                No salary components found
                                             </p>
                                         )}
-                                    </div>
-                                ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
+
+                            {/* Selected Component Inputs */}
+                            {(<div className="space-y-4 pt-2">
+                                <h4 className="text-xs font-black uppercase tracking-[0.2em] text-brand-500 dark:text-brand-400">
+                                    Selected Components
+                                </h4>
+
+                                {formData.selectedSalaryComponents.length === 0 ? (
+                                    <div className="min-h-[170px] rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 flex flex-col items-center justify-center text-center">
+                                        <FileText size={36} className="text-gray-400 mb-3" />
+                                        <p className="font-bold text-gray-700 dark:text-white">
+                                            No components selected
+                                        </p>
+                                        <p className="text-sm text-gray-400 mt-1">
+                                            Select components from dropdown above
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {formData.selectedSalaryComponents.map((component: any) => (
+                                            <div
+                                                key={component.id}
+                                                className="p-4 rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 flex items-center justify-between gap-4"
+                                            >
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="font-bold text-gray-800 dark:text-white">
+                                                            {component.name}
+                                                        </p>
+
+                                                        <span
+                                                            className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${component.type === 'EARNING'
+                                                                    ? 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400'
+                                                                    : 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400'
+                                                                }`}
+                                                        >
+                                                            {component.type}
+                                                        </span>
+                                                    </div>
+
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                        Calculation:{" "}
+                                                        {component.calculationType === "FLAT"
+                                                            ? `₹${component.value}`
+                                                            : component.calculationType === "%_BASIC"
+                                                                ? `${component.value}% of Basic`
+                                                                : component.calculationType === "%_GROSS"
+                                                                    ? `${component.value}% of Gross`
+                                                                    : `${component.value}`}
+                                                    </p>
+                                                </div>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeSelectedComponent(component.id)}
+                                                    className="p-2 rounded-lg text-red-500 hover:bg-red-500/10 transition"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            )}
                         </div>
                     )}
 
