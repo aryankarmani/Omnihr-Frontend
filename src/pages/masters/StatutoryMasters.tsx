@@ -3,6 +3,36 @@ import { createPortal } from 'react-dom';
 import { BadgeIndianRupee, Scale, School, Save, Plus, Trash2, X, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
+const INDIA_STATES = [
+    { id: 1, name: 'Andhra Pradesh' },
+    { id: 2, name: 'Arunachal Pradesh' },
+    { id: 3, name: 'Assam' },
+    { id: 4, name: 'Bihar' },
+    { id: 5, name: 'Chhattisgarh' },
+    { id: 6, name: 'Goa' },
+    { id: 7, name: 'Gujarat' },
+    { id: 8, name: 'Haryana' },
+    { id: 9, name: 'Himachal Pradesh' },
+    { id: 10, name: 'Jharkhand' },
+    { id: 11, name: 'Karnataka' },
+    { id: 12, name: 'Kerala' },
+    { id: 13, name: 'Madhya Pradesh' },
+    { id: 14, name: 'Maharashtra' },
+    { id: 15, name: 'Manipur' },
+    { id: 16, name: 'Meghalaya' },
+    { id: 17, name: 'Mizoram' },
+    { id: 18, name: 'Nagaland' },
+    { id: 19, name: 'Odisha' },
+    { id: 20, name: 'Punjab' },
+    { id: 21, name: 'Rajasthan' },
+    { id: 22, name: 'Sikkim' },
+    { id: 23, name: 'Tamil Nadu' },
+    { id: 24, name: 'Telangana' },
+    { id: 25, name: 'Tripura' },
+    { id: 26, name: 'Uttar Pradesh' },
+    { id: 27, name: 'Uttarakhand' },
+    { id: 28, name: 'West Bengal' },
+];
 
 export default function StatutoryMasters() {
     const [activeTab, setActiveTab] = useState('components');
@@ -31,8 +61,20 @@ export default function StatutoryMasters() {
     const fetchComponents = () => api.get('/masters/salary-components').then(r => setComponents(r.data));
     const fetchSettings = () => api.get('/masters/statutory-settings').then(r => setSettings(r.data || {}));
     const fetchPtSlabs = () => api.get('/masters/professional-tax-slabs').then(r => setPtSlabs(r.data));
-    const fetchStates = () => api.get('/masters/states').then(r => setStates(r.data));
+    const fetchStates = async () => {
+        try {
+            const res = await api.get('/masters/states');
 
+            if (Array.isArray(res.data) && res.data.length > 0) {
+                setStates(res.data);
+            } else {
+                setStates(INDIA_STATES);
+            }
+        } catch (error) {
+            console.error('Error fetching states:', error);
+            setStates(INDIA_STATES);
+        }
+    };
     const saveComponent = async () => {
         try {
             setLoading(true);
@@ -89,7 +131,7 @@ export default function StatutoryMasters() {
         } finally {
             if (itemToDelete.type === 'salary-component') setComponents(components.filter(c => c.id !== itemToDelete.id));
             if (itemToDelete.type === 'professional-tax-slab') setPtSlabs(ptSlabs.filter(s => s.id !== itemToDelete.id));
-            
+
             setItemToDelete(null);
             setLoading(false);
         }
@@ -137,7 +179,7 @@ export default function StatutoryMasters() {
                                         <h4 className="font-bold text-gray-900 dark:text-white flex-1">{comp.name}</h4>
                                         <div className="flex items-center gap-2">
                                             <span className={`text-[10px] px-2 py-1 rounded-full font-bold ${comp.type === 'EARNING' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>{comp.type}</span>
-                                            <button 
+                                            <button
                                                 onClick={() => setItemToDelete({ id: comp.id, name: comp.name, type: 'salary-component' })}
                                                 className="p-1.5 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                                             >
@@ -235,7 +277,7 @@ export default function StatutoryMasters() {
                                                 <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{slab.minSalary} - {slab.maxSalary || 'Above'}</td>
                                                 <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">₹{slab.taxAmount}</td>
                                                 <td className="px-6 py-4 text-center">
-                                                    <button 
+                                                    <button
                                                         onClick={() => setItemToDelete({ id: slab.id, name: `${stateName} Slab`, type: 'professional-tax-slab' })}
                                                         className="text-gray-400 hover:text-red-500 transition-colors"
                                                     >
@@ -357,7 +399,7 @@ export default function StatutoryMasters() {
                         </div>
                         <h3 className="text-xl font-bold text-white mb-2">Delete Item?</h3>
                         <p className="text-[#8a8b94] mb-8 text-sm leading-relaxed px-2">
-                            Are you sure you want to delete <span className="font-bold text-gray-200">{itemToDelete.name}</span>? <br/>
+                            Are you sure you want to delete <span className="font-bold text-gray-200">{itemToDelete.name}</span>? <br />
                             This action cannot be undone and will permanently remove all associated data.
                         </p>
                         <div className="flex gap-4 px-2">
