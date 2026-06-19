@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Filter, Plus, MoreVertical, FileText, User, MapPin, Mail, Phone, Loader2, Edit, Trash2, LayoutGrid, List, ChevronRight } from 'lucide-react';
+import { Search, Filter, Plus, MoreVertical, FileText, User, MapPin, Mail, Phone, Loader2, Edit, Trash2, LayoutGrid, List, ChevronRight, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
@@ -49,13 +49,7 @@ export default function EmployeeList() {
         status: 'All'
     });
     const [loading, setLoading] = useState(true);
-    const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
-        return (localStorage.getItem('employeeViewMode') as 'grid' | 'list') || 'grid';
-    });
-
-    useEffect(() => {
-        localStorage.setItem('employeeViewMode', viewMode);
-    }, [viewMode]);
+   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
     useEffect(() => {
         if (!isAdmin) {
@@ -163,7 +157,9 @@ export default function EmployeeList() {
     const handleViewProfile = (id: number) => {
         navigate(`/employee/${id}`);
     };
-
+       const handleViewAttendance = (id: number) => {
+    navigate(`/employee-attendance/${id}`);
+};
     const handleAddEmployee = (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -293,25 +289,34 @@ export default function EmployeeList() {
                 <div className="flex gap-3 w-full md:w-auto">
                     {/* View Toggle */}
                     {isAdmin && (
-                        <div className="flex bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-1">
-                            <button
-                                onClick={() => setViewMode('grid')}
-                                className={`p-2 rounded-xl transition-all ${viewMode === 'grid'
-                                    ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20'
-                                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}
-                            >
-                                <LayoutGrid size={20} />
-                            </button>
-                            <button
-                                onClick={() => setViewMode('list')}
-                                className={`p-2 rounded-xl transition-all ${viewMode === 'list'
-                                    ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20'
-                                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}
-                            >
-                                <List size={20} />
-                            </button>
-                        </div>
-                    )}
+    <div className="flex bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-1">
+
+        {/* List first */}
+        <button
+            onClick={() => setViewMode('list')}
+            className={`p-2 rounded-xl transition-all ${
+                viewMode === 'list'
+                    ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20'
+                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
+            }`}
+        >
+            <List size={20} />
+        </button>
+
+        {/* Grid second */}
+        <button
+            onClick={() => setViewMode('grid')}
+            className={`p-2 rounded-xl transition-all ${
+                viewMode === 'grid'
+                    ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20'
+                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
+            }`}
+        >
+            <LayoutGrid size={20} />
+        </button>
+
+    </div>
+)}
 
                     {/* Custom Styled Dropdown - Separately implemented here */}
                     <div className="relative group/dropdown">
@@ -446,13 +451,27 @@ export default function EmployeeList() {
                             <table className="w-full text-left border-collapse">
                                 <thead className="bg-gray-50 dark:bg-white/5">
                                     <tr>
-                                        <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Employee</th>
-                                        <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Email Address</th>
-                                        <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Role / Designation</th>
-                                        <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Status</th>
-                                        {isAdmin && (
-                                            <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest text-right">Action</th>
-                                        )}
+                                  <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+    Employee
+</th>
+
+<th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+    Role / Designation
+</th>
+
+<th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+    Status
+</th>
+
+<th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest text-center">
+    Attendance
+</th>
+
+{isAdmin && (
+    <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest text-center">
+        Action
+    </th>
+)}     
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 dark:divide-white/5">
@@ -473,15 +492,18 @@ export default function EmployeeList() {
                                                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md ${avatarColor}`}>
                                                             {emp.name.split(' ').map((n: string) => n[0]).join('')}
                                                         </div>
-                                                        <div>
-                                                            <div className="font-bold text-gray-800 dark:text-white">{emp.name}</div>
+                                                     <div>
+    <div className="font-bold text-gray-800 dark:text-white">
+        {emp.name}
+    </div>
 
-                                                        </div>
+    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+        {emp.email}
+    </div>
+</div>
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300 font-medium">
-                                                    {emp.email}
-                                                </td>
+                                               
                                                 <td className="px-6 py-4">
                                                     <div className="text-sm text-gray-800 dark:text-white font-bold">{profile.title || 'Employee'}</div>
                                                     <div className="text-[10px] text-gray-400 uppercase font-black tracking-widest">{profile.department || 'General'}</div>
@@ -494,8 +516,20 @@ export default function EmployeeList() {
                                                         {status}
                                                     </span>
                                                 </td>
+                                                <td className="px-6 py-4 text-center">
+    <button
+        onClick={(e) => {
+            e.stopPropagation();
+            handleViewAttendance(emp.id);
+        }}
+        className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-brand-500/60 text-brand-600 dark:text-brand-300 hover:bg-brand-600 hover:text-white hover:border-brand-600 transition-all text-xs font-bold"
+    >
+        <Eye size={15} />
+        View
+    </button>
+</td>
                                                 {isAdmin && (
-                                                    <td className="px-6 py-4 text-right">
+                                                   <td className="px-6 py-4 text-center">
                                                         <div className="relative inline-block">
                                                             <button
                                                                 onClick={(e) => { e.stopPropagation(); setSelectedEmployeeForActions(emp); }}

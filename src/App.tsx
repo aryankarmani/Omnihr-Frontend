@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import LogFile from "./pages/LogFile";
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import SignIn from './pages/SignIn';
@@ -20,7 +21,7 @@ import OrgMasters from './pages/masters/OrgMasters';
 import StatutoryMasters from './pages/masters/StatutoryMasters';
 import AttendanceMasters from './pages/masters/AttendanceMasters';
 import AccessMasters from './pages/masters/AccessMasters';
-import EmployeeAttendanceList from './pages/EmployeeAttendanceList';
+
 import EmployeeAttendanceView from './pages/EmployeeAttendanceView';
 import Notifications from './pages/Notifications';
 import Regularizations from './pages/Regularizations';
@@ -60,7 +61,6 @@ function AppContent() {
           <Route path="/employee/add" element={<ProtectedRoute><AddEmployee /></ProtectedRoute>} />
           <Route path="/employee/:id" element={<ProtectedRoute><EmployeeProfile /></ProtectedRoute>} />
           <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
-          <Route path="/employee-attendance" element={<ProtectedRoute><EmployeeAttendanceList /></ProtectedRoute>} />
           <Route path="/employee-attendance/:id" element={<ProtectedRoute><EmployeeAttendanceView /></ProtectedRoute>} />
           <Route path="/regularizations" element={<ProtectedRoute><Regularizations /></ProtectedRoute>} />
           <Route path="/leave" element={<ProtectedRoute><Leave /></ProtectedRoute>} />
@@ -70,6 +70,7 @@ function AppContent() {
           <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
           <Route path="/leave-today" element={<ProtectedRoute><LeaveToday /></ProtectedRoute>} />
           <Route path="/new-joiners" element={<ProtectedRoute><NewJoiners /></ProtectedRoute>} />
+          <Route path="/log-file" element={<ProtectedRoute><LogFile /></ProtectedRoute>} />
 
           {/* Masters Route */}
           <Route path="/masters" element={<ProtectedRoute><MastersLayout /></ProtectedRoute>}>

@@ -1641,7 +1641,7 @@ export default function EmployeeProfile() {
                                     </div>
                                 </div>
                             ) : (
-  
+
                                 <div id="payslip-content" className="w-full max-w-3xl bg-white border border-gray-200 p-6 md:p-8 shadow-sm rounded-xl relative text-gray-900 text-sm">
                                     <div className="flex justify-between items-start border-b-2 border-brand-900 pb-4 mb-4">
                                         <div className="flex items-center gap-3">
@@ -1903,20 +1903,45 @@ export default function EmployeeProfile() {
                                 <h1 className="text-2xl font-bold text-gray-800 px-4">{employee.name}</h1>
                                 <p className="text-brand-600 font-medium text-sm mt-1">{profile.title || 'Employee'}</p>
                                 <div className="w-12 h-1 bg-brand-200 rounded-full my-4"></div>
-                                <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-left text-sm w-full px-10">
-                                    <div>
-                                        <p className="text-xs text-gray-400 uppercase font-bold">Role / Title</p>
-                                        <p className="font-semibold text-gray-700 truncate">{profile.title || 'Employee'}</p>
+                                <div className="grid grid-cols-[1.3fr_0.7fr] gap-x-5 gap-y-2 text-left w-full px-8">    {/* First row */}
+                                    <div className="min-w-0">
+                                        <p className="text-[9px] text-gray-400 uppercase font-bold">
+                                            Employee ID
+                                        </p>
+                                        <p className="text-sm font-semibold text-gray-700">
+                                            {employee.id}
+                                        </p>
                                     </div>
-                                    <div>
-                                        <p className="text-xs text-gray-400 uppercase font-bold">Blood Group</p>
-                                        <p className="font-semibold text-gray-700">{profile.bloodGroup || 'N/A'}</p>
+
+                                    <div className="min-w-0">
+                                        <p className="text-[10px] text-gray-400 uppercase font-bold">
+                                            Blood Group
+                                        </p>
+                                        <p className="text-sm font-semibold text-gray-700">
+                                            {profile.bloodGroup || 'N/A'}
+                                        </p>
                                     </div>
-                                    <div className="col-span-2">
-                                        <p className="text-xs text-gray-400 uppercase font-bold">Department</p>
-                                        <p className="font-semibold text-gray-700">{profile.department || 'N/A'}</p>
+
+                                    {/* Second row */}
+                                    <div className="min-w-0">
+                                        <p className="text-[10px] text-gray-400 uppercase font-bold">
+                                            Department
+                                        </p>
+                                        <p className="text-sm font-semibold text-gray-700 truncate">
+                                            {profile.department || 'N/A'}
+                                        </p>
+                                    </div>
+
+                                    <div className="min-w-0">
+                                        <p className="text-[9px] text-gray-400 uppercase font-bold whitespace-nowrap">
+                                            Mobile Number
+                                        </p>
+                                        <p className="text-sm font-semibold text-gray-700 whitespace-nowrap">
+                                            {profile.phone || 'N/A'}
+                                        </p>
                                     </div>
                                 </div>
+
                             </div>
                             <div className="bg-gray-50 p-4 border-t border-gray-100 flex justify-between items-center mt-auto">
                                 <div className="w-16 h-16 bg-white p-1 rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden">

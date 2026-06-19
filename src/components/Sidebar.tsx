@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
     LayoutDashboard, Users, UsersRound, LogOut, ChevronLeft,
-    ChevronRight, AlertCircle, ChevronDown, CalendarCheck,
+    ChevronRight, AlertCircle, ChevronDown, 
     Fingerprint, UserCog, FileCheck, BarChart3, Settings2,
-    CheckSquare, UserCircle, CalendarRange
+    CheckSquare, UserCircle, CalendarRange,FileText
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import vedaLogo from '../assets/veda-logo.png';
@@ -30,7 +30,6 @@ const menuItems: MenuItem[] = [
         module: 'EMPLOYEE',
         children: [
             { label: 'List', path: '/employee', module: 'EMPLOYEE', icon: Users },
-            { label: 'Attendance', path: '/employee-attendance', module: 'EMPLOYEE_ATTENDANCE', icon: CalendarCheck },
             { label: 'Leave Approval', path: '/leave', module: 'LEAVE', icon: FileCheck, state: { activeTab: 'APPROVALS' } },
             { label: 'Regularizations', path: '/regularizations', module: 'EMPLOYEE_ATTENDANCE', icon: CheckSquare },
         ]
@@ -39,8 +38,10 @@ const menuItems: MenuItem[] = [
     { icon: CalendarRange, label: 'Leave', path: '/leave', module: 'LEAVE' },
     { icon: BarChart3, label: 'Reports', path: '/reports', module: 'REPORTS' },
     { icon: Settings2, label: 'Masters', path: '/masters', module: 'MASTERS' },
-    { icon: CheckSquare, label: 'Task', path: '/task', module: 'TASK' },
-    { icon: UserCircle, label: 'My Profile', path: '/profile', module: 'MY_PROFILE' },
+{ icon: CheckSquare, label: 'Task', path: '/task', module: 'TASK' },
+{ icon: FileText, label: 'Log', path: '/log-file', module: 'TASK' },
+{ icon: UserCircle, label: 'My Profile', path: '/profile', module: 'MY_PROFILE' },
+  
 ];
 
 interface SidebarProps {
