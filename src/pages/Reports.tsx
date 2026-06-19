@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 
-const COLORS = ['#8b5cf6', '#3b82f6', '#ec4899', '#f97316'];
+const COLORS = ['#8b5cf6', '#3b82f6', '#ec4899', '#f97316', '#10b981', '#facc15', '#e11d48', '#6366f1', '#14b8a6', '#f59e0b'];
 
 export default function Reports() {
     const [attendanceData, setAttendanceData] = useState<any[]>([]);

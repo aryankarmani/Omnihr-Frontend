@@ -1927,15 +1927,15 @@ export default function EmployeeProfile() {
                                     />
                                 </div>
                                 <div className="text-right flex flex-col items-end justify-end">
-                                    {adminSignatureUrl && (
+                                   <div className=" w-30 h-full object-contain object-bottom "> {adminSignatureUrl && (
                                         <img
                                             src={adminSignatureUrl}
                                             alt="Admin Signature"
-                                            className="w-25 h-20 object-contain object-bottom -mb-4"
+                                            
                                         />
                                     )}
-
-                                    <div className="italic text-gray-400 text-xs leading-none">
+                                    </div>
+                                    <div className="italic text-gray-300 text-s leading-none">
                                         Authorized Sig.
                                     </div>
                                 </div>
