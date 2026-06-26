@@ -1,21 +1,18 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Sliders, Plus, Trash2, X, Search, Check, Loader2, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Sliders, Plus, Trash2, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
 
 export default function CustomFieldsMasters() {
     const [activeCategory, setActiveCategory] = useState<'PERSONAL_DETAILS' | 'DOCUMENT_VAULT'>('PERSONAL_DETAILS');
     const [fields, setFields] = useState<any[]>([]);
-    const [employees, setEmployees] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     
     // Add Field Modal State
     const [showModal, setShowModal] = useState(false);
-    const [step, setStep] = useState(1);
     const [fieldName, setFieldName] = useState('');
-    const [selectedEmployees, setSelectedEmployees] = useState<number[]>([]);
-    const [employeeSearch, setEmployeeSearch] = useState('');
+    const [fieldType, setFieldType] = useState('TEXT');
 
     // Delete Confirmation State
     const [fieldToDelete, setFieldToDelete] = useState<any>(null);
@@ -33,45 +30,26 @@ export default function CustomFieldsMasters() {
         }
     };
 
-    const fetchEmployees = async () => {
-        try {
-            const res = await api.get('/employee');
-            setEmployees(res.data || []);
-        } catch (error) {
-            console.error("Failed to load employees", error);
-        }
-    };
-
     useEffect(() => {
         fetchFields();
     }, [activeCategory]);
 
-    useEffect(() => {
-        fetchEmployees();
-    }, []);
-
     const handleOpenModal = () => {
-        setStep(1);
         setFieldName('');
-        setSelectedEmployees([]);
-        setEmployeeSearch('');
+        setFieldType(activeCategory === 'DOCUMENT_VAULT' ? 'PDF' : 'TEXT');
         setShowModal(true);
     };
 
-    const handleNextStep = () => {
+    const handleSave = async () => {
         if (!fieldName.trim()) {
             return toast.error("Field name is required");
         }
-        setStep(2);
-    };
-
-    const handleSave = async () => {
         try {
             setLoading(true);
             const payload = {
                 name: fieldName.trim(),
                 category: activeCategory,
-                employeeIds: selectedEmployees
+                type: fieldType
             };
             await api.post('/custom-fields/masters', payload);
             toast.success("Custom field created successfully!");
@@ -101,36 +79,6 @@ export default function CustomFieldsMasters() {
         }
     };
 
-    // Filter employees based on search
-    const filteredEmployees = employees.filter(emp => {
-        const query = employeeSearch.toLowerCase().trim();
-        const profile = emp.employeeProfile || {};
-        return (
-            emp.name.toLowerCase().includes(query) ||
-            emp.email.toLowerCase().includes(query) ||
-            (profile.department || '').toLowerCase().includes(query) ||
-            (profile.title || '').toLowerCase().includes(query)
-        );
-    });
-
-    const handleToggleEmployee = (id: number) => {
-        if (selectedEmployees.includes(id)) {
-            setSelectedEmployees(selectedEmployees.filter(empId => empId !== id));
-        } else {
-            setSelectedEmployees([...selectedEmployees, id]);
-        }
-    };
-
-    const handleSelectAll = (checked: boolean) => {
-        if (checked) {
-            const allIds = filteredEmployees.map(emp => emp.id);
-            setSelectedEmployees(allIds);
-        } else {
-            setSelectedEmployees([]);
-        }
-    };
-
-    const isAllSelected = filteredEmployees.length > 0 && filteredEmployees.every(emp => selectedEmployees.includes(emp.id));
 
     return (
         <div className="space-y-6 animate-fade-in relative">
@@ -188,6 +136,7 @@ export default function CustomFieldsMasters() {
                                 <tr>
                                     <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Field Name</th>
                                     <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Category</th>
+                                    <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Field Type</th>
                                     <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Created Date</th>
                                     <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest text-right">Actions</th>
                                 </tr>
@@ -198,6 +147,9 @@ export default function CustomFieldsMasters() {
                                         <td className="px-6 py-4 font-bold text-gray-800 dark:text-white">{field.name}</td>
                                         <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 capitalize">
                                             {field.category.toLowerCase().replace('_', ' ')}
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 capitalize">
+                                            {field.type ? field.type.toLowerCase() : 'text'}
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                                             {new Date(field.createdAt).toLocaleDateString()}
@@ -228,20 +180,20 @@ export default function CustomFieldsMasters() {
                         <div className="p-8 border-b border-gray-100 dark:border-white/5 flex justify-between items-center bg-gradient-to-r from-transparent to-brand-500/5">
                             <div>
                                 <h3 className="text-2xl font-black text-gray-800 dark:text-white tracking-tight">
-                                    {step === 1 ? 'Add New Custom Field' : 'Select Employees'}
+                                    Add New Custom Field
                                 </h3>
                                 <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">
-                                    {step === 1 ? `Add a dynamic field to ${activeCategory === 'PERSONAL_DETAILS' ? 'Personal Details' : 'Document Vault'}` : `Choose who will have the "${fieldName}" field in their profile`}
+                                    Add a dynamic field to {activeCategory === 'PERSONAL_DETAILS' ? 'Personal Details' : 'Document Vault'}
                                 </p>
                             </div>
                             <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-xl transition-colors">
                                 <Plus size={24} className="rotate-45 text-gray-400" />
                             </button>
                         </div>
-
+ 
                         {/* Modal Body */}
                         <div className="p-8 overflow-y-auto flex-1 custom-scrollbar space-y-6">
-                            {step === 1 ? (
+                            <div className="space-y-6">
                                 <div className="space-y-4">
                                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Field Name *</label>
                                     <input
@@ -249,133 +201,55 @@ export default function CustomFieldsMasters() {
                                         required
                                         value={fieldName}
                                         onChange={(e) => setFieldName(e.target.value)}
-                                        placeholder="e.g. phone 2"
+                                        placeholder="Enter field name (e.g. Alternate Phone, Emergency Contact)"
                                         className="w-full px-5 py-3.5 bg-gray-50 dark:bg-brand-900/50 border border-gray-200 dark:border-brand-500/20 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
                                     />
                                 </div>
-                            ) : (
                                 <div className="space-y-4">
-                                    {/* Search Bar */}
-                                    <div className="relative">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                                        <input
-                                            type="text"
-                                            placeholder="Search by name, email or designation..."
-                                            value={employeeSearch}
-                                            onChange={(e) => setEmployeeSearch(e.target.value)}
-                                            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-brand-900/50 border border-gray-200 dark:border-brand-500/20 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-medium placeholder:text-gray-400 dark:placeholder:text-gray-600"
-                                        />
-                                    </div>
-
-                                    {/* Checklist Table (EnCalm List Tab Style) */}
-                                    <div className="border border-gray-100 dark:border-white/10 rounded-2xl overflow-hidden max-h-[40vh] overflow-y-auto custom-scrollbar">
-                                        <table className="w-full text-left border-collapse">
-                                            <thead className="bg-gray-50 dark:bg-white/5 sticky top-0 z-10">
-                                                <tr>
-                                                    <th className="px-6 py-4 w-12">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={isAllSelected}
-                                                            onChange={(e) => handleSelectAll(e.target.checked)}
-                                                            className="w-4 h-4 rounded text-brand-600 cursor-pointer accent-brand-600"
-                                                        />
-                                                    </th>
-                                                    <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Employee</th>
-                                                    <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Role/Designation</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                                                {filteredEmployees.map((emp, index) => {
-                                                    const profile = emp.employeeProfile || {};
-                                                    const colors = ['bg-blue-500', 'bg-purple-500', 'bg-orange-500', 'bg-pink-500', 'bg-teal-500'];
-                                                    const avatarColor = colors[index % colors.length];
-
-                                                    return (
-                                                        <tr
-                                                            key={emp.id}
-                                                            onClick={() => handleToggleEmployee(emp.id)}
-                                                            className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
-                                                        >
-                                                            <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={selectedEmployees.includes(emp.id)}
-                                                                    onChange={() => handleToggleEmployee(emp.id)}
-                                                                    className="w-4 h-4 rounded text-brand-600 cursor-pointer accent-brand-600"
-                                                                />
-                                                            </td>
-                                                            <td className="px-6 py-4">
-                                                                <div className="flex items-center gap-3">
-                                                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-md ${avatarColor}`}>
-                                                                        {emp.name.split(' ').map((n: string) => n[0]).join('')}
-                                                                    </div>
-                                                                    <div>
-                                                                        <div className="font-bold text-gray-800 dark:text-white text-sm">{emp.name}</div>
-                                                                        <div className="text-[10px] text-gray-500 dark:text-gray-400">{emp.email}</div>
-                                                                    </div>
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-6 py-4">
-                                                                <div className="text-xs text-gray-800 dark:text-white font-bold">{profile.title || 'Employee'}</div>
-                                                                <div className="text-[9px] text-gray-400 uppercase font-black tracking-widest">{profile.department || 'General'}</div>
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                })}
-                                                {filteredEmployees.length === 0 && (
-                                                    <tr>
-                                                        <td colSpan={3} className="text-center py-8 text-gray-400 dark:text-gray-500 text-sm">
-                                                            No employees found
-                                                        </td>
-                                                    </tr>
-                                                )}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    <div className="text-xs font-bold text-brand-600 pl-1">
-                                        {selectedEmployees.length} employees selected
-                                    </div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Field Type *</label>
+                                    <select
+                                        value={fieldType}
+                                        onChange={(e) => setFieldType(e.target.value)}
+                                        className="w-full px-5 py-3.5 bg-gray-50 dark:bg-brand-900/50 border border-gray-200 dark:border-brand-500/20 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
+                                    >
+                                        {activeCategory === 'PERSONAL_DETAILS' ? (
+                                            <>
+                                                <option value="TEXT" className="dark:bg-brand-900">Text</option>
+                                                <option value="NUMBER" className="dark:bg-brand-900">Number</option>
+                                                <option value="EMAIL" className="dark:bg-brand-900">Email</option>
+                                                <option value="PASSWORD" className="dark:bg-brand-900">Password</option>
+                                                <option value="RADIO" className="dark:bg-brand-900">Radio (Yes/No)</option>
+                                                <option value="FILE" className="dark:bg-brand-900">File Upload</option>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <option value="PDF" className="dark:bg-brand-900">PDF Document</option>
+                                                <option value="IMAGE" className="dark:bg-brand-900">Image</option>
+                                            </>
+                                        )}
+                                    </select>
                                 </div>
-                            )}
+                            </div>
                         </div>
-
+ 
                         {/* Modal Footer */}
                         <div className="p-8 border-t border-gray-100 dark:border-white/5 flex justify-between items-center bg-gray-50 dark:bg-white/5">
-                            {step === 2 ? (
-                                <button
-                                    onClick={() => setStep(1)}
-                                    className="flex items-center gap-1 px-5 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 font-bold rounded-xl text-sm transition-all"
-                                >
-                                    <ArrowLeft size={16} /> Back
-                                </button>
-                            ) : (
-                                <button
-                                    onClick={() => setShowModal(false)}
-                                    className="px-5 py-2.5 text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white font-bold transition-colors text-sm"
-                                >
-                                    Cancel
-                                </button>
-                            )}
+                            <button
+                                onClick={() => setShowModal(false)}
+                                className="px-5 py-2.5 text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white font-bold transition-colors text-sm"
+                            >
+                                Cancel
+                            </button>
                             
-                            {step === 1 ? (
-                                <button
-                                    onClick={handleNextStep}
-                                    className="flex items-center gap-1.5 px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-bold text-sm shadow-lg shadow-brand-500/20 transition-all active:scale-95"
-                                >
-                                    Next <ChevronRight size={16} />
-                                </button>
-                            ) : (
-                                <button
-                                    onClick={handleSave}
-                                    disabled={loading}
-                                    className="px-8 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-bold text-sm shadow-lg shadow-brand-500/20 transition-all active:scale-95 flex items-center gap-2"
-                                >
-                                    {loading && <Loader2 size={16} className="animate-spin" />}
-                                    Done
-                                </button>
-                            )}
+                            <button
+                                onClick={handleSave}
+                                disabled={loading}
+                                className="px-8 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-bold text-sm shadow-lg shadow-brand-500/20 transition-all active:scale-95 flex items-center gap-2"
+                            >
+                                {loading && <Loader2 size={16} className="animate-spin" />}
+                                Done
+                            </button>
                         </div>
-
                     </div>
                 </div>, document.body
             )}

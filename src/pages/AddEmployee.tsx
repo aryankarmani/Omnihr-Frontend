@@ -17,14 +17,19 @@ export default function AddEmployee() {
         designations: [] as any[]
     });
 
+    const [customFieldMasters, setCustomFieldMasters] = useState<any[]>([]);
+    const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
+    const [customFieldFiles, setCustomFieldFiles] = useState<Record<string, File | null>>({});
+
     useEffect(() => {
         const fetchMasters = async () => {
             try {
-                const [deptRes, roleRes, desigRes, salaryCompRes] = await Promise.all([
+                const [deptRes, roleRes, desigRes, salaryCompRes, customFieldsRes] = await Promise.all([
                     api.get('/masters/departments'),
                     api.get('/masters/roles'),
                     api.get('/masters/designations'),
-                    api.get('/masters/salary-components')
+                    api.get('/masters/salary-components'),
+                    api.get('/custom-fields/masters')
                 ]);
 
                 setMasters({
@@ -34,6 +39,7 @@ export default function AddEmployee() {
                 });
 
                 setSalaryComponents(salaryCompRes.data || []);
+                setCustomFieldMasters(customFieldsRes.data || []);
             } catch (error) {
                 console.error('Error fetching masters:', error);
             }
@@ -321,6 +327,7 @@ export default function AddEmployee() {
                 const submissionData = {
                     ...formData,
                     name: `${formData.firstName} ${formData.lastName}`.trim(),
+                    customFieldValues
                 };
 
                 const form = new FormData();
@@ -338,6 +345,13 @@ export default function AddEmployee() {
                 if (documents.degree) {
                     form.append("degree", documents.degree);
                 }
+
+                // Append custom field files (both PERSONAL_DETAILS and DOCUMENT_VAULT)
+                Object.entries(customFieldFiles).forEach(([fieldId, file]) => {
+                    if (file) {
+                        form.append(`custom-file-${fieldId}`, file);
+                    }
+                });
 
                 await api.post('/employee', form, {
                     headers: {
@@ -681,6 +695,92 @@ export default function AddEmployee() {
                                     </p>
                                 )}
                             </div>
+
+                            {customFieldMasters.filter(cf => cf.category === 'PERSONAL_DETAILS').length > 0 && (
+                                <div className="md:col-span-2 border-t border-gray-100 dark:border-white/5 my-2 pt-4">
+                                    <h4 className="text-[10px] font-black text-brand-600 dark:text-brand-400 uppercase tracking-widest">Additional Details</h4>
+                                </div>
+                            )}
+
+                            {customFieldMasters.filter(cf => cf.category === 'PERSONAL_DETAILS').map((cf) => {
+                                const fieldType = cf.type || 'TEXT';
+                                
+                                return (
+                                    <div key={cf.id} className="space-y-2">
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">{cf.name}</label>
+                                        {fieldType === 'RADIO' ? (
+                                            <div className="w-full flex gap-6 items-center px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl h-[46px]">
+                                                <label className="flex items-center gap-1.5 cursor-pointer">
+                                                    <input
+                                                        type="radio"
+                                                        name={`radio-${cf.id}`}
+                                                        value="Yes"
+                                                        checked={customFieldValues[cf.id] === 'Yes'}
+                                                        onChange={() => setCustomFieldValues(prev => ({ ...prev, [cf.id]: 'Yes' }))}
+                                                        className="w-4 h-4 text-brand-600 focus:ring-brand-500 accent-brand-600"
+                                                    />
+                                                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Yes</span>
+                                                </label>
+                                                <label className="flex items-center gap-1.5 cursor-pointer">
+                                                    <input
+                                                        type="radio"
+                                                        name={`radio-${cf.id}`}
+                                                        value="No"
+                                                        checked={customFieldValues[cf.id] === 'No'}
+                                                        onChange={() => setCustomFieldValues(prev => ({ ...prev, [cf.id]: 'No' }))}
+                                                        className="w-4 h-4 text-brand-600 focus:ring-brand-500 accent-brand-600"
+                                                    />
+                                                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">No</span>
+                                                </label>
+                                            </div>
+                                        ) : fieldType === 'FILE' ? (
+                                            <div className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl h-[46px]">
+                                                <span className="text-xs text-gray-500 truncate max-w-[180px]">
+                                                    {customFieldFiles[cf.id] ? customFieldFiles[cf.id]?.name : 'No file chosen'}
+                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => document.getElementById(`cf-file-input-${cf.id}`)?.click()}
+                                                        className="px-3 py-1 bg-brand-600 text-white rounded-lg text-xs font-semibold hover:bg-brand-700 transition-colors cursor-pointer"
+                                                    >
+                                                        Choose File
+                                                    </button>
+                                                    {customFieldFiles[cf.id] && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setCustomFieldFiles(prev => ({ ...prev, [cf.id]: null }))}
+                                                            className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <input
+                                                    id={`cf-file-input-${cf.id}`}
+                                                    type="file"
+                                                    className="hidden"
+                                                    accept=".pdf,image/*"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) {
+                                                            setCustomFieldFiles(prev => ({ ...prev, [cf.id]: file }));
+                                                        }
+                                                    }}
+                                                />
+                                            </div>
+                                        ) : (
+                                            <input
+                                                type={fieldType === 'PASSWORD' ? 'password' : fieldType === 'NUMBER' ? 'number' : fieldType === 'EMAIL' ? 'email' : 'text'}
+                                                value={customFieldValues[cf.id] || ''}
+                                                onChange={(e) => setCustomFieldValues(prev => ({ ...prev, [cf.id]: e.target.value }))}
+                                                className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all"
+                                                placeholder={`Enter ${cf.name.toLowerCase()}`}
+                                            />
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     )}
 
@@ -1032,84 +1132,112 @@ export default function AddEmployee() {
                             <div className="space-y-4">
                                 <p className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">Required Documents Checklist</p>
                                 {[
-                                    { key: 'aadhaar', name: 'Aadhaar Card', required: true },
-                                    { key: 'pan', name: 'PAN Card', required: true },
-                                    { key: 'degree', name: 'Highest Qualification Degree', required: true }
-                                ].map((doc, i) => (
-                                    <div
-                                        key={i}
-                                        onClick={() => document.getElementById(`fileInput-${doc.key}`)?.click()}
-                                        className={`flex items-center justify-between p-4 cursor-pointer border rounded-2xl transition-all ${documents[doc.key]
-                                            ? 'border-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10'
-                                            : 'border-gray-200 dark:border-white/10 hover:border-brand-500 dark:hover:border-brand-500 bg-gray-50 dark:bg-white/5 hover:scale-[1.01] shadow-sm'
-                                            }`}
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${documents[doc.key]
-                                                ? 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
-                                                : 'bg-gray-100 dark:bg-white/10 text-gray-400'
-                                                }`}>
-                                                <FileText size={24} />
-                                            </div>
-                                            <div>
-                                                <p className="font-semibold text-gray-800 dark:text-white text-base">
-                                                    {doc.name} {doc.required && <span className="text-red-500">*</span>}
-                                                </p>
-                                                <p className={`text-xs font-medium transition-colors ${documents[doc.key] ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-500'}`}>
-                                                    {documents[doc.key] ? (documents[doc.key] as File).name : 'Click to upload document'}
-                                                </p>
-                                            </div>
-                                        </div>
+                                    { key: 'aadhaar', name: 'Aadhaar Card', required: true, isCustom: false, type: 'FILE' },
+                                    { key: 'pan', name: 'PAN Card', required: true, isCustom: false, type: 'FILE' },
+                                    { key: 'degree', name: 'Highest Qualification Degree', required: true, isCustom: false, type: 'FILE' },
+                                    ...customFieldMasters.filter(cf => cf.category === 'DOCUMENT_VAULT').map(cf => ({
+                                        key: cf.id,
+                                        name: cf.name,
+                                        required: false,
+                                        isCustom: true,
+                                        type: cf.type || 'FILE'
+                                    }))
+                                ].map((doc, i) => {
+                                    const hasFile = doc.isCustom ? !!customFieldFiles[doc.key] : !!documents[doc.key];
+                                    const fileObj = doc.isCustom ? customFieldFiles[doc.key] : documents[doc.key];
+                                    const acceptString = doc.isCustom 
+                                        ? (doc.type === 'PDF' ? '.pdf' : doc.type === 'IMAGE' ? 'image/*' : '.pdf,image/*') 
+                                        : 'application/pdf,image/*';
 
-                                        <div className="flex items-center gap-3">
-                                            {documents[doc.key] ? (
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setConfirmDeleteDoc(doc.key);
-                                                    }}
-                                                    className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
-                                                >
-                                                    <Trash2 size={20} />
-                                                </button>
-                                            ) : (
-                                                <div className="w-8 h-8 rounded-full bg-brand-50 dark:bg-white/10 text-brand-600 dark:text-brand-400 flex items-center justify-center hover:scale-110 transition-transform">
-                                                    <Upload size={16} />
+                                    return (
+                                        <div
+                                            key={i}
+                                            onClick={() => document.getElementById(`fileInput-${doc.key}`)?.click()}
+                                            className={`flex items-center justify-between p-4 cursor-pointer border rounded-2xl transition-all ${hasFile
+                                                ? 'border-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10'
+                                                : 'border-gray-200 dark:border-white/10 hover:border-brand-500 dark:hover:border-brand-500 bg-gray-50 dark:bg-white/5 hover:scale-[1.01] shadow-sm'
+                                                }`}
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${hasFile
+                                                    ? 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
+                                                    : 'bg-gray-100 dark:bg-white/10 text-gray-400'
+                                                    }`}>
+                                                    <FileText size={24} />
                                                 </div>
-                                            )}
-                                        </div>
+                                                <div>
+                                                    <p className="font-semibold text-gray-800 dark:text-white text-base">
+                                                        {doc.name} {doc.required && <span className="text-red-500">*</span>}
+                                                    </p>
+                                                    <p className={`text-xs font-medium transition-colors ${hasFile ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                                                        {hasFile ? fileObj?.name : 'Click to upload document'}
+                                                    </p>
+                                                </div>
+                                            </div>
 
-                                        <input
-                                            id={`fileInput-${doc.key}`}
-                                            type="file"
-                                            className="hidden"
-                                            accept="application/pdf,image/*"
-                                            onChange={(e) => {
-                                                const file = e.target.files?.[0];
-                                                if (file) {
-                                                    // Check if this file is already selected for another slot
-                                                    const isDuplicate = Object.entries(documents).some(([key, val]) => {
-                                                        if (key !== doc.key && val) {
-                                                            return val.name === file.name && val.size === file.size;
+                                            <div className="flex items-center gap-3">
+                                                {hasFile ? (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setConfirmDeleteDoc(doc.key);
+                                                        }}
+                                                        className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
+                                                    >
+                                                        <Trash2 size={20} />
+                                                    </button>
+                                                ) : (
+                                                    <div className="w-8 h-8 rounded-full bg-brand-50 dark:bg-white/10 text-brand-600 dark:text-brand-400 flex items-center justify-center hover:scale-110 transition-transform">
+                                                        <Upload size={16} />
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <input
+                                                id={`fileInput-${doc.key}`}
+                                                type="file"
+                                                className="hidden"
+                                                accept={acceptString}
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        if (doc.isCustom) {
+                                                            if (doc.type === 'PDF' && file.type !== "application/pdf") {
+                                                                toast.error("Only PDF files are allowed for this field");
+                                                                e.target.value = '';
+                                                                return;
+                                                            }
+                                                            if (doc.type === 'IMAGE' && !file.type.startsWith("image/")) {
+                                                                toast.error("Only image files are allowed for this field");
+                                                                e.target.value = '';
+                                                                return;
+                                                            }
+                                                            setCustomFieldFiles(prev => ({ ...prev, [doc.key]: file }));
+                                                        } else {
+                                                            const isDuplicate = Object.entries(documents).some(([key, val]) => {
+                                                                if (key !== doc.key && val) {
+                                                                    return val.name === file.name && val.size === file.size;
+                                                                }
+                                                                return false;
+                                                            });
+
+                                                            if (isDuplicate) {
+                                                                toast.error(`This file has already been uploaded Please select a unique document.`);
+                                                                e.target.value = '';
+                                                                return;
+                                                            }
+
+                                                            setDocuments(prev => ({
+                                                                ...prev,
+                                                                [doc.key]: file
+                                                            }));
                                                         }
-                                                        return false;
-                                                    });
-
-                                                    if (isDuplicate) {
-                                                        toast.error(`This file has already been uploaded Please select a unique document.`);
-                                                        e.target.value = '';
-                                                        return;
                                                     }
-
-                                                    setDocuments(prev => ({
-                                                        ...prev,
-                                                        [doc.key]: file
-                                                    }));
-                                                }
-                                            }}
-                                        />
-                                    </div>
-                                ))}
+                                                }}
+                                            />
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
                     )}
@@ -1160,10 +1288,18 @@ export default function AddEmployee() {
                             </button>
                             <button
                                 onClick={() => {
-                                    setDocuments(prev => ({
-                                        ...prev,
-                                        [confirmDeleteDoc]: null
-                                    }));
+                                    const isCustom = customFieldMasters.some(cf => cf.id === confirmDeleteDoc);
+                                    if (isCustom) {
+                                        setCustomFieldFiles(prev => ({
+                                            ...prev,
+                                            [confirmDeleteDoc]: null
+                                        }));
+                                    } else {
+                                        setDocuments(prev => ({
+                                            ...prev,
+                                            [confirmDeleteDoc]: null
+                                        }));
+                                    }
                                     setConfirmDeleteDoc(null);
                                 }}
                                 className="flex-1 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold shadow-lg shadow-red-500/30 transition-all active:scale-95"
