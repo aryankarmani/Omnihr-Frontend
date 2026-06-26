@@ -21,6 +21,7 @@ import OrgMasters from './pages/masters/OrgMasters';
 import StatutoryMasters from './pages/masters/StatutoryMasters';
 import AttendanceMasters from './pages/masters/AttendanceMasters';
 import AccessMasters from './pages/masters/AccessMasters';
+import CustomFieldsMasters from './pages/masters/CustomFieldsMasters';
 
 import EmployeeAttendanceView from './pages/EmployeeAttendanceView';
 import Notifications from './pages/Notifications';
@@ -79,6 +80,7 @@ function AppContent() {
             <Route path="statutory" element={<StatutoryMasters />} />
             <Route path="attendance" element={<AttendanceMasters />} />
             <Route path="access" element={<AccessMasters />} />
+            <Route path="custom-fields" element={<CustomFieldsMasters />} />
           </Route>
 
         </Routes>
