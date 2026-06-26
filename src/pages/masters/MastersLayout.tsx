@@ -1,11 +1,12 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Building2, Landmark, CalendarClock, ShieldCheck } from 'lucide-react';
+import { Building2, Landmark, CalendarClock, ShieldCheck, Sliders } from 'lucide-react';
 
 const tabs = [
     { label: 'Organization', path: '/masters/org', icon: Building2 },
     { label: 'Statutory & Payroll', path: '/masters/statutory', icon: Landmark },
     { label: 'Shifts & Holidays', path: '/masters/attendance', icon: CalendarClock },
     { label: 'Access Control', path: '/masters/access', icon: ShieldCheck },
+    { label: 'Custom Fields', path: '/masters/custom-fields', icon: Sliders },
 ];
 
 export default function MastersLayout() {
