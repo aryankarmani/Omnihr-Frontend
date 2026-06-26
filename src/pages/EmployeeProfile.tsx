@@ -67,7 +67,18 @@ export default function EmployeeProfile() {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        if (file.type !== "application/pdf" && !file.type.startsWith("image/")) {
+        const targetField = customFields.find((cf: any) => cf.fieldId === fieldId);
+        const fType = targetField?.field?.type || 'FILE';
+
+        if (fType === 'PDF' && file.type !== "application/pdf") {
+            toast.error("Only PDF files are allowed for this field");
+            return;
+        }
+        if (fType === 'IMAGE' && !file.type.startsWith("image/")) {
+            toast.error("Only image files are allowed for this field");
+            return;
+        }
+        if (fType !== 'PDF' && fType !== 'IMAGE' && file.type !== "application/pdf" && !file.type.startsWith("image/")) {
             toast.error("Only PDF and image files are allowed");
             return;
         }
@@ -601,15 +612,15 @@ export default function EmployeeProfile() {
         (component: any) => component.type === 'DEDUCTION'
     );
 
-    const totalEarningComponents = earningsComponents.reduce(
-        (sum: number, component: any) => sum + getComponentAmount(component),
-        0
-    );
+    // const totalEarningComponents = earningsComponents.reduce(
+    //     (sum: number, component: any) => sum + getComponentAmount(component),
+    //     0
+    // );
 
-    const totalDeductionComponents = deductionComponents.reduce(
-        (sum: number, component: any) => sum + getComponentAmount(component),
-        0
-    );
+    // const totalDeductionComponents = deductionComponents.reduce(
+    //     (sum: number, component: any) => sum + getComponentAmount(component),
+    //     0
+    // );
 
     const adminSignatureUrl = companySignature
         ? companySignature.startsWith('http')
@@ -1134,7 +1145,7 @@ export default function EmployeeProfile() {
                                                 id={`custom-file-input-${cf.id}`}
                                                 type="file"
                                                 className="hidden"
-                                                accept=".pdf,image/*"
+                                                accept={cf.field?.type === 'PDF' ? '.pdf' : cf.field?.type === 'IMAGE' ? 'image/*' : '.pdf,image/*'}
                                                 onChange={(e) => handleCustomFileUpload(e, cf.fieldId)}
                                             />
                                         </div>
@@ -1175,7 +1186,7 @@ export default function EmployeeProfile() {
                                                 className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.phone ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg outline-none`} />
                                             {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
                                         </>
-                                    ) : <p className="font-semibold">{profile.phone || 'N/A'}</p>}
+                                    ) : <p className="font-semibold text-gray-800 dark:text-gray-200">{profile.phone || 'N/A'}</p>}
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-400 uppercase">Email</label>
@@ -1209,7 +1220,7 @@ export default function EmployeeProfile() {
 
                                             {errors.dob && <p className="text-red-500 text-xs mt-1">{errors.dob}</p>}
                                         </>
-                                    ) : <p className="font-semibold">{profile.dob ? new Date(profile.dob).toLocaleDateString() : 'N/A'}</p>}
+                                    ) : <p className="font-semibold text-gray-800 dark:text-gray-200">{profile.dob ? new Date(profile.dob).toLocaleDateString() : 'N/A'}</p>}
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-400 uppercase">
@@ -1232,7 +1243,7 @@ export default function EmployeeProfile() {
                                             )}
                                         </>
                                     ) : (
-                                        <p className="font-semibold">
+                                        <p className="font-semibold text-gray-800 dark:text-gray-200">
                                             {profile.joiningDate
                                                 ? new Date(profile.joiningDate).toLocaleDateString('en-IN')
                                                 : 'N/A'}
@@ -1259,7 +1270,7 @@ export default function EmployeeProfile() {
                                                         role: selectedRole
                                                     }));
                                                 }}
-                                                className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
+                                                className="appearance-none w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white transition-all cursor-pointer h-[38px]"
                                             >
                                                 <option value="" className="dark:bg-brand-900">
                                                     Select Role
@@ -1298,7 +1309,7 @@ export default function EmployeeProfile() {
                                         </div>
 
                                     ) : (
-                                        <p className="font-semibold">
+                                        <p className="font-semibold text-gray-800 dark:text-gray-200">
                                             {employee.role?.name || employee.role?.title || employee.role || 'N/A'}
                                         </p>
                                     )}
@@ -1330,7 +1341,7 @@ export default function EmployeeProfile() {
                                                         }
                                                     }));
                                                 }}
-                                                className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
+                                                className="appearance-none w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white transition-all cursor-pointer h-[38px]"
                                             >
                                                 <option value="" className="dark:bg-brand-900">
                                                     Select Designation
@@ -1354,7 +1365,7 @@ export default function EmployeeProfile() {
                                             </div>
                                         </div>
                                     ) : (
-                                        <p className="font-semibold">{profile.title || 'N/A'}</p>
+                                        <p className="font-semibold text-gray-800 dark:text-gray-200">{profile.title || 'N/A'}</p>
                                     )}
 
                                     {errors.designationId && (
@@ -1393,7 +1404,7 @@ export default function EmployeeProfile() {
                                                         }
                                                     }));
                                                 }}
-                                                className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
+                                                className="appearance-none w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white transition-all cursor-pointer h-[38px]"
                                             >
                                                 <option value="" className="dark:bg-brand-900">
                                                     Select Department
@@ -1427,7 +1438,7 @@ export default function EmployeeProfile() {
                                             </div>
                                         </div>
                                     ) : (
-                                        <p className="font-semibold">
+                                        <p className="font-semibold text-gray-800 dark:text-gray-200">
                                             {profile.department || 'N/A'}
                                         </p>
                                     )}
@@ -1461,7 +1472,7 @@ export default function EmployeeProfile() {
                                             </select>
                                             {errors.bloodGroup && <p className="text-red-500 text-xs mt-1">{errors.bloodGroup}</p>}
                                         </>
-                                    ) : <p className="font-semibold">{profile.bloodGroup || 'N/A'}</p>}
+                                    ) : <p className="font-semibold text-gray-800 dark:text-gray-200">{profile.bloodGroup || 'N/A'}</p>}
                                 </div>
                                 <div className="space-y-1 md:col-span-2">
                                     <label className="text-xs font-bold text-gray-400 uppercase">Address</label>
@@ -1477,7 +1488,7 @@ export default function EmployeeProfile() {
                                             </div>
                                             {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
                                         </>
-                                    ) : <p className="font-semibold break-all">{profile.address || 'N/A'}</p>}
+                                    ) : <p className="font-semibold text-gray-800 dark:text-gray-200 break-all">{profile.address || 'N/A'}</p>}
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-400 uppercase">Status</label>
@@ -1498,39 +1509,175 @@ export default function EmployeeProfile() {
                                             ))}
                                         </div>
                                     ) : (
-                                        <span className={`inline-block ml-2 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider shadow-sm transition-all hover:scale-105 ${profile.status === 'Active'
-                                            ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 dark:text-emerald-400'
-                                            : 'bg-rose-500/10 text-rose-600 border border-rose-500/20 dark:text-rose-400'
-                                            }`}>
-                                            {profile.status || 'Active'}
-                                        </span>
+                                        <div className="mt-1">
+                                            <span className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider shadow-sm transition-all hover:scale-105 ${profile.status === 'Active'
+                                                ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 dark:text-emerald-400'
+                                                : 'bg-rose-500/10 text-rose-600 border border-rose-500/20 dark:text-rose-400'
+                                                }`}>
+                                                {profile.status || 'Active'}
+                                            </span>
+                                        </div>
                                     )}
                                 </div>
+ 
+                                {/* Custom Fields Section Divider */}
+                                {customFields.filter((cf: any) => cf.field?.category === 'PERSONAL_DETAILS').length > 0 && (
+                                    <div className="md:col-span-2 border-t border-gray-100 dark:border-white/5 my-2 pt-4">
+                                        <h4 className="text-[10px] font-black text-brand-650 dark:text-brand-400 uppercase tracking-widest">Additional Details</h4>
+                                    </div>
+                                )}
 
                                 {/* Dynamic Personal Custom Fields */}
-                                {customFields.filter((cf: any) => cf.field?.category === 'PERSONAL_DETAILS').map((cf: any) => (
-                                    <div key={cf.id} className="space-y-1">
-                                        <label className="text-xs font-bold text-gray-400 uppercase">{cf.field?.name}</label>
-                                        {isEditing ? (
-                                            <input
-                                                type="text"
-                                                value={cf.value || ''}
-                                                onChange={(e) => {
-                                                    const updated = customFields.map((item: any) => {
-                                                        if (item.id === cf.id) {
-                                                            return { ...item, value: e.target.value };
-                                                        }
-                                                        return item;
-                                                    });
-                                                    setCustomFields(updated);
-                                                }}
-                                                className="w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-800 dark:text-white"
-                                            />
-                                        ) : (
-                                            <p className="font-semibold">{cf.value || 'N/A'}</p>
-                                        )}
-                                    </div>
-                                ))}
+                                {customFields.filter((cf: any) => cf.field?.category === 'PERSONAL_DETAILS').map((cf: any) => {
+                                    const fieldType = cf.field?.type || 'TEXT';
+                                    const hasFile = !!cf.documentUrl;
+                                    
+                                    return (
+                                        <div key={cf.id} className="space-y-1">
+                                            <label className="text-xs font-bold text-gray-400 uppercase">{cf.field?.name}</label>
+                                            {isEditing ? (
+                                                fieldType === 'RADIO' ? (
+                                                    <div className="w-full flex gap-6 items-center px-4 py-2 bg-gray-55 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg h-[38px] mt-1">
+                                                        <label className="flex items-center gap-1.5 cursor-pointer">
+                                                            <input
+                                                                type="radio"
+                                                                name={`radio-${cf.id}`}
+                                                                value="Yes"
+                                                                checked={cf.value === 'Yes'}
+                                                                onChange={() => {
+                                                                    const updated = customFields.map((item: any) => {
+                                                                        if (item.id === cf.id) {
+                                                                            return { ...item, value: 'Yes' };
+                                                                        }
+                                                                        return item;
+                                                                    });
+                                                                    setCustomFields(updated);
+                                                                }}
+                                                                className="w-4 h-4 text-brand-600 focus:ring-brand-500 accent-brand-600"
+                                                            />
+                                                            <span className="text-sm font-semibold text-gray-750 dark:text-gray-300">Yes</span>
+                                                        </label>
+                                                        <label className="flex items-center gap-1.5 cursor-pointer">
+                                                            <input
+                                                                type="radio"
+                                                                name={`radio-${cf.id}`}
+                                                                value="No"
+                                                                checked={cf.value === 'No'}
+                                                                onChange={() => {
+                                                                    const updated = customFields.map((item: any) => {
+                                                                        if (item.id === cf.id) {
+                                                                            return { ...item, value: 'No' };
+                                                                        }
+                                                                        return item;
+                                                                    });
+                                                                    setCustomFields(updated);
+                                                                }}
+                                                                className="w-4 h-4 text-brand-600 focus:ring-brand-500 accent-brand-600"
+                                                            />
+                                                            <span className="text-sm font-semibold text-gray-700 dark:text-gray-350">No</span>
+                                                        </label>
+                                                    </div>
+                                                ) : fieldType === 'FILE' ? (
+                                                    <div className="flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 transition-all mt-1">
+                                                        <span className="text-xs text-gray-500 truncate max-w-[180px]">
+                                                            {hasFile ? (cf.documentName || 'Document uploaded') : 'No file uploaded'}
+                                                        </span>
+                                                        <div className="flex items-center gap-2">
+                                                            {!hasFile ? (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => document.getElementById(`custom-file-input-personal-${cf.id}`)?.click()}
+                                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white font-bold text-[10px] rounded-lg shadow-sm transition-all cursor-pointer"
+                                                                >
+                                                                    <Upload size={12} /> Upload
+                                                                </button>
+                                                            ) : (
+                                                                <>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.preventDefault();
+                                                                            if (cf.documentUrl) {
+                                                                                const baseUrl = 'http://localhost:3001';
+                                                                                const fullUrl = cf.documentUrl.startsWith('http') ? cf.documentUrl : `/uploads/${cf.documentUrl}`;
+                                                                                window.open(fullUrl.startsWith('http') ? fullUrl : `${baseUrl}${fullUrl}`, '_blank');
+                                                                            }
+                                                                        }}
+                                                                        className="w-8 h-8 rounded-lg flex items-center justify-center bg-brand-500/10 text-brand-500 hover:bg-brand-500 hover:text-white cursor-pointer"
+                                                                    >
+                                                                        <Eye size={14} />
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.preventDefault();
+                                                                            handleCustomFileDelete(cf.fieldId);
+                                                                        }}
+                                                                        className="w-8 h-8 rounded-lg flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white cursor-pointer"
+                                                                    >
+                                                                        <Trash2 size={14} />
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                        <input
+                                                            id={`custom-file-input-personal-${cf.id}`}
+                                                            type="file"
+                                                            className="hidden"
+                                                            accept={cf.field?.type === 'PDF' ? '.pdf' : cf.field?.type === 'IMAGE' ? 'image/*' : '.pdf,image/*'}
+                                                            onChange={(e) => handleCustomFileUpload(e, cf.fieldId)}
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <input
+                                                        type={fieldType.toLowerCase()}
+                                                        value={cf.value || ''}
+                                                        onChange={(e) => {
+                                                            const updated = customFields.map((item: any) => {
+                                                                if (item.id === cf.id) {
+                                                                    return { ...item, value: e.target.value };
+                                                                }
+                                                                return item;
+                                                            });
+                                                            setCustomFields(updated);
+                                                        }}
+                                                        className="w-full px-3 py-2 bg-gray-55 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-800 dark:text-white mt-1"
+                                                    />
+                                                )
+                                            ) : (
+                                                fieldType === 'PASSWORD' ? (
+                                                    <p className="font-semibold text-gray-800 dark:text-gray-200">{cf.value ? '••••••••' : 'N/A'}</p>
+                                                ) : fieldType === 'FILE' ? (
+                                                    hasFile ? (
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            <span className="text-sm font-semibold truncate max-w-[200px] text-gray-800 dark:text-gray-200">
+                                                                {cf.documentName || 'Document uploaded'}
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    if (cf.documentUrl) {
+                                                                        const baseUrl = 'http://localhost:3001';
+                                                                        const fullUrl = cf.documentUrl.startsWith('http') ? cf.documentUrl : `/uploads/${cf.documentUrl}`;
+                                                                        window.open(fullUrl.startsWith('http') ? fullUrl : `${baseUrl}${fullUrl}`, '_blank');
+                                                                    }
+                                                                }}
+                                                                className="w-8 h-8 rounded-lg flex items-center justify-center bg-brand-500/10 text-brand-500 hover:bg-brand-500 hover:text-white cursor-pointer"
+                                                            >
+                                                                <Eye size={14} />
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <p className="font-semibold text-gray-500 dark:text-gray-400">N/A</p>
+                                                    )
+                                                ) : (
+                                                    <p className="font-semibold text-gray-800 dark:text-gray-200">{cf.value || 'N/A'}</p>
+                                                )
+                                            )}
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
                     )}
