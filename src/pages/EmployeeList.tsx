@@ -49,7 +49,7 @@ export default function EmployeeList() {
         status: 'All'
     });
     const [loading, setLoading] = useState(true);
-   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
     useEffect(() => {
         if (!isAdmin) {
@@ -157,9 +157,9 @@ export default function EmployeeList() {
     const handleViewProfile = (id: number) => {
         navigate(`/employee/${id}`);
     };
-       const handleViewAttendance = (id: number) => {
-    navigate(`/employee-attendance/${id}`);
-};
+    const handleViewAttendance = (id: number) => {
+        navigate(`/employee-attendance/${id}`);
+    };
     const handleAddEmployee = (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -221,7 +221,7 @@ export default function EmployeeList() {
                 emp.id,
                 emp.name,
                 emp.email,
-                 profile.phone ? `="${profile.phone}"` : "",
+                profile.phone ? `="${profile.phone}"` : "",
                 profile.title || "",
                 profile.department || "",
                 profile.location || "",
@@ -289,34 +289,32 @@ export default function EmployeeList() {
                 <div className="flex gap-3 w-full md:w-auto">
                     {/* View Toggle */}
                     {isAdmin && (
-    <div className="flex bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-1">
+                        <div className="flex bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-1">
 
-        {/* List first */}
-        <button
-            onClick={() => setViewMode('list')}
-            className={`p-2 rounded-xl transition-all ${
-                viewMode === 'list'
-                    ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20'
-                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
-            }`}
-        >
-            <List size={20} />
-        </button>
+                            {/* List first */}
+                            <button
+                                onClick={() => setViewMode('list')}
+                                className={`p-2 rounded-xl transition-all ${viewMode === 'list'
+                                        ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20'
+                                        : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
+                                    }`}
+                            >
+                                <List size={20} />
+                            </button>
 
-        {/* Grid second */}
-        <button
-            onClick={() => setViewMode('grid')}
-            className={`p-2 rounded-xl transition-all ${
-                viewMode === 'grid'
-                    ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20'
-                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
-            }`}
-        >
-            <LayoutGrid size={20} />
-        </button>
+                            {/* Grid second */}
+                            <button
+                                onClick={() => setViewMode('grid')}
+                                className={`p-2 rounded-xl transition-all ${viewMode === 'grid'
+                                        ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20'
+                                        : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
+                                    }`}
+                            >
+                                <LayoutGrid size={20} />
+                            </button>
 
-    </div>
-)}
+                        </div>
+                    )}
 
                     {/* Custom Styled Dropdown - Separately implemented here */}
                     <div className="relative group/dropdown">
@@ -451,27 +449,27 @@ export default function EmployeeList() {
                             <table className="w-full text-left border-collapse">
                                 <thead className="bg-gray-50 dark:bg-white/5">
                                     <tr>
-                                  <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
-    Employee
-</th>
+                                        <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+                                            Employee
+                                        </th>
 
-<th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
-    Role / Designation
-</th>
+                                        <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+                                            Role / Designation
+                                        </th>
 
-<th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
-    Status
-</th>
+                                        <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+                                            Status
+                                        </th>
 
-<th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest text-center">
-    Attendance
-</th>
+                                        <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest text-center">
+                                            Attendance
+                                        </th>
 
-{isAdmin && (
-    <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest text-center">
-        Action
-    </th>
-)}     
+                                        {isAdmin && (
+                                            <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest text-center">
+                                                Action
+                                            </th>
+                                        )}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 dark:divide-white/5">
@@ -492,18 +490,18 @@ export default function EmployeeList() {
                                                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md ${avatarColor}`}>
                                                             {emp.name.split(' ').map((n: string) => n[0]).join('')}
                                                         </div>
-                                                     <div>
-    <div className="font-bold text-gray-800 dark:text-white">
-        {emp.name}
-    </div>
+                                                        <div>
+                                                            <div className="font-bold text-gray-800 dark:text-white">
+                                                                {emp.name}
+                                                            </div>
 
-    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-        {emp.email}
-    </div>
-</div>
+                                                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                                {emp.email}
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </td>
-                                               
+
                                                 <td className="px-6 py-4">
                                                     <div className="text-sm text-gray-800 dark:text-white font-bold">{profile.title || 'Employee'}</div>
                                                     <div className="text-[10px] text-gray-400 uppercase font-black tracking-widest">{profile.department || 'General'}</div>
@@ -517,19 +515,19 @@ export default function EmployeeList() {
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
-    <button
-        onClick={(e) => {
-            e.stopPropagation();
-            handleViewAttendance(emp.id);
-        }}
-        className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-brand-500/60 text-brand-600 dark:text-brand-300 hover:bg-brand-600 hover:text-white hover:border-brand-600 transition-all text-xs font-bold"
-    >
-        <Eye size={15} />
-        View
-    </button>
-</td>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleViewAttendance(emp.id);
+                                                        }}
+                                                        className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-brand-500/60 text-brand-600 dark:text-brand-300 hover:bg-brand-600 hover:text-white hover:border-brand-600 transition-all text-xs font-bold"
+                                                    >
+                                                        <Eye size={15} />
+                                                        View
+                                                    </button>
+                                                </td>
                                                 {isAdmin && (
-                                                   <td className="px-6 py-4 text-center">
+                                                    <td className="px-6 py-4 text-center">
                                                         <div className="relative inline-block">
                                                             <button
                                                                 onClick={(e) => { e.stopPropagation(); setSelectedEmployeeForActions(emp); }}
@@ -546,72 +544,74 @@ export default function EmployeeList() {
                                 </tbody>
                             </table>
                         </div>
+                         {viewMode === 'list' && (
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-6 py-5 border-t border-gray-100 dark:border-white/5">
+                    <div className="flex items-center gap-3">
+                        <span className="text-xs font-bold text-gray-400 uppercase">
+                            Rows per page
+                        </span>
+
+                        <select
+                            value={rowsPerPage}
+                            onChange={(e) => {
+                                setRowsPerPage(Number(e.target.value));
+                                setCurrentPage(1);
+                            }}
+                            className="px-5 py-2 bg-brand-800 hover:bg-brand-900 border border-brand-700 rounded-xl text-white font-bold cursor-pointer"
+                        >
+                            <option value={5}>5</option>
+                            <option value={10}>10</option>
+                            <option value={20}>20</option>
+                            <option value={50}>50</option>
+                        </select>
+                    </div>
+
+
+                    <div className="flex items-center gap-4">
+                        <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                            Page {currentPage} of {totalPages || 1}
+                        </span>
+
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setCurrentPage(1)}
+                                disabled={currentPage === 1}
+                                className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"            >
+                                «
+                            </button>
+
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                disabled={currentPage === 1}
+                                className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"            >
+                                ‹
+                            </button>
+
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                disabled={currentPage === totalPages || totalPages === 0}
+                                className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
+                            >
+                                ›
+                            </button>
+
+                            <button
+                                onClick={() => setCurrentPage(totalPages)}
+                                disabled={currentPage === totalPages || totalPages === 0}
+                                className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
+                            >
+                                »
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
                     </div>
                 )
+
             )}
-                        {viewMode === 'list' && (
-                        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-6 py-5 border-t border-gray-100 dark:border-white/5">
-                            <div className="flex items-center gap-3">
-                                <span className="text-xs font-bold text-gray-400 uppercase">
-                                    Rows per page
-                                </span>
-
-                                <select
-                                    value={rowsPerPage}
-                                    onChange={(e) => {
-                                        setRowsPerPage(Number(e.target.value));
-                                        setCurrentPage(1);
-                                    }}
-                                    className="px-5 py-2 bg-brand-800 hover:bg-brand-900 border border-brand-700 rounded-xl text-white font-bold cursor-pointer"
-                                >
-                                    <option value={5}>5</option>
-                                    <option value={10}>10</option>
-                                    <option value={20}>20</option>
-                                    <option value={50}>50</option>
-                                </select>
-                            </div>
-                         
-
-                            <div className="flex items-center gap-4">
-                                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
-                                    Page {currentPage} of {totalPages || 1}
-                                </span>
-
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={() => setCurrentPage(1)}
-                                        disabled={currentPage === 1}
-                                        className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"            >
-                                        «
-                                    </button>
-
-                                    <button
-                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                                        disabled={currentPage === 1}
-                                        className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"            >
-                                        ‹
-                                    </button>
-
-                                    <button
-                                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                                        disabled={currentPage === totalPages || totalPages === 0}
-                                        className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
-                                    >
-                                        ›
-                                    </button>
-
-                                    <button
-                                        onClick={() => setCurrentPage(totalPages)}
-                                        disabled={currentPage === totalPages || totalPages === 0}
-                                        className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
-                                    >
-                                        »
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+           
 
             {selectedEmployeeForActions && (
                 <div className="fixed inset-0 z-10" onClick={() => setSelectedEmployeeForActions(null)} />
@@ -619,8 +619,8 @@ export default function EmployeeList() {
 
             {/* Delete Confirmation Modal */}
             {employeeToDelete && createPortal(
-                <div 
-               className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/80 backdrop-blur-xl">
+                <div
+                    className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/80 backdrop-blur-xl">
                     <div className="bg-white dark:bg-brand-950 rounded-3xl shadow-2xl w-full max-w-md p-8 border border-gray-100 dark:border-white/10 text-center relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-2 bg-red-500"></div>
 

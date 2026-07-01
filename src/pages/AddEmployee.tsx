@@ -120,36 +120,40 @@ export default function AddEmployee() {
         }));
     };
 
-   const toggleSalaryComponent = (component: any) => {
-    setFormData((prev: any) => {
-        const alreadySelected = prev.selectedSalaryComponents.some(
-            (item: any) => item.id === component.id
-        );
+    const toggleSalaryComponent = (component: any) => {
+        setFormData((prev: any) => {
+            const alreadySelected = prev.selectedSalaryComponents.some(
+                (item: any) => item.id === component.id
+            );
 
-        if (alreadySelected) {
+            if (alreadySelected) {
+                return {
+                    ...prev,
+                    selectedSalaryComponents: prev.selectedSalaryComponents.filter(
+                        (item: any) => item.id !== component.id
+                    ),
+                };
+            }
+
             return {
                 ...prev,
-                selectedSalaryComponents: prev.selectedSalaryComponents.filter(
-                    (item: any) => item.id !== component.id
-                ),
-            };
-        }
+                selectedSalaryComponents: [
+                    ...prev.selectedSalaryComponents,
+                    {
+                        id: component.id,
+                        name: component.name,
+                        type: component.type,
 
-        return {
-            ...prev,
-            selectedSalaryComponents: [
-                ...prev.selectedSalaryComponents,
-                {
-                    id: component.id,
-                    name: component.name,
-                    type: component.type,
-                    calculationType: component.calculationType,
-                    value: component.value,
-                },
-            ],
-        };
-    });
-};
+
+
+
+                        calculationType: component.calculationType,
+                        value: component.value,
+                    },
+                ],
+            };
+        });
+    };
 
     const removeSelectedComponent = (componentId: number) => {
         setFormData((prev: any) => ({
@@ -1091,8 +1095,8 @@ export default function AddEmployee() {
 
                                                         <span
                                                             className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${component.type === 'EARNING'
-                                                                    ? 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400'
-                                                                    : 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400'
+                                                                ? 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400'
+                                                                : 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400'
                                                                 }`}
                                                         >
                                                             {component.type}

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useRBAC } from '../hooks/useRBAC';
-import { ArrowLeft, User, FileText, CreditCard, Download, Briefcase, Save, X, Edit, Printer, Loader2, Eye, Trash2, Upload } from 'lucide-react';
+import { ArrowLeft, User, FileText, CreditCard, Download, Briefcase, Save, X, Edit, Printer, Loader2, Eye, Trash2, Upload, TrendingUp, TrendingDown, Coins } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import toast from 'react-hot-toast';
@@ -231,6 +231,27 @@ export default function EmployeeProfile() {
         fetchSalaryComponents();
         fetchCustomFields();
     }, [id]);
+    const getSalaryStorageKey = () => {
+        return `employee_salary_components_${employee?.id || id}`;
+    };
+
+    const saveSalaryComponentsLocally = (components: any[]) => {
+        if (!employee?.id && !id) return;
+
+        localStorage.setItem(
+            getSalaryStorageKey(),
+            JSON.stringify(components)
+        );
+    };
+
+    const getLocalSalaryComponents = () => {
+        try {
+            const saved = localStorage.getItem(`employee_salary_components_${employee?.id || id}`);
+            return saved ? JSON.parse(saved) : [];
+        } catch {
+            return [];
+        }
+    };
 
     const handleCancel = () => {
         fetchEmployee();
@@ -359,6 +380,11 @@ export default function EmployeeProfile() {
             return;
         }
         try {
+            const currentSelectedComponents =
+                employee.employeeProfile?.selectedSalaryComponents ||
+                getLocalSalaryComponents();
+
+            saveSalaryComponentsLocally(currentSelectedComponents);
             const profileData = {
                 phone: employee.employeeProfile?.phone,
                 dob: employee.employeeProfile?.dob,
@@ -474,14 +500,16 @@ export default function EmployeeProfile() {
     };
     const toggleSalaryComponent = (component: any) => {
         setEmployee((prev: any) => {
-            const oldComponents = prev.employeeProfile?.selectedSalaryComponents || [];
+            const oldComponents =
+                prev.employeeProfile?.selectedSalaryComponents ||
+                getLocalSalaryComponents();
 
             const alreadySelected = oldComponents.some(
-                (item: any) => item.id === component.id
+                (item: any) => String(item.id) === String(component.id)
             );
 
             const updatedComponents = alreadySelected
-                ? oldComponents.filter((item: any) => item.id !== component.id)
+                ? oldComponents.filter((item: any) => String(item.id) !== String(component.id))
                 : [
                     ...oldComponents,
                     {
@@ -492,6 +520,8 @@ export default function EmployeeProfile() {
                         value: component.value,
                     },
                 ];
+
+            saveSalaryComponentsLocally(updatedComponents);
 
             return {
                 ...prev,
@@ -504,17 +534,26 @@ export default function EmployeeProfile() {
     };
 
     const removeSalaryComponent = (componentId: number) => {
-        setEmployee((prev: any) => ({
-            ...prev,
-            employeeProfile: {
-                ...prev.employeeProfile,
-                selectedSalaryComponents: (prev.employeeProfile?.selectedSalaryComponents || []).filter(
-                    (component: any) => component.id !== componentId
-                ),
-            },
-        }));
-    };
+        setEmployee((prev: any) => {
+            const oldComponents =
+                prev.employeeProfile?.selectedSalaryComponents ||
+                getLocalSalaryComponents();
 
+            const updatedComponents = oldComponents.filter(
+                (component: any) => String(component.id) !== String(componentId)
+            );
+
+            saveSalaryComponentsLocally(updatedComponents);
+
+            return {
+                ...prev,
+                employeeProfile: {
+                    ...prev.employeeProfile,
+                    selectedSalaryComponents: updatedComponents,
+                },
+            };
+        });
+    };
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, docName: string) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -585,11 +624,25 @@ export default function EmployeeProfile() {
     const profile = employee.employeeProfile || {};
     const statutory = profile.statutory || {};
     const bank = profile.bank || {};
-    const selectedSalaryComponents =
-        profile.selectedSalaryComponents ||
-        profile.salaryComponents ||
-        profile.salary?.selectedSalaryComponents ||
-        [];
+    const selectedSalaryComponents = (() => {
+        const backendComponents =
+            Array.isArray(profile.selectedSalaryComponents) && profile.selectedSalaryComponents.length > 0
+                ? profile.selectedSalaryComponents
+                : Array.isArray(profile.salaryComponents) && profile.salaryComponents.length > 0
+                    ? profile.salaryComponents
+                    : Array.isArray(profile.salary?.selectedSalaryComponents) && profile.salary.selectedSalaryComponents.length > 0
+                        ? profile.salary.selectedSalaryComponents
+                        : [];
+
+        const localComponents = getLocalSalaryComponents();
+
+        const finalComponents =
+            backendComponents.length > 0 ? backendComponents : localComponents;
+
+        return finalComponents.map((item: any) =>
+            item.component ? item.component : item
+        );
+    })();
     const getComponentAmount = (component: any) => {
         const basicSalary = Number(profile.salary?.basic || 0);
 
@@ -617,30 +670,32 @@ export default function EmployeeProfile() {
     //     0
     // );
 
-    // const totalDeductionComponents = deductionComponents.reduce(
-    //     (sum: number, component: any) => sum + getComponentAmount(component),
-    //     0
-    // );
+    const totalDeductionComponents = deductionComponents.reduce(
+        (sum: number, component: any) => sum + getComponentAmount(component),
+        0
+    );
+    const salaryOverviewBasic = Number(profile.salary?.basic || 0);
+    const salaryOverviewEarnings = salaryOverviewBasic + totalEarningComponents;
+    const salaryOverviewDeductions = totalDeductionComponents;
+    const salaryOverviewNet = Math.max(0, salaryOverviewEarnings - salaryOverviewDeductions);
 
     const adminSignatureUrl = companySignature
         ? companySignature.startsWith('http')
             ? companySignature
             : `http://localhost:3001${companySignature}`
         : null;
-    // Dynamic salary calculations for payslip preview
+    // Dynamic salary calculations for payslip preview using selected salary components
     const basic = Number(profile.salary?.basic || 0);
-    const hra = Number(profile.salary?.hra || 0);
-    const special = Number(profile.salary?.special || 0);
-    const medical = Number(profile.salary?.medical || 0);
-    const pf = Number(profile.salary?.pf || 0);
-    const pt = Number(profile.salary?.pt || 0);
-    const tax = Number(profile.salary?.tax || 0);
-    const calendarDays = new Date(selectedPayslipYear, selectedPayslipMonth + 1, 0).getDate();
 
+    const calendarDays = new Date(
+        selectedPayslipYear,
+        selectedPayslipMonth + 1,
+        0
+    ).getDate();
 
-    const fullMonthEarnings = basic + hra + special + medical;
-
-    const joiningDateForSalary = profile.joiningDate ? new Date(profile.joiningDate) : null;
+    const joiningDateForSalary = profile.joiningDate
+        ? new Date(profile.joiningDate)
+        : null;
 
     let payableDays = calendarDays;
 
@@ -652,36 +707,138 @@ export default function EmployeeProfile() {
         payableDays = calendarDays - joiningDateForSalary.getDate() + 1;
     }
 
-    const totalEarnings = Number(((fullMonthEarnings / calendarDays) * payableDays).toFixed(2));
-    // Month info for payslip
-    const selectedMonthLabel = new Date(selectedPayslipYear, selectedPayslipMonth, 1)
-        .toLocaleString('en-US', { month: 'long', year: 'numeric' });
-    const selectedMonthShort = new Date(selectedPayslipYear, selectedPayslipMonth, 1)
-        .toLocaleString('en-US', { month: 'short', year: 'numeric' }).replace(' ', '_');
-
     // Calculate LWP days for selected month from approved leaves
     let lwpDays = 0;
+
     if (Array.isArray(leaves)) {
         leaves.forEach((leave: any) => {
             const isApproved = leave.status === 'APPROVED' || leave.status === 'Approved';
             const isLWP = leave.leaveType?.code === 'LWP';
+
             if (!isApproved || !isLWP) return;
+
             const start = new Date(leave.startDate);
             const end = new Date(leave.endDate);
             const current = new Date(start);
+
             while (current <= end) {
-                if (current.getFullYear() === selectedPayslipYear && current.getMonth() === selectedPayslipMonth) {
+                if (
+                    current.getFullYear() === selectedPayslipYear &&
+                    current.getMonth() === selectedPayslipMonth
+                ) {
                     lwpDays++;
                 }
+
+                current.setDate(current.getDate() + 1);
+            }
+        });
+    }
+    const paidLeaveBreakdown: Record<string, number> = {};
+    let paidLeaveDays = 0;
+
+    if (Array.isArray(leaves)) {
+        leaves.forEach((leave: any) => {
+            const isApproved = String(leave.status).toUpperCase() === 'APPROVED';
+            const leaveCode = leave.leaveType?.code || leave.leaveType?.name || 'Leave';
+            const isLWP = String(leaveCode).toUpperCase() === 'LWP';
+
+            if (!isApproved || isLWP) return;
+
+            const start = new Date(leave.startDate);
+            const end = new Date(leave.endDate);
+            const current = new Date(start);
+
+            while (current <= end) {
+                if (
+                    current.getFullYear() === selectedPayslipYear &&
+                    current.getMonth() === selectedPayslipMonth
+                ) {
+                    paidLeaveDays++;
+                    paidLeaveBreakdown[leaveCode] =
+                        (paidLeaveBreakdown[leaveCode] || 0) + 1;
+                }
+
                 current.setDate(current.getDate() + 1);
             }
         });
     }
 
-    const lwpDeduction = lwpDays > 0 ? Number(((totalEarnings / calendarDays) * lwpDays).toFixed(2)) : 0;
-    const totalDeductions = pf + pt + tax + lwpDeduction;
-    const totalSalary = Math.max(0, totalEarnings - totalDeductions);
-    const paidDays = payableDays - lwpDays;
+    const paidLeaveText = Object.entries(paidLeaveBreakdown)
+        .map(([type, days]) => `${type}: ${days}`)
+        .join(', ');
+
+    const paidDays = Math.max(0, payableDays - lwpDays);
+
+    const paidBasic = Number(((basic / calendarDays) * payableDays).toFixed(2));
+
+    const getPayslipComponentAmount = (component: any) => {
+        const value = Number(component.value || 0);
+
+        if (component.calculationType === 'FLAT') {
+            return Number(((value / calendarDays) * payableDays).toFixed(2));
+        }
+
+        if (component.calculationType === '%_BASIC') {
+            return Number(((paidBasic * value) / 100).toFixed(2));
+        }
+
+        return Number(((value / calendarDays) * payableDays).toFixed(2));
+    };
+
+    const payslipEarningComponents = earningsComponents
+        .map((component: any) => ({
+            ...component,
+            amount: getPayslipComponentAmount(component),
+        }))
+        .filter((component: any) => component.amount > 0);
+
+    const payslipDeductionComponents = deductionComponents
+        .map((component: any) => ({
+            ...component,
+            amount: getPayslipComponentAmount(component),
+        }))
+        .filter((component: any) => component.amount > 0);
+
+    const totalPayslipEarningComponents = payslipEarningComponents.reduce(
+        (sum: number, component: any) => sum + Number(component.amount || 0),
+        0
+    );
+
+    const totalPayslipDeductionComponents = payslipDeductionComponents.reduce(
+        (sum: number, component: any) => sum + Number(component.amount || 0),
+        0
+    );
+
+    const totalEarnings = Number((paidBasic + totalPayslipEarningComponents).toFixed(2));
+
+    const perDayEarning = payableDays > 0 ? totalEarnings / payableDays : 0;
+
+    const lwpDeduction =
+        lwpDays > 0 ? Number((perDayEarning * lwpDays).toFixed(2)) : 0;
+
+    const totalDeductions = Number(
+        (totalPayslipDeductionComponents + lwpDeduction).toFixed(2)
+    );
+
+    const totalSalary = Math.max(
+        0,
+        Number((totalEarnings - totalDeductions).toFixed(2))
+    );
+
+    // Month info for payslip
+    const selectedMonthLabel = new Date(
+        selectedPayslipYear,
+        selectedPayslipMonth,
+        1
+    ).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+
+    const selectedMonthShort = new Date(
+        selectedPayslipYear,
+        selectedPayslipMonth,
+        1
+    )
+        .toLocaleString('en-US', { month: 'short', year: 'numeric' })
+        .replace(' ', '_');
     const today = new Date();
 
     const currentMonthStart = new Date(
@@ -1820,7 +1977,44 @@ export default function EmployeeProfile() {
 
                                 </h3>
                             </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
 
+                                <div className="p-5 rounded-2xl bg-green-500/10 border border-green-500/30 relative overflow-hidden">
+                                    <div className="absolute right-3 top-3 w-9 h-9 rounded-xl bg-green-500/20 flex items-center justify-center text-green-400">
+                                        <TrendingUp size={26} />
+                                    </div>
+
+                                    <p className="text-green-400 font-bold text-sm">Total Earnings</p>
+                                    <p className="text-2xl font-black text-gray-800 dark:text-white mt-2">
+                                        ₹ {salaryOverviewEarnings.toLocaleString('en-IN')}
+                                    </p>
+                                    <p className="text-gray-400 text-sm mt-1">Per Month</p>
+                                </div>
+
+                                <div className="p-5 rounded-2xl bg-red-500/10 border border-red-500/30 relative overflow-hidden">
+                                    <div className="absolute right-3 top-3 w-9 h-9 rounded-xl bg-red-500/20 flex items-center justify-center text-red-400">
+                                        <TrendingDown size={26} />
+                                    </div>
+
+                                    <p className="text-red-400 font-bold text-sm">Total Deductions</p>
+                                    <p className="text-2xl font-black text-gray-800 dark:text-white mt-2">
+                                        ₹ {salaryOverviewDeductions.toLocaleString('en-IN')}
+                                    </p>
+                                    <p className="text-gray-400 text-sm mt-1">Per Month</p>
+                                </div>
+
+                                <div className="p-5 rounded-2xl bg-blue-500/10 border border-blue-500/30 relative overflow-hidden">
+                                    <div className="absolute right-3 top-3 w-9 h-9 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400">
+                                        <Coins size={26} />
+                                    </div>
+
+                                    <p className="text-blue-400 font-bold text-sm">Net Salary</p>
+                                    <p className="text-2xl font-black text-gray-800 dark:text-white mt-2">
+                                        ₹ {salaryOverviewNet.toLocaleString('en-IN')}
+                                    </p>
+                                    <p className="text-gray-400 text-sm mt-1">Per Month</p>
+                                </div>
+                            </div>
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                 <div className="rounded-2xl border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-5">
                                     <h4 className="text-lg font-bold text-green-500 mb-4">
@@ -2310,59 +2504,75 @@ export default function EmployeeProfile() {
                                         <div className="grid grid-cols-2 text-xs min-h-[120px]">
                                             <div className="border-r border-gray-200 p-0 flex flex-col justify-between">
                                                 <div>
+
+
                                                     <div className="flex justify-between p-2 border-b border-gray-50">
                                                         <span className="text-gray-600 font-semibold">Basic Salary</span>
-                                                        <span className="font-semibold">₹ {basic.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                        <span className="font-semibold">
+                                                            ₹ {paidBasic.toLocaleString('en-IN', {
+                                                                minimumFractionDigits: 2,
+                                                                maximumFractionDigits: 2,
+                                                            })}
+                                                        </span>
                                                     </div>
-                                                    {hra > 0 && (
-                                                        <div className="flex justify-between p-2 border-b border-gray-50">
-                                                            <span className="text-gray-600">HRA</span>
-                                                            <span className="font-semibold">₹ {hra.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                    {payslipEarningComponents.map((component: any) => (
+                                                        <div
+                                                            key={`${component.id}-${component.name}`}
+                                                            className="flex justify-between p-2 border-b border-gray-50"
+                                                        >
+                                                            <span className="text-gray-600">{component.name}</span>
+                                                            <span className="font-semibold">
+                                                                ₹ {Number(component.amount || 0).toLocaleString('en-IN', {
+                                                                    minimumFractionDigits: 2,
+                                                                    maximumFractionDigits: 2,
+                                                                })}
+                                                            </span>
                                                         </div>
-                                                    )}
-                                                    {special > 0 && (
-                                                        <div className="flex justify-between p-2 border-b border-gray-50">
-                                                            <span className="text-gray-600">Special Allowance</span>
-                                                            <span className="font-semibold">₹ {special.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                                        </div>
-                                                    )}
-                                                    {medical > 0 && (
-                                                        <div className="flex justify-between p-2 border-b border-gray-50">
-                                                            <span className="text-gray-600">Medical Allowance</span>
-                                                            <span className="font-semibold">₹ {medical.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                                        </div>
-                                                    )}
+                                                    ))}
+
                                                     {totalEarnings === 0 && (
                                                         <div className="flex justify-between p-2 md:p-3 italic text-gray-400">
                                                             <span>Salary structure pending setup...</span>
                                                         </div>
                                                     )}
                                                 </div>
+
                                                 {totalEarnings > 0 && (
                                                     <div className="flex justify-between p-2 bg-gray-50 border-t border-gray-100 font-bold text-gray-800">
                                                         <span>Total Earnings</span>
-                                                        <span>₹ {totalEarnings.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                        <span>
+                                                            ₹ {totalEarnings.toLocaleString('en-IN', {
+                                                                minimumFractionDigits: 2,
+                                                                maximumFractionDigits: 2,
+                                                            })}
+                                                        </span>
                                                     </div>
                                                 )}
                                             </div>
                                             <div className="p-0 flex flex-col justify-between">
                                                 <div>
-                                                    {pf > 0 && (
-                                                        <div className="flex justify-between p-2 border-b border-gray-50">
-                                                            <span className="text-gray-600">Provident Fund (PF)</span>
-                                                            <span className="font-semibold">₹ {pf.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                    {payslipDeductionComponents.map((component: any) => (
+                                                        <div
+                                                            key={`${component.id}-${component.name}`}
+                                                            className="flex justify-between p-2 border-b border-gray-50"
+                                                        >
+                                                            <span className="text-gray-600">{component.name}</span>
+                                                            <span className="font-semibold">
+                                                                ₹ {Number(component.amount || 0).toLocaleString('en-IN', {
+                                                                    minimumFractionDigits: 2,
+                                                                    maximumFractionDigits: 2,
+                                                                })}
+                                                            </span>
                                                         </div>
-                                                    )}
-                                                    {pt > 0 && (
-                                                        <div className="flex justify-between p-2 border-b border-gray-50">
-                                                            <span className="text-gray-600">Professional Tax (PT)</span>
-                                                            <span className="font-semibold">₹ {pt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                                        </div>
-                                                    )}
-                                                    {tax > 0 && (
-                                                        <div className="flex justify-between p-2 border-b border-gray-50">
-                                                            <span className="text-gray-600">Income Tax / TDS</span>
-                                                            <span className="font-semibold">₹ {tax.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                    ))}
+                                                    {paidLeaveDays > 0 && (
+                                                        <div className="flex justify-between p-2 border-b border-gray-50 bg-green-50/40">
+                                                            <span className="text-gray-600">
+                                                                Paid Leaves ({paidLeaveText || `${paidLeaveDays} days`})
+                                                            </span>
+                                                            <span className="font-semibold text-green-700">
+                                                                ₹ 0.00
+                                                            </span>
                                                         </div>
                                                     )}
                                                     {lwpDeduction > 0 && (
@@ -2377,20 +2587,27 @@ export default function EmployeeProfile() {
                                                         </div>
                                                     )}
                                                 </div>
-                                                <div className="flex justify-between p-2 border-b border-gray-50 ">
-                                                    <span className="text-gray-600">Total Deductions</span>
-                                                    <span className="font-semibold">
-                                                        ₹ {totalDeductions.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                    </span>
-                                                </div>
+
 
                                                 <div className="flex justify-between p-2 bg-gray-50 border-t border-gray-100 font-bold">
-                                                    <span className="text-gray-700">Total Salary</span>
-                                                    <span className="text-green-700 font-bold">
-                                                        ₹ {totalSalary.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    <span className="text-gray-700">Total Deductions</span>
+                                                    <span className="text-gray-800 font-bold">
+                                                        ₹ {totalDeductions.toLocaleString('en-IN', {
+                                                            minimumFractionDigits: 2,
+                                                            maximumFractionDigits: 2,
+                                                        })}
                                                     </span>
                                                 </div>
                                             </div>
+                                        </div>
+                                        <div className="flex justify-between p-2 bg-gray-50 border-t border-gray-200 font-bold text-xs">
+                                            <span className="text-gray-800">Total Salary</span>
+                                            <span className="text-green-700 font-bold">
+                                                ₹ {totalSalary.toLocaleString('en-IN', {
+                                                    minimumFractionDigits: 2,
+                                                    maximumFractionDigits: 2,
+                                                })}
+                                            </span>
                                         </div>
                                     </div>
 

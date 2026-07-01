@@ -103,6 +103,32 @@ export default function Team() {
             console.log(err);
         }
     };
+    const saveTeamLog = async (
+    action: string,
+    description: string,
+    teamName: string
+) => {
+    try {
+        await api.post('/audit-logs', {
+            module: 'Team',
+            action,
+            description,
+            performedBy: user?.name || 'Admin',
+            performedByRole: user?.role || 'HR_ADMIN',
+            targetUser: teamName,
+            targetUserRole: 'Team',
+            dateTime: new Date().toLocaleString('en-IN', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+            }),
+        });
+    } catch (error) {
+        console.error('Failed to save team log:', error);
+    }
+};
     useEffect(() => {
         fetchTeams();
         fetchEmployees();
@@ -335,7 +361,11 @@ export default function Team() {
                                                 members: selectedEmployees,
                                                 managerId: selectedManager
                                             });
-                                        }
+                                        }await saveTeamLog(
+    'Created',
+    `Team "${newTeamName}" created`,
+    newTeamName
+);
                                         setNewTeamName('');
                                         setNewTeamDesc('');
                                     }
@@ -435,6 +465,11 @@ export default function Team() {
                                         name: editTeam.name,
                                         description: editTeam.description
                                     });
+                                    await saveTeamLog(
+    'Updated',
+    `Team "${editTeam.name}" updated`,
+    editTeam.name
+);
                                     fetchTeams();
                                     setEditTeam(null);
                                 }}
@@ -551,9 +586,18 @@ export default function Team() {
                             <button
                                 onClick={async () => {
                                     if (!confirmDelete) return;
-                                    await deleteTeam(confirmDelete);
-                                    fetchTeams();
-                                    setConfirmDelete(null);
+                                   const deletedTeam = teams.find(t => t.id === confirmDelete);
+
+await deleteTeam(confirmDelete);
+
+await saveTeamLog(
+    'Deleted',
+    `Team "${deletedTeam?.name || 'Team'}" deleted`,
+    deletedTeam?.name || 'Team'
+);
+
+fetchTeams();
+setConfirmDelete(null);
                                 }}
                                 className="flex-1 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold shadow-lg shadow-red-500/30 transition-all active:scale-95"
                             >

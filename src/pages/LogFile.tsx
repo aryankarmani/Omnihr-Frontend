@@ -71,6 +71,8 @@ const LogFile = () => {
   const [search, setSearch] = useState("");
   const [actionType, setActionType] = useState("All");
   const [status, setStatus] = useState("All");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   useEffect(() => {
     const fetchLogs = async () => {
       try {
@@ -110,11 +112,18 @@ const LogFile = () => {
       return matchesSearch && matchesAction && matchesStatus;
     });
   }, [logs, search, actionType, status]);
+  const totalPages = Math.ceil(filteredLogs.length / rowsPerPage);
+
+  const paginatedLogs = filteredLogs.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
+  );
 
   const resetFilters = () => {
     setSearch("");
     setActionType("All");
     setStatus("All");
+    setCurrentPage(1);
   };
 
   return (
@@ -137,20 +146,27 @@ const LogFile = () => {
             type="text"
             placeholder="Search logs"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 rounded-xl border border-white/10 bg-white/10 text-sm text-white placeholder:text-gray-400 outline-none focus:ring-2 focus:ring-brand-400" />
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }} className="w-full pl-10 pr-4 py-3 rounded-xl border border-white/10 bg-white/10 text-sm text-white placeholder:text-gray-400 outline-none focus:ring-2 focus:ring-brand-400" />
         </div>
 
         <div className="relative">
           <select
             value={actionType}
-            onChange={(e) => setActionType(e.target.value)}
-            className="w-full appearance-none px-5 pr-12 py-3 rounded-xl border border-brand-400/30 bg-brand-700 text-white text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-400 shadow-md"
+            onChange={(e) => {
+              setActionType(e.target.value);
+              setCurrentPage(1);
+            }} className="w-full appearance-none px-5 pr-12 py-3 rounded-xl border border-brand-400/30 bg-brand-800/80 text-white text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-400 shadow-md"
           >
+            <option className="bg-brand-900 text-white" value="All">Actions</option>
+
             <option className="bg-brand-900 text-white" value="Regularization">Regularization</option>
             <option className="bg-brand-900 text-white" value="Attendance">Attendance</option>
             <option className="bg-brand-900 text-white" value="Leave">Leave</option>
             <option className="bg-brand-900 text-white" value="Employee">Employee</option>
+            <option className="bg-brand-900 text-white" value="Team">Team</option>
             <option className="bg-brand-900 text-white" value="Salary">Salary</option>
             <option className="bg-brand-900 text-white" value="Signature">Signature</option>
             <option className="bg-brand-900 text-white" value="Department">Department</option>
@@ -165,14 +181,15 @@ const LogFile = () => {
         <div className="relative">
           <select
             value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            className="w-full appearance-none px-5 pr-12 py-3 rounded-xl border border-brand-500/40 bg-brand-800/80 text-white text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-400 shadow-md"
+            onChange={(e) => {
+              setStatus(e.target.value);
+              setCurrentPage(1);
+            }} className="w-full appearance-none px-5 pr-12 py-3 rounded-xl border border-brand-500/40 bg-brand-800/80 text-white text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-400 shadow-md"
           >
             <option className="bg-brand-900 text-white" value="All">Status</option>
             <option className="bg-brand-900 text-white" value="Approved">Approved</option>
             <option className="bg-brand-900 text-white" value="Rejected">Rejected</option>
             <option className="bg-brand-900 text-white" value="Updated">Updated</option>
-            <option className="bg-brand-900 text-white" value="Success">Success</option>
           </select>
 
           <ChevronDown
@@ -226,7 +243,7 @@ const LogFile = () => {
                   Loading logs...
                 </td>
               </tr>
-            ) : filteredLogs.length > 0 ? (filteredLogs.map((log) => (
+            ) : filteredLogs.length > 0 ? (paginatedLogs.map((log) => (
               <tr
                 key={log.id}
                 className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"           >
@@ -295,16 +312,65 @@ const LogFile = () => {
         </table>
       </div>
 
-        <div className="flex items-center justify-between px-5 py-4 text-sm text-gray-300">          <p>
-          Showing {filteredLogs.length} of {logs.length} entries        </p>
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-6 py-5 border-t border-gray-100 dark:border-white/5 bg-gray-50/40 dark:bg-white/[0.02]">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-bold text-gray-400 uppercase">
+              Rows per page
+            </span>
 
-          <div className="flex items-center gap-2">
-            <button className="px-3 py-2 rounded-lg border border-brand-500/30 bg-brand-600 text-white">              1
-            </button>
-            <select className="px-3 py-2 rounded-lg border border-brand-500/30 bg-brand-900 text-white">              <option>10 / page</option>
-              <option>20 / page</option>
-              <option>50 / page</option>
+            <select
+              value={rowsPerPage}
+              onChange={(e) => {
+                setRowsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="px-5 py-2 bg-brand-800 hover:bg-brand-900 border border-brand-700 rounded-xl text-white font-bold cursor-pointer outline-none"
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
             </select>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
+              Page {currentPage} of {totalPages || 1}
+            </span>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+                className="w-11 h-11 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
+              >
+                «
+              </button>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="w-11 h-11 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
+              >
+                ‹
+              </button>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="w-11 h-11 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
+              >
+                ›
+              </button>
+
+              <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="w-11 h-11 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
+              >
+                »
+              </button>
+            </div>
           </div>
         </div>
       </div>
