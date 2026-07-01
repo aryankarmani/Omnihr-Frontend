@@ -1,7 +1,11 @@
-import { useState } from 'react';
+import { useState,  useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import ChatWidget from '../components/ChatWidget';
+
+// ✅ Added for FCM push notification
+import { registerFcmToken } from '../services/pushNotificationService';
+import { listenToForegroundMessages } from '../firebase';
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -10,6 +14,12 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+    // ✅ Added: Register FCM token when user opens dashboard/layout
+    useEffect(() => {
+        registerFcmToken();
+        listenToForegroundMessages();
+    }, []);
 
     return (
         <div className="flex h-screen bg-brand-50 dark:bg-brand-950 overflow-hidden text-gray-900 dark:text-white transition-colors duration-300">

@@ -11,6 +11,7 @@ export default function Notifications() {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    
 
     const fetchNotifications = async () => {
         setLoading(true);
