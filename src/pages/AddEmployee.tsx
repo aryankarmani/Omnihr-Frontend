@@ -5,6 +5,23 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Check, ChevronRight, ChevronDown, Upload, FileText, User, CreditCard, Loader2, Trash2 } from 'lucide-react'; import toast from 'react-hot-toast';
 import api from '../utils/api';
 
+const parseRadioOptions = (optionsString: string | null | undefined): string[] => {
+    if (!optionsString) return ['Yes', 'No'];
+    if (optionsString.includes(',')) {
+        return optionsString.split(',').map(o => o.trim()).filter(Boolean);
+    }
+    if (optionsString.includes('/')) {
+        return optionsString.split('/').map(o => o.trim()).filter(Boolean);
+    }
+    if (optionsString.includes(';')) {
+        return optionsString.split(';').map(o => o.trim()).filter(Boolean);
+    }
+    if (optionsString.trim().includes(' ')) {
+        return optionsString.split(/\s+/).map(o => o.trim()).filter(Boolean);
+    }
+    return [optionsString.trim()];
+};
+
 export default function AddEmployee() {
     const navigate = useNavigate();
     const [currentStep, setCurrentStep] = useState(1);
@@ -242,6 +259,37 @@ export default function AddEmployee() {
                 newErrors.address = 'Enter address';
             }
 
+            // Custom fields validation
+            customFieldMasters.filter(cf => cf.category === 'PERSONAL_DETAILS').forEach(cf => {
+                const value = customFieldValues[cf.id];
+                const file = customFieldFiles[cf.id];
+                
+                if (cf.type === 'FILE') {
+                    if (!file) {
+                        newErrors[`customField-${cf.id}`] = 'Please upload a file';
+                    }
+                } else {
+                    if (!value || !value.trim()) {
+                        newErrors[`customField-${cf.id}`] = `${cf.name} is required`;
+                    } else if (cf.name.toLowerCase().includes('name')) {
+                        if (!/^[A-Za-z\s]+$/.test(value)) {
+                            newErrors[`customField-${cf.id}`] = 'Only letters and spaces are allowed';
+                        }
+                    } else if (cf.type === 'NUMBER') {
+                        if (!/^\d+$/.test(value)) {
+                            newErrors[`customField-${cf.id}`] = 'Only digits are allowed';
+                        } else if (value.length > 10) {
+                            newErrors[`customField-${cf.id}`] = 'Number must be up to 10 digits';
+                        }
+                    } else if (cf.type === 'EMAIL') {
+                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                        if (!emailRegex.test(value)) {
+                            newErrors[`customField-${cf.id}`] = 'Please enter a valid email address';
+                        }
+                    }
+                }
+            });
+
             setErrors(newErrors);
 
             if (Object.keys(newErrors).length > 0) {
@@ -319,6 +367,13 @@ export default function AddEmployee() {
         if (currentStep === 4) {
             if (!documents.aadhaar || !documents.pan || !documents.degree) {
                 toast.error('Please upload all required documents');
+                return;
+            }
+            const missingCustomDocs = customFieldMasters
+                .filter(cf => cf.category === 'DOCUMENT_VAULT')
+                .some(cf => !customFieldFiles[cf.id]);
+            if (missingCustomDocs) {
+                toast.error('Please upload all required custom documents');
                 return;
             }
         }
@@ -704,83 +759,108 @@ export default function AddEmployee() {
                                 <div className="md:col-span-2 border-t border-gray-100 dark:border-white/5 my-2 pt-4">
                                     <h4 className="text-[10px] font-black text-brand-600 dark:text-brand-400 uppercase tracking-widest">Additional Details</h4>
                                 </div>
-                            )}
-
-                            {customFieldMasters.filter(cf => cf.category === 'PERSONAL_DETAILS').map((cf) => {
+                            )}                            {customFieldMasters.filter(cf => cf.category === 'PERSONAL_DETAILS').map((cf) => {
                                 const fieldType = cf.type || 'TEXT';
+                                const hasError = !!errors[`customField-${cf.id}`];
                                 
                                 return (
                                     <div key={cf.id} className="space-y-2">
                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">{cf.name}</label>
                                         {fieldType === 'RADIO' ? (
-                                            <div className="w-full flex gap-6 items-center px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl h-[46px]">
-                                                <label className="flex items-center gap-1.5 cursor-pointer">
-                                                    <input
-                                                        type="radio"
-                                                        name={`radio-${cf.id}`}
-                                                        value="Yes"
-                                                        checked={customFieldValues[cf.id] === 'Yes'}
-                                                        onChange={() => setCustomFieldValues(prev => ({ ...prev, [cf.id]: 'Yes' }))}
-                                                        className="w-4 h-4 text-brand-600 focus:ring-brand-500 accent-brand-600"
-                                                    />
-                                                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Yes</span>
-                                                </label>
-                                                <label className="flex items-center gap-1.5 cursor-pointer">
-                                                    <input
-                                                        type="radio"
-                                                        name={`radio-${cf.id}`}
-                                                        value="No"
-                                                        checked={customFieldValues[cf.id] === 'No'}
-                                                        onChange={() => setCustomFieldValues(prev => ({ ...prev, [cf.id]: 'No' }))}
-                                                        className="w-4 h-4 text-brand-600 focus:ring-brand-500 accent-brand-600"
-                                                    />
-                                                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">No</span>
-                                                </label>
-                                            </div>
+                                            <>
+                                                <div className={`w-full flex gap-6 items-center px-4 py-3 bg-gray-50 dark:bg-white/5 border ${hasError ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-2xl h-[46px]`}>
+                                                    {parseRadioOptions(cf.options).map((option: string) => (
+                                                        <label key={option} className="flex items-center gap-1.5 cursor-pointer">
+                                                            <input
+                                                                type="radio"
+                                                                name={`radio-${cf.id}`}
+                                                                value={option}
+                                                                checked={customFieldValues[cf.id] === option}
+                                                                onChange={() => {
+                                                                    setCustomFieldValues(prev => ({ ...prev, [cf.id]: option }));
+                                                                    if (errors[`customField-${cf.id}`]) {
+                                                                        setErrors((prev: any) => ({ ...prev, [`customField-${cf.id}`]: '' }));
+                                                                    }
+                                                                }}
+                                                                className="w-4 h-4 text-brand-600 focus:ring-brand-500 accent-brand-600"
+                                                            />
+                                                            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{option}</span>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                                {hasError && (
+                                                    <p className="text-red-500 text-xs mt-1 ml-1">
+                                                        {errors[`customField-${cf.id}`]}
+                                                    </p>
+                                                )}
+                                            </>
                                         ) : fieldType === 'FILE' ? (
-                                            <div className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl h-[46px]">
-                                                <span className="text-xs text-gray-500 truncate max-w-[180px]">
-                                                    {customFieldFiles[cf.id] ? customFieldFiles[cf.id]?.name : 'No file chosen'}
-                                                </span>
-                                                <div className="flex items-center gap-2">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => document.getElementById(`cf-file-input-${cf.id}`)?.click()}
-                                                        className="px-3 py-1 bg-brand-600 text-white rounded-lg text-xs font-semibold hover:bg-brand-700 transition-colors cursor-pointer"
-                                                    >
-                                                        Choose File
-                                                    </button>
-                                                    {customFieldFiles[cf.id] && (
+                                             <>
+                                                <div className={`w-full flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-white/5 border ${hasError ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-2xl h-[46px]`}>
+                                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate max-w-[220px]">
+                                                        {customFieldFiles[cf.id] ? customFieldFiles[cf.id]?.name : 'No file chosen'}
+                                                    </span>
+                                                    <div className="flex items-center gap-2">
                                                         <button
                                                             type="button"
-                                                            onClick={() => setCustomFieldFiles(prev => ({ ...prev, [cf.id]: null }))}
-                                                            className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
+                                                            onClick={() => document.getElementById(`cf-file-input-${cf.id}`)?.click()}
+                                                            className="px-4 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
                                                         >
-                                                            <Trash2 size={16} />
+                                                            Choose File
                                                         </button>
-                                                    )}
+                                                        {customFieldFiles[cf.id] && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setConfirmDeleteDoc(cf.id)}
+                                                                className="p-1.5 text-red-500 hover:bg-red-55 dark:hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    <input
+                                                        id={`cf-file-input-${cf.id}`}
+                                                        type="file"
+                                                        className="hidden"
+                                                        accept=".pdf,image/*"
+                                                        onChange={(e) => {
+                                                            const file = e.target.files?.[0];
+                                                            if (file) {
+                                                                setCustomFieldFiles(prev => ({ ...prev, [cf.id]: file }));
+                                                                if (errors[`customField-${cf.id}`]) {
+                                                                    setErrors((prev: any) => ({ ...prev, [`customField-${cf.id}`]: '' }));
+                                                                }
+                                                            }
+                                                        }}
+                                                    />
                                                 </div>
+                                                {hasError && (
+                                                    <p className="text-red-500 text-xs mt-1 ml-1">
+                                                        {errors[`customField-${cf.id}`]}
+                                                    </p>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <>
                                                 <input
-                                                    id={`cf-file-input-${cf.id}`}
-                                                    type="file"
-                                                    className="hidden"
-                                                    accept=".pdf,image/*"
+                                                    type={fieldType === 'PASSWORD' ? 'password' : fieldType === 'NUMBER' ? 'text' : fieldType === 'EMAIL' ? 'email' : 'text'}
+                                                    autoComplete="new-password"
+                                                    value={customFieldValues[cf.id] || ''}
                                                     onChange={(e) => {
-                                                        const file = e.target.files?.[0];
-                                                        if (file) {
-                                                            setCustomFieldFiles(prev => ({ ...prev, [cf.id]: file }));
+                                                        setCustomFieldValues(prev => ({ ...prev, [cf.id]: e.target.value }));
+                                                        if (errors[`customField-${cf.id}`]) {
+                                                            setErrors((prev: any) => ({ ...prev, [`customField-${cf.id}`]: '' }));
                                                         }
                                                     }}
+                                                    className={`w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border ${hasError ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400`}
+                                                    placeholder={`Enter ${cf.name.toLowerCase()}`}
                                                 />
-                                            </div>
-                                        ) : (
-                                            <input
-                                                type={fieldType === 'PASSWORD' ? 'password' : fieldType === 'NUMBER' ? 'number' : fieldType === 'EMAIL' ? 'email' : 'text'}
-                                                value={customFieldValues[cf.id] || ''}
-                                                onChange={(e) => setCustomFieldValues(prev => ({ ...prev, [cf.id]: e.target.value }))}
-                                                className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all"
-                                                placeholder={`Enter ${cf.name.toLowerCase()}`}
-                                            />
+                                                {hasError && (
+                                                    <p className="text-red-500 text-xs mt-1 ml-1">
+                                                        {errors[`customField-${cf.id}`]}
+                                                    </p>
+                                                )}
+                                            </>
                                         )}
                                     </div>
                                 );
@@ -1142,7 +1222,7 @@ export default function AddEmployee() {
                                     ...customFieldMasters.filter(cf => cf.category === 'DOCUMENT_VAULT').map(cf => ({
                                         key: cf.id,
                                         name: cf.name,
-                                        required: false,
+                                        required: true,
                                         isCustom: true,
                                         type: cf.type || 'FILE'
                                     }))
