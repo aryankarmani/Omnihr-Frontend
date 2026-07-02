@@ -9,6 +9,23 @@ import { jsPDF } from 'jspdf';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 
+const parseRadioOptions = (optionsString: string | null | undefined): string[] => {
+    if (!optionsString) return ['Yes', 'No'];
+    if (optionsString.includes(',')) {
+        return optionsString.split(',').map(o => o.trim()).filter(Boolean);
+    }
+    if (optionsString.includes('/')) {
+        return optionsString.split('/').map(o => o.trim()).filter(Boolean);
+    }
+    if (optionsString.includes(';')) {
+        return optionsString.split(';').map(o => o.trim()).filter(Boolean);
+    }
+    if (optionsString.trim().includes(' ')) {
+        return optionsString.split(/\s+/).map(o => o.trim()).filter(Boolean);
+    }
+    return [optionsString.trim()];
+};
+
 export default function EmployeeProfile() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -52,6 +69,7 @@ export default function EmployeeProfile() {
     };
 
     const [customFields, setCustomFields] = useState<any[]>([]);
+    const [customFieldDocToDelete, setCustomFieldDocToDelete] = useState<string | null>(null);
 
     const fetchCustomFields = async () => {
         try {
@@ -96,6 +114,11 @@ export default function EmployeeProfile() {
             });
             toast.success("Document uploaded successfully!", { id: 'custom-uploading-toast' });
             fetchCustomFields();
+            setErrors(prev => {
+                const copy = { ...prev };
+                delete copy[`customField-${fieldId}`];
+                return copy;
+            });
         } catch (error) {
             console.error("Upload failed", error);
             toast.error("Failed to upload document", { id: 'custom-uploading-toast' });
@@ -312,6 +335,43 @@ export default function EmployeeProfile() {
             newErrors.basic = "Basic salary is required";
         }
 
+        // Custom fields validation
+        customFields.forEach((cf: any) => {
+            const value = cf.value;
+            const hasFile = !!cf.documentUrl;
+            const category = cf.field?.category;
+            
+            if (category === 'DOCUMENT_VAULT') {
+                if (!hasFile) {
+                    newErrors[`customField-${cf.fieldId}`] = `${cf.field?.name} is required`;
+                }
+            } else if (category === 'PERSONAL_DETAILS') {
+                if (cf.field?.type === 'FILE') {
+                    if (!hasFile) {
+                        newErrors[`customField-${cf.fieldId}`] = 'Please upload a file';
+                    }
+                } else {
+                    if (!value || !value.trim()) {
+                        newErrors[`customField-${cf.fieldId}`] = `${cf.field?.name} is required`;
+                    } else if (cf.field?.name?.toLowerCase().includes('name')) {
+                        if (!/^[A-Za-z\s]+$/.test(value)) {
+                            newErrors[`customField-${cf.fieldId}`] = 'Only letters and spaces are allowed';
+                        }
+                    } else if (cf.field?.type === 'NUMBER') {
+                        if (!/^\d+$/.test(value)) {
+                            newErrors[`customField-${cf.fieldId}`] = 'Only digits are allowed';
+                        } else if (value.length > 10) {
+                            newErrors[`customField-${cf.fieldId}`] = 'Number must be up to 10 digits';
+                        }
+                    } else if (cf.field?.type === 'EMAIL') {
+                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                        if (!emailRegex.test(value)) {
+                            newErrors[`customField-${cf.fieldId}`] = 'Please enter a valid email address';
+                        }
+                    }
+                }
+            }
+        });
 
         setErrors(newErrors);
 
@@ -330,7 +390,8 @@ export default function EmployeeProfile() {
         if (Object.keys(newErrors).length > 0) {
             const hasSalaryError = salaryFields.some(field => newErrors[field]);
             const hasStatutoryError = statutoryFields.some(field => newErrors[field]);
-            const hasPersonalError = personalFields.some(field => newErrors[field]);
+            const hasPersonalError = personalFields.some(field => newErrors[field]) || Object.keys(newErrors).some(k => k.startsWith('customField-') && customFields.find((item: any) => item.fieldId === k.replace('customField-', ''))?.field?.category === 'PERSONAL_DETAILS');
+            const hasDocumentError = Object.keys(newErrors).some(k => k.startsWith('customField-') && customFields.find((item: any) => item.fieldId === k.replace('customField-', ''))?.field?.category === 'DOCUMENT_VAULT');
 
             if (hasSalaryError) {
                 toast.error("Please fix validations in Salary Info");
@@ -346,6 +407,10 @@ export default function EmployeeProfile() {
             else if (hasPersonalError) {
                 toast.error("Please fix validations in Personal Details");
                 setActiveTab("personal");
+            }
+            else if (hasDocumentError) {
+                toast.error("Please upload all required documents in Document Vault");
+                setActiveTab("documents");
             }
 
             return false;
@@ -982,10 +1047,11 @@ export default function EmployeeProfile() {
 
                                 ].map((doc) => {
                                     const savedDoc = profile.documents?.find((d: any) => d.name === doc.name);
+                                    const hasError = !!errors[`doc-${doc.key}`];
                                     return (
                                         <div
                                             key={doc.name}
-                                            className="flex items-center justify-between p-4 rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 transition-all"
+                                            className={`flex items-center justify-between p-4 rounded-2xl border ${hasError ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} bg-gray-50 dark:bg-white/5 transition-all`}
                                         >
                                             <div className="flex items-center gap-3">
                                                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${savedDoc
@@ -1003,6 +1069,7 @@ export default function EmployeeProfile() {
                                                     <p className={`text-sm ${savedDoc ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`}>
                                                         {savedDoc ? (savedDoc.originalName || 'Document uploaded') : 'No document uploaded'}
                                                     </p>
+                                                    {hasError && <p className="text-red-500 text-xs mt-0.5">{errors[`doc-${doc.key}`]}</p>}
                                                 </div>
                                             </div>
 
@@ -1071,10 +1138,11 @@ export default function EmployeeProfile() {
                                 {/* Dynamic Custom Documents */}
                                 {customFields.filter((cf: any) => cf.field?.category === 'DOCUMENT_VAULT').map((cf: any) => {
                                     const hasFile = !!cf.documentUrl;
+                                    const hasError = !!errors[`customField-${cf.fieldId}`];
                                     return (
                                         <div
                                             key={cf.id}
-                                            className="flex items-center justify-between p-4 rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 transition-all"
+                                            className={`flex items-center justify-between p-4 rounded-2xl border ${hasError ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} bg-gray-50 dark:bg-white/5 transition-all`}
                                         >
                                             <div className="flex items-center gap-3">
                                                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${hasFile
@@ -1086,12 +1154,15 @@ export default function EmployeeProfile() {
 
                                                 <div>
                                                     <p className="font-bold text-base text-gray-800 dark:text-white">
-                                                        {cf.field?.name}
+                                                        {cf.field?.name} <span className="text-red-500">*</span>
                                                     </p>
 
                                                     <p className={`text-sm ${hasFile ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`}>
                                                         {hasFile ? (cf.documentName || 'Document uploaded') : 'No document uploaded'}
                                                     </p>
+                                                    {hasError && (
+                                                        <p className="text-red-500 text-xs mt-0.5">{errors[`customField-${cf.fieldId}`]}</p>
+                                                    )}
                                                 </div>
                                             </div>
 
@@ -1132,7 +1203,7 @@ export default function EmployeeProfile() {
                                                         onClick={(e) => {
                                                             e.preventDefault();
                                                             e.stopPropagation();
-                                                            handleCustomFileDelete(cf.fieldId);
+                                                            setCustomFieldDocToDelete(cf.fieldId);
                                                         }}
                                                         className="w-10 h-10 rounded-full flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white cursor-pointer ml-1"
                                                     >
@@ -1537,112 +1608,121 @@ export default function EmployeeProfile() {
                                             <label className="text-xs font-bold text-gray-400 uppercase">{cf.field?.name}</label>
                                             {isEditing ? (
                                                 fieldType === 'RADIO' ? (
-                                                    <div className="w-full flex gap-6 items-center px-4 py-2 bg-gray-55 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg h-[38px] mt-1">
-                                                        <label className="flex items-center gap-1.5 cursor-pointer">
-                                                            <input
-                                                                type="radio"
-                                                                name={`radio-${cf.id}`}
-                                                                value="Yes"
-                                                                checked={cf.value === 'Yes'}
-                                                                onChange={() => {
-                                                                    const updated = customFields.map((item: any) => {
-                                                                        if (item.id === cf.id) {
-                                                                            return { ...item, value: 'Yes' };
-                                                                        }
-                                                                        return item;
-                                                                    });
-                                                                    setCustomFields(updated);
-                                                                }}
-                                                                className="w-4 h-4 text-brand-600 focus:ring-brand-500 accent-brand-600"
-                                                            />
-                                                            <span className="text-sm font-semibold text-gray-750 dark:text-gray-300">Yes</span>
-                                                        </label>
-                                                        <label className="flex items-center gap-1.5 cursor-pointer">
-                                                            <input
-                                                                type="radio"
-                                                                name={`radio-${cf.id}`}
-                                                                value="No"
-                                                                checked={cf.value === 'No'}
-                                                                onChange={() => {
-                                                                    const updated = customFields.map((item: any) => {
-                                                                        if (item.id === cf.id) {
-                                                                            return { ...item, value: 'No' };
-                                                                        }
-                                                                        return item;
-                                                                    });
-                                                                    setCustomFields(updated);
-                                                                }}
-                                                                className="w-4 h-4 text-brand-600 focus:ring-brand-500 accent-brand-600"
-                                                            />
-                                                            <span className="text-sm font-semibold text-gray-700 dark:text-gray-350">No</span>
-                                                        </label>
-                                                    </div>
-                                                ) : fieldType === 'FILE' ? (
-                                                    <div className="flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 transition-all mt-1">
-                                                        <span className="text-xs text-gray-500 truncate max-w-[180px]">
-                                                            {hasFile ? (cf.documentName || 'Document uploaded') : 'No file uploaded'}
-                                                        </span>
-                                                        <div className="flex items-center gap-2">
-                                                            {!hasFile ? (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => document.getElementById(`custom-file-input-personal-${cf.id}`)?.click()}
-                                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white font-bold text-[10px] rounded-lg shadow-sm transition-all cursor-pointer"
-                                                                >
-                                                                    <Upload size={12} /> Upload
-                                                                </button>
-                                                            ) : (
-                                                                <>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={(e) => {
-                                                                            e.preventDefault();
-                                                                            if (cf.documentUrl) {
-                                                                                const baseUrl = 'http://localhost:3001';
-                                                                                const fullUrl = cf.documentUrl.startsWith('http') ? cf.documentUrl : `/uploads/${cf.documentUrl}`;
-                                                                                window.open(fullUrl.startsWith('http') ? fullUrl : `${baseUrl}${fullUrl}`, '_blank');
+                                                    <div className="space-y-1">
+                                                        <div className={`w-full flex gap-6 items-center px-4 py-2 bg-gray-50 dark:bg-white/5 border ${errors[`customField-${cf.fieldId}`] ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg h-[38px] mt-1`}>
+                                                            {parseRadioOptions(cf.field?.options).map((option: string) => (
+                                                                <label key={option} className="flex items-center gap-1.5 cursor-pointer">
+                                                                    <input
+                                                                        type="radio"
+                                                                        name={`radio-${cf.id}`}
+                                                                        value={option}
+                                                                        checked={cf.value === option}
+                                                                        onChange={() => {
+                                                                            const updated = customFields.map((item: any) => {
+                                                                                if (item.id === cf.id) {
+                                                                                    return { ...item, value: option };
+                                                                                }
+                                                                                return item;
+                                                                            });
+                                                                            setCustomFields(updated);
+                                                                            if (errors[`customField-${cf.fieldId}`]) {
+                                                                                setErrors(prev => ({ ...prev, [`customField-${cf.fieldId}`]: '' }));
                                                                             }
                                                                         }}
-                                                                        className="w-8 h-8 rounded-lg flex items-center justify-center bg-brand-500/10 text-brand-500 hover:bg-brand-500 hover:text-white cursor-pointer"
-                                                                    >
-                                                                        <Eye size={14} />
-                                                                    </button>
+                                                                        className="w-4 h-4 text-brand-600 focus:ring-brand-500 accent-brand-600"
+                                                                    />
+                                                                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{option}</span>
+                                                                </label>
+                                                            ))}
+                                                        </div>
+                                                        {errors[`customField-${cf.fieldId}`] && (
+                                                            <p className="text-red-500 text-xs mt-1 ml-1">{errors[`customField-${cf.fieldId}`]}</p>
+                                                        )}
+                                                    </div>
+                                                ) : fieldType === 'FILE' ? (
+                                                    <div className="space-y-1">
+                                                        <div className={`flex items-center justify-between px-3 py-1.5 rounded-lg border ${errors[`customField-${cf.fieldId}`] ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} bg-gray-50 dark:bg-white/5 transition-all mt-1 h-[38px]`}>
+                                                            <span className="text-xs text-gray-500 truncate max-w-[180px]">
+                                                                {hasFile ? (cf.documentName || 'Document uploaded') : 'No file uploaded'}
+                                                            </span>
+                                                            <div className="flex items-center gap-2">
+                                                                {!hasFile ? (
                                                                     <button
                                                                         type="button"
-                                                                        onClick={(e) => {
-                                                                            e.preventDefault();
-                                                                            handleCustomFileDelete(cf.fieldId);
-                                                                        }}
-                                                                        className="w-8 h-8 rounded-lg flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white cursor-pointer"
+                                                                        onClick={() => document.getElementById(`custom-file-input-personal-${cf.id}`)?.click()}
+                                                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white font-bold text-[10px] rounded-lg shadow-sm transition-all cursor-pointer"
                                                                     >
-                                                                        <Trash2 size={14} />
+                                                                        <Upload size={12} /> Upload
                                                                     </button>
-                                                                </>
-                                                            )}
+                                                                ) : (
+                                                                    <>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => {
+                                                                                e.preventDefault();
+                                                                                if (cf.documentUrl) {
+                                                                                    const baseUrl = 'http://localhost:3001';
+                                                                                    const fullUrl = cf.documentUrl.startsWith('http') ? cf.documentUrl : `/uploads/${cf.documentUrl}`;
+                                                                                    window.open(fullUrl.startsWith('http') ? fullUrl : `${baseUrl}${fullUrl}`, '_blank');
+                                                                                }
+                                                                            }}
+                                                                            className="w-8 h-8 rounded-lg flex items-center justify-center bg-brand-500/10 text-brand-500 hover:bg-brand-500 hover:text-white cursor-pointer"
+                                                                        >
+                                                                            <Eye size={14} />
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => {
+                                                                                e.preventDefault();
+                                                                                setCustomFieldDocToDelete(cf.fieldId);
+                                                                            }}
+                                                                            className="w-8 h-8 rounded-lg flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white cursor-pointer"
+                                                                        >
+                                                                            <Trash2 size={14} />
+                                                                        </button>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                            <input
+                                                                id={`custom-file-input-personal-${cf.id}`}
+                                                                type="file"
+                                                                className="hidden"
+                                                                accept={cf.field?.type === 'PDF' ? '.pdf' : cf.field?.type === 'IMAGE' ? 'image/*' : '.pdf,image/*'}
+                                                                onChange={(e) => {
+                                                                    handleCustomFileUpload(e, cf.fieldId);
+                                                                    if (errors[`customField-${cf.fieldId}`]) {
+                                                                        setErrors(prev => ({ ...prev, [`customField-${cf.fieldId}`]: '' }));
+                                                                    }
+                                                                }}
+                                                            />
                                                         </div>
-                                                        <input
-                                                            id={`custom-file-input-personal-${cf.id}`}
-                                                            type="file"
-                                                            className="hidden"
-                                                            accept={cf.field?.type === 'PDF' ? '.pdf' : cf.field?.type === 'IMAGE' ? 'image/*' : '.pdf,image/*'}
-                                                            onChange={(e) => handleCustomFileUpload(e, cf.fieldId)}
-                                                        />
+                                                        {errors[`customField-${cf.fieldId}`] && (
+                                                            <p className="text-red-500 text-xs mt-1 ml-1">{errors[`customField-${cf.fieldId}`]}</p>
+                                                        )}
                                                     </div>
                                                 ) : (
-                                                    <input
-                                                        type={fieldType.toLowerCase()}
-                                                        value={cf.value || ''}
-                                                        onChange={(e) => {
-                                                            const updated = customFields.map((item: any) => {
-                                                                if (item.id === cf.id) {
-                                                                    return { ...item, value: e.target.value };
+                                                    <div className="space-y-1">
+                                                        <input
+                                                            type={fieldType === 'PASSWORD' ? 'password' : fieldType === 'NUMBER' ? 'text' : fieldType === 'EMAIL' ? 'email' : 'text'}
+                                                            value={cf.value || ''}
+                                                            onChange={(e) => {
+                                                                const updated = customFields.map((item: any) => {
+                                                                    if (item.id === cf.id) {
+                                                                        return { ...item, value: e.target.value };
+                                                                    }
+                                                                    return item;
+                                                                });
+                                                                setCustomFields(updated);
+                                                                if (errors[`customField-${cf.fieldId}`]) {
+                                                                    setErrors(prev => ({ ...prev, [`customField-${cf.fieldId}`]: '' }));
                                                                 }
-                                                                return item;
-                                                            });
-                                                            setCustomFields(updated);
-                                                        }}
-                                                        className="w-full px-3 py-2 bg-gray-55 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-800 dark:text-white mt-1"
-                                                    />
+                                                            }}
+                                                            className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors[`customField-${cf.fieldId}`] ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-800 dark:text-white mt-1`}
+                                                        />
+                                                        {errors[`customField-${cf.fieldId}`] && (
+                                                            <p className="text-red-500 text-xs mt-1 ml-1">{errors[`customField-${cf.fieldId}`]}</p>
+                                                        )}
+                                                    </div>
                                                 )
                                             ) : (
                                                 fieldType === 'PASSWORD' ? (
@@ -2667,6 +2747,41 @@ export default function EmployeeProfile() {
                                 </button>
                                 <button
                                     onClick={() => setDocToDelete(null)}
+                                    className="w-full py-3.5 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 font-bold rounded-2xl hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+            {/* Custom Field Document Deletion Confirmation */}
+            {customFieldDocToDelete !== null && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setCustomFieldDocToDelete(null)} />
+                    <div className="relative bg-white dark:bg-brand-950 w-full max-w-sm rounded-[2rem] shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden animate-scale-in">
+                        <div className="p-8 text-center">
+                            <div className="w-16 h-16 bg-red-50 dark:bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <X size={32} />
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Delete Custom Document?</h3>
+                            <p className="text-gray-500 dark:text-gray-400 text-sm mb-8 leading-relaxed">
+                                Are you sure you want to delete this custom document? This action cannot be undone.
+                            </p>
+                            <div className="flex flex-col gap-3">
+                                <button
+                                    onClick={async () => {
+                                        await handleCustomFileDelete(customFieldDocToDelete);
+                                        setCustomFieldDocToDelete(null);
+                                    }}
+                                    className="w-full py-3.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-red-600/20"
+                                >
+                                    Yes, Delete
+                                </button>
+                                <button
+                                    onClick={() => setCustomFieldDocToDelete(null)}
                                     className="w-full py-3.5 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 font-bold rounded-2xl hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
                                 >
                                     Cancel
