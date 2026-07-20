@@ -41,6 +41,8 @@ export default function EmployeeProfile() {
     const [showIDCard, setShowIDCard] = useState(false);
     const [loading, setLoading] = useState(true);
     const [docToDelete, setDocToDelete] = useState<number | null>(null);
+    const [showProfilePictureDeleteModal, setShowProfilePictureDeleteModal] =
+        useState(false);
     const [companySignature, setCompanySignature] = useState<string | null>(null);
     const [salaryComponents, setSalaryComponents] = useState<any[]>([]);
     const [componentPickerType, setComponentPickerType] = useState<'EARNING' | 'DEDUCTION' | null>(null);
@@ -51,6 +53,8 @@ export default function EmployeeProfile() {
     const [designations, setDesignations] = useState<any[]>([]);
     const [departments, setDepartments] = useState<any[]>([]);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const [newProfilePicture, setNewProfilePicture] = useState<File | null>(null);
+    const [newProfilePicturePreview, setNewProfilePicturePreview] = useState<string | null>(null);
 
     const fetchEmployee = async () => {
         try {
@@ -279,6 +283,10 @@ export default function EmployeeProfile() {
     const handleCancel = () => {
         fetchEmployee();
         fetchCustomFields();
+
+        setNewProfilePicture(null);
+        setNewProfilePicturePreview(null);
+
         setIsEditing(false);
     };
 
@@ -355,46 +363,41 @@ export default function EmployeeProfile() {
         if (s.basic === "" || s.basic == null) {
             newErrors.basic = "Basic salary is required";
         }
+        const requiredDocuments = [
+            { key: 'aadhaar', name: 'Aadhaar Card' },
+            { key: 'pan', name: 'PAN Card' },
+            { key: 'degree', name: 'Highest Qualification Degree' },
+        ];
 
-        // Custom fields validation
-        customFields.forEach((cf: any) => {
-            const value = cf.value;
-            const hasFile = !!cf.documentUrl;
-            const category = cf.field?.category;
-            
-            if (category === 'DOCUMENT_VAULT') {
-                if (!hasFile) {
-                    newErrors[`customField-${cf.fieldId}`] = `${cf.field?.name} is required`;
-                }
-            } else if (category === 'PERSONAL_DETAILS') {
-                if (cf.field?.type === 'FILE') {
-                    if (!hasFile) {
-                        newErrors[`customField-${cf.fieldId}`] = 'Please upload a file';
-                    }
-                } else {
-                    if (!value || !value.trim()) {
-                        newErrors[`customField-${cf.fieldId}`] = `${cf.field?.name} is required`;
-                    } else if (cf.field?.name?.toLowerCase().includes('name')) {
-                        if (!/^[A-Za-z\s]+$/.test(value)) {
-                            newErrors[`customField-${cf.fieldId}`] = 'Only letters and spaces are allowed';
-                        }
-                    } else if (cf.field?.type === 'NUMBER') {
-                        if (!/^\d+$/.test(value)) {
-                            newErrors[`customField-${cf.fieldId}`] = 'Only digits are allowed';
-                        } else if (value.length > 10) {
-                            newErrors[`customField-${cf.fieldId}`] = 'Number must be up to 10 digits';
-                        }
-                    } else if (cf.field?.type === 'EMAIL') {
-                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                        if (!emailRegex.test(value)) {
-                            newErrors[`customField-${cf.fieldId}`] = 'Please enter a valid email address';
-                        }
-                    }
-                }
+        const uploadedDocuments =
+            employee?.employeeProfile?.documents || [];
+
+        requiredDocuments.forEach((doc) => {
+            const isUploaded = uploadedDocuments.some(
+                (uploadedDoc: any) =>
+                    uploadedDoc.name === doc.name && uploadedDoc.url
+            );
+
+            if (!isUploaded) {
+                newErrors[`document_${doc.key}`] =
+                    `${doc.name} is required`;
             }
         });
 
+
         setErrors(newErrors);
+        const hasProfilePicture =
+            newProfilePicture ||
+            pd.avatar ||
+            pd.profilePicture ||
+            pd.profilePictureUrl ||
+            employee.avatar ||
+            employee.profilePicture ||
+            employee.profilePictureUrl;
+
+        if (!hasProfilePicture) {
+            newErrors.profilePicture = "Profile picture is required";
+        }
 
         const salaryFields = ["basic"];
         const statutoryFields = [
@@ -411,10 +414,17 @@ export default function EmployeeProfile() {
         if (Object.keys(newErrors).length > 0) {
             const hasSalaryError = salaryFields.some(field => newErrors[field]);
             const hasStatutoryError = statutoryFields.some(field => newErrors[field]);
-            const hasPersonalError = personalFields.some(field => newErrors[field]) || Object.keys(newErrors).some(k => k.startsWith('customField-') && customFields.find((item: any) => item.fieldId === k.replace('customField-', ''))?.field?.category === 'PERSONAL_DETAILS');
-            const hasDocumentError = Object.keys(newErrors).some(k => k.startsWith('customField-') && customFields.find((item: any) => item.fieldId === k.replace('customField-', ''))?.field?.category === 'DOCUMENT_VAULT');
+            const hasPersonalError = personalFields.some(field => newErrors[field]);
+            const hasDocumentError = Object.keys(newErrors).some(
+                (key) =>
+                    key.startsWith('document_') ||
+                    key === 'profilePicture'
+            );
 
-            if (hasSalaryError) {
+            if (hasDocumentError) {
+                toast.error("Please upload all required documents");
+                setActiveTab("documents");
+            } else if (hasSalaryError) {
                 toast.error("Please fix validations in Salary Info");
                 setActiveTab("salary");
             } else if (hasStatutoryError) {
@@ -484,6 +494,26 @@ export default function EmployeeProfile() {
 
             const endpoint = id ? `/employee/${id}` : '/employee/me';
             await api.put(endpoint, profileData);
+            if (newProfilePicture) {
+                const pictureFormData = new FormData();
+
+                pictureFormData.append(
+                    'profilePicture',
+                    newProfilePicture
+                );
+
+                await api.put(
+                    id
+                        ? `/employee/${id}/profile-picture`
+                        : '/employee/me/profile-picture',
+                    pictureFormData
+                );
+            }
+
+            await fetchEmployee();
+
+            setNewProfilePicture(null);
+            setNewProfilePicturePreview(null);
 
             // Save personal custom fields values
             const personalCustomFields = customFields.filter((cf: any) => cf.field?.category === 'PERSONAL_DETAILS');
@@ -619,7 +649,74 @@ export default function EmployeeProfile() {
             };
         });
     };
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, docName: string) => {
+    const handleProfilePictureDelete = async () => {
+
+
+        // Remove a newly selected picture that is not saved yet
+        if (newProfilePicture || newProfilePicturePreview) {
+            if (newProfilePicturePreview) {
+                URL.revokeObjectURL(newProfilePicturePreview);
+            }
+
+            setNewProfilePicture(null);
+            setNewProfilePicturePreview(null);
+            toast.success('Selected profile picture removed');
+            setShowProfilePictureDeleteModal(false);
+            return;
+        }
+
+        try {
+            await api.delete(
+                id
+                    ? `/employee/${id}/profile-picture`
+                    : '/employee/me/profile-picture'
+            );
+
+            await fetchEmployee();
+            toast.success('Profile picture deleted successfully');
+            setShowProfilePictureDeleteModal(false);
+        } catch (error) {
+            console.error('Profile picture delete failed:', error);
+            toast.error('Failed to delete profile picture');
+        }
+    };
+    const handleProfilePictureChange = (
+        e: React.ChangeEvent<HTMLInputElement>
+    ) => {
+        const file = e.target.files?.[0];
+
+        if (!file) return;
+
+        if (!['image/jpeg', 'image/png'].includes(file.type)) {
+            toast.error('Only JPG, JPEG and PNG images are allowed');
+            e.target.value = '';
+            return;
+        }
+
+        if (file.size > 2 * 1024 * 1024) {
+            toast.error('Profile picture must be less than 2MB');
+            e.target.value = '';
+            return;
+        }
+
+        if (newProfilePicturePreview) {
+            URL.revokeObjectURL(newProfilePicturePreview);
+        }
+
+        setNewProfilePicture(file);
+        setNewProfilePicturePreview(URL.createObjectURL(file));
+
+        setErrors((prev) => ({
+            ...prev,
+            profilePicture: '',
+        }));
+        e.target.value = '';
+    };
+    const handleFileUpload = async (
+        e: React.ChangeEvent<HTMLInputElement>,
+        docName: string,
+        docKey: string
+    ) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
@@ -660,6 +757,10 @@ export default function EmployeeProfile() {
                 }
             });
             toast.success(`${docName} uploaded successfully!`, { id: 'uploading-toast' });
+            setErrors((prev) => ({
+                ...prev,
+                [`document_${docKey}`]: '',
+            }));
             fetchEmployee();
         } catch (error) {
             console.error("Upload failed", error);
@@ -689,6 +790,54 @@ export default function EmployeeProfile() {
     const profile = employee.employeeProfile || {};
     const statutory = profile.statutory || {};
     const bank = profile.bank || {};
+    const API_BASE_URL = 'http://localhost:3001';
+
+    const buildProfilePictureUrl = (value?: string | null) => {
+        if (!value || typeof value !== 'string') {
+            return null;
+        }
+
+        // Ignore old Tailwind avatar colour values
+        if (value.startsWith('bg-')) {
+            return null;
+        }
+
+        // Already a complete URL
+        if (/^https?:\/\//i.test(value)) {
+            return value;
+        }
+
+        const normalizedPath = value
+            .replace(/\\/g, '/')
+            .replace(/^\/+/, '');
+
+        // Example: uploads/profile-pictures/photo.jpg
+        if (normalizedPath.startsWith('uploads/')) {
+            return `${API_BASE_URL}/${normalizedPath}`;
+        }
+
+        // Example: profile-pictures/photo.jpg or photo.jpg
+        return `${API_BASE_URL}/uploads/${normalizedPath}`;
+    };
+
+    const rawProfilePicture =
+        profile.avatar ||
+        profile.profilePicture ||
+        profile.profilePictureUrl ||
+        employee.avatar ||
+        employee.profilePicture ||
+        employee.profilePictureUrl ||
+        null;
+
+    const profilePictureUrl = buildProfilePictureUrl(rawProfilePicture);
+    const displayedProfilePictureUrl =
+        newProfilePicturePreview || profilePictureUrl;
+    const employeeInitials = employee.name
+        ?.split(' ')
+        .filter(Boolean)
+        .map((namePart: string) => namePart[0])
+        .join('')
+        .toUpperCase();
     const selectedSalaryComponents = (() => {
         const backendComponents =
             Array.isArray(profile.selectedSalaryComponents) && profile.selectedSalaryComponents.length > 0
@@ -730,10 +879,10 @@ export default function EmployeeProfile() {
         (component: any) => component.type === 'DEDUCTION'
     );
 
-    // const totalEarningComponents = earningsComponents.reduce(
-    //     (sum: number, component: any) => sum + getComponentAmount(component),
-    //     0
-    // );
+    const totalEarningComponents = earningsComponents.reduce(
+        (sum: number, component: any) => sum + getComponentAmount(component),
+        0
+    );
 
     const totalDeductionComponents = deductionComponents.reduce(
         (sum: number, component: any) => sum + getComponentAmount(component),
@@ -999,8 +1148,44 @@ export default function EmployeeProfile() {
                 <div className="absolute top-0 right-0 w-64 h-64 bg-brand-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
 
                 <div className="flex flex-col md:flex-row items-center md:items-start gap-6 relative z-10">
-                    <div className={`w-28 h-28 rounded-2xl flex items-center justify-center text-white font-bold text-4xl shadow-2xl bg-brand-600`}>
-                        {employee.name.split(' ').map((n: any) => n[0]).join('')}
+                    <div className="relative w-28 h-28 rounded-2xl overflow-hidden flex items-center justify-center text-white font-bold text-4xl shadow-2xl bg-brand-600 shrink-0">
+                        <span className="absolute inset-0 flex items-center justify-center">
+                            {employeeInitials}
+                        </span>
+
+                        {displayedProfilePictureUrl && (
+                            <img
+                                src={displayedProfilePictureUrl}
+                                alt={`${employee.name} profile`}
+                                className="absolute inset-0 w-full h-full object-cover object-top"
+                                onError={(event) => {
+                                    event.currentTarget.style.display = 'none';
+                                }}
+                            />
+                        )}
+
+                        {isEditing && hasPermission(['HR_ADMIN']) && (
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    document
+                                        .getElementById('edit-profile-picture-input')
+                                        ?.click()
+                                }
+                                className="absolute bottom-1 right-1 z-20 w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center shadow-lg hover:bg-brand-700 transition-colors"
+                                title="Change profile picture"
+                            >
+                                <Upload size={15} />
+                            </button>
+                        )}
+
+                        <input
+                            id="edit-profile-picture-input"
+                            type="file"
+                            className="hidden"
+                            accept="image/jpeg,image/png"
+                            onChange={handleProfilePictureChange}
+                        />
                     </div>
                     <div className="text-center md:text-left flex-1">
                         {isEditing ? (
@@ -1226,7 +1411,11 @@ export default function EmployeeProfile() {
                                                     <p className={`text-sm ${savedDoc ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`}>
                                                         {savedDoc ? (savedDoc.originalName || 'Document uploaded') : 'No document uploaded'}
                                                     </p>
-                                                    {hasError && <p className="text-red-500 text-xs mt-0.5">{errors[`doc-${doc.key}`]}</p>}
+                                                    {errors[`document_${doc.key}`] && (
+                                                        <p className="text-red-500 text-xs mt-1">
+                                                            {errors[`document_${doc.key}`]}
+                                                        </p>
+                                                    )}
                                                 </div>
                                             </div>
 
@@ -1286,11 +1475,110 @@ export default function EmployeeProfile() {
                                                 type="file"
                                                 className="hidden"
                                                 accept=".pdf,image/*"
-                                                onChange={(e) => handleFileUpload(e, doc.name)}
-                                            />
+                                                onChange={(e) =>
+                                                    handleFileUpload(e, doc.name, doc.key)
+                                                } />
                                         </div>
                                     );
                                 })}
+                                {/* Profile Picture */}
+                                <div
+                                    className="flex items-center justify-between p-4 rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 transition-all"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="relative w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center bg-gray-100 dark:bg-white/10 text-gray-400">
+                                            <User size={20} className="absolute" />
+
+                                            {displayedProfilePictureUrl && (
+                                                <img
+                                                    src={displayedProfilePictureUrl}
+                                                    alt={`${employee.name} profile`}
+                                                    className="absolute inset-0 w-full h-full object-cover object-top"
+                                                    onError={(event) => {
+                                                        event.currentTarget.style.display = 'none';
+                                                    }}
+                                                />
+                                            )}
+                                        </div>
+
+                                        <div>
+                                            <p className="font-bold text-base text-gray-800 dark:text-white">
+                                                Profile Picture <span className="text-red-500">*</span>
+                                            </p>
+
+                                            <p
+                                                className={`text-sm ${displayedProfilePictureUrl
+                                                    ? 'text-emerald-600 dark:text-emerald-400'
+                                                    : 'text-gray-500 dark:text-gray-400'}`}
+                                            >
+                                                {newProfilePicture
+                                                    ? newProfilePicture.name
+                                                    : displayedProfilePictureUrl
+                                                        ? 'Profile picture uploaded'
+                                                        : 'No profile picture uploaded'}
+                                            </p>
+                                            {errors.profilePicture && (
+                                                <p className="text-red-500 text-xs mt-1">
+                                                    {errors.profilePicture}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-3">
+                                        {/* Upload or Change */}
+                                        {isEditing && hasPermission(['HR_ADMIN']) && (
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    document
+                                                        .getElementById('edit-profile-picture-input')
+                                                        ?.click()
+                                                }
+                                                className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-md transition-all"
+                                            >
+                                                <Upload size={14} />
+
+                                                {displayedProfilePictureUrl ? 'Change' : 'Upload'}
+                                            </button>
+                                        )}
+
+                                        {/* View */}
+                                        <button
+                                            type="button"
+                                            disabled={!displayedProfilePictureUrl}
+                                            onClick={() => {
+                                                if (displayedProfilePictureUrl) {
+                                                    window.open(
+                                                        displayedProfilePictureUrl,
+                                                        '_blank'
+                                                    );
+                                                }
+                                            }}
+                                            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${displayedProfilePictureUrl
+                                                ? 'bg-brand-500/10 text-brand-500 hover:bg-brand-500 hover:text-white cursor-pointer'
+                                                : 'bg-gray-100 dark:bg-white/5 text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                                                }`}
+                                            title="View profile picture"
+                                        >
+                                            <Eye size={18} />
+                                        </button>
+
+                                        {/* Delete */}
+                                        {isEditing &&
+                                            hasPermission(['HR_ADMIN']) &&
+                                            displayedProfilePictureUrl && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowProfilePictureDeleteModal(true)}
+                                                    className="w-10 h-10 rounded-full flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+                                                    title="Delete profile picture"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            )}
+                                    </div>
+                                </div>
 
                                 {/* Dynamic Custom Documents */}
                                 {customFields.filter((cf: any) => cf.field?.category === 'DOCUMENT_VAULT').map((cf: any) => {
@@ -1747,7 +2035,7 @@ export default function EmployeeProfile() {
                                         </div>
                                     )}
                                 </div>
- 
+
                                 {/* Custom Fields Section Divider */}
                                 {customFields.filter((cf: any) => cf.field?.category === 'PERSONAL_DETAILS').length > 0 && (
                                     <div className="md:col-span-2 border-t border-gray-100 dark:border-white/5 my-2 pt-4">
@@ -1759,7 +2047,7 @@ export default function EmployeeProfile() {
                                 {customFields.filter((cf: any) => cf.field?.category === 'PERSONAL_DETAILS').map((cf: any) => {
                                     const fieldType = cf.field?.type || 'TEXT';
                                     const hasFile = !!cf.documentUrl;
-                                    
+
                                     return (
                                         <div key={cf.id} className="space-y-1">
                                             <label className="text-xs font-bold text-gray-400 uppercase">{cf.field?.name}</label>
@@ -2787,7 +3075,18 @@ export default function EmployeeProfile() {
                                     className="w-32 h-32 rounded-full border-4 border-white shadow-lg overflow-hidden flex items-center justify-center text-white font-bold text-4xl"
                                     style={{ background: '#7c3aed' }}
                                 >
-                                    {employee.name.split(' ').map((n: any) => n[0]).join('')}
+                                    {displayedProfilePictureUrl ? (
+                                        <img
+                                            src={displayedProfilePictureUrl}
+                                            alt="Profile"
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                                (e.target as HTMLElement).style.display = 'none';
+                                            }}
+                                        />
+                                    ) : (
+                                        employee.name.split(' ').map((n: any) => n[0]).join('')
+                                    )}
                                 </div>
                             </div>
                             <div className="text-center mt-4 flex-1 flex flex-col items-center">
@@ -2834,7 +3133,7 @@ export default function EmployeeProfile() {
                                 </div>
 
                             </div>
-                            <div className="bg-gray-50 p-4 border-t border-gray-100 flex justify-between items-center mt-auto">
+                            <div className="bg-white p-4 flex justify-between items-center mt-auto">
                                 <div className="w-16 h-16 bg-white p-1 rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden">
                                     <img
                                         src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`Employee ID: ${employee.id}\nName: ${employee.name}\nRole: ${profile.title || 'Employee'}\nDept: ${profile.department || 'N/A'}`)}`}
@@ -2843,15 +3142,15 @@ export default function EmployeeProfile() {
                                     />
                                 </div>
                                 <div className="text-right flex flex-col items-end justify-end">
-                                   <div className=" w-30 h-full object-contain object-bottom "> {adminSignatureUrl && (
+                                    <div className=" w-30 h-full object-contain object-bottom "> {adminSignatureUrl && (
                                         <img
                                             src={adminSignatureUrl}
                                             alt="Admin Signature"
-                                            
+
                                         />
                                     )}
                                     </div>
-                                    <div className="italic text-gray-300 text-s leading-none">
+                                    <div className=" text-[13px] italic text-gray-300 text-s leading-none">
                                         Authorized Sig.
                                     </div>
                                 </div>
@@ -2861,54 +3160,81 @@ export default function EmployeeProfile() {
                         <div className="flex justify-center mt-6">
                             <button
                                 onClick={() => {
-                                    const printContent = document.getElementById('id-card-container');
-                                    const WindowPrt = window.open('', '', 'left=0,top=0,width=800,height=900,toolbar=0,scrollbars=0,status=0');
+                                    const printContent =
+                                        document.getElementById('id-card-container');
 
-                                    if (WindowPrt && printContent) {
-                                        WindowPrt.document.write(`
-                                        <html>
-                                            <head>
-                                                <title>Print ID Card</title>
-                                                <script src="https://cdn.tailwindcss.com"></script>
-                                                <style>
-                                                    @page {
-                                                        size: 320px 540px;
-                                                        margin: 0;
-                                                    }
-
-                                                    html, body {
-                                                        margin: 0;
-                                                        padding: 0;
-                                                        width: 320px;
-                                                        height: 540px;
-                                                        overflow: hidden;
-                                                        -webkit-print-color-adjust: exact;
-                                                        print-color-adjust: exact;
-                                                    }
-
-                                                    #id-card-container {
-                                                        width: 320px !important;
-                                                        height: 540px !important;
-                                                        border-radius: 24px !important;
-                                                        overflow: hidden !important;
-                                                        box-shadow: none !important;
-                                                    }
-                                                </style>
-                                            </head>
-                                            <body>
-                                                ${printContent.outerHTML}
-                                            </body>
-                                        </html>
-                                    `);
-
-                                        WindowPrt.document.close();
-
-                                        setTimeout(() => {
-                                            WindowPrt.focus();
-                                            WindowPrt.print();
-                                            WindowPrt.close();
-                                        }, 800);
+                                    if (!printContent) {
+                                        toast.error('ID card not found');
+                                        return;
                                     }
+
+                                    const oldPrintStyle =
+                                        document.getElementById('id-card-print-style');
+
+                                    if (oldPrintStyle) {
+                                        oldPrintStyle.remove();
+                                    }
+
+                                    const printStyle = document.createElement('style');
+                                    printStyle.id = 'id-card-print-style';
+
+                                    printStyle.innerHTML = `
+        @page {
+            margin: 0;
+        }
+
+        @media print {
+            html,
+            body {
+                margin: 0 !important;
+                padding: 0 !important;
+                background: white !important;
+            }
+
+            body * {
+                visibility: hidden !important;
+            }
+
+            #id-card-container,
+            #id-card-container * {
+                visibility: visible !important;
+            }
+
+            #id-card-container {
+                position: fixed !important;
+                left: 50% !important;
+                top: 100px !important;
+                width: 320px !important;
+                height: 540px !important;
+                margin: 0 !important;
+                transform: translateX(-50%) !important;
+                animation: none !important;
+                border-radius: 24px !important;
+                overflow: hidden !important;
+                box-shadow: none !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+    `;
+
+                                    document.head.appendChild(printStyle);
+
+                                    const removePrintStyle = () => {
+                                        printStyle.remove();
+
+                                        window.removeEventListener(
+                                            'afterprint',
+                                            removePrintStyle
+                                        );
+                                    };
+
+                                    window.addEventListener(
+                                        'afterprint',
+                                        removePrintStyle
+                                    );
+
+                                    window.print();
                                 }}
                                 className="flex items-center gap-2 px-6 py-2 bg-white text-gray-800 font-bold rounded-full shadow-lg hover:bg-gray-100 transition-colors"
                             >
@@ -2974,41 +3300,56 @@ export default function EmployeeProfile() {
                 </div>,
                 document.body
             )}
-            {/* Custom Field Document Deletion Confirmation */}
-            {customFieldDocToDelete !== null && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setCustomFieldDocToDelete(null)} />
-                    <div className="relative bg-white dark:bg-brand-950 w-full max-w-sm rounded-[2rem] shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden animate-scale-in">
-                        <div className="p-8 text-center">
-                            <div className="w-16 h-16 bg-red-50 dark:bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                                <X size={32} />
-                            </div>
-                            <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Delete Custom Document?</h3>
-                            <p className="text-gray-500 dark:text-gray-400 text-sm mb-8 leading-relaxed">
-                                Are you sure you want to delete this custom document? This action cannot be undone.
-                            </p>
-                            <div className="flex flex-col gap-3">
-                                <button
-                                    onClick={async () => {
-                                        await handleCustomFileDelete(customFieldDocToDelete);
-                                        setCustomFieldDocToDelete(null);
-                                    }}
-                                    className="w-full py-3.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-red-600/20"
-                                >
-                                    Yes, Delete
-                                </button>
-                                <button
-                                    onClick={() => setCustomFieldDocToDelete(null)}
-                                    className="w-full py-3.5 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 font-bold rounded-2xl hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
-                                >
-                                    Cancel
-                                </button>
+            {/* Profile Picture Deletion Confirmation */}
+            {showProfilePictureDeleteModal &&
+                createPortal(
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+                        <div
+                            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
+                            onClick={() =>
+                                setShowProfilePictureDeleteModal(false)
+                            }
+                        />
+
+                        <div className="relative bg-white dark:bg-brand-950 w-full max-w-sm rounded-[2rem] shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden animate-scale-in">
+                            <div className="p-8 text-center">
+                                <div className="w-16 h-16 bg-red-50 dark:bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                                    <X size={32} />
+                                </div>
+
+                                <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">
+                                    Delete Profile Picture?
+                                </h3>
+
+                                <p className="text-gray-500 dark:text-gray-400 text-sm mb-8 leading-relaxed">
+                                    Are you sure you want to delete this profile
+                                    picture? This action cannot be undone.
+                                </p>
+
+                                <div className="flex flex-col gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={handleProfilePictureDelete}
+                                        className="w-full py-3.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-red-600/20"
+                                    >
+                                        Yes, Delete
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setShowProfilePictureDeleteModal(false)
+                                        }
+                                        className="w-full py-3.5 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 font-bold rounded-2xl hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>,
-                document.body
-            )}
+                    </div>,
+                    document.body
+                )}
         </div>
     );
 }

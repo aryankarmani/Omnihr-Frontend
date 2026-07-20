@@ -35,8 +35,7 @@ export default function SignIn() {
                     type="text"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-300 focus:border-brand-400 focus:bg-white focus:ring-4 focus:ring-brand-500/10 rounded-xl text-gray-700 font-medium transition-all placeholder:text-gray-300 shadow-sm hover:border-gray-400"
-                    placeholder="Enter your username"
+className="login-input w-full px-4 py-3 bg-gray-50 border border-gray-300 focus:border-brand-400 focus:bg-white focus:ring-4 focus:ring-brand-500/10 rounded-xl text-black font-medium transition-all placeholder:text-gray-500 shadow-sm hover:border-gray-400"
                 />
             </div>
 
@@ -47,8 +46,7 @@ export default function SignIn() {
                         type={showPassword ? "text" : "password"}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-300 focus:border-brand-400 focus:bg-white focus:ring-4 focus:ring-brand-500/10 rounded-xl text-gray-700 font-medium transition-all placeholder:text-gray-300 shadow-sm hover:border-gray-400"
-                        placeholder="Enter your password"
+    className="login-input w-full px-4 py-3 bg-gray-50 border border-gray-300 focus:border-brand-400 focus:bg-white focus:ring-4 focus:ring-brand-500/10 rounded-xl text-black font-medium transition-all placeholder:text-gray-500 shadow-sm hover:border-gray-400"
                     />
                     <button
                         type="button"
