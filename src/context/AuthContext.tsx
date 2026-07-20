@@ -34,8 +34,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         const storedUser = sessionStorage.getItem('encalm_user');
         if (storedUser) {
-            setUser(JSON.parse(storedUser));
-              listenToForegroundMessages();
+            const parsedUser = JSON.parse(storedUser);
+            if (parsedUser && typeof parsedUser.role === 'string') {
+                parsedUser.role = parsedUser.role.toUpperCase();
+            }
+            setUser(parsedUser);
+            listenToForegroundMessages();
         }
         setIsLoading(false);
     }, []);
@@ -49,6 +53,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const data = res.data;
 
             const { token, refreshToken, user: userData } = data;
+
+            if (userData && typeof userData.role === 'string') {
+                userData.role = userData.role.toUpperCase();
+            }
 
             setUser(userData);
             sessionStorage.setItem('encalm_user', JSON.stringify(userData));

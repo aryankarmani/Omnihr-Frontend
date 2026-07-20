@@ -8,11 +8,12 @@ export default function CustomFieldsMasters() {
     const [activeCategory, setActiveCategory] = useState<'PERSONAL_DETAILS' | 'DOCUMENT_VAULT'>('PERSONAL_DETAILS');
     const [fields, setFields] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
-    
+
     // Add Field Modal State
     const [showModal, setShowModal] = useState(false);
     const [fieldName, setFieldName] = useState('');
     const [fieldType, setFieldType] = useState('TEXT');
+    const [fieldOptions, setFieldOptions] = useState('');
 
     // Delete Confirmation State
     const [fieldToDelete, setFieldToDelete] = useState<any>(null);
@@ -37,6 +38,7 @@ export default function CustomFieldsMasters() {
     const handleOpenModal = () => {
         setFieldName('');
         setFieldType(activeCategory === 'DOCUMENT_VAULT' ? 'PDF' : 'TEXT');
+        setFieldOptions('');
         setShowModal(true);
     };
 
@@ -44,12 +46,16 @@ export default function CustomFieldsMasters() {
         if (!fieldName.trim()) {
             return toast.error("Field name is required");
         }
+        if (fieldType === 'RADIO' && !fieldOptions.trim()) {
+            return toast.error("Radio options are required (comma-separated)");
+        }
         try {
             setLoading(true);
             const payload = {
                 name: fieldName.trim(),
                 category: activeCategory,
-                type: fieldType
+                type: fieldType,
+                options: fieldType === 'RADIO' ? fieldOptions.trim() : null
             };
             await api.post('/custom-fields/masters', payload);
             toast.success("Custom field created successfully!");
@@ -105,11 +111,10 @@ export default function CustomFieldsMasters() {
                     <button
                         key={tab.key}
                         onClick={() => setActiveCategory(tab.key as any)}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                            activeCategory === tab.key
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${activeCategory === tab.key
                                 ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400 ring-1 ring-brand-200 dark:ring-brand-800'
                                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5'
-                        }`}
+                            }`}
                     >
                         {tab.label}
                     </button>
@@ -134,11 +139,11 @@ export default function CustomFieldsMasters() {
                         <table className="w-full text-left border-collapse">
                             <thead className="bg-gray-50 dark:bg-white/5">
                                 <tr>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Field Name</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Category</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Field Type</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Created Date</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest text-right">Actions</th>
+                                    <th style={{ width: '22.5%' }} className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Field Name</th>
+                                    <th style={{ width: '28.5%' }} className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Category</th>
+                                    <th style={{ width: '22.5%' }} className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Field Type</th>
+                                    <th style={{ width: '22.5%' }} className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Created Date</th>
+                                    <th style={{ width: '10%' }} className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-white/5">
@@ -175,7 +180,7 @@ export default function CustomFieldsMasters() {
             {showModal && createPortal(
                 <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-fade-in">
                     <div className="bg-white dark:bg-brand-950 rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-gray-100 dark:border-brand-500/20 max-h-[90vh] flex flex-col">
-                        
+
                         {/* Modal Header */}
                         <div className="p-8 border-b border-gray-100 dark:border-white/5 flex justify-between items-center bg-gradient-to-r from-transparent to-brand-500/5">
                             <div>
@@ -190,7 +195,7 @@ export default function CustomFieldsMasters() {
                                 <Plus size={24} className="rotate-45 text-gray-400" />
                             </button>
                         </div>
- 
+
                         {/* Modal Body */}
                         <div className="p-8 overflow-y-auto flex-1 custom-scrollbar space-y-6">
                             <div className="space-y-6">
@@ -218,7 +223,7 @@ export default function CustomFieldsMasters() {
                                                 <option value="NUMBER" className="dark:bg-brand-900">Number</option>
                                                 <option value="EMAIL" className="dark:bg-brand-900">Email</option>
                                                 <option value="PASSWORD" className="dark:bg-brand-900">Password</option>
-                                                <option value="RADIO" className="dark:bg-brand-900">Radio (Yes/No)</option>
+                                                <option value="RADIO" className="dark:bg-brand-900">Radio Button</option>
                                                 <option value="FILE" className="dark:bg-brand-900">File Upload</option>
                                             </>
                                         ) : (
@@ -229,9 +234,22 @@ export default function CustomFieldsMasters() {
                                         )}
                                     </select>
                                 </div>
+                                {fieldType === 'RADIO' && (
+                                    <div className="space-y-4">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Radio Options * (comma-separated)</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            value={fieldOptions}
+                                            onChange={(e) => setFieldOptions(e.target.value)}
+                                            placeholder="e.g. Male, Female, Other"
+                                            className="w-full px-5 py-3.5 bg-gray-50 dark:bg-brand-900/50 border border-gray-200 dark:border-brand-500/20 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                                        />
+                                    </div>
+                                )}
                             </div>
                         </div>
- 
+
                         {/* Modal Footer */}
                         <div className="p-8 border-t border-gray-100 dark:border-white/5 flex justify-between items-center bg-gray-50 dark:bg-white/5">
                             <button
@@ -240,7 +258,7 @@ export default function CustomFieldsMasters() {
                             >
                                 Cancel
                             </button>
-                            
+
                             <button
                                 onClick={handleSave}
                                 disabled={loading}
