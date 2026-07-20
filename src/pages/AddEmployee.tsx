@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Check, ChevronRight, ChevronDown, Upload, FileText, User, CreditCard, Loader2, Trash2 } from 'lucide-react'; import toast from 'react-hot-toast';
@@ -11,6 +11,7 @@ export default function AddEmployee() {
     const [loading, setLoading] = useState(false);
     const [salaryComponents, setSalaryComponents] = useState<any[]>([]);
     const [showComponentDropdown, setShowComponentDropdown] = useState(false);
+    const salaryDropdownRef = useRef<HTMLDivElement | null>(null);
     const [masters, setMasters] = useState({
         departments: [] as any[],
         roles: [] as any[],
@@ -47,6 +48,26 @@ export default function AddEmployee() {
 
         fetchMasters();
     }, []);
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+            if (
+                salaryDropdownRef.current &&
+                !salaryDropdownRef.current.contains(event.target as Node)
+            ) {
+                setShowComponentDropdown(false);
+            }
+        };
+
+        if (showComponentDropdown) {
+            document.addEventListener('mousedown', handleClickOutside);
+            document.addEventListener('touchstart', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
+        };
+    }, [showComponentDropdown]);
 
     const [formData, setFormData] = useState({
         firstName: '',
@@ -81,6 +102,8 @@ export default function AddEmployee() {
         pan: null,
         degree: null,
     });
+    const [profilePicture, setProfilePicture] = useState<File | null>(null);
+    const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(null);
     const [confirmDeleteDoc, setConfirmDeleteDoc] = useState<string | null>(null);
 
     const [errors, setErrors] = useState<any>({});
@@ -162,6 +185,50 @@ export default function AddEmployee() {
                 (item: any) => item.id !== componentId
             ),
         }));
+    };
+    const handleProfilePictureUpload = (
+        e: React.ChangeEvent<HTMLInputElement>
+    ) => {
+        const file = e.target.files?.[0];
+
+        if (!file) return;
+
+        const allowedTypes = ['image/jpeg', 'image/png'];
+
+        if (!allowedTypes.includes(file.type)) {
+            toast.error('Only JPG, JPEG and PNG images are allowed');
+            e.target.value = '';
+            return;
+        }
+
+        if (file.size > 2 * 1024 * 1024) {
+            toast.error('Profile picture must be less than 2MB');
+            e.target.value = '';
+            return;
+        }
+
+        if (profilePicturePreview) {
+            URL.revokeObjectURL(profilePicturePreview);
+        }
+
+        setProfilePicture(file);
+        setProfilePicturePreview(URL.createObjectURL(file));
+
+        setErrors((prev: any) => ({
+            ...prev,
+            profilePicture: '',
+        }));
+
+        e.target.value = '';
+    };
+
+    const removeProfilePicture = () => {
+        if (profilePicturePreview) {
+            URL.revokeObjectURL(profilePicturePreview);
+        }
+
+        setProfilePicture(null);
+        setProfilePicturePreview(null);
     };
 
     const handleNext = async () => {
@@ -314,14 +381,37 @@ export default function AddEmployee() {
             }
         }
         // STEP 3 VALIDATION
-
         // STEP 4 VALIDATION
         if (currentStep === 4) {
-            if (!documents.aadhaar || !documents.pan || !documents.degree) {
+            const newErrors: any = {};
+
+            if (!documents.aadhaar) {
+                newErrors.aadhaar = 'Aadhaar Card is required';
+            }
+
+            if (!documents.pan) {
+                newErrors.pan = 'PAN Card is required';
+            }
+
+            if (!documents.degree) {
+                newErrors.degree = 'Highest Qualification Degree is required';
+            }
+
+            if (!profilePicture) {
+                newErrors.profilePicture = 'Profile picture is required';
+            }
+
+            setErrors((prev: any) => ({
+                ...prev,
+                ...newErrors,
+            }));
+
+            if (Object.keys(newErrors).length > 0) {
                 toast.error('Please upload all required documents');
                 return;
             }
         }
+
         if (currentStep < 4) {
             setCurrentStep(c => c + 1);
         } else {
@@ -350,7 +440,11 @@ export default function AddEmployee() {
                     form.append("degree", documents.degree);
                 }
 
+
                 // Append custom field files (both PERSONAL_DETAILS and DOCUMENT_VAULT)
+                if (profilePicture) {
+                    form.append('profilePicture', profilePicture);
+                }
                 Object.entries(customFieldFiles).forEach(([fieldId, file]) => {
                     if (file) {
                         form.append(`custom-file-${fieldId}`, file);
@@ -684,10 +778,23 @@ export default function AddEmployee() {
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Residential Address *</label>
                                 <div className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus-within:ring-4 focus-within:ring-brand-500/20 transition-all overflow-hidden h-[46px]">
                                     <textarea
-                                        autoComplete="off"
-                                        name="address"
+                                        id="employee-residential-input"
+                                        autoComplete="new-password"
+                                        autoCorrect="off"
+                                        spellCheck={false}
+                                        name="residentialAddressInput"
                                         value={formData.address}
-                                        onChange={handleInputChange}
+                                        onChange={(e) => {
+                                            setFormData((prev) => ({
+                                                ...prev,
+                                                address: e.target.value,
+                                            }));
+
+                                            setErrors((prev: any) => ({
+                                                ...prev,
+                                                address: '',
+                                            }));
+                                        }}
                                         rows={1}
                                         className="w-full px-4 py-3 bg-transparent border-0 outline-none text-gray-700 dark:text-white text-sm font-medium placeholder:text-gray-400 dark:placeholder:text-gray-400 resize-none h-full overflow-y-auto block scrollbar-thin"
                                         placeholder="Enter full residential address"
@@ -708,7 +815,7 @@ export default function AddEmployee() {
 
                             {customFieldMasters.filter(cf => cf.category === 'PERSONAL_DETAILS').map((cf) => {
                                 const fieldType = cf.type || 'TEXT';
-                                
+
                                 return (
                                     <div key={cf.id} className="space-y-2">
                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">{cf.name}</label>
@@ -984,7 +1091,7 @@ export default function AddEmployee() {
                                 </div>
 
                                 {/* Component Dropdown */}
-                                <div className="space-y-2 relative">
+                                <div ref={salaryDropdownRef} className="space-y-2 relative">
                                     <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">
                                         Select Components
                                     </label>
@@ -1149,99 +1256,197 @@ export default function AddEmployee() {
                                 ].map((doc, i) => {
                                     const hasFile = doc.isCustom ? !!customFieldFiles[doc.key] : !!documents[doc.key];
                                     const fileObj = doc.isCustom ? customFieldFiles[doc.key] : documents[doc.key];
-                                    const acceptString = doc.isCustom 
-                                        ? (doc.type === 'PDF' ? '.pdf' : doc.type === 'IMAGE' ? 'image/*' : '.pdf,image/*') 
+                                    const acceptString = doc.isCustom
+
+                                        ? (doc.type === 'PDF' ? '.pdf' : doc.type === 'IMAGE' ? 'image/*' : '.pdf,image/*')
                                         : 'application/pdf,image/*';
-
+                                    const documentError = !doc.isCustom ? errors[doc.key] : '';
                                     return (
-                                        <div
-                                            key={i}
-                                            onClick={() => document.getElementById(`fileInput-${doc.key}`)?.click()}
-                                            className={`flex items-center justify-between p-4 cursor-pointer border rounded-2xl transition-all ${hasFile
-                                                ? 'border-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10'
-                                                : 'border-gray-200 dark:border-white/10 hover:border-brand-500 dark:hover:border-brand-500 bg-gray-50 dark:bg-white/5 hover:scale-[1.01] shadow-sm'
-                                                }`}
-                                        >
-                                            <div className="flex items-center gap-4">
-                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${hasFile
-                                                    ? 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
-                                                    : 'bg-gray-100 dark:bg-white/10 text-gray-400'
-                                                    }`}>
-                                                    <FileText size={24} />
-                                                </div>
-                                                <div>
-                                                    <p className="font-semibold text-gray-800 dark:text-white text-base">
-                                                        {doc.name} {doc.required && <span className="text-red-500">*</span>}
-                                                    </p>
-                                                    <p className={`text-xs font-medium transition-colors ${hasFile ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-500'}`}>
-                                                        {hasFile ? fileObj?.name : 'Click to upload document'}
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center gap-3">
-                                                {hasFile ? (
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setConfirmDeleteDoc(doc.key);
-                                                        }}
-                                                        className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
-                                                    >
-                                                        <Trash2 size={20} />
-                                                    </button>
-                                                ) : (
-                                                    <div className="w-8 h-8 rounded-full bg-brand-50 dark:bg-white/10 text-brand-600 dark:text-brand-400 flex items-center justify-center hover:scale-110 transition-transform">
-                                                        <Upload size={16} />
+                                        <div key={i} className="space-y-1">
+                                            <div
+                                                onClick={() =>
+                                                    document.getElementById(`fileInput-${doc.key}`)?.click()
+                                                }
+                                                className={`flex items-center justify-between p-4 cursor-pointer border rounded-2xl transition-all ${hasFile
+                                                    ? 'border-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10'
+                                                    : documentError
+                                                        ? 'border-red-500 bg-red-500/5 dark:bg-red-500/10'
+                                                        : 'border-gray-200 dark:border-white/10 hover:border-brand-500 dark:hover:border-brand-500 bg-gray-50 dark:bg-white/5 hover:scale-[1.01] shadow-sm'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${hasFile
+                                                        ? 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
+                                                        : 'bg-gray-100 dark:bg-white/10 text-gray-400'
+                                                        }`}>
+                                                        <FileText size={24} />
                                                     </div>
-                                                )}
+                                                    <div>
+                                                        <p className="font-semibold text-gray-800 dark:text-white text-base">
+                                                            {doc.name} {doc.required && <span className="text-red-500">*</span>}
+                                                        </p>
+                                                        <p className={`text-xs font-medium transition-colors ${hasFile ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                                                            {hasFile ? fileObj?.name : 'Click to upload document'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center gap-3">
+                                                    {hasFile ? (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setConfirmDeleteDoc(doc.key);
+                                                            }}
+                                                            className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
+                                                        >
+                                                            <Trash2 size={20} />
+                                                        </button>
+                                                    ) : (
+                                                        <div className="w-8 h-8 rounded-full bg-brand-50 dark:bg-white/10 text-brand-600 dark:text-brand-400 flex items-center justify-center hover:scale-110 transition-transform">
+                                                            <Upload size={16} />
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <input
+                                                    id={`fileInput-${doc.key}`}
+                                                    type="file"
+                                                    className="hidden"
+                                                    accept={acceptString}
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) {
+                                                            if (doc.isCustom) {
+                                                                if (doc.type === 'PDF' && file.type !== "application/pdf") {
+                                                                    toast.error("Only PDF files are allowed for this field");
+                                                                    e.target.value = '';
+                                                                    return;
+                                                                }
+                                                                if (doc.type === 'IMAGE' && !file.type.startsWith("image/")) {
+                                                                    toast.error("Only image files are allowed for this field");
+                                                                    e.target.value = '';
+                                                                    return;
+                                                                }
+                                                                setCustomFieldFiles(prev => ({ ...prev, [doc.key]: file }));
+                                                            } else {
+                                                                const isDuplicate = Object.entries(documents).some(([key, val]) => {
+                                                                    if (key !== doc.key && val) {
+                                                                        return val.name === file.name && val.size === file.size;
+                                                                    }
+                                                                    return false;
+                                                                });
+
+                                                                if (isDuplicate) {
+                                                                    toast.error(`This file has already been uploaded Please select a unique document.`);
+                                                                    e.target.value = '';
+                                                                    return;
+                                                                }
+
+                                                                setDocuments(prev => ({
+                                                                    ...prev,
+                                                                    [doc.key]: file
+                                                                }));
+
+                                                                setErrors((prev: any) => ({
+                                                                    ...prev,
+                                                                    [doc.key]: '',
+                                                                }));
+                                                            }
+                                                        }
+                                                    }}
+                                                />
                                             </div>
 
-                                            <input
-                                                id={`fileInput-${doc.key}`}
-                                                type="file"
-                                                className="hidden"
-                                                accept={acceptString}
-                                                onChange={(e) => {
-                                                    const file = e.target.files?.[0];
-                                                    if (file) {
-                                                        if (doc.isCustom) {
-                                                            if (doc.type === 'PDF' && file.type !== "application/pdf") {
-                                                                toast.error("Only PDF files are allowed for this field");
-                                                                e.target.value = '';
-                                                                return;
-                                                            }
-                                                            if (doc.type === 'IMAGE' && !file.type.startsWith("image/")) {
-                                                                toast.error("Only image files are allowed for this field");
-                                                                e.target.value = '';
-                                                                return;
-                                                            }
-                                                            setCustomFieldFiles(prev => ({ ...prev, [doc.key]: file }));
-                                                        } else {
-                                                            const isDuplicate = Object.entries(documents).some(([key, val]) => {
-                                                                if (key !== doc.key && val) {
-                                                                    return val.name === file.name && val.size === file.size;
-                                                                }
-                                                                return false;
-                                                            });
-
-                                                            if (isDuplicate) {
-                                                                toast.error(`This file has already been uploaded Please select a unique document.`);
-                                                                e.target.value = '';
-                                                                return;
-                                                            }
-
-                                                            setDocuments(prev => ({
-                                                                ...prev,
-                                                                [doc.key]: file
-                                                            }));
-                                                        }
-                                                    }
-                                                }}
-                                            />
+                                            {documentError && (
+                                                <p className="text-red-500 text-xs ml-1">
+                                                    {documentError}
+                                                </p>
+                                            )}
                                         </div>
                                     );
                                 })}
+                                {/* Required Profile Picture */}
+                                <div
+                                    onClick={() =>
+                                        document.getElementById('profile-picture-input')?.click()
+                                    }
+                                    className={`flex items-center justify-between p-4 cursor-pointer border rounded-2xl transition-all ${profilePicture
+                                        ? 'border-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10'
+                                        : errors.profilePicture
+                                            ? 'border-red-500 bg-red-500/5 dark:bg-red-500/10'
+                                            : 'border-gray-200 dark:border-white/10 hover:border-brand-500 dark:hover:border-brand-500 bg-gray-50 dark:bg-white/5 hover:scale-[1.01] shadow-sm'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div
+                                            className={`w-12 h-12 rounded-xl overflow-hidden flex items-center justify-center ${profilePicturePreview
+                                                ? 'border border-emerald-500'
+                                                : 'bg-gray-100 dark:bg-white/10 text-gray-400'
+                                                }`}
+                                        >
+                                            {profilePicturePreview ? (
+                                                <img
+                                                    src={profilePicturePreview}
+                                                    alt="Employee profile preview"
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <User size={24} />
+                                            )}
+                                        </div>
+
+                                        <div>
+                                            <p className="font-semibold text-gray-800 dark:text-white text-base">
+                                                Profile Picture <span className="text-red-500">*</span>
+                                            </p>
+
+                                            <p
+                                                className={`text-xs font-medium ${profilePicture
+                                                    ? 'text-emerald-600 dark:text-emerald-400'
+                                                    : 'text-gray-400 dark:text-gray-500'
+                                                    }`}
+                                            >
+                                                {profilePicture
+                                                    ? profilePicture.name
+                                                    : 'Upload JPG, JPEG or PNG image (Maximum 2MB)'}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-3">
+                                        {profilePicture ? (
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setConfirmDeleteDoc('profilePicture');
+                                                }}
+                                                className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
+                                            >
+                                                <Trash2 size={20} />
+                                            </button>
+                                        ) : (
+                                            <div className="w-8 h-8 rounded-full bg-brand-50 dark:bg-white/10 text-brand-600 dark:text-brand-400 flex items-center justify-center hover:scale-110 transition-transform">
+                                                <Upload size={16} />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <input
+                                        id="profile-picture-input"
+                                        type="file"
+                                        className="hidden"
+                                        accept="image/jpeg,image/png"
+                                        onChange={handleProfilePictureUpload}
+                                    />
+                                </div>
+
+                                {errors.profilePicture && (
+                                    <p className="text-red-500 text-xs ml-1 -mt-2">
+                                        {errors.profilePicture}
+                                    </p>
+                                )}
                             </div>
                         </div>
                     )}
@@ -1292,18 +1497,45 @@ export default function AddEmployee() {
                             </button>
                             <button
                                 onClick={() => {
-                                    const isCustom = customFieldMasters.some(cf => cf.id === confirmDeleteDoc);
-                                    if (isCustom) {
-                                        setCustomFieldFiles(prev => ({
+                                    if (confirmDeleteDoc === 'profilePicture') {
+                                        removeProfilePicture();
+
+                                        setErrors((prev: any) => ({
                                             ...prev,
-                                            [confirmDeleteDoc]: null
+                                            profilePicture: 'Profile picture is required',
                                         }));
                                     } else {
-                                        setDocuments(prev => ({
-                                            ...prev,
-                                            [confirmDeleteDoc]: null
-                                        }));
+                                        const isCustom = customFieldMasters.some(
+                                            cf => String(cf.id) === String(confirmDeleteDoc)
+                                        );
+
+                                        if (isCustom) {
+                                            setCustomFieldFiles(prev => ({
+                                                ...prev,
+                                                [confirmDeleteDoc]: null,
+                                            }));
+                                        } else {
+                                            setDocuments(prev => ({
+                                                ...prev,
+                                                [confirmDeleteDoc]: null,
+                                            }));
+
+                                            const requiredDocumentMessages: Record<string, string> = {
+                                                aadhaar: 'Aadhaar Card is required',
+                                                pan: 'PAN Card is required',
+                                                degree: 'Highest Qualification Degree is required',
+                                            };
+
+                                            if (requiredDocumentMessages[confirmDeleteDoc]) {
+                                                setErrors((prev: any) => ({
+                                                    ...prev,
+                                                    [confirmDeleteDoc]:
+                                                        requiredDocumentMessages[confirmDeleteDoc],
+                                                }));
+                                            }
+                                        }
                                     }
+
                                     setConfirmDeleteDoc(null);
                                 }}
                                 className="flex-1 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold shadow-lg shadow-red-500/30 transition-all active:scale-95"

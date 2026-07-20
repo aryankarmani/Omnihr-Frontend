@@ -7,7 +7,6 @@ import {
   Edit3,
   Upload,
   Building2,
-  MoreVertical,
   Calendar,
   ChevronDown,
 } from "lucide-react";
@@ -73,6 +72,7 @@ const LogFile = () => {
   const [status, setStatus] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [selectedDescription, setSelectedDescription] = useState<string | null>(null);
   useEffect(() => {
     const fetchLogs = async () => {
       try {
@@ -208,109 +208,113 @@ const LogFile = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-brand-900 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm overflow-hidden">    <div className="overflow-x-auto">
-        <table className="w-full min-w-[1000px]">
-          <thead className="bg-gray-50 dark:bg-white/5">           <tr>
-            <th className="text-left px-5 py-4 text-xs font-bold text-brand-100/70 uppercase">
-              Action
-            </th>
-            <th className="text-left px-5 py-4 text-xs font-bold text-brand-100/70 uppercase">
-              Performed By
-            </th>
-            <th className="text-left px-5 py-4 text-xs font-bold text-brand-100/70 uppercase">
-              Employee / Entity
-            </th>
-            <th className="text-left px-5 py-4 text-xs font-bold text-brand-100/70 uppercase">
-              Date & Time
-            </th>
-            <th className="text-left px-5 py-4 text-xs font-bold text-brand-100/70 uppercase">
-              Status
-            </th>
-            <th className="text-left px-5 py-4 text-xs font-bold text-brand-100/70 uppercase">
-              Description
-            </th>
-            <th className="px-5 py-4"></th>
-          </tr>
-          </thead>
+      <div className="bg-white dark:bg-brand-900 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm overflow-hidden">
+        <div className="overflow-hidden">
+          <table className="w-full table-fixed">
+            <thead className="bg-gray-50 dark:bg-white/5">           <tr>
+              <th className="text-center px-5 py-4 text-xs font-bold text-brand-100/70 uppercase">
+                Action
+              </th>
+              <th className="text-left px-5 py-4 text-xs font-bold text-brand-100/70 uppercase">
+                Performed By
+              </th>
+              <th className="text-left px-5 py-4 text-xs font-bold text-brand-100/70 uppercase">
+                Employee / Entity
+              </th>
+              <th className="text-left px-5 py-4 text-xs font-bold text-brand-100/70 uppercase">
+                Date & Time
+              </th>
+              <th className="text-left px-5 py-4 text-xs font-bold text-brand-100/70 uppercase">
+                Status
+              </th>
+              <th className="text-left px-5 py-4 text-xs font-bold text-brand-100/70 uppercase">
+                Description
+              </th>
 
-          <tbody>
-            {loading ? (
-              <tr>
-                <td
-                  colSpan={7}
-                  className="px-5 py-10 text-center text-gray-500 dark:text-gray-400"
-                >
-                  Loading logs...
-                </td>
-              </tr>
-            ) : filteredLogs.length > 0 ? (paginatedLogs.map((log) => (
-              <tr
-                key={log.id}
-                className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"           >
-                <td className="px-5 py-4">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center ${getIconBoxClass(
+            </tr>
+            </thead>
+
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="px-5 py-10 text-center text-gray-500 dark:text-gray-400"
+                  >
+                    Loading logs...
+                  </td>
+                </tr>
+              ) : filteredLogs.length > 0 ? (paginatedLogs.map((log) => (
+                <tr
+                  key={log.id}
+                  className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"           >
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center ${getIconBoxClass(
+                          log.action
+                        )}`}
+                      >
+                        {getIcon(log.action, log.module)}                      </div>
+                      <div>
+                        <p className="font-semibold text-sm text-white">
+                          {log.module} {log.action}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+
+                  <td className="px-5 py-4 text-sm text-gray-200">
+                    {log.performedBy}
+                  </td>
+
+                  <td className="px-5 py-4 text-sm text-gray-200">
+                    {log.targetUser || "—"}                  </td>
+
+                  <td className="px-5 py-4 text-sm text-gray-200">
+                    <div className="flex items-center gap-2">
+                      <Calendar size={15} className="text-gray-400" />
+                      {log.dateTime}
+                    </div>
+                  </td>
+
+                  <td className="px-5 py-4">
+                    <span
+                      className={`px-3 py-1 rounded-lg text-xs font-bold ${getStatusClass(
                         log.action
                       )}`}
                     >
-                      {getIcon(log.action, log.module)}                      </div>
-                    <div>
-                      <p className="font-semibold text-sm text-white">
-                        {log.module} {log.action}
-                      </p>
-                    </div>
-                  </div>
-                </td>
+                      {log.action}
+                    </span>
+                  </td>
 
-                <td className="px-5 py-4 text-sm text-gray-200">
-                  {log.performedBy}
-                </td>
+                  <td className="px-5 py-4 text-sm text-gray-300">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedDescription(log.description)}
+                      className="block w-full text-left truncate italic text-gray-300 hover:text-white hover:underline underline-offset-4 decoration-gray-400 hover:decoration-white transition-colors cursor-pointer"
+                      title="Click to view full description"
+                    >
+                      {log.description || "—"}
+                    </button>
+                  </td>
 
-                <td className="px-5 py-4 text-sm text-gray-200">
-                  {log.targetUser || "—"}                  </td>
 
-                <td className="px-5 py-4 text-sm text-gray-200">
-                  <div className="flex items-center gap-2">
-                    <Calendar size={15} className="text-gray-400" />
-                    {log.dateTime}
-                  </div>
-                </td>
-
-                <td className="px-5 py-4">
-                  <span
-                    className={`px-3 py-1 rounded-lg text-xs font-bold ${getStatusClass(
-                      log.action
-                    )}`}
+                </tr>
+              ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="px-5 py-10 text-center text-gray-500 dark:text-gray-400"
                   >
-                    {log.action}
-                  </span>
-                </td>
-
-                <td className="px-5 py-4 text-sm text-gray-300">
-                  {log.description}
-                </td>
-
-                <td className="px-5 py-4 text-right">
-                  <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500">
-                    <MoreVertical size={18} />
-                  </button>
-                </td>
-              </tr>
-            ))
-            ) : (
-              <tr>
-                <td
-                  colSpan={7}
-                  className="px-5 py-10 text-center text-gray-500 dark:text-gray-400"
-                >
-                  No logs found
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+                    No logs found
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
 
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-6 py-5 border-t border-gray-100 dark:border-white/5 bg-gray-50/40 dark:bg-white/[0.02]">
           <div className="flex items-center gap-3">
@@ -374,6 +378,37 @@ const LogFile = () => {
           </div>
         </div>
       </div>
+      {selectedDescription && (
+        <div
+          className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center px-4"
+          onClick={() => setSelectedDescription(null)}
+        >
+          <div
+            className="w-full max-w-[520px] rounded-3xl bg-brand-900 border border-white/10 shadow-2xl p-6 text-white"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-2xl font-bold">Description</h2>
+
+              <button
+                type="button"
+                onClick={() => setSelectedDescription(null)}
+                className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-2xl leading-none text-gray-300"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p className="text-sm leading-7 text-gray-200 break-words">
+                {selectedDescription}
+              </p>
+            </div>
+
+            
+          </div>
+        </div>
+      )}
     </div>
   );
 };
