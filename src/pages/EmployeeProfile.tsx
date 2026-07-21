@@ -730,10 +730,10 @@ export default function EmployeeProfile() {
         (component: any) => component.type === 'DEDUCTION'
     );
 
-    // const totalEarningComponents = earningsComponents.reduce(
-    //     (sum: number, component: any) => sum + getComponentAmount(component),
-    //     0
-    // );
+    const totalEarningComponents = earningsComponents.reduce(
+        (sum: number, component: any) => sum + getComponentAmount(component),
+        0
+    );
 
     const totalDeductionComponents = deductionComponents.reduce(
         (sum: number, component: any) => sum + getComponentAmount(component),
