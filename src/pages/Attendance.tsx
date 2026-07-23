@@ -353,7 +353,7 @@ export default function Attendance() {
                 displayStatus = 'Pending';
             }
 
-            let statusLabel: string = isBeforeJoining || (isFuture && !isWeekend) ? '-' : (holiday ? 'Holiday' : displayStatus);
+            let statusLabel: string = isBeforeJoining ? '-' : holiday ? 'Holiday' : (isFuture && !isWeekend) ? '-' : displayStatus;
 
             if (!isBeforeJoining && !holiday) {
                 if (hasPendingRequest) {
@@ -418,7 +418,7 @@ export default function Attendance() {
                 >
                     <div className="flex justify-between items-start">
                         <span className={`font-semibold text-sm ${isToday ? 'text-brand-600 dark:text-brand-400' : 'text-gray-700 dark:text-gray-300'}`}>{day}</span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${holiday ? 'bg-purple-100 text-purple-700' : getStatusColor(isBeforeJoining || (isFuture && !leave) ? 'Weekend' : statusLabel)}`}>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${holiday ? 'bg-purple-100 text-purple-700' : getStatusColor(isBeforeJoining || (isFuture && !leave && !holiday) ? 'Weekend' : statusLabel)}`}>
                             {statusLabel}
                         </span>
                     </div>

@@ -80,7 +80,7 @@ export default function EmployeeAttendanceView() {
         try {
           const statsRes = await api.get(`/attendance/stats?employeeId=${id}&year=${year}&month=${month}`);
           setBackendStats(statsRes.data);
-        } catch  { console.log("Stats API not fully ready"); }
+        } catch { console.log("Stats API not fully ready"); }
 
         // Fetch holidays
         const holidayRes = await api.get('/masters/holidays');

@@ -225,17 +225,17 @@ export default function Leave() {
         return null;
     };
 
-   const getLeaveTypeStyle = (code: string) => {
-    switch (code) {
-        case 'EL': return { color: 'text-purple-600', bg: 'bg-purple-100', darkBg: 'dark:bg-purple-900/30' };
-        case 'CL': return { color: 'text-blue-600', bg: 'bg-blue-100', darkBg: 'dark:bg-blue-900/30' };
-        case 'SL': return { color: 'text-pink-600', bg: 'bg-pink-100', darkBg: 'dark:bg-pink-900/30' };
-        case 'HD': return { color: 'text-orange-600', bg: 'bg-orange-100', darkBg: 'dark:bg-orange-900/30' };
-        case 'SHL': return { color: 'text-yellow-600', bg: 'bg-yellow-100', darkBg: 'dark:bg-yellow-900/30' };
-        case 'LWP': return { color: 'text-red-600', bg: 'bg-red-100', darkBg: 'dark:bg-red-900/30' };
-        default: return { color: 'text-gray-600', bg: 'bg-gray-100', darkBg: 'dark:bg-white/10' };
-    }
-};
+    const getLeaveTypeStyle = (code: string) => {
+        switch (code) {
+            case 'EL': return { color: 'text-purple-600', bg: 'bg-purple-100', darkBg: 'dark:bg-purple-900/30' };
+            case 'CL': return { color: 'text-blue-600', bg: 'bg-blue-100', darkBg: 'dark:bg-blue-900/30' };
+            case 'SL': return { color: 'text-pink-600', bg: 'bg-pink-100', darkBg: 'dark:bg-pink-900/30' };
+            case 'HD': return { color: 'text-orange-600', bg: 'bg-orange-100', darkBg: 'dark:bg-orange-900/30' };
+            case 'SHL': return { color: 'text-yellow-600', bg: 'bg-yellow-100', darkBg: 'dark:bg-yellow-900/30' };
+            case 'LWP': return { color: 'text-red-600', bg: 'bg-red-100', darkBg: 'dark:bg-red-900/30' };
+            default: return { color: 'text-gray-600', bg: 'bg-gray-100', darkBg: 'dark:bg-white/10' };
+        }
+    };
 
     const generateCalendar = () => {
         const year = currentMonth.getFullYear();
