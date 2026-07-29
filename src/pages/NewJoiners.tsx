@@ -232,7 +232,10 @@ export default function NewJoiners() {
                                                 }`}>
                                                 {profile.status || 'Active'}
                                             </span>
-                                            <button className="text-sm font-medium text-brand-600 dark:text-brand-400 hover:underline">
+                                             <button 
+                                                onClick={() => (emp.id || emp._id) && navigate(`/employee/${emp.id || emp._id}`)}
+                                                className="text-sm font-medium text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
+                                            >
                                                 View Profile
                                             </button>
                                         </div>
@@ -263,7 +266,6 @@ export default function NewJoiners() {
                                         return (
                                             <tr 
                                                 key={emp.id} 
-                                                onClick={() => navigate(`/employee/${emp.id}`)}
                                                 className="hover:bg-gray-50/80 dark:hover:bg-brand-500/5 transition-all group cursor-pointer"
                                             >
                                                 <td className="px-6 py-5">
@@ -292,7 +294,10 @@ export default function NewJoiners() {
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-5 text-right">
-                                                    <button className="text-sm font-bold text-brand-600 dark:text-brand-400 hover:underline">
+                                                     <button 
+                                                        onClick={() => (emp.id || emp._id) && navigate(`/employee/${emp.id || emp._id}`)}
+                                                        className="text-sm font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
+                                                    >
                                                         View
                                                     </button>
                                                 </td>

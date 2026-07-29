@@ -91,7 +91,7 @@ export default function Regularizations() {
   const handleApprove = async (id: string) => {
     try {
       await api.put(`/attendance/regularize/${id}/approve`);
-      toast.success('Attendance correction approved successfully');
+      toast.success('Attendance regularization approved successfully');
       setRequests((prev) => prev.filter((r) => r.id !== id));
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to approve request');
@@ -113,7 +113,7 @@ export default function Regularizations() {
         reason: rejectComment,
         approverComment: rejectComment
       });
-      toast.success('Attendance correction rejected');
+      toast.success('Attendance regularization rejected');
       setRequests((prev) => prev.filter((r) => r.id !== rejectingId));
       setRejectingId(null);
       setRejectComment('');
@@ -188,7 +188,7 @@ export default function Regularizations() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div className="flex items-center gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Attendance Corrections</h2>
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Attendance Regularizations</h2>
             <p className="text-gray-500 dark:text-gray-400">Review and approve attendance regularization requests</p>
           </div>
         </div>
@@ -220,7 +220,7 @@ export default function Regularizations() {
       ) : filteredRequests.length === 0 ? (
         <div className="text-center py-20 bg-white dark:bg-brand-900 rounded-3xl border border-gray-100 dark:border-white/5 shadow-inner">
           <Calendar size={48} className="mx-auto text-gray-300 mb-4 opacity-50" />
-          <h3 className="text-xl font-bold text-gray-800 dark:text-white">No Pending Corrections</h3>
+          <h3 className="text-xl font-bold text-gray-800 dark:text-white">No Pending Regularizations</h3>
           <p className="text-gray-500 dark:text-gray-400 mt-2">All requests have been processed successfully.</p>
         </div>
       ) : (
@@ -358,7 +358,7 @@ export default function Regularizations() {
           <div className="relative bg-white dark:bg-brand-950 w-full max-w-md rounded-[2rem] shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden p-8 animate-scale-in animate-none">
             <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-brand-500 to-purple-500"></div>
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-gray-800 dark:text-white">Correction Reason</h3>
+              <h3 className="text-xl font-bold text-gray-800 dark:text-white">Regularization Reason</h3>
               <button type="button" onClick={() => setSelectedRequestForReason(null)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors text-gray-400">
                 <XIcon size={20} />
               </button>

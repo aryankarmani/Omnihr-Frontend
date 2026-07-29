@@ -187,9 +187,9 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
             `}>
                 <div className={`p-4 flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
                     <div className="w-12 h-12 flex items-center justify-center shrink-0 transition-all duration-300">
-                        <img src={vedaLogo} alt="EnCalm HRX" className="w-full h-full object-contain" />
+                        <img src={vedaLogo} alt="OmniHR" className="w-full h-full object-contain" />
                     </div>
-                    {!isCollapsed && <h1 className="text-xl font-bold tracking-wide whitespace-nowrap bg-clip-text text-transparent bg-gradient-to-r from-brand-700 to-brand-900 dark:from-white dark:to-brand-100">EnCalm HRX</h1>}
+                    {!isCollapsed && <h1 className="text-xl font-bold tracking-wide whitespace-nowrap bg-clip-text text-transparent bg-gradient-to-r from-brand-700 to-brand-900 dark:from-white dark:to-brand-100">OmniHR</h1>}
                     <button
                         onClick={onToggleCollapse}
                         className="hidden md:flex absolute -right-3 top-7 w-6 h-6 bg-brand-500 rounded-full items-center justify-center text-white shadow-md hover:bg-brand-600 transition-colors z-50"

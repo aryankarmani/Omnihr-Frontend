@@ -2801,9 +2801,9 @@ export default function EmployeeProfile() {
                                 <div id="payslip-content" className="w-full max-w-3xl bg-white border border-gray-200 p-6 md:p-8 shadow-sm rounded-xl relative text-gray-900 text-sm">
                                     <div className="flex justify-between items-start border-b-2 border-brand-900 pb-4 mb-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-12 h-12 md:w-14 md:h-14 bg-brand-900 text-white flex items-center justify-center font-bold text-xl rounded-lg">EH</div>
+                                            <div className="w-12 h-12 md:w-14 md:h-14 bg-brand-900 text-white flex items-center justify-center font-bold text-xl rounded-lg">OH</div>
                                             <div className="text-left">
-                                                <h1 className="text-2xl font-bold text-gray-900 tracking-tight">EnCalm <span className="text-brand-600">HRX</span></h1>
+                                                <h1 className="text-2xl font-bold text-gray-900 tracking-tight">OmniHR</h1>
                                             </div>
                                         </div>
                                         <div className="text-right text-xs text-gray-600">
@@ -3067,7 +3067,7 @@ export default function EmployeeProfile() {
                             ></div>
                             <div className="mx-auto w-16 h-3 bg-white/20 rounded-full mt-4 relative z-10 backdrop-blur-sm"></div>
                             <div className="flex justify-between items-start mb-6 px-6 pt-4 relative z-10">
-                                <h2 className="text-white font-bold tracking-widest text-lg opacity-90">EnCalm <span className="text-brand-300">HRX</span></h2>
+                                <h2 className="text-white font-bold tracking-widest text-lg opacity-90">OmniHR</h2>
                                 <div className="w-10 h-8 bg-gradient-to-br from-yellow-200 to-yellow-500 rounded-md opacity-80 shadow-inner border border-yellow-300/50"></div>
                             </div>
                             <div className="relative z-10 mx-auto mt-6">
