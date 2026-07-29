@@ -240,7 +240,10 @@ export default function LeaveToday() {
                                             <span className="px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-600 border border-amber-500/20 dark:text-amber-400 shadow-sm">
                                                 On Leave
                                             </span>
-                                            <button className="text-sm font-medium text-brand-600 dark:text-brand-400 hover:underline">
+                                            <button 
+                                                onClick={() => (emp.id || emp._id) && navigate(`/employee/${emp.id || emp._id}`)}
+                                                className="text-sm font-medium text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
+                                            >
                                                 View Profile
                                             </button>
                                         </div>
@@ -293,7 +296,10 @@ export default function LeaveToday() {
                                                     {new Date(leave.startDate).toLocaleDateString()} - {new Date(leave.endDate).toLocaleDateString()}
                                                 </td>
                                                 <td className="px-6 py-5 text-right">
-                                                    <button className="text-sm font-bold text-brand-600 dark:text-brand-400 hover:underline">
+                                                    <button 
+                                                        onClick={() => (emp.id || emp._id) && navigate(`/employee/${emp.id || emp._id}`)}
+                                                        className="text-sm font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
+                                                    >
                                                         View
                                                     </button>
                                                 </td>

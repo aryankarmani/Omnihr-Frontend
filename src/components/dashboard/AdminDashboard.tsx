@@ -70,7 +70,7 @@ export default function AdminDashboard({
                         }}
                         className="relative z-10 px-5 py-2.5 bg-orange-600 hover:bg-orange-750 dark:bg-orange-500/20 text-white dark:text-orange-200 text-sm font-bold rounded-xl shadow-lg transition-all hover:scale-105 active:scale-95"
                     >
-                        Review Corrections
+                        Review Regularizations
                     </button>
                 </div>
             )}
@@ -145,7 +145,7 @@ export default function AdminDashboard({
                             )
                         ) : (
                             pendingRegularizations.length === 0 ? (
-                                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-10 font-semibold">No pending corrections.</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-10 font-semibold">No pending regularizations.</p>
                             ) : (
                                 pendingRegularizations.map((request) => {
                                     const name = request.user?.name || `Employee #${request.userId}`;
@@ -161,7 +161,7 @@ export default function AdminDashboard({
                                             <div className="flex-1 min-w-0">
                                                 <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">{name}</h4>
                                                 <p className="text-[10px] font-medium text-gray-500 mt-0.5 truncate">
-                                                    {request.reason || 'Correction'} • <span className="text-brand-600 dark:text-brand-400 font-semibold">{request.date}</span>
+                                                    {request.reason || 'Regularization'} • <span className="text-brand-600 dark:text-brand-400 font-semibold">{request.date}</span>
                                                 </p>
                                             </div>
                                             <button

@@ -20,7 +20,7 @@ export default function SignIn() {
         e.preventDefault();
         try {
             await login(email, password);
-            setTheme('dark');
+            setTheme('light');
             navigate('/dashboard');
         } catch (err) {
             console.error("Login failed", err);
@@ -92,9 +92,9 @@ className="login-input w-full px-4 py-3 bg-gray-50 border border-gray-300 focus:
 
                     <div className="flex items-center gap-4 mb-10">
                         <div className="w-16 h-16 lg:w-20 lg:h-20 flex items-center justify-center">
-                            <img src={vedaLogo} alt="EnCalm" className="w-full h-full object-contain drop-shadow-md" />
+                            <img src={vedaLogo} alt="OmniHR" className="w-full h-full object-contain drop-shadow-md" />
                         </div>
-                        <span className="text-2xl lg:text-3xl font-bold text-gray-900 tracking-tight">EnCalm HRX</span>
+                        <span className="text-2xl lg:text-3xl font-bold text-gray-900 tracking-tight">OmniHR</span>
                     </div>
 
                     <div className="relative z-10 self-start">

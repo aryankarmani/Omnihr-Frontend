@@ -16,6 +16,8 @@ export default function Leave() {
     const getInitials = (name?: string) => {
         if (!name?.trim()) return '?';
 
+<<<<<<< HEAD
+=======
         const nameParts = name.trim().split(/\s+/);
 
         // Single name: display first two letters
@@ -30,6 +32,7 @@ export default function Leave() {
         ).toUpperCase();
     };
 
+>>>>>>> origin/release
     useEffect(() => {
         if (location.state?.activeTab) {
             setActiveTab(location.state.activeTab);

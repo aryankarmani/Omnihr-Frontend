@@ -677,7 +677,7 @@ export default function Team() {
                                     { key: 'list', label: 'Employee List', desc: 'Allows viewing and searching the team member roster' },
                                     { key: 'attendance', label: 'Attendance', desc: 'Allows viewing daily attendance sheets of the team' },
                                     { key: 'leaveApproval', label: 'Leave Approval', desc: 'Allows reviewing, approving, and rejecting leave requests' },
-                                    { key: 'regularization', label: 'Regularization', desc: 'Allows managing attendance corrections and requests' }
+                                    { key: 'regularization', label: 'Regularization', desc: 'Allows managing attendance regularizations and requests' }
                                 ].map((option) => {
                                     const isChecked = (permissions as any)[option.key];
                                     return (
