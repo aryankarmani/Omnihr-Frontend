@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Calendar,
   Clock,
@@ -37,27 +38,7 @@ interface RegularizationRequest {
 }
 
 export default function Regularizations() {
-  // const { user } = useAuth();
-  // const [teamMemberIds, setTeamMemberIds] = useState<number[]>([]);
-
-  // useEffect(() => {
-  //   const fetchManagerTeam = async () => {
-  //     if (user?.role === 'MANAGER') {
-  //       try {
-  //         const res = await getTeams();
-  //         const teams = res.data || [];
-  //         const myTeam = teams.find((t: any) => t.managerId === user.id || t.manager?.id === user.id);
-  //         if (myTeam) {
-  //           const ids = myTeam.members.map((m: any) => m.id);
-  //           setTeamMemberIds(ids);
-  //         }
-  //       } catch (e) {
-  //         console.error("Failed to load manager's team in Regularizations", e);
-  //       }
-  //     }
-  //   };
-  //   fetchManagerTeam();
-  // }, [user]);
+  const navigate = useNavigate();
 
   const [requests, setRequests] = useState<RegularizationRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -229,8 +210,9 @@ export default function Regularizations() {
             <table className="w-full text-left border-collapse">
               <thead className="bg-gray-50 dark:bg-white/5">
                 <tr>
-                  <th className="pl-15 pr-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Employee</th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Date</th>
+                  <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+                    Employee
+                  </th>                  <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Date</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Proposed In/Out Times</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Reason</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest text-right">Actions</th>
@@ -241,25 +223,43 @@ export default function Regularizations() {
                   const name = req.user?.name || `Employee #${req.userId}`;
                   const title = req.user?.employeeProfile?.title || 'Employee';
                   const department = req.user?.employeeProfile?.department || 'General';
-                  const avatar = req.user?.employeeProfile?.avatar;
+                  const colors = [
+                    'bg-blue-500',
+                    'bg-purple-500',
+                    'bg-orange-500',
+                    'bg-pink-500',
+                    'bg-teal-500',
+                  ];
 
-                  const colors = ['bg-blue-500', 'bg-purple-500', 'bg-orange-500', 'bg-pink-500', 'bg-teal-500'];
                   const avatarColor = colors[index % colors.length];
 
+                  const initials = name
+                    .trim()
+                    .split(/\s+/)
+                    .slice(0, 2)
+                    .map((word) => word.charAt(0).toUpperCase())
+                    .join('');
                   return (
                     <tr key={req.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          {avatar ? (
-                            <img src={avatar} alt={name} className="w-10 h-10 rounded-xl object-cover shadow-sm" />
-                          ) : (
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md ${avatarColor}`}>
-                              {name.split(' ').map((n: string) => n[0]).join('')}
-                            </div>
-                          )}
+                          <div
+                            className={`w-11 h-11 shrink-0 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md ${avatarColor}`}
+                          >
+                            {initials}
+                          </div>
+
                           <div>
-                            <div className="font-bold text-gray-800 dark:text-white">{name}</div>
-                            <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{title} • {department}</div>
+                            <button
+                              onClick={() => navigate(`/employee/${req.user?.id || req.userId}`)}
+                              className="font-bold text-gray-800 dark:text-white hover:text-brand-400 hover:underline"
+                            >
+                              {name}
+                            </button>
+
+                            <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                              {title} • {department}
+                            </div>
                           </div>
                         </div>
                       </td>

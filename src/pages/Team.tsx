@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { useEffect } from 'react';
 import { Users, Plus, MoreVertical, Briefcase, UserPlus, X, Trash2 } from 'lucide-react';
@@ -18,6 +19,7 @@ import {
 export default function Team() {
     const [employees, setEmployees] = useState<any[]>([]);
     const { user } = useAuth();
+    const navigate = useNavigate();
     const isAdmin = user?.role === 'HR_ADMIN';
     // ✅ CHANGED: only HR admin can create/edit teams
     const canManageTeams = user?.role === 'HR_ADMIN';
@@ -41,6 +43,23 @@ export default function Team() {
         leaveApproval: true,
         regularization: true
     });
+    useEffect(() => {
+        const savedState = sessionStorage.getItem('teamModalState');
+
+        if (!savedState) return;
+
+        const { modal, teamId } = JSON.parse(savedState);
+
+        if (teamId) {
+            setSelectedTeam(teamId);
+        }
+
+        if (modal === 'add-members') {
+            setShowAddMemberModal(true);
+        }
+
+        sessionStorage.removeItem('teamModalState');
+    }, []);
 
     const handleOpenAccessControl = async (team: any) => {
         setAccessControlTeam(team);
@@ -104,31 +123,31 @@ export default function Team() {
         }
     };
     const saveTeamLog = async (
-    action: string,
-    description: string,
-    teamName: string
-) => {
-    try {
-        await api.post('/audit-logs', {
-            module: 'Team',
-            action,
-            description,
-            performedBy: user?.name || 'Admin',
-            performedByRole: user?.role || 'HR_ADMIN',
-            targetUser: teamName,
-            targetUserRole: 'Team',
-            dateTime: new Date().toLocaleString('en-IN', {
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-            }),
-        });
-    } catch (error) {
-        console.error('Failed to save team log:', error);
-    }
-};
+        action: string,
+        description: string,
+        teamName: string
+    ) => {
+        try {
+            await api.post('/audit-logs', {
+                module: 'Team',
+                action,
+                description,
+                performedBy: user?.name || 'Admin',
+                performedByRole: user?.role || 'HR_ADMIN',
+                targetUser: teamName,
+                targetUserRole: 'Team',
+                dateTime: new Date().toLocaleString('en-IN', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                }),
+            });
+        } catch (error) {
+            console.error('Failed to save team log:', error);
+        }
+    };
     useEffect(() => {
         fetchTeams();
         fetchEmployees();
@@ -292,8 +311,23 @@ export default function Team() {
                                         key={emp.id}
                                         className={`flex items-center justify-between p-3 rounded-xl transition-all ${cardBgClass}`}
                                     >
-                                        <div>
-                                            <p className="font-semibold text-gray-800 dark:text-white text-sm">{emp.name}</p>
+                                        <div>  <button
+                                            type="button"
+                                            onClick={() => {
+                                                sessionStorage.setItem(
+                                                    'teamModalState',
+                                                    JSON.stringify({
+                                                        modal: 'add-members',
+                                                        teamId: selectedTeam
+                                                    })
+                                                );
+
+                                                navigate(`/employee/${emp.id}`);
+                                            }} className="font-semibold text-gray-800 dark:text-white text-sm hover:text-brand-400 hover:underline"
+                                        >
+                                            {emp.name}
+                                        </button>
+
                                             <p className="text-xs text-gray-500">{typeof emp.role === 'object' ? emp.role?.name || 'Employee' : emp.role || 'Employee'}</p>
                                         </div>
 
@@ -361,11 +395,11 @@ export default function Team() {
                                                 members: selectedEmployees,
                                                 managerId: selectedManager
                                             });
-                                        }await saveTeamLog(
-    'Created',
-    `Team "${newTeamName}" created`,
-    newTeamName
-);
+                                        } await saveTeamLog(
+                                            'Created',
+                                            `Team "${newTeamName}" created`,
+                                            newTeamName
+                                        );
                                         setNewTeamName('');
                                         setNewTeamDesc('');
                                     }
@@ -466,10 +500,10 @@ export default function Team() {
                                         description: editTeam.description
                                     });
                                     await saveTeamLog(
-    'Updated',
-    `Team "${editTeam.name}" updated`,
-    editTeam.name
-);
+                                        'Updated',
+                                        `Team "${editTeam.name}" updated`,
+                                        editTeam.name
+                                    );
                                     fetchTeams();
                                     setEditTeam(null);
                                 }}
@@ -482,8 +516,8 @@ export default function Team() {
                 </div>,
                 document.body
             )}
-            {selectedTeam && createPortal(
-                <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+{selectedTeam && !showAddMemberModal && createPortal(
+                    <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
                     <div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-scale-in">
                         <div className="p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50 dark:bg-white/5">
                             <div>
@@ -512,8 +546,22 @@ export default function Team() {
                                             {emp.name.split(' ').map((n: string) => n[0]).join('')}
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                            <p className="font-semibold text-gray-800 dark:text-white text-sm break-all">{emp.name}</p>
-                                            <p className="text-xs text-gray-500 truncate">{emp.role}</p>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    sessionStorage.setItem(
+                                                        'teamModalState',
+                                                        JSON.stringify({
+                                                            modal: 'team-roster',
+                                                            teamId: selectedTeam
+                                                        })
+                                                    );
+
+                                                    navigate(`/employee/${emp.id}`);
+                                                }} className="font-semibold text-gray-800 dark:text-white text-sm break-all hover:text-brand-400 hover:underline text-left"
+                                            >
+                                                {emp.name}
+                                            </button>                                            <p className="text-xs text-gray-500 truncate">{emp.role}</p>
                                         </div>
                                     </div>
                                     {canManageTeams && (
@@ -586,18 +634,18 @@ export default function Team() {
                             <button
                                 onClick={async () => {
                                     if (!confirmDelete) return;
-                                   const deletedTeam = teams.find(t => t.id === confirmDelete);
+                                    const deletedTeam = teams.find(t => t.id === confirmDelete);
 
-await deleteTeam(confirmDelete);
+                                    await deleteTeam(confirmDelete);
 
-await saveTeamLog(
-    'Deleted',
-    `Team "${deletedTeam?.name || 'Team'}" deleted`,
-    deletedTeam?.name || 'Team'
-);
+                                    await saveTeamLog(
+                                        'Deleted',
+                                        `Team "${deletedTeam?.name || 'Team'}" deleted`,
+                                        deletedTeam?.name || 'Team'
+                                    );
 
-fetchTeams();
-setConfirmDelete(null);
+                                    fetchTeams();
+                                    setConfirmDelete(null);
                                 }}
                                 className="flex-1 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold shadow-lg shadow-red-500/30 transition-all active:scale-95"
                             >
@@ -637,8 +685,8 @@ setConfirmDelete(null);
                                             key={option.key}
                                             onClick={() => setPermissions(prev => ({ ...prev, [option.key]: !isChecked }))}
                                             className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-4 ${isChecked
-                                                    ? 'border-brand-500 bg-brand-500/10 dark:bg-brand-500/5'
-                                                    : 'border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5 hover:border-gray-200 dark:hover:border-white/10'
+                                                ? 'border-brand-500 bg-brand-500/10 dark:bg-brand-500/5'
+                                                : 'border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5 hover:border-gray-200 dark:hover:border-white/10'
                                                 }`}
                                         >
                                             <input

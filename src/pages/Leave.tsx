@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, XCircle, Loader2, CheckCircle, XIcon, Search, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
@@ -11,8 +11,28 @@ import { createPortal } from 'react-dom';
 export default function Leave() {
     const { user } = useAuth();
     const location = useLocation();
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<'MY_LEAVE' | 'APPROVALS'>('MY_LEAVE');
+    const getInitials = (name?: string) => {
+        if (!name?.trim()) return '?';
 
+<<<<<<< HEAD
+=======
+        const nameParts = name.trim().split(/\s+/);
+
+        // Single name: display first two letters
+        if (nameParts.length === 1) {
+            return nameParts[0].slice(0, 2).toUpperCase();
+        }
+
+        // First letter of first name + first letter of last name
+        return (
+            nameParts[0][0] +
+            nameParts[nameParts.length - 1][0]
+        ).toUpperCase();
+    };
+
+>>>>>>> origin/release
     useEffect(() => {
         if (location.state?.activeTab) {
             setActiveTab(location.state.activeTab);
@@ -582,10 +602,14 @@ export default function Leave() {
                                             <td className="py-5 px-4">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-8 h-8 rounded-full bg-brand-100 dark:bg-brand-900 flex items-center justify-center text-brand-600 dark:text-brand-300 text-xs font-bold uppercase">
-                                                        {l.user?.name[0]}
+                                                        {getInitials(l.user?.name)}
                                                     </div>
-                                                    <span className="text-gray-800 dark:text-gray-200">{l.user?.name}</span>
-                                                </div>
+                                                    <button
+                                                        onClick={() => navigate(`/employee/${l.user?.id}`)}
+                                                        className="text-gray-800 dark:text-gray-200 hover:text-brand-400 hover:underline font-medium"
+                                                    >
+                                                        {l.user?.name}
+                                                    </button>                                                </div>
                                             </td>
                                             <td className="py-5 px-4">
                                                 <span className={`px-2 py-1 rounded-lg text-xs font-bold ${getLeaveTypeStyle(l.leaveType?.code).bg} ${getLeaveTypeStyle(l.leaveType?.code).color}`}>
