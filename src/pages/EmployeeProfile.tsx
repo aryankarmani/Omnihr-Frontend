@@ -73,7 +73,6 @@ export default function EmployeeProfile() {
     };
 
     const [customFields, setCustomFields] = useState<any[]>([]);
-    const [customFieldDocToDelete, setCustomFieldDocToDelete] = useState<string | null>(null);
 
     const fetchCustomFields = async () => {
         try {
@@ -439,10 +438,7 @@ export default function EmployeeProfile() {
                 toast.error("Please fix validations in Personal Details");
                 setActiveTab("personal");
             }
-            else if (hasDocumentError) {
-                toast.error("Please upload all required documents in Document Vault");
-                setActiveTab("documents");
-            }
+
 
             return false;
         }
@@ -1526,23 +1522,22 @@ export default function EmployeeProfile() {
                                     </div>
 
                                     <div className="flex items-center gap-3">
-                                        {/* Upload or Change */}
-                                        {isEditing && hasPermission(['HR_ADMIN']) && (
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    document
-                                                        .getElementById('edit-profile-picture-input')
-                                                        ?.click()
-                                                }
-                                                className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-md transition-all"
-                                            >
-                                                <Upload size={14} />
-
-                                                {displayedProfilePictureUrl ? 'Change' : 'Upload'}
-                                            </button>
-                                        )}
-
+                                        {/* Upload only when profile picture does not exist */}
+                                        {isEditing &&
+                                            hasPermission(['HR_ADMIN']) &&
+                                            !displayedProfilePictureUrl && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        document
+                                                            .getElementById('edit-profile-picture-input')
+                                                            ?.click()
+                                                    }
+                                                    className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 cursor-pointer mr-2"
+                                                >
+                                                    <Upload size={14} /> Upload
+                                                </button>
+                                            )}
                                         {/* View */}
                                         <button
                                             type="button"
@@ -1645,10 +1640,17 @@ export default function EmployeeProfile() {
                                                 {isEditing && hasFile && (
                                                     <button
                                                         type="button"
-                                                        onClick={(e) => {
+                                                        onClick={async (e) => {
                                                             e.preventDefault();
                                                             e.stopPropagation();
-                                                            setCustomFieldDocToDelete(cf.fieldId);
+
+                                                            const confirmed = window.confirm(
+                                                                'Are you sure you want to delete this document?'
+                                                            );
+
+                                                            if (!confirmed) return;
+
+                                                            await handleCustomFileDelete(cf.fieldId);
                                                         }}
                                                         className="w-10 h-10 rounded-full flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white cursor-pointer ml-1"
                                                     >

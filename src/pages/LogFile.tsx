@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Search,
   RotateCcw,
@@ -22,6 +23,8 @@ type LogItem = {
   performedByRole: string;
   targetUser: string;
   targetUserRole: string;
+  targetUserId?: number | string;
+
 };
 
 
@@ -63,8 +66,22 @@ const getIconBoxClass = (status: string) => {
       return "bg-gray-100 text-gray-600";
   }
 };
+const getPerformedByName = (log: LogItem) => {
+  const performedBy = (log.performedBy || "").trim();
+  const normalizedName = performedBy.toLowerCase();
+  const normalizedRole = (log.performedByRole || "").toUpperCase();
 
+  const isAdmin =
+    normalizedRole === "HR_ADMIN" ||
+    normalizedRole === "ADMIN" ||
+    normalizedName === "admin" ||
+    normalizedName === "admin@example.com" ||
+    normalizedName.startsWith("system admin");
+
+  return isAdmin ? "System Adminmmm" : performedBy || "—";
+};
 const LogFile = () => {
+  const navigate = useNavigate();
   const [logs, setLogs] = useState<LogItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -265,11 +282,23 @@ const LogFile = () => {
                   </td>
 
                   <td className="px-5 py-4 text-sm text-gray-200">
-                    {log.performedBy}
+                    {getPerformedByName(log)}
                   </td>
 
                   <td className="px-5 py-4 text-sm text-gray-200">
-                    {log.targetUser || "—"}                  </td>
+                    {log.targetUserId ? (
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/employee/${log.targetUserId}`)}
+                        className="text-left hover:text-white hover:underline underline-offset-4 transition-colors cursor-pointer"
+                        title="View employee profile"
+                      >
+                        {log.targetUser || "—"}
+                      </button>
+                    ) : (
+                      log.targetUser || "—"
+                    )}
+                  </td>
 
                   <td className="px-5 py-4 text-sm text-gray-200">
                     <div className="flex items-center gap-2">
@@ -405,7 +434,7 @@ const LogFile = () => {
               </p>
             </div>
 
-            
+
           </div>
         </div>
       )}

@@ -21,6 +21,22 @@ export default function AdminDashboard({
     employees
 }: AdminDashboardProps) {
     const [activeTab, setActiveTab] = useState<'leaves' | 'regularizations'>('leaves');
+    const getInitials = (name?: string) => {
+    if (!name) return '?';
+
+    const nameParts = name.trim().split(/\s+/);
+
+    // For a single name, show only its first letter
+    if (nameParts.length === 1) {
+        return nameParts[0][0].toUpperCase();
+    }
+
+    // First letter of first name + first letter of last name
+    return (
+        nameParts[0][0] +
+        nameParts[nameParts.length - 1][0]
+    ).toUpperCase();
+};
 
     return (
         <div className="text-gray-800 dark:text-white animate-fade-in-up">
@@ -109,7 +125,7 @@ export default function AdminDashboard({
                                         className="group flex items-center gap-4 p-4 hover:bg-white dark:hover:bg-gray-700/50 rounded-2xl border border-transparent hover:border-gray-100 dark:hover:border-gray-600 hover:shadow-sm transition-all duration-205 cursor-pointer"
                                     >
                                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-500/20 dark:to-blue-400/10 flex items-center justify-center text-blue-600 dark:text-blue-400 font-black text-xs shadow-inner group-hover:scale-105 transition-transform overflow-hidden shrink-0">
-                                            {approval.avatar ? <img src={approval.avatar} alt="avatar" className="w-full h-full object-cover" /> : approval.userName.substring(0, 2).toUpperCase()}
+                                          {getInitials(approval.userName)}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">{approval.userName}</h4>
@@ -133,7 +149,6 @@ export default function AdminDashboard({
                             ) : (
                                 pendingRegularizations.map((request) => {
                                     const name = request.user?.name || `Employee #${request.userId}`;
-                                    const avatar = request.user?.employeeProfile?.avatar;
                                     return (
                                         <div 
                                             key={request.id} 
@@ -141,11 +156,7 @@ export default function AdminDashboard({
                                             className="group flex items-center gap-4 p-4 hover:bg-white dark:hover:bg-gray-700/50 rounded-2xl border border-transparent hover:border-gray-100 dark:hover:border-gray-600 hover:shadow-sm transition-all duration-205 cursor-pointer"
                                         >
                                             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-500/20 dark:to-orange-400/10 flex items-center justify-center text-orange-600 dark:text-orange-400 font-black text-xs shadow-inner group-hover:scale-105 transition-transform overflow-hidden shrink-0">
-                                                {avatar ? (
-                                                    <img src={avatar} alt="avatar" className="w-full h-full object-cover" />
-                                                ) : (
-                                                    name.substring(0, 2).toUpperCase()
-                                                )}
+                                             
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">{name}</h4>
