@@ -16,8 +16,6 @@ export default function Leave() {
     const getInitials = (name?: string) => {
         if (!name?.trim()) return '?';
 
-<<<<<<< HEAD
-=======
         const nameParts = name.trim().split(/\s+/);
 
         // Single name: display first two letters
@@ -32,12 +30,13 @@ export default function Leave() {
         ).toUpperCase();
     };
 
->>>>>>> origin/release
-    useEffect(() => {
-        if (location.state?.activeTab) {
-            setActiveTab(location.state.activeTab);
-        }
-    }, [location.state]);
+   useEffect(() => {
+    setActiveTab(
+        location.state?.activeTab === "APPROVALS"
+            ? "APPROVALS"
+            : "MY_LEAVE"
+    );
+}, [location.state]);
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [showApplyModal, setShowApplyModal] = useState(false);
