@@ -218,7 +218,9 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                                         if (hasChildren && !isCollapsed) {
                                             toggleMenu(item.label);
                                         } else {
-                                            navigate(item.path);
+                                          navigate(item.path, {
+    state: { activeTab: 'MY_LEAVE' }
+});
                                             if (window.innerWidth < 768) onClose();
                                         }
                                     }}

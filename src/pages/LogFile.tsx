@@ -146,9 +146,9 @@ const LogFile = () => {
   return (
     <div className="p-6 space-y-6 animate-fade-in text-white">
       <div>
-        <h1 className="text-3xl font-bold text-white">          Log File
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">         Log File
         </h1>
-        <p className="text-sm text-gray-400 mt-1">          Track all admin and manager actions
+        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">         Track all admin and manager actions
         </p>
       </div>
 
@@ -229,23 +229,17 @@ const LogFile = () => {
         <div className="overflow-hidden">
           <table className="w-full table-fixed">
             <thead className="bg-gray-50 dark:bg-white/5">           <tr>
-              <th className="text-center px-5 py-4 text-xs font-bold text-brand-100/70 uppercase">
-                Action
+              <th className="text-center px-5 py-4 text-xs font-bold uppercase text-gray-700 dark:text-gray-300">                Action
               </th>
-              <th className="text-left px-5 py-4 text-xs font-bold text-brand-100/70 uppercase">
-                Performed By
+              <th className="text-left px-5 py-4 text-xs font-bold uppercase text-gray-700 dark:text-gray-300">                Performed By
               </th>
-              <th className="text-left px-5 py-4 text-xs font-bold text-brand-100/70 uppercase">
-                Employee / Entity
+              <th className="text-left px-5 py-4 text-xs font-bold uppercase text-gray-700 dark:text-gray-300">                Employee / Entity
               </th>
-              <th className="text-left px-5 py-4 text-xs font-bold text-brand-100/70 uppercase">
-                Date & Time
+              <th className="text-left px-5 py-4 text-xs font-bold uppercase text-gray-700 dark:text-gray-300">                Date & Time
               </th>
-              <th className="text-left px-5 py-4 text-xs font-bold text-brand-100/70 uppercase">
-                Status
+              <th className="text-left px-5 py-4 text-xs font-bold uppercase text-gray-700 dark:text-gray-300">                Status
               </th>
-              <th className="text-left px-5 py-4 text-xs font-bold text-brand-100/70 uppercase">
-                Description
+              <th className="text-left px-5 py-4 text-xs font-bold uppercase text-gray-700 dark:text-gray-300">                Description
               </th>
 
             </tr>
@@ -274,18 +268,18 @@ const LogFile = () => {
                       >
                         {getIcon(log.action, log.module)}                      </div>
                       <div>
-                        <p className="font-semibold text-sm text-white">
+                        <p className="font-semibold text-sm text-gray-900 dark:text-white">
                           {log.module} {log.action}
                         </p>
                       </div>
                     </div>
                   </td>
 
-                  <td className="px-5 py-4 text-sm text-gray-200">
+                  <td className="px-5 py-4 text-sm text-gray-900 dark:text-gray-200">
                     {getPerformedByName(log)}
                   </td>
 
-                  <td className="px-5 py-4 text-sm text-gray-200">
+                  <td className="px-5 py-4 text-sm text-gray-900 dark:text-gray-200">
                     {log.targetUserId ? (
                       <button
                         type="button"
@@ -300,7 +294,7 @@ const LogFile = () => {
                     )}
                   </td>
 
-                  <td className="px-5 py-4 text-sm text-gray-200">
+                  <td className="px-5 py-4 text-sm text-gray-900 dark:text-gray-200">
                     <div className="flex items-center gap-2">
                       <Calendar size={15} className="text-gray-400" />
                       {log.dateTime}
@@ -317,12 +311,11 @@ const LogFile = () => {
                     </span>
                   </td>
 
-                  <td className="px-5 py-4 text-sm text-gray-300">
+                  <td className="px-5 py-4 text-sm text-gray-900 dark:text-gray-300">
                     <button
                       type="button"
                       onClick={() => setSelectedDescription(log.description)}
-                      className="block w-full text-left truncate italic text-gray-300 hover:text-white hover:underline underline-offset-4 decoration-gray-400 hover:decoration-white transition-colors cursor-pointer"
-                      title="Click to view full description"
+                      className="block w-full text-left truncate italic text-gray-900 dark:text-gray-300 hover:text-black dark:hover:text-white hover:underline underline-offset-4 decoration-gray-400 hover:decoration-current transition-colors cursor-pointer" title="Click to view full description"
                     >
                       {log.description || "—"}
                     </button>
