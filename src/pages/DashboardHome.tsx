@@ -20,6 +20,7 @@ export default function DashboardHome() {
     });
     const [attendanceData, setAttendanceData] = useState([]);
     const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
+    const [pendingRegularizations, setPendingRegularizations] = useState<any[]>([]);
     const [employees, setEmployees] = useState<any[]>([]);
 
     useEffect(() => {
@@ -31,17 +32,19 @@ export default function DashboardHome() {
             }
 
             try {
-                const [statsRes, attRes, authRes, empRes] = await Promise.all([
+                const [statsRes, attRes, authRes, empRes, regRes] = await Promise.all([
                     api.get('/dashboard/stats'),
                     api.get('/dashboard/live-attendance'),
                     api.get('/dashboard/pending-approvals'),
-                    api.get('/dashboard/employee-overview')
+                    api.get('/dashboard/employee-overview'),
+                    api.get('/attendance/regularize/pending').catch(() => ({ data: [] }))
                 ]);
 
                 setStats(statsRes.data);
                 setAttendanceData(attRes.data);
                 setPendingApprovals(authRes.data);
                 setEmployees(empRes.data);
+                setPendingRegularizations(Array.isArray(regRes.data) ? regRes.data : []);
             } catch (error) {
                 console.error("Failed to fetch admin dashboard data:", error);
             } finally {
@@ -69,11 +72,12 @@ export default function DashboardHome() {
 
     // Default to Admin Dashboard for HR_ADMIN
     return (
-        <AdminDashboard 
+        <AdminDashboard
             navigate={navigate}
             stats={stats}
             attendanceData={attendanceData}
             pendingApprovals={pendingApprovals}
+            pendingRegularizations={pendingRegularizations}
             employees={employees}
         />
     );

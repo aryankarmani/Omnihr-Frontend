@@ -1,52 +1,477 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { createPortal } from 'react-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useRBAC } from '../hooks/useRBAC';
-import { ArrowLeft, User, FileText, CreditCard, Download, Upload, Briefcase, Save, X, Edit, Printer, Loader2 } from 'lucide-react';
+import { ArrowLeft, User, FileText, CreditCard, Download, Briefcase, Save, X, Edit, Printer, Loader2, Eye, Trash2, Upload, TrendingUp, TrendingDown, Coins } from 'lucide-react';
 import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
+
+const parseRadioOptions = (optionsString: string | null | undefined): string[] => {
+    if (!optionsString) return ['Yes', 'No'];
+    if (optionsString.includes(',')) {
+        return optionsString.split(',').map(o => o.trim()).filter(Boolean);
+    }
+    if (optionsString.includes('/')) {
+        return optionsString.split('/').map(o => o.trim()).filter(Boolean);
+    }
+    if (optionsString.includes(';')) {
+        return optionsString.split(';').map(o => o.trim()).filter(Boolean);
+    }
+    if (optionsString.trim().includes(' ')) {
+        return optionsString.split(/\s+/).map(o => o.trim()).filter(Boolean);
+    }
+    return [optionsString.trim()];
+};
 
 export default function EmployeeProfile() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const { hasPermission } = useRBAC();
-    const [activeTab, setActiveTab] = useState<'personal' | 'statutory' | 'documents'>('statutory');
-    const [isEditing, setIsEditing] = useState(false);
+
+    const queryParams = new URLSearchParams(location.search);
+    const initialEditMode = queryParams.get('edit') === 'true';
+
+    const [activeTab, setActiveTab] = useState<'personal' | 'statutory' | 'documents' | 'shiftRoster' | 'salary' | 'team'>('statutory');
+    const [isEditing, setIsEditing] = useState(initialEditMode);
     const [showPayslip, setShowPayslip] = useState(false);
     const [showIDCard, setShowIDCard] = useState(false);
     const [loading, setLoading] = useState(true);
-
+    const [docToDelete, setDocToDelete] = useState<number | null>(null);
+    const [showProfilePictureDeleteModal, setShowProfilePictureDeleteModal] =
+        useState(false);
+    const [companySignature, setCompanySignature] = useState<string | null>(null);
+    const [salaryComponents, setSalaryComponents] = useState<any[]>([]);
+    const [componentPickerType, setComponentPickerType] = useState<'EARNING' | 'DEDUCTION' | null>(null);
     // Employee State
     const [employee, setEmployee] = useState<any>(null);
+    const [shifts, setShifts] = useState<any[]>([]);
+    const [roles, setRoles] = useState<any[]>([]);
+    const [designations, setDesignations] = useState<any[]>([]);
+    const [departments, setDepartments] = useState<any[]>([]);
+    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [newProfilePicture, setNewProfilePicture] = useState<File | null>(null);
+    const [newProfilePicturePreview, setNewProfilePicturePreview] = useState<string | null>(null);
+
+    const fetchEmployee = async () => {
+        try {
+            const endpoint = id ? `/employee/${id}` : '/employee/me';
+            const res = await api.get(endpoint);
+            console.log("EMPLOYEE DATA:", res.data);
+            console.log("SALARY DATA:", res.data.employeeProfile?.salary);
+            setEmployee(res.data);
+            setErrors({});
+        } catch (error) {
+            console.error('Error fetching employee:', error);
+            toast.error('Failed to load employee profile');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const [customFields, setCustomFields] = useState<any[]>([]);
+
+    const fetchCustomFields = async () => {
+        try {
+            const endpoint = id ? `/custom-fields/employee/${id}` : '/custom-fields/employee/me';
+            const res = await api.get(endpoint);
+            setCustomFields(res.data || []);
+        } catch (error) {
+            console.error('Error fetching custom fields:', error);
+        }
+    };
+
+    const handleCustomFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, fieldId: string) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const targetField = customFields.find((cf: any) => cf.fieldId === fieldId);
+        const fType = targetField?.field?.type || 'FILE';
+
+        if (fType === 'PDF' && file.type !== "application/pdf") {
+            toast.error("Only PDF files are allowed for this field");
+            return;
+        }
+        if (fType === 'IMAGE' && !file.type.startsWith("image/")) {
+            toast.error("Only image files are allowed for this field");
+            return;
+        }
+        if (fType !== 'PDF' && fType !== 'IMAGE' && file.type !== "application/pdf" && !file.type.startsWith("image/")) {
+            toast.error("Only PDF and image files are allowed");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        toast.loading("Uploading document...", { id: 'custom-uploading-toast' });
+        try {
+            const empId = id || 'me';
+            await api.post(`/custom-fields/employee/${empId}/field/${fieldId}/upload`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+            toast.success("Document uploaded successfully!", { id: 'custom-uploading-toast' });
+            fetchCustomFields();
+            setErrors(prev => {
+                const copy = { ...prev };
+                delete copy[`customField-${fieldId}`];
+                return copy;
+            });
+        } catch (error) {
+            console.error("Upload failed", error);
+            toast.error("Failed to upload document", { id: 'custom-uploading-toast' });
+        }
+    };
+
+    const handleCustomFileDelete = async (fieldId: string) => {
+        toast.loading("Deleting document...", { id: 'custom-deleting-toast' });
+        try {
+            const empId = id || 'me';
+            await api.delete(`/custom-fields/employee/${empId}/field/${fieldId}/document`);
+            toast.success("Document deleted successfully!", { id: 'custom-deleting-toast' });
+            fetchCustomFields();
+        } catch (error) {
+            console.error("Delete failed", error);
+            toast.error("Failed to delete document", { id: 'custom-deleting-toast' });
+        }
+    };
+    const fetchCompanySignature = async () => {
+
+        try {
+
+            const res = await api.get('/company-setting');
+
+            setCompanySignature(res.data?.authorizedSignature || null);
+
+        } catch (error) {
+
+            console.error(error);
+
+        }
+
+    };
+    const fetchShifts = async () => {
+        try {
+            const res = await api.get('/masters/shifts');
+            setShifts(res.data);
+        } catch (error) {
+            console.error('Error fetching shifts:', error);
+            toast.error('Failed to load shifts');
+        }
+    };
+    const fetchRoles = async () => {
+        try {
+            const res = await api.get('/masters/roles');
+            console.log("ROLES DATA:", res.data);
+            setRoles(res.data);
+        } catch (error) {
+            console.error('Error fetching roles:', error);
+            toast.error('Failed to load roles');
+        }
+    };
+
+    const fetchDesignations = async () => {
+        try {
+            const res = await api.get('/masters/designations');
+            setDesignations(res.data);
+        } catch (error) {
+            console.error('Error fetching designations:', error);
+            toast.error('Failed to load designations');
+        }
+    };
+    const fetchDepartments = async () => {
+        try {
+            const res = await api.get('/masters/departments');
+            console.log("DEPARTMENTS DATA:", res.data);
+
+            setDepartments(Array.isArray(res.data) ? res.data : res.data.departments || []);
+        } catch (error) {
+            console.error('Error fetching departments:', error);
+            toast.error('Failed to load departments');
+        }
+    };
+    const fetchSalaryComponents = async () => {
+        try {
+            const res = await api.get('/masters/salary-components');
+            setSalaryComponents(res.data || []);
+        } catch (error) {
+            console.error('Error fetching salary components:', error);
+        }
+    };
+
+    // Payslip month state
+    const [leaves, setLeaves] = useState<any[]>([]);
+    const [selectedPayslipYear, setSelectedPayslipYear] = useState<number>(() => {
+        return new Date().getFullYear();
+    });
+    const [selectedPayslipMonth, setSelectedPayslipMonth] = useState<number>(() => {
+        return new Date().getMonth(); // 0-indexed
+    });
+
+    // Draft inputs for month/year selector (prefilled with current month/year)
+    const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const [inputMonth, setInputMonth] = useState(() => MONTH_NAMES[new Date().getMonth()]);
+    const [inputYear, setInputYear] = useState(() => String(new Date().getFullYear()));
+    const [payslipError, setPayslipError] = useState('');
+
+    const applyPayslipMonth = () => {
+        const trimmedMonth = inputMonth.trim();
+        const trimmedYear = inputYear.trim();
+        if (!trimmedMonth || !trimmedYear) {
+            setPayslipError('Please enter both Month and Year');
+            return;
+        }
+        const monthIdx = MONTH_NAMES.findIndex(m => m.toLowerCase().startsWith(trimmedMonth.toLowerCase()));
+        const year = Number(trimmedYear);
+        if (monthIdx === -1) { setPayslipError('Invalid month — enter e.g. June'); return; }
+        if (isNaN(year) || year < 2000 || year > 2100) { setPayslipError('Invalid year — enter e.g. 2026'); return; }
+        setPayslipError('');
+        setSelectedPayslipMonth(monthIdx);
+        setSelectedPayslipYear(year);
+    };
+
+    const fetchEmployeeLeaves = async () => {
+        try {
+            const empId = id || '';
+            const endpoint = empId ? `/leave/history?employeeId=${empId}` : '/leave/history';
+            const res = await api.get(endpoint);
+            setLeaves(res.data);
+        } catch (error) {
+            console.error('Error fetching employee leaves:', error);
+        }
+    };
 
     useEffect(() => {
-        const fetchEmployee = async () => {
-            try {
-                const endpoint = id ? `/employee/${id}` : '/employee/me';
-                const res = await api.get(endpoint);
-                setEmployee(res.data);
-            } catch (error) {
-                console.error('Error fetching employee:', error);
-                toast.error('Failed to load employee profile');
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchEmployee();
+        fetchShifts();
+        fetchRoles();
+        fetchDesignations();
+        fetchDepartments();
+        fetchEmployeeLeaves();
+        fetchCompanySignature();
+        fetchSalaryComponents();
+        fetchCustomFields();
     }, [id]);
+    const getSalaryStorageKey = () => {
+        return `employee_salary_components_${employee?.id || id}`;
+    };
+
+    const saveSalaryComponentsLocally = (components: any[]) => {
+        if (!employee?.id && !id) return;
+
+        localStorage.setItem(
+            getSalaryStorageKey(),
+            JSON.stringify(components)
+        );
+    };
+
+    const getLocalSalaryComponents = () => {
+        try {
+            const saved = localStorage.getItem(`employee_salary_components_${employee?.id || id}`);
+            return saved ? JSON.parse(saved) : [];
+        } catch {
+            return [];
+        }
+    };
+
+    const handleCancel = () => {
+        fetchEmployee();
+        fetchCustomFields();
+
+        setNewProfilePicture(null);
+        setNewProfilePicturePreview(null);
+
+        setIsEditing(false);
+    };
+
+    const validate = () => {
+        const newErrors: Record<string, string> = {};
+
+        const p = employee?.employeeProfile?.statutory || {};
+        const b = employee?.employeeProfile?.bank || {};
+        const pd = employee?.employeeProfile || {};
+        const s = employee?.employeeProfile?.salary || {};
+
+        if (!employee.email) newErrors.email = "Email is required";
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(employee.email)) {
+            newErrors.email = "Please enter valid email";
+        }
+
+        if (!pd.phone) newErrors.phone = "Phone number is required";
+        else if (!/^\d{10}$/.test(pd.phone)) {
+            newErrors.phone = "Enter valid 10 digit phone number";
+        }
+        if (!pd.dob) {
+            newErrors.dob = "Date of birth is required";
+        } else if (new Date(pd.dob) > new Date()) {
+            newErrors.dob = "Future date is not allowed";
+        }
+        if (!pd.joiningDate) {
+            newErrors.joiningDate = "Date of joining is required";
+        } else if (new Date(pd.joiningDate) > new Date()) {
+            newErrors.joiningDate = "Future date is not allowed";
+        }
+
+        if (!pd.bloodGroup) {
+            newErrors.bloodGroup = "Blood group is required";
+        }
+
+        if (!pd.address?.trim()) {
+            newErrors.address = "Address is required";
+        }
+
+        if (!employee.roleId && !employee.role?.id) newErrors.role = "Role is required";
+        if (!pd.designationId) newErrors.designationId = "Designation is required";
+        if (!pd.departmentId) newErrors.departmentId = "Department is required";
+        if (!pd.shiftId) newErrors.shiftId = "Select a shift";
+
+        if (!p.pan) newErrors.pan = "PAN is required";
+        else if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(p.pan.trim().toUpperCase())) {
+            newErrors.pan = "Invalid PAN format";
+        }
+
+        if (!p.aadhaar) newErrors.aadhaar = "Aadhaar is required";
+        else if (!/^\d{12}$/.test(p.aadhaar)) newErrors.aadhaar = "Aadhaar must be 12 digits";
+
+        if (!p.uan) newErrors.uan = "UAN is required";
+        else if (!/^\d{12}$/.test(p.uan)) newErrors.uan = "UAN must be 12 digits";
+
+        if (!p.esic) newErrors.esic = "ESIC is required";
+        else if (!/^\d{10}$/.test(p.esic)) newErrors.esic = "ESIC must be 10 digits";
+
+        if (!b.bankName?.trim()) newErrors.bankName = "Bank Name is required";
+        else if (!/^[A-Za-z\s]{2,50}$/.test(b.bankName.trim())) {
+            newErrors.bankName = "Bank Name must contain only letters";
+        }
+
+        if (!b.ifsc) newErrors.ifsc = "IFSC is required";
+        else if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(b.ifsc.trim().toUpperCase())) {
+            newErrors.ifsc = "Invalid IFSC format";
+        }
+
+        if (!b.accountNumber) newErrors.accountNumber = "Account Number is required";
+        else if (!/^\d{9,18}$/.test(b.accountNumber)) {
+            newErrors.accountNumber = "Account Number must be 9–18 digits";
+        }
+
+        if (s.basic === "" || s.basic == null) {
+            newErrors.basic = "Basic salary is required";
+        }
+        const requiredDocuments = [
+            { key: 'aadhaar', name: 'Aadhaar Card' },
+            { key: 'pan', name: 'PAN Card' },
+            { key: 'degree', name: 'Highest Qualification Degree' },
+        ];
+
+        const uploadedDocuments =
+            employee?.employeeProfile?.documents || [];
+
+        requiredDocuments.forEach((doc) => {
+            const isUploaded = uploadedDocuments.some(
+                (uploadedDoc: any) =>
+                    uploadedDoc.name === doc.name && uploadedDoc.url
+            );
+
+            if (!isUploaded) {
+                newErrors[`document_${doc.key}`] =
+                    `${doc.name} is required`;
+            }
+        });
+
+
+        setErrors(newErrors);
+        const hasProfilePicture =
+            newProfilePicture ||
+            pd.avatar ||
+            pd.profilePicture ||
+            pd.profilePictureUrl ||
+            employee.avatar ||
+            employee.profilePicture ||
+            employee.profilePictureUrl;
+
+        if (!hasProfilePicture) {
+            newErrors.profilePicture = "Profile picture is required";
+        }
+
+        const salaryFields = ["basic"];
+        const statutoryFields = [
+            "uan", "esic", "pan", "aadhaar",
+            "bankName", "accountNumber", "ifsc"
+        ];
+
+        const personalFields = [
+            "email", "phone", "dob", "joiningDate",
+            "role", "designationId", "departmentId",
+            "bloodGroup", "address"
+        ];
+
+        if (Object.keys(newErrors).length > 0) {
+            const hasSalaryError = salaryFields.some(field => newErrors[field]);
+            const hasStatutoryError = statutoryFields.some(field => newErrors[field]);
+            const hasPersonalError = personalFields.some(field => newErrors[field]);
+            const hasDocumentError = Object.keys(newErrors).some(
+                (key) =>
+                    key.startsWith('document_') ||
+                    key === 'profilePicture'
+            );
+
+            if (hasDocumentError) {
+                toast.error("Please upload all required documents");
+                setActiveTab("documents");
+            } else if (hasSalaryError) {
+                toast.error("Please fix validations in Salary Info");
+                setActiveTab("salary");
+            } else if (hasStatutoryError) {
+                toast.error("Please fix validations in Statutory & Bank Info");
+                setActiveTab("statutory");
+            }
+            else if (newErrors.shiftId) {
+                toast.error("Shift not assigned");
+                setActiveTab("shiftRoster");
+            }
+            else if (hasPersonalError) {
+                toast.error("Please fix validations in Personal Details");
+                setActiveTab("personal");
+            }
+
+
+            return false;
+        }
+
+        return true;
+    };
 
     const handleSave = async () => {
+        if (!validate()) {
+            return;
+        }
         try {
+            const currentSelectedComponents =
+                employee.employeeProfile?.selectedSalaryComponents ||
+                getLocalSalaryComponents();
+
+            saveSalaryComponentsLocally(currentSelectedComponents);
             const profileData = {
                 phone: employee.employeeProfile?.phone,
                 dob: employee.employeeProfile?.dob,
+                joiningDate: employee.employeeProfile?.joiningDate,
                 bloodGroup: employee.employeeProfile?.bloodGroup,
                 address: employee.employeeProfile?.address,
                 location: employee.employeeProfile?.location,
                 department: employee.employeeProfile?.department,
+                departmentId: employee.employeeProfile?.departmentId,
                 title: employee.employeeProfile?.title,
-                // Statutory
+                designationId: employee.employeeProfile?.designationId,
+                status: employee.employeeProfile?.status || 'Active',
+                shiftId: employee.employeeProfile?.shiftId,
+                salary: employee.employeeProfile?.salary,
+                selectedSalaryComponents: employee.employeeProfile?.selectedSalaryComponents || [],
+                salaryComponents: employee.employeeProfile?.selectedSalaryComponents || [],                // Statutory
                 uan: employee.employeeProfile?.statutory?.uan,
                 pfNumber: employee.employeeProfile?.statutory?.pfNumber,
                 esic: employee.employeeProfile?.statutory?.esic,
@@ -55,12 +480,49 @@ export default function EmployeeProfile() {
                 // Bank
                 bankName: employee.employeeProfile?.bank?.bankName,
                 accountNumber: employee.employeeProfile?.bank?.accountNumber,
-                ifsc: employee.employeeProfile?.bank?.ifsc
+                ifsc: employee.employeeProfile?.bank?.ifsc,
+                // User
+                name: employee.name,
+                email: employee.email,
+                roleId: employee.roleId || employee.role?.id,
+                role: employee.role?.name || employee.role?.title || employee.role
             };
 
-            await api.put(`/employee/${id}`, profileData);
+            const endpoint = id ? `/employee/${id}` : '/employee/me';
+            await api.put(endpoint, profileData);
+            if (newProfilePicture) {
+                const pictureFormData = new FormData();
+
+                pictureFormData.append(
+                    'profilePicture',
+                    newProfilePicture
+                );
+
+                await api.put(
+                    id
+                        ? `/employee/${id}/profile-picture`
+                        : '/employee/me/profile-picture',
+                    pictureFormData
+                );
+            }
+
+            await fetchEmployee();
+
+            setNewProfilePicture(null);
+            setNewProfilePicturePreview(null);
+
+            // Save personal custom fields values
+            const personalCustomFields = customFields.filter((cf: any) => cf.field?.category === 'PERSONAL_DETAILS');
+            const customFieldsPayload = personalCustomFields.reduce((acc: any, cf: any) => {
+                acc[cf.fieldId] = cf.value;
+                return acc;
+            }, {});
+            const customFieldsEndpoint = id ? `/custom-fields/employee/${id}` : '/custom-fields/employee/me';
+            await api.put(customFieldsEndpoint, { customFields: customFieldsPayload });
+
             setIsEditing(false);
             toast.success('Profile Updated Successfully!');
+            fetchCustomFields();
         } catch (error) {
             console.error('Update error:', error);
             toast.error('Failed to update profile');
@@ -68,22 +530,31 @@ export default function EmployeeProfile() {
     };
 
     const handleInputChange = (field: string, value: string) => {
+        if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
+        if (field === 'name' || field === 'email' || field === 'role') {
+            setEmployee((prev: any) => ({
+                ...prev,
+                [field]: value
+            }));
+            return;
+        }
         setEmployee((prev: any) => ({
             ...prev,
             employeeProfile: {
-                ...prev.employeeProfile,
+                ...(prev?.employeeProfile || {}),
                 [field]: value
             }
         }));
     };
 
     const handleStatutoryChange = (field: string, value: string) => {
+        if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
         setEmployee((prev: any) => ({
             ...prev,
             employeeProfile: {
-                ...prev.employeeProfile,
+                ...(prev?.employeeProfile || {}),
                 statutory: {
-                    ...prev.employeeProfile.statutory,
+                    ...(prev?.employeeProfile?.statutory || {}),
                     [field]: value
                 }
             }
@@ -91,17 +562,208 @@ export default function EmployeeProfile() {
     };
 
     const handleBankChange = (field: string, value: string) => {
+        if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
+
         setEmployee((prev: any) => ({
             ...prev,
             employeeProfile: {
-                ...prev.employeeProfile,
+                ...(prev?.employeeProfile || {}),
                 bank: {
-                    ...prev.employeeProfile.bank,
+                    ...(prev?.employeeProfile?.bank || {}),
                     [field]: value
                 }
             }
         }));
     };
+    const handleSalaryChange = (field: string, value: string) => {
+        if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
+
+        setEmployee((prev: any) => ({
+            ...prev,
+            employeeProfile: {
+                ...(prev?.employeeProfile || {}),
+                salary: {
+                    ...(prev?.employeeProfile?.salary || {}),
+                    [field]: value
+                }
+            }
+        }));
+    };
+    const toggleSalaryComponent = (component: any) => {
+        setEmployee((prev: any) => {
+            const oldComponents =
+                prev.employeeProfile?.selectedSalaryComponents ||
+                getLocalSalaryComponents();
+
+            const alreadySelected = oldComponents.some(
+                (item: any) => String(item.id) === String(component.id)
+            );
+
+            const updatedComponents = alreadySelected
+                ? oldComponents.filter((item: any) => String(item.id) !== String(component.id))
+                : [
+                    ...oldComponents,
+                    {
+                        id: component.id,
+                        name: component.name,
+                        type: component.type,
+                        calculationType: component.calculationType,
+                        value: component.value,
+                    },
+                ];
+
+            saveSalaryComponentsLocally(updatedComponents);
+
+            return {
+                ...prev,
+                employeeProfile: {
+                    ...prev.employeeProfile,
+                    selectedSalaryComponents: updatedComponents,
+                },
+            };
+        });
+    };
+
+    const removeSalaryComponent = (componentId: number) => {
+        setEmployee((prev: any) => {
+            const oldComponents =
+                prev.employeeProfile?.selectedSalaryComponents ||
+                getLocalSalaryComponents();
+
+            const updatedComponents = oldComponents.filter(
+                (component: any) => String(component.id) !== String(componentId)
+            );
+
+            saveSalaryComponentsLocally(updatedComponents);
+
+            return {
+                ...prev,
+                employeeProfile: {
+                    ...prev.employeeProfile,
+                    selectedSalaryComponents: updatedComponents,
+                },
+            };
+        });
+    };
+    const handleProfilePictureDelete = async () => {
+
+
+        // Remove a newly selected picture that is not saved yet
+        if (newProfilePicture || newProfilePicturePreview) {
+            if (newProfilePicturePreview) {
+                URL.revokeObjectURL(newProfilePicturePreview);
+            }
+
+            setNewProfilePicture(null);
+            setNewProfilePicturePreview(null);
+            toast.success('Selected profile picture removed');
+            setShowProfilePictureDeleteModal(false);
+            return;
+        }
+
+        try {
+            await api.delete(
+                id
+                    ? `/employee/${id}/profile-picture`
+                    : '/employee/me/profile-picture'
+            );
+
+            await fetchEmployee();
+            toast.success('Profile picture deleted successfully');
+            setShowProfilePictureDeleteModal(false);
+        } catch (error) {
+            console.error('Profile picture delete failed:', error);
+            toast.error('Failed to delete profile picture');
+        }
+    };
+    const handleProfilePictureChange = (
+        e: React.ChangeEvent<HTMLInputElement>
+    ) => {
+        const file = e.target.files?.[0];
+
+        if (!file) return;
+
+        if (!['image/jpeg', 'image/png'].includes(file.type)) {
+            toast.error('Only JPG, JPEG and PNG images are allowed');
+            e.target.value = '';
+            return;
+        }
+
+        if (file.size > 2 * 1024 * 1024) {
+            toast.error('Profile picture must be less than 2MB');
+            e.target.value = '';
+            return;
+        }
+
+        if (newProfilePicturePreview) {
+            URL.revokeObjectURL(newProfilePicturePreview);
+        }
+
+        setNewProfilePicture(file);
+        setNewProfilePicturePreview(URL.createObjectURL(file));
+
+        setErrors((prev) => ({
+            ...prev,
+            profilePicture: '',
+        }));
+        e.target.value = '';
+    };
+    const handleFileUpload = async (
+        e: React.ChangeEvent<HTMLInputElement>,
+        docName: string,
+        docKey: string
+    ) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.type !== "application/pdf" && !file.type.startsWith("image/")) {
+            toast.error("Only PDF and image files are allowed");
+            return;
+        }
+
+        // Check if this file is a duplicate of other uploaded files using lightweight HEAD requests
+        const otherDocs = employee?.employeeProfile?.documents?.filter((d: any) => d.name !== docName) || [];
+        try {
+            for (const doc of otherDocs) {
+                const baseUrl = 'http://localhost:3001';
+                const fullUrl = doc.url.startsWith('http') ? doc.url : (doc.url.startsWith('/uploads/') ? `${baseUrl}${doc.url}` : `${baseUrl}/uploads/${doc.url}`);
+                const res = await api.head(fullUrl);
+                const existingSize = parseInt((res.headers as any)['content-length'] || '0', 10);
+                if (existingSize === file.size) {
+                    toast.error(`This file has already been uploaded/selected for another document slot! Please select a unique document.`);
+                    e.target.value = '';
+                    return;
+                }
+            }
+        } catch (err) {
+            console.error("Duplicate file size check failed", err);
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('name', docName);
+        formData.append('type', file.type);
+
+        toast.loading(`Uploading ${docName}...`, { id: 'uploading-toast' });
+        try {
+            const employeeId = employee.id;
+            await api.post(`/employee/${employeeId}/documents`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+            toast.success(`${docName} uploaded successfully!`, { id: 'uploading-toast' });
+            setErrors((prev) => ({
+                ...prev,
+                [`document_${docKey}`]: '',
+            }));
+            fetchEmployee();
+        } catch (error) {
+            console.error("Upload failed", error);
+            toast.error(`Failed to upload ${docName}`, { id: 'uploading-toast' });
+        }
+    };
+
 
     if (loading) {
         return (
@@ -124,6 +786,348 @@ export default function EmployeeProfile() {
     const profile = employee.employeeProfile || {};
     const statutory = profile.statutory || {};
     const bank = profile.bank || {};
+    const API_BASE_URL = 'http://localhost:3001';
+
+    const buildProfilePictureUrl = (value?: string | null) => {
+        if (!value || typeof value !== 'string') {
+            return null;
+        }
+
+        // Ignore old Tailwind avatar colour values
+        if (value.startsWith('bg-')) {
+            return null;
+        }
+
+        // Already a complete URL
+        if (/^https?:\/\//i.test(value)) {
+            return value;
+        }
+
+        const normalizedPath = value
+            .replace(/\\/g, '/')
+            .replace(/^\/+/, '');
+
+        // Example: uploads/profile-pictures/photo.jpg
+        if (normalizedPath.startsWith('uploads/')) {
+            return `${API_BASE_URL}/${normalizedPath}`;
+        }
+
+        // Example: profile-pictures/photo.jpg or photo.jpg
+        return `${API_BASE_URL}/uploads/${normalizedPath}`;
+    };
+
+    const rawProfilePicture =
+        profile.avatar ||
+        profile.profilePicture ||
+        profile.profilePictureUrl ||
+        employee.avatar ||
+        employee.profilePicture ||
+        employee.profilePictureUrl ||
+        null;
+
+    const profilePictureUrl = buildProfilePictureUrl(rawProfilePicture);
+    const displayedProfilePictureUrl =
+        newProfilePicturePreview || profilePictureUrl;
+    const employeeInitials = employee.name
+        ?.split(' ')
+        .filter(Boolean)
+        .map((namePart: string) => namePart[0])
+        .join('')
+        .toUpperCase();
+    const selectedSalaryComponents = (() => {
+        const backendComponents =
+            Array.isArray(profile.selectedSalaryComponents) && profile.selectedSalaryComponents.length > 0
+                ? profile.selectedSalaryComponents
+                : Array.isArray(profile.salaryComponents) && profile.salaryComponents.length > 0
+                    ? profile.salaryComponents
+                    : Array.isArray(profile.salary?.selectedSalaryComponents) && profile.salary.selectedSalaryComponents.length > 0
+                        ? profile.salary.selectedSalaryComponents
+                        : [];
+
+        const localComponents = getLocalSalaryComponents();
+
+        const finalComponents =
+            backendComponents.length > 0 ? backendComponents : localComponents;
+
+        return finalComponents.map((item: any) =>
+            item.component ? item.component : item
+        );
+    })();
+    const getComponentAmount = (component: any) => {
+        const basicSalary = Number(profile.salary?.basic || 0);
+
+        if (component.calculationType === 'FLAT') {
+            return Number(component.value || 0);
+        }
+
+        if (component.calculationType === '%_BASIC') {
+            return Number(((basicSalary * Number(component.value || 0)) / 100).toFixed(2));
+        }
+
+        return Number(component.value || 0);
+    };
+
+    const earningsComponents = selectedSalaryComponents.filter(
+        (component: any) => component.type === 'EARNING'
+    );
+
+    const deductionComponents = selectedSalaryComponents.filter(
+        (component: any) => component.type === 'DEDUCTION'
+    );
+
+    const totalEarningComponents = earningsComponents.reduce(
+        (sum: number, component: any) => sum + getComponentAmount(component),
+        0
+    );
+
+    const totalDeductionComponents = deductionComponents.reduce(
+        (sum: number, component: any) => sum + getComponentAmount(component),
+        0
+    );
+    const salaryOverviewBasic = Number(profile.salary?.basic || 0);
+    const salaryOverviewEarnings = salaryOverviewBasic + totalEarningComponents;
+    const salaryOverviewDeductions = totalDeductionComponents;
+    const salaryOverviewNet = Math.max(0, salaryOverviewEarnings - salaryOverviewDeductions);
+
+    const adminSignatureUrl = companySignature
+        ? companySignature.startsWith('http')
+            ? companySignature
+            : `http://localhost:3001${companySignature}`
+        : null;
+    // Dynamic salary calculations for payslip preview using selected salary components
+    const basic = Number(profile.salary?.basic || 0);
+
+    const calendarDays = new Date(
+        selectedPayslipYear,
+        selectedPayslipMonth + 1,
+        0
+    ).getDate();
+
+    const joiningDateForSalary = profile.joiningDate
+        ? new Date(profile.joiningDate)
+        : null;
+
+    let payableDays = calendarDays;
+
+    if (
+        joiningDateForSalary &&
+        joiningDateForSalary.getFullYear() === selectedPayslipYear &&
+        joiningDateForSalary.getMonth() === selectedPayslipMonth
+    ) {
+        payableDays = calendarDays - joiningDateForSalary.getDate() + 1;
+    }
+
+    // Calculate LWP days for selected month from approved leaves
+    let lwpDays = 0;
+
+    if (Array.isArray(leaves)) {
+        leaves.forEach((leave: any) => {
+            const isApproved = leave.status === 'APPROVED' || leave.status === 'Approved';
+            const isLWP = leave.leaveType?.code === 'LWP';
+
+            if (!isApproved || !isLWP) return;
+
+            const start = new Date(leave.startDate);
+            const end = new Date(leave.endDate);
+            const current = new Date(start);
+
+            while (current <= end) {
+                if (
+                    current.getFullYear() === selectedPayslipYear &&
+                    current.getMonth() === selectedPayslipMonth
+                ) {
+                    lwpDays++;
+                }
+
+                current.setDate(current.getDate() + 1);
+            }
+        });
+    }
+    const paidLeaveBreakdown: Record<string, number> = {};
+    let paidLeaveDays = 0;
+
+    if (Array.isArray(leaves)) {
+        leaves.forEach((leave: any) => {
+            const isApproved = String(leave.status).toUpperCase() === 'APPROVED';
+            const leaveCode = leave.leaveType?.code || leave.leaveType?.name || 'Leave';
+            const isLWP = String(leaveCode).toUpperCase() === 'LWP';
+
+            if (!isApproved || isLWP) return;
+
+            const start = new Date(leave.startDate);
+            const end = new Date(leave.endDate);
+            const current = new Date(start);
+
+            while (current <= end) {
+                if (
+                    current.getFullYear() === selectedPayslipYear &&
+                    current.getMonth() === selectedPayslipMonth
+                ) {
+                    paidLeaveDays++;
+                    paidLeaveBreakdown[leaveCode] =
+                        (paidLeaveBreakdown[leaveCode] || 0) + 1;
+                }
+
+                current.setDate(current.getDate() + 1);
+            }
+        });
+    }
+
+    const paidLeaveText = Object.entries(paidLeaveBreakdown)
+        .map(([type, days]) => `${type}: ${days}`)
+        .join(', ');
+
+    const paidDays = Math.max(0, payableDays - lwpDays);
+
+    const paidBasic = Number(((basic / calendarDays) * payableDays).toFixed(2));
+
+    const getPayslipComponentAmount = (component: any) => {
+        const value = Number(component.value || 0);
+
+        if (component.calculationType === 'FLAT') {
+            return Number(((value / calendarDays) * payableDays).toFixed(2));
+        }
+
+        if (component.calculationType === '%_BASIC') {
+            return Number(((paidBasic * value) / 100).toFixed(2));
+        }
+
+        return Number(((value / calendarDays) * payableDays).toFixed(2));
+    };
+
+    const payslipEarningComponents = earningsComponents
+        .map((component: any) => ({
+            ...component,
+            amount: getPayslipComponentAmount(component),
+        }))
+        .filter((component: any) => component.amount > 0);
+
+    const payslipDeductionComponents = deductionComponents
+        .map((component: any) => ({
+            ...component,
+            amount: getPayslipComponentAmount(component),
+        }))
+        .filter((component: any) => component.amount > 0);
+
+    const totalPayslipEarningComponents = payslipEarningComponents.reduce(
+        (sum: number, component: any) => sum + Number(component.amount || 0),
+        0
+    );
+
+    const totalPayslipDeductionComponents = payslipDeductionComponents.reduce(
+        (sum: number, component: any) => sum + Number(component.amount || 0),
+        0
+    );
+
+    const totalEarnings = Number((paidBasic + totalPayslipEarningComponents).toFixed(2));
+
+    const perDayEarning = payableDays > 0 ? totalEarnings / payableDays : 0;
+
+    const lwpDeduction =
+        lwpDays > 0 ? Number((perDayEarning * lwpDays).toFixed(2)) : 0;
+
+    const totalDeductions = Number(
+        (totalPayslipDeductionComponents + lwpDeduction).toFixed(2)
+    );
+
+    const totalSalary = Math.max(
+        0,
+        Number((totalEarnings - totalDeductions).toFixed(2))
+    );
+
+    // Month info for payslip
+    const selectedMonthLabel = new Date(
+        selectedPayslipYear,
+        selectedPayslipMonth,
+        1
+    ).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+
+    const selectedMonthShort = new Date(
+        selectedPayslipYear,
+        selectedPayslipMonth,
+        1
+    )
+        .toLocaleString('en-US', { month: 'short', year: 'numeric' })
+        .replace(' ', '_');
+    const today = new Date();
+
+    const currentMonthStart = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        1
+    );
+
+    const selectedMonthStart = new Date(
+        selectedPayslipYear,
+        selectedPayslipMonth,
+        1
+    );
+
+    const joiningDateRaw = profile.joiningDate
+        ? new Date(profile.joiningDate)
+        : null;
+
+    const hasCompletedOneMonth = joiningDateRaw
+        ? new Date(
+            joiningDateRaw.getFullYear(),
+            joiningDateRaw.getMonth() + 1,
+            joiningDateRaw.getDate()
+        ) <= today
+        : true;
+
+    const joiningMonthStart = joiningDateRaw
+        ? new Date(
+            joiningDateRaw.getFullYear(),
+            joiningDateRaw.getMonth(),
+            1
+        )
+        : null;
+    const isCurrentMonth =
+        selectedMonthStart.getMonth() === currentMonthStart.getMonth() &&
+        selectedMonthStart.getFullYear() === currentMonthStart.getFullYear();
+
+    const isFutureMonth =
+        selectedMonthStart > currentMonthStart;
+
+    const isBeforeJoiningMonth =
+        joiningMonthStart &&
+        selectedMonthStart < joiningMonthStart;
+
+    let payslipBlockMessage = '';
+
+    if (isBeforeJoiningMonth) {
+        payslipBlockMessage =
+            'No salary slip is available because you were not employed during the selected month.';
+    }
+    else if (!hasCompletedOneMonth) {
+        payslipBlockMessage =
+            'Salary slip will be available after you complete one full month of service.';
+    }
+    else if (isCurrentMonth) {
+        payslipBlockMessage =
+            'Salary slip for the current month is not available yet. Please select a completed past month.';
+    }
+    else if (isFutureMonth) {
+        payslipBlockMessage =
+            'Salary slip cannot be generated for a future month. Please select a completed past month.';
+    }
+
+
+    // Date of joining
+    const joiningDate = profile.joiningDate
+        ? new Date(profile.joiningDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+        : 'N/A';
+    const currentDate = new Date();
+
+    const availableMonths =
+        Number(inputYear) === currentDate.getFullYear()
+            ? MONTH_NAMES.slice(0, currentDate.getMonth())
+            : MONTH_NAMES;
+
+    const availableYears = Array.from(
+        { length: currentDate.getFullYear() - 2024 + 1 },
+        (_, i) => 2024 + i
+    );
 
     return (
         <div className="animate-fade-in-up pb-8 relative">
@@ -140,13 +1144,62 @@ export default function EmployeeProfile() {
                 <div className="absolute top-0 right-0 w-64 h-64 bg-brand-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
 
                 <div className="flex flex-col md:flex-row items-center md:items-start gap-6 relative z-10">
-                    <div className={`w-28 h-28 rounded-2xl flex items-center justify-center text-white font-bold text-4xl shadow-2xl bg-brand-600`}>
-                        {employee.name.split(' ').map((n: any) => n[0]).join('')}
+                    <div className="relative w-28 h-28 rounded-2xl overflow-hidden flex items-center justify-center text-white font-bold text-4xl shadow-2xl bg-brand-600 shrink-0">
+                        <span className="absolute inset-0 flex items-center justify-center">
+                            {employeeInitials}
+                        </span>
+
+                        {displayedProfilePictureUrl && (
+                            <img
+                                src={displayedProfilePictureUrl}
+                                alt={`${employee.name} profile`}
+                                className="absolute inset-0 w-full h-full object-cover object-top"
+                                onError={(event) => {
+                                    event.currentTarget.style.display = 'none';
+                                }}
+                            />
+                        )}
+
+                        {isEditing && hasPermission(['HR_ADMIN']) && (
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    document
+                                        .getElementById('edit-profile-picture-input')
+                                        ?.click()
+                                }
+                                className="absolute bottom-1 right-1 z-20 w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center shadow-lg hover:bg-brand-700 transition-colors"
+                                title="Change profile picture"
+                            >
+                                <Upload size={15} />
+                            </button>
+                        )}
+
+                        <input
+                            id="edit-profile-picture-input"
+                            type="file"
+                            className="hidden"
+                            accept="image/jpeg,image/png"
+                            onChange={handleProfilePictureChange}
+                        />
                     </div>
                     <div className="text-center md:text-left flex-1">
-                        <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">{employee.name}</h1>
-                        <p className="text-lg text-brand-600 dark:text-brand-400 font-medium mb-4">{profile.title || 'Employee'} • {profile.department || 'N/A'}</p>
-                        <div className="flex flex-wrap justify-center md:justify-start gap-4">
+                        {isEditing ? (
+                            <div className="space-y-2 mb-4">
+                                <label className="text-[10px] font-black text-brand-600 uppercase tracking-widest">Full Name</label>
+                                <input
+                                    type="text"
+                                    value={employee.name}
+                                    onChange={(e) => handleInputChange('name', e.target.value)}
+                                    className="w-full text-2xl font-bold bg-brand-50 dark:bg-white/5 border border-brand-200 dark:border-white/10 rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-brand-500/50"
+                                />
+                            </div>
+                        ) : (
+                            <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">{employee.name}</h1>
+                        )}
+                        <p className="text-lg text-brand-600 dark:text-brand-400 font-medium mb-4">
+                            {employee.role?.name || employee.role?.title || employee.role || 'Employee'} • {profile.title || 'No Designation'}
+                        </p>                        <div className="flex flex-wrap justify-center md:justify-start gap-4">
                             <span className="px-3 py-1 bg-gray-100 dark:bg-white/10 rounded-lg text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2">
                                 <Briefcase size={16} /> ID: {employee.id}
                             </span>
@@ -158,7 +1211,7 @@ export default function EmployeeProfile() {
                     <div className="flex gap-3">
                         {isEditing ? (
                             <>
-                                <button onClick={() => setIsEditing(false)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all font-bold">
+                                <button onClick={handleCancel} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all font-bold">
                                     Cancel
                                 </button>
                                 <button onClick={handleSave} className="px-4 py-2 bg-brand-600 text-white rounded-xl shadow-lg shadow-brand-500/20 hover:bg-brand-700 transition-all font-bold flex items-center gap-2">
@@ -166,9 +1219,11 @@ export default function EmployeeProfile() {
                                 </button>
                             </>
                         ) : (
-                            <button onClick={() => setIsEditing(true)} className="px-4 py-2 bg-brand-600 text-white rounded-xl shadow-lg shadow-brand-500/20 hover:bg-brand-700 transition-all font-bold flex items-center gap-2">
-                                <Edit size={18} /> Edit Profile
-                            </button>
+                            hasPermission(['HR_ADMIN']) && (
+                                <button onClick={() => setIsEditing(true)} className="px-4 py-2 bg-brand-600 text-white rounded-xl shadow-lg shadow-brand-500/20 hover:bg-brand-700 transition-all font-bold flex items-center gap-2">
+                                    <Edit size={18} /> Edit Profile
+                                </button>
+                            )
                         )}
                     </div>
                 </div>
@@ -176,14 +1231,23 @@ export default function EmployeeProfile() {
 
             {/* Tabs */}
             <div className="flex gap-4 mb-6 border-b border-gray-200 dark:border-white/10 overflow-x-auto pb-1">
-                {['statutory', 'documents', 'personal'].map((tab) => (
-                    <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab as any)}
-                        className={`pb-3 px-2 font-medium transition-all whitespace-nowrap capitalize ${activeTab === tab ? 'text-brand-600 border-b-2 border-brand-600' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                        {tab === 'statutory' ? 'Statutory & Bank Info' : tab === 'personal' ? 'Personal Details' : 'Document Vault'}
-                    </button>
+                {['statutory', 'documents', 'personal', 'shiftRoster', 'salary', 'team'].map((tab) => (<button
+                    key={tab}
+                    onClick={() => setActiveTab(tab as any)}
+                    className={`pb-3 px-2 font-medium transition-all whitespace-nowrap capitalize ${activeTab === tab ? 'text-brand-600 border-b-2 border-brand-600' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                    {tab === 'statutory'
+                        ? 'Statutory & Bank Info'
+                        : tab === 'personal'
+                            ? 'Personal Details'
+                            : tab === 'shiftRoster'
+                                ? 'Shift & Roster'
+                                : tab === 'salary'
+                                    ? 'Salary Info'
+                                    : tab === 'team'
+                                        ? 'Team Info'
+                                        : 'Document Vault'}
+                </button>
                 ))}
             </div>
 
@@ -199,20 +1263,37 @@ export default function EmployeeProfile() {
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {[
-                                    { label: 'UAN (Provident Fund)', key: 'uan' },
-                                    { label: 'ESIC Number', key: 'esic' },
-                                    { label: 'PAN Number', key: 'pan' },
-                                    { label: 'Aadhaar Number', key: 'aadhaar' },
+                                    { label: 'UAN (Provident Fund)', key: 'uan', placeholder: '12-digit UAN' },
+                                    { label: 'ESIC Number', key: 'esic', placeholder: '10-digit ESIC Number' },
+                                    { label: 'PAN Number', key: 'pan', placeholder: 'e.g. ABCDE1234F' },
+                                    { label: 'Aadhaar Number', key: 'aadhaar', placeholder: '12-digit Aadhaar Number' },
                                 ].map((field) => (
                                     <div key={field.key} className="space-y-1">
                                         <label className="text-xs font-bold text-gray-400 uppercase">{field.label}</label>
                                         {isEditing ? (
-                                            <input
-                                                type="text"
-                                                value={(statutory as any)[field.key] || ''}
-                                                onChange={(e) => handleStatutoryChange(field.key, e.target.value)}
-                                                className="w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-brand-500/50 outline-none"
-                                            />
+                                            <>
+                                                <input
+                                                    type="text"
+                                                    placeholder={field.placeholder}
+                                                    value={(statutory as any)[field.key] || ''}
+                                                    onChange={(e) => {
+                                                        let value =
+                                                            field.key === 'pan'
+                                                                ? e.target.value.toUpperCase()
+                                                                : e.target.value.replace(/\D/g, '');
+
+                                                        if (field.key === 'uan') value = value.slice(0, 12);
+                                                        if (field.key === 'esic') value = value.slice(0, 10);
+                                                        if (field.key === 'aadhaar') value = value.slice(0, 12);
+
+                                                        handleStatutoryChange(field.key, value);
+                                                    }}
+                                                    className={`appearance-none w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors[field.key]
+                                                        ? 'border-red-500'
+                                                        : 'border-gray-200 dark:border-white/10'
+                                                        } rounded-lg outline-none text-gray-800 dark:text-white font-medium cursor-pointer`} />
+                                                {errors[field.key] && <p className="text-red-500 text-xs mt-1">{errors[field.key]}</p>}
+                                            </>
                                         ) : (
                                             <p className="font-semibold text-gray-800 dark:text-gray-200 text-lg">{(statutory as any)[field.key] || 'N/A'}</p>
                                         )}
@@ -232,28 +1313,40 @@ export default function EmployeeProfile() {
                                         <label className="text-xs font-bold text-gray-400 uppercase">Bank Name</label>
                                         <input
                                             type="text"
+                                            placeholder='e.g. HDFC Bank'
                                             value={bank.bankName || ''}
                                             onChange={(e) => handleBankChange('bankName', e.target.value)}
-                                            className="w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-brand-500/50 outline-none"
+                                            className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.bankName ? 'border-red-500' : 'border-gray-200 dark:border-white/10'
+                                                } rounded-lg focus:ring-2 focus:ring-brand-500/50 outline-none`}
                                         />
+                                        {errors.bankName && (
+                                            <p className="text-red-500 text-xs mt-1">
+                                                {errors.bankName}
+                                            </p>
+                                        )}
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-xs font-bold text-gray-400 uppercase">Account Number</label>
                                         <input
                                             type="text"
+                                            placeholder="9 to 18 digits"
                                             value={bank.accountNumber || ''}
-                                            onChange={(e) => handleBankChange('accountNumber', e.target.value)}
-                                            className="w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-brand-500/50 outline-none"
+                                            onChange={(e) =>
+                                                handleBankChange('accountNumber', e.target.value.replace(/\D/g, '').slice(0, 18))}
+                                            className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.accountNumber ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg focus:ring-2 focus:ring-brand-500/50 outline-none`}
                                         />
+                                        {errors.accountNumber && <p className="text-red-500 text-xs mt-1">{errors.accountNumber}</p>}
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-xs font-bold text-gray-400 uppercase">IFSC Code</label>
                                         <input
                                             type="text"
+                                            placeholder="e.g. SBIN0123456"
                                             value={bank.ifsc || ''}
-                                            onChange={(e) => handleBankChange('ifsc', e.target.value)}
-                                            className="w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-brand-500/50 outline-none uppercase"
+                                            onChange={(e) => handleBankChange('ifsc', e.target.value.toUpperCase())}
+                                            className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.ifsc ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg focus:ring-2 focus:ring-brand-500/50 outline-none uppercase`}
                                         />
+                                        {errors.ifsc && <p className="text-red-500 text-xs mt-1">{errors.ifsc}</p>}
                                     </div>
                                 </div>
                             ) : (
@@ -272,6 +1365,7 @@ export default function EmployeeProfile() {
                                     </div>
                                 </div>
                             )}
+
                         </div>
                     )}
 
@@ -281,80 +1375,638 @@ export default function EmployeeProfile() {
                                 <h3 className="text-xl font-bold flex items-center gap-2">
                                     <FileText className="text-orange-500" /> Document Vault
                                 </h3>
-                                {hasPermission(['HR_ADMIN']) && (
-                                    <button className="flex items-center gap-2 text-sm font-medium text-brand-600 hover:bg-brand-50 px-3 py-1.5 rounded-lg transition-colors">
-                                        <Upload size={16} /> Upload New
-                                    </button>
-                                )}
-                            </div>
 
-                            {profile.documents?.length > 0 ? (
-                                <div className="space-y-4">
-                                    {profile.documents.map((doc: any, i: number) => (
-                                        <div key={i} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-white/5 rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition-colors group">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-10 h-10 bg-red-100 text-red-500 rounded-lg flex items-center justify-center">
+                            </div>                           <div className="space-y-4">
+                                {[
+                                    { key: 'aadhaar', name: 'Aadhaar Card' },
+                                    { key: 'pan', name: 'PAN Card' },
+                                    { key: 'degree', name: 'Highest Qualification Degree' },
+
+
+                                ].map((doc) => {
+                                    const savedDoc = profile.documents?.find((d: any) => d.name === doc.name);
+                                    const hasError = !!errors[`doc-${doc.key}`];
+                                    return (
+                                        <div
+                                            key={doc.name}
+                                            className={`flex items-center justify-between p-4 rounded-2xl border ${hasError ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} bg-gray-50 dark:bg-white/5 transition-all`}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${savedDoc
+                                                    ? 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
+                                                    : 'bg-gray-100 dark:bg-white/10 text-gray-400'
+                                                    }`}>
                                                     <FileText size={20} />
                                                 </div>
+
                                                 <div>
-                                                    <p className="font-semibold text-gray-800 dark:text-gray-200">{doc.name}</p>
-                                                    <p className="text-xs text-gray-500">Added on {new Date(doc.uploadedAt).toLocaleDateString()}</p>
+                                                    <p className="font-bold text-base text-gray-800 dark:text-white">
+                                                        {doc.name} <span className="text-red-500">*</span>
+                                                    </p>
+
+                                                    <p className={`text-sm ${savedDoc ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                                                        {savedDoc ? (savedDoc.originalName || 'Document uploaded') : 'No document uploaded'}
+                                                    </p>
+                                                    {errors[`document_${doc.key}`] && (
+                                                        <p className="text-red-500 text-xs mt-1">
+                                                            {errors[`document_${doc.key}`]}
+                                                        </p>
+                                                    )}
                                                 </div>
                                             </div>
-                                            <div className="flex gap-2">
-                                                {isEditing && (
-                                                    <button className="p-2 text-gray-400 hover:text-red-600 transition-colors">
-                                                        <X size={20} />
+
+                                            <div className="flex items-center gap-3">
+                                                {/* Explicit Upload Button shown only during Edit Profile mode if no document exists */}
+                                                {isEditing && !savedDoc && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => document.getElementById(`file-input-${doc.key}`)?.click()}
+                                                        className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 cursor-pointer mr-2"
+                                                    >
+                                                        <Upload size={14} /> Upload
                                                     </button>
                                                 )}
-                                                <button className="p-2 text-gray-400 hover:text-brand-600 transition-colors">
-                                                    <Download size={20} />
+
+                                                <button
+                                                    type="button"
+                                                    disabled={!savedDoc}
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        if (savedDoc?.url) {
+                                                            const baseUrl = 'http://localhost:3001';
+                                                            const fullUrl = savedDoc.url.startsWith('http') ? savedDoc.url : (savedDoc.url.startsWith('/uploads/') ? `${baseUrl}${savedDoc.url}` : `${baseUrl}/uploads/${savedDoc.url}`);
+                                                            window.open(fullUrl, '_blank');
+                                                        }
+                                                    }}
+                                                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${savedDoc
+                                                        ? 'bg-brand-500/10 text-brand-500 hover:bg-brand-500 hover:text-white cursor-pointer'
+                                                        : 'bg-gray-100 dark:bg-white/5 text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                                                        }`}
+                                                >
+                                                    <Eye size={18} />
                                                 </button>
+
+                                                {/* Explicit Delete Button shown only during Edit Profile mode if document exists */}
+                                                {isEditing && savedDoc && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            const docIndex = profile.documents?.findIndex((d: any) => d.id === savedDoc.id);
+                                                            if (docIndex !== -1 && docIndex !== undefined) {
+                                                                setDocToDelete(docIndex);
+                                                            }
+                                                        }}
+                                                        className="w-10 h-10 rounded-full flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white cursor-pointer ml-1"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                )}
                                             </div>
+
+                                            <input
+                                                id={`file-input-${doc.key}`}
+                                                type="file"
+                                                className="hidden"
+                                                accept=".pdf,image/*"
+                                                onChange={(e) =>
+                                                    handleFileUpload(e, doc.name, doc.key)
+                                                } />
                                         </div>
-                                    ))}
+                                    );
+                                })}
+                                {/* Profile Picture */}
+                                <div
+                                    className="flex items-center justify-between p-4 rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 transition-all"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="relative w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center bg-gray-100 dark:bg-white/10 text-gray-400">
+                                            <User size={20} className="absolute" />
+
+                                            {displayedProfilePictureUrl && (
+                                                <img
+                                                    src={displayedProfilePictureUrl}
+                                                    alt={`${employee.name} profile`}
+                                                    className="absolute inset-0 w-full h-full object-cover object-top"
+                                                    onError={(event) => {
+                                                        event.currentTarget.style.display = 'none';
+                                                    }}
+                                                />
+                                            )}
+                                        </div>
+
+                                        <div>
+                                            <p className="font-bold text-base text-gray-800 dark:text-white">
+                                                Profile Picture <span className="text-red-500">*</span>
+                                            </p>
+
+                                            <p
+                                                className={`text-sm ${displayedProfilePictureUrl
+                                                    ? 'text-emerald-600 dark:text-emerald-400'
+                                                    : 'text-gray-500 dark:text-gray-400'}`}
+                                            >
+                                                {newProfilePicture
+                                                    ? newProfilePicture.name
+                                                    : displayedProfilePictureUrl
+                                                        ? 'Profile picture uploaded'
+                                                        : 'No profile picture uploaded'}
+                                            </p>
+                                            {errors.profilePicture && (
+                                                <p className="text-red-500 text-xs mt-1">
+                                                    {errors.profilePicture}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-3">
+                                        {/* Upload only when profile picture does not exist */}
+                                        {isEditing &&
+                                            hasPermission(['HR_ADMIN']) &&
+                                            !displayedProfilePictureUrl && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        document
+                                                            .getElementById('edit-profile-picture-input')
+                                                            ?.click()
+                                                    }
+                                                    className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 cursor-pointer mr-2"
+                                                >
+                                                    <Upload size={14} /> Upload
+                                                </button>
+                                            )}
+                                        {/* View */}
+                                        <button
+                                            type="button"
+                                            disabled={!displayedProfilePictureUrl}
+                                            onClick={() => {
+                                                if (displayedProfilePictureUrl) {
+                                                    window.open(
+                                                        displayedProfilePictureUrl,
+                                                        '_blank'
+                                                    );
+                                                }
+                                            }}
+                                            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${displayedProfilePictureUrl
+                                                ? 'bg-brand-500/10 text-brand-500 hover:bg-brand-500 hover:text-white cursor-pointer'
+                                                : 'bg-gray-100 dark:bg-white/5 text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                                                }`}
+                                            title="View profile picture"
+                                        >
+                                            <Eye size={18} />
+                                        </button>
+
+                                        {/* Delete */}
+                                        {isEditing &&
+                                            hasPermission(['HR_ADMIN']) &&
+                                            displayedProfilePictureUrl && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowProfilePictureDeleteModal(true)}
+                                                    className="w-10 h-10 rounded-full flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+                                                    title="Delete profile picture"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            )}
+                                    </div>
                                 </div>
-                            ) : (
-                                <div className="text-center py-8 bg-gray-50 dark:bg-white/5 rounded-xl border border-dashed border-gray-200 dark:border-white/10">
-                                    <FileText className="mx-auto text-gray-300 mb-2" size={32} />
-                                    <p className="text-gray-500">No documents uploaded yet.</p>
-                                </div>
-                            )}
+
+                                {/* Dynamic Custom Documents */}
+                                {customFields.filter((cf: any) => cf.field?.category === 'DOCUMENT_VAULT').map((cf: any) => {
+                                    const hasFile = !!cf.documentUrl;
+                                    const hasError = !!errors[`customField-${cf.fieldId}`];
+                                    return (
+                                        <div
+                                            key={cf.id}
+                                            className={`flex items-center justify-between p-4 rounded-2xl border ${hasError ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} bg-gray-50 dark:bg-white/5 transition-all`}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${hasFile
+                                                    ? 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
+                                                    : 'bg-gray-100 dark:bg-white/10 text-gray-400'
+                                                    }`}>
+                                                    <FileText size={20} />
+                                                </div>
+
+                                                <div>
+                                                    <p className="font-bold text-base text-gray-800 dark:text-white">
+                                                        {cf.field?.name} <span className="text-red-500">*</span>
+                                                    </p>
+
+                                                    <p className={`text-sm ${hasFile ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                                                        {hasFile ? (cf.documentName || 'Document uploaded') : 'No document uploaded'}
+                                                    </p>
+                                                    {hasError && (
+                                                        <p className="text-red-500 text-xs mt-0.5">{errors[`customField-${cf.fieldId}`]}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-3">
+                                                {isEditing && !hasFile && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => document.getElementById(`custom-file-input-${cf.id}`)?.click()}
+                                                        className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 cursor-pointer mr-2"
+                                                    >
+                                                        <Upload size={14} /> Upload
+                                                    </button>
+                                                )}
+
+                                                <button
+                                                    type="button"
+                                                    disabled={!hasFile}
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        if (cf.documentUrl) {
+                                                            const baseUrl = 'http://localhost:3001';
+                                                            const fullUrl = cf.documentUrl.startsWith('http') ? cf.documentUrl : `/uploads/${cf.documentUrl}`;
+                                                            window.open(fullUrl.startsWith('http') ? fullUrl : `${baseUrl}${fullUrl}`, '_blank');
+                                                        }
+                                                    }}
+                                                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${hasFile
+                                                        ? 'bg-brand-500/10 text-brand-500 hover:bg-brand-500 hover:text-white cursor-pointer'
+                                                        : 'bg-gray-100 dark:bg-white/5 text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                                                        }`}
+                                                >
+                                                    <Eye size={18} />
+                                                </button>
+
+                                                {isEditing && hasFile && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={async (e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+
+                                                            const confirmed = window.confirm(
+                                                                'Are you sure you want to delete this document?'
+                                                            );
+
+                                                            if (!confirmed) return;
+
+                                                            await handleCustomFileDelete(cf.fieldId);
+                                                        }}
+                                                        className="w-10 h-10 rounded-full flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white cursor-pointer ml-1"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            <input
+                                                id={`custom-file-input-${cf.id}`}
+                                                type="file"
+                                                className="hidden"
+                                                accept={cf.field?.type === 'PDF' ? '.pdf' : cf.field?.type === 'IMAGE' ? 'image/*' : '.pdf,image/*'}
+                                                onChange={(e) => handleCustomFileUpload(e, cf.fieldId)}
+                                            />
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
                     )}
 
                     {activeTab === 'personal' && (
                         <div className="bg-white dark:bg-brand-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-white/5 animate-fade-in-up">
-                            <h3 className="text-xl font-bold mb-6 text-gray-800 dark:text-white">Personal Information</h3>
+                            <h3 className="text-xl font-bold mb-6 text-gray-800 dark:text-white flex justify-between items-center">
+                                Personal Information
+                                {isEditing && (
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-bold text-gray-400 uppercase">Employment Status:</span>
+                                        <select
+                                            value={profile.status || 'Active'}
+                                            onChange={(e) => handleInputChange('status', e.target.value)}
+                                            className=" bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-1 text-xs font-bold text-gray-800 dark:text-white outline-none cursor-pointer"                                        >
+                                            <option value="Active" className="dark:bg-brand-900">
+                                                Active
+                                            </option>
+
+                                            <option value="Inactive" className="dark:bg-brand-900">
+                                                Inactive
+                                            </option>
+                                        </select>
+                                    </div>
+                                )}
+                            </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-400 uppercase">Phone</label>
                                     {isEditing ? (
-                                        <input type="text" value={profile.phone || ''} onChange={(e) => handleInputChange('phone', e.target.value)} className="w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg outline-none" />
-                                    ) : <p className="font-semibold">{profile.phone || 'N/A'}</p>}
+                                        <>
+                                            <input type="text" value={profile.phone || ''} onChange={(e) => handleInputChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                                                className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.phone ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg outline-none`} />
+                                            {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+                                        </>
+                                    ) : <p className="font-semibold text-gray-800 dark:text-gray-200">{profile.phone || 'N/A'}</p>}
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-400 uppercase">Email</label>
-                                    {/* Email logic is handled by User model, not Editable profile here easily for now */}
-                                    <p className="font-semibold text-gray-500">{employee.email}</p>
+                                    {isEditing ? (
+                                        <>
+                                            <input
+                                                type="email"
+                                                value={employee.email}
+                                                onChange={(e) => handleInputChange('email', e.target.value)}
+                                                className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.email ? 'border-red-500' : 'border-gray-200 dark:border-white/10'
+                                                    } rounded-lg outline-none`}
+                                            />
+
+                                            {errors.email && (
+                                                <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <p className="font-semibold text-gray-800 dark:text-gray-200">{employee.email}</p>
+                                    )}
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-400 uppercase">Date of Birth</label>
                                     {isEditing ? (
-                                        <input type="date" value={profile.dob ? profile.dob.split('T')[0] : ''} onChange={(e) => handleInputChange('dob', e.target.value)} className="w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg outline-none" />
-                                    ) : <p className="font-semibold">{profile.dob ? new Date(profile.dob).toLocaleDateString() : 'N/A'}</p>}
+                                        <>
+                                            <input type="date"
+                                                value={profile.dob ? profile.dob.split('T')[0] : ''}
+                                                max={new Date().toISOString().split('T')[0]}
+                                                onChange={(e) => handleInputChange('dob', e.target.value)}
+                                                className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.dob ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg outline-none`} />
+
+                                            {errors.dob && <p className="text-red-500 text-xs mt-1">{errors.dob}</p>}
+                                        </>
+                                    ) : <p className="font-semibold text-gray-800 dark:text-gray-200">{profile.dob ? new Date(profile.dob).toLocaleDateString() : 'N/A'}</p>}
                                 </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-gray-400 uppercase">
+                                        Date of Joining
+                                    </label>
+
+                                    {isEditing && hasPermission(['HR_ADMIN']) ? (
+                                        <>
+                                            <input
+                                                type="date"
+                                                value={profile.joiningDate ? profile.joiningDate.split('T')[0] : ''}
+                                                max={new Date().toISOString().split('T')[0]}
+                                                onChange={(e) => handleInputChange('joiningDate', e.target.value)}
+                                                className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.joiningDate ? 'border-red-500' : 'border-gray-200 dark:border-white/10'
+                                                    } rounded-lg outline-none`}
+                                            />
+
+                                            {errors.joiningDate && (
+                                                <p className="text-red-500 text-xs mt-1">{errors.joiningDate}</p>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <p className="font-semibold text-gray-800 dark:text-gray-200">
+                                            {profile.joiningDate
+                                                ? new Date(profile.joiningDate).toLocaleDateString('en-IN')
+                                                : 'N/A'}
+                                        </p>
+                                    )}
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-gray-400 uppercase">SYSTEM ROLE</label>
+                                    {isEditing && hasPermission(['HR_ADMIN']) ? (
+                                        <div className="relative">
+                                            <select
+                                                value={employee.role?.id || employee.roleId || ''}
+                                                onChange={(e) => {
+                                                    const selectedRole = roles.find((r: any) => String(r.id) === String(e.target.value));
+                                                    if (errors.role) {
+                                                        setErrors(prev => ({
+                                                            ...prev,
+                                                            role: ''
+                                                        }));
+                                                    }
+                                                    setEmployee((prev: any) => ({
+                                                        ...prev,
+                                                        roleId: e.target.value,
+                                                        role: selectedRole
+                                                    }));
+                                                }}
+                                                className="appearance-none w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white transition-all cursor-pointer h-[38px]"
+                                            >
+                                                <option value="" className="dark:bg-brand-900">
+                                                    Select Role
+                                                </option>
+
+                                                {roles.map((role: any) => (
+                                                    <option
+                                                        key={role.id}
+                                                        value={role.id}
+                                                        className="dark:bg-brand-900"
+                                                    >
+                                                        {role.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                                <svg
+                                                    className="w-4 h-4"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth="3"
+                                                        d="M19 9l-7 7-7-7"
+                                                    />
+                                                </svg>
+                                            </div>
+                                            {errors.role && (
+                                                <p className="text-red-500 text-xs mt-1">
+                                                    {errors.role}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                    ) : (
+                                        <p className="font-semibold text-gray-800 dark:text-gray-200">
+                                            {employee.role?.name || employee.role?.title || employee.role || 'N/A'}
+                                        </p>
+                                    )}
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-gray-400 uppercase">DESIGNATION</label>
+
+                                    {isEditing && hasPermission(['HR_ADMIN']) ? (
+                                        <div className="relative">
+                                            <select
+                                                value={profile.designationId || ''}
+                                                onChange={(e) => {
+                                                    const selectedDesignation = designations.find(
+                                                        (d: any) => String(d.id) === String(e.target.value)
+                                                    );
+                                                    if (errors.designationId) {
+                                                        setErrors(prev => ({
+                                                            ...prev,
+                                                            designationId: ''
+                                                        }));
+                                                    }
+
+                                                    setEmployee((prev: any) => ({
+                                                        ...prev,
+                                                        employeeProfile: {
+                                                            ...(prev?.employeeProfile || {}),
+                                                            designationId: e.target.value,
+                                                            title: selectedDesignation?.name || ''
+                                                        }
+                                                    }));
+                                                }}
+                                                className="appearance-none w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white transition-all cursor-pointer h-[38px]"
+                                            >
+                                                <option value="" className="dark:bg-brand-900">
+                                                    Select Designation
+                                                </option>
+
+                                                {designations.map((desig: any) => (
+                                                    <option
+                                                        key={desig.id}
+                                                        value={desig.id}
+                                                        className="dark:bg-brand-900"
+                                                    >
+                                                        {desig.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <p className="font-semibold text-gray-800 dark:text-gray-200">{profile.title || 'N/A'}</p>
+                                    )}
+
+                                    {errors.designationId && (
+                                        <p className="text-red-500 text-xs mt-1">
+                                            {errors.designationId}
+                                        </p>
+                                    )}
+
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-gray-400 uppercase">
+                                        DEPARTMENT
+                                    </label>
+
+                                    {isEditing && hasPermission(['HR_ADMIN']) ? (
+                                        <div className="relative">
+                                            <select
+                                                value={profile.departmentId || ''}
+                                                onChange={(e) => {
+                                                    const selectedDepartment = departments.find(
+                                                        (d: any) => String(d.id) === String(e.target.value)
+                                                    );
+                                                    if (errors.departmentId) {
+                                                        setErrors(prev => ({
+                                                            ...prev,
+                                                            departmentId: ''
+                                                        }));
+                                                    }
+
+                                                    setEmployee((prev: any) => ({
+                                                        ...prev,
+                                                        employeeProfile: {
+                                                            ...(prev?.employeeProfile || {}),
+                                                            departmentId: e.target.value,
+                                                            department: selectedDepartment?.name || ''
+                                                        }
+                                                    }));
+                                                }}
+                                                className="appearance-none w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white transition-all cursor-pointer h-[38px]"
+                                            >
+                                                <option value="" className="dark:bg-brand-900">
+                                                    Select Department
+                                                </option>
+
+                                                {departments.map((dept: any) => (
+                                                    <option
+                                                        key={dept.id}
+                                                        value={dept.id}
+                                                        className="dark:bg-brand-900"
+                                                    >
+                                                        {dept.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                                <svg
+                                                    className="w-4 h-4"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth="3"
+                                                        d="M19 9l-7 7-7-7"
+                                                    />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <p className="font-semibold text-gray-800 dark:text-gray-200">
+                                            {profile.department || 'N/A'}
+                                        </p>
+                                    )}
+
+                                    {errors.departmentId && (
+                                        <p className="text-red-500 text-xs mt-1">
+                                            Department is required
+                                        </p>
+                                    )}
+                                </div>
+
+
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-400 uppercase">Blood Group</label>
                                     {isEditing ? (
-                                        <input type="text" value={profile.bloodGroup || ''} onChange={(e) => handleInputChange('bloodGroup', e.target.value)} className="w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg outline-none" />
-                                    ) : <p className="font-semibold">{profile.bloodGroup || 'N/A'}</p>}
+                                        <>
+                                            <select
+                                                value={profile.bloodGroup || ''}
+                                                onChange={(e) => handleInputChange('bloodGroup', e.target.value)}
+                                                className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.bloodGroup
+                                                    ? 'border-red-500'
+                                                    : 'border-gray-200 dark:border-white/10'
+                                                    } rounded-lg outline-none`}
+                                            >
+                                                <option value="" className="dark:bg-brand-900">Select Blood Group</option>
+                                                {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
+                                                    <option key={bg} value={bg} className="dark:bg-brand-900">
+                                                        {bg}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {errors.bloodGroup && <p className="text-red-500 text-xs mt-1">{errors.bloodGroup}</p>}
+                                        </>
+                                    ) : <p className="font-semibold text-gray-800 dark:text-gray-200">{profile.bloodGroup || 'N/A'}</p>}
                                 </div>
                                 <div className="space-y-1 md:col-span-2">
                                     <label className="text-xs font-bold text-gray-400 uppercase">Address</label>
                                     {isEditing ? (
-                                        <input type="text" value={profile.address || ''} onChange={(e) => handleInputChange('address', e.target.value)} className="w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg outline-none" />
-                                    ) : <p className="font-semibold">{profile.address || 'N/A'}</p>}
+                                        <>
+                                            <div className={`w-full bg-gray-50 dark:bg-white/5 border ${errors.address ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg focus-within:ring-2 focus-within:ring-brand-500/20 transition-all overflow-hidden h-[38px]`}>
+                                                <textarea
+                                                    rows={1}
+                                                    value={profile.address || ''}
+                                                    onChange={(e) => handleInputChange('address', e.target.value)}
+                                                    className="w-full px-3 py-2 bg-transparent border-0 outline-none text-gray-700 dark:text-white text-sm font-medium placeholder:text-gray-400 dark:placeholder:text-gray-400 resize-none h-full overflow-y-auto block scrollbar-thin"
+                                                />
+                                            </div>
+                                            {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
+                                        </>
+                                    ) : <p className="font-semibold text-gray-800 dark:text-gray-200 break-all">{profile.address || 'N/A'}</p>}
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-400 uppercase">Status</label>
@@ -375,14 +2027,639 @@ export default function EmployeeProfile() {
                                             ))}
                                         </div>
                                     ) : (
-                                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium inline-block mt-1 ${profile.status === 'Active'
-                                            ? 'bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400'
-                                            : 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400'
-                                            }`}>
-                                            {profile.status || 'Active'}
-                                        </span>
+                                        <div className="mt-1">
+                                            <span className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider shadow-sm transition-all hover:scale-105 ${profile.status === 'Active'
+                                                ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 dark:text-emerald-400'
+                                                : 'bg-rose-500/10 text-rose-600 border border-rose-500/20 dark:text-rose-400'
+                                                }`}>
+                                                {profile.status || 'Active'}
+                                            </span>
+                                        </div>
                                     )}
                                 </div>
+
+                                {/* Custom Fields Section Divider */}
+                                {customFields.filter((cf: any) => cf.field?.category === 'PERSONAL_DETAILS').length > 0 && (
+                                    <div className="md:col-span-2 border-t border-gray-100 dark:border-white/5 my-2 pt-4">
+                                        <h4 className="text-[10px] font-black text-brand-650 dark:text-brand-400 uppercase tracking-widest">Additional Details</h4>
+                                    </div>
+                                )}
+
+                                {/* Dynamic Personal Custom Fields */}
+                                {customFields.filter((cf: any) => cf.field?.category === 'PERSONAL_DETAILS').map((cf: any) => {
+                                    const fieldType = cf.field?.type || 'TEXT';
+                                    const hasFile = !!cf.documentUrl;
+
+                                    return (
+                                        <div key={cf.id} className="space-y-1">
+                                            <label className="text-xs font-bold text-gray-400 uppercase">{cf.field?.name}</label>
+                                            {isEditing ? (
+                                                fieldType === 'RADIO' ? (
+                                                    <div className="space-y-1">
+                                                        <div className={`w-full flex gap-6 items-center px-4 py-2 bg-gray-50 dark:bg-white/5 border ${errors[`customField-${cf.fieldId}`] ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg h-[38px] mt-1`}>
+                                                            {parseRadioOptions(cf.field?.options).map((option: string) => (
+                                                                <label key={option} className="flex items-center gap-1.5 cursor-pointer">
+                                                                    <input
+                                                                        type="radio"
+                                                                        name={`radio-${cf.id}`}
+                                                                        value={option}
+                                                                        checked={cf.value === option}
+                                                                        onChange={() => {
+                                                                            const updated = customFields.map((item: any) => {
+                                                                                if (item.id === cf.id) {
+                                                                                    return { ...item, value: option };
+                                                                                }
+                                                                                return item;
+                                                                            });
+                                                                            setCustomFields(updated);
+                                                                            if (errors[`customField-${cf.fieldId}`]) {
+                                                                                setErrors(prev => ({ ...prev, [`customField-${cf.fieldId}`]: '' }));
+                                                                            }
+                                                                        }}
+                                                                        className="w-4 h-4 text-brand-600 focus:ring-brand-500 accent-brand-600"
+                                                                    />
+                                                                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{option}</span>
+                                                                </label>
+                                                            ))}
+                                                        </div>
+                                                        {errors[`customField-${cf.fieldId}`] && (
+                                                            <p className="text-red-500 text-xs mt-1 ml-1">{errors[`customField-${cf.fieldId}`]}</p>
+                                                        )}
+                                                    </div>
+                                                ) : fieldType === 'FILE' ? (
+                                                    <div className="space-y-1">
+                                                        <div className={`flex items-center justify-between px-3 py-1.5 rounded-lg border ${errors[`customField-${cf.fieldId}`] ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} bg-gray-50 dark:bg-white/5 transition-all mt-1 h-[38px]`}>
+                                                            <span className="text-xs text-gray-500 truncate max-w-[180px]">
+                                                                {hasFile ? (cf.documentName || 'Document uploaded') : 'No file uploaded'}
+                                                            </span>
+                                                            <div className="flex items-center gap-2">
+                                                                {!hasFile ? (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => document.getElementById(`custom-file-input-personal-${cf.id}`)?.click()}
+                                                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white font-bold text-[10px] rounded-lg shadow-sm transition-all cursor-pointer"
+                                                                    >
+                                                                        <Upload size={12} /> Upload
+                                                                    </button>
+                                                                ) : (
+                                                                    <>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => {
+                                                                                e.preventDefault();
+                                                                                if (cf.documentUrl) {
+                                                                                    const baseUrl = 'http://localhost:3001';
+                                                                                    const fullUrl = cf.documentUrl.startsWith('http') ? cf.documentUrl : `/uploads/${cf.documentUrl}`;
+                                                                                    window.open(fullUrl.startsWith('http') ? fullUrl : `${baseUrl}${fullUrl}`, '_blank');
+                                                                                }
+                                                                            }}
+                                                                            className="w-8 h-8 rounded-lg flex items-center justify-center bg-brand-500/10 text-brand-500 hover:bg-brand-500 hover:text-white cursor-pointer"
+                                                                        >
+                                                                            <Eye size={14} />
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => {
+                                                                                e.preventDefault();
+                                                                                setCustomFieldDocToDelete(cf.fieldId);
+                                                                            }}
+                                                                            className="w-8 h-8 rounded-lg flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white cursor-pointer"
+                                                                        >
+                                                                            <Trash2 size={14} />
+                                                                        </button>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                            <input
+                                                                id={`custom-file-input-personal-${cf.id}`}
+                                                                type="file"
+                                                                className="hidden"
+                                                                accept={cf.field?.type === 'PDF' ? '.pdf' : cf.field?.type === 'IMAGE' ? 'image/*' : '.pdf,image/*'}
+                                                                onChange={(e) => {
+                                                                    handleCustomFileUpload(e, cf.fieldId);
+                                                                    if (errors[`customField-${cf.fieldId}`]) {
+                                                                        setErrors(prev => ({ ...prev, [`customField-${cf.fieldId}`]: '' }));
+                                                                    }
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        {errors[`customField-${cf.fieldId}`] && (
+                                                            <p className="text-red-500 text-xs mt-1 ml-1">{errors[`customField-${cf.fieldId}`]}</p>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <div className="space-y-1">
+                                                        <input
+                                                            type={fieldType === 'PASSWORD' ? 'password' : fieldType === 'NUMBER' ? 'text' : fieldType === 'EMAIL' ? 'email' : 'text'}
+                                                            value={cf.value || ''}
+                                                            onChange={(e) => {
+                                                                const updated = customFields.map((item: any) => {
+                                                                    if (item.id === cf.id) {
+                                                                        return { ...item, value: e.target.value };
+                                                                    }
+                                                                    return item;
+                                                                });
+                                                                setCustomFields(updated);
+                                                                if (errors[`customField-${cf.fieldId}`]) {
+                                                                    setErrors(prev => ({ ...prev, [`customField-${cf.fieldId}`]: '' }));
+                                                                }
+                                                            }}
+                                                            className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors[`customField-${cf.fieldId}`] ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-800 dark:text-white mt-1`}
+                                                        />
+                                                        {errors[`customField-${cf.fieldId}`] && (
+                                                            <p className="text-red-500 text-xs mt-1 ml-1">{errors[`customField-${cf.fieldId}`]}</p>
+                                                        )}
+                                                    </div>
+                                                )
+                                            ) : (
+                                                fieldType === 'PASSWORD' ? (
+                                                    <p className="font-semibold text-gray-800 dark:text-gray-200">{cf.value ? '••••••••' : 'N/A'}</p>
+                                                ) : fieldType === 'FILE' ? (
+                                                    hasFile ? (
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            <span className="text-sm font-semibold truncate max-w-[200px] text-gray-800 dark:text-gray-200">
+                                                                {cf.documentName || 'Document uploaded'}
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    if (cf.documentUrl) {
+                                                                        const baseUrl = 'http://localhost:3001';
+                                                                        const fullUrl = cf.documentUrl.startsWith('http') ? cf.documentUrl : `/uploads/${cf.documentUrl}`;
+                                                                        window.open(fullUrl.startsWith('http') ? fullUrl : `${baseUrl}${fullUrl}`, '_blank');
+                                                                    }
+                                                                }}
+                                                                className="w-8 h-8 rounded-lg flex items-center justify-center bg-brand-500/10 text-brand-500 hover:bg-brand-500 hover:text-white cursor-pointer"
+                                                            >
+                                                                <Eye size={14} />
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <p className="font-semibold text-gray-500 dark:text-gray-400">N/A</p>
+                                                    )
+                                                ) : (
+                                                    <p className="font-semibold text-gray-800 dark:text-gray-200">{cf.value || 'N/A'}</p>
+                                                )
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'shiftRoster' && (
+                        <div className="bg-white dark:bg-brand-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-white/5 animate-fade-in-up">
+                            <h3 className="text-xl font-bold mb-6 text-gray-800 dark:text-white">
+                                Shift & Roster
+                            </h3>
+
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-gray-400 uppercase">
+                                    Assigned Shift
+                                </label>
+
+                                {isEditing && hasPermission(['HR_ADMIN']) ? (
+                                    <>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            {shifts.map((shift: any) => (
+                                                <div
+                                                    key={shift.id}
+                                                    onClick={() => {
+                                                        if (isEditing && hasPermission(['HR_ADMIN'])) {
+
+                                                            if (errors.shiftId) {
+                                                                setErrors(prev => ({
+                                                                    ...prev,
+                                                                    shiftId: ''
+                                                                }));
+                                                            }
+
+                                                            handleInputChange('shiftId', String(shift.id));
+                                                        }
+                                                    }}
+                                                    className={`p-4 rounded-xl border cursor-pointer transition-all ${String(profile.shiftId) === String(shift.id)
+                                                        ? 'border-brand-400 ring-2 ring-brand-500/50 bg-brand-500/10'
+                                                        : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5'
+                                                        }`}
+                                                >
+
+
+                                                    <div className="space-y-1 text-xs text-gray-500 dark:text-gray-300">
+                                                        <div className="space-y-2 text-sm text-gray-700 dark:text-gray-200">
+
+                                                            <h4 className="font-bold text-lg text-gray-800 dark:text-white">
+                                                                {shift.name}
+                                                            </h4>
+                                                            <p className="flex justify-between">
+                                                                <span className="font-semibold">Timing:</span>
+                                                                <span>
+                                                                    {shift.startTime} - {shift.endTime}
+                                                                </span>
+                                                            </p>
+                                                            <p className="flex justify-between">
+                                                                <span className="font-semibold">Break:</span>
+                                                                <span>{shift.breakDuration} mins</span>
+                                                            </p>
+
+                                                            <p className="flex justify-between">
+                                                                <span className="font-semibold">Grace Time:</span>
+                                                                <span>{shift.graceTime} mins</span>
+                                                            </p>
+
+                                                            <p className="flex justify-between">
+                                                                <span className="font-semibold">Night Shift:</span>
+                                                                <span>{shift.isNightShift ? "Yes" : "No"}</span>
+                                                            </p>
+
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+
+                                            ))}
+                                        </div>
+                                        {errors.shiftId && (
+                                            <p className="text-red-500 text-sm mt-3 font-medium">
+                                                Select a shift
+                                            </p>
+                                        )}
+                                    </>
+                                ) : (
+                                    <div>
+                                        {(() => {
+                                            const assignedShift = shifts.find(
+                                                (s: any) => String(s.id) === String(profile.shiftId)
+                                            );
+
+                                            return assignedShift ? (
+                                                <div className="p-4 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 max-w-md">
+
+                                                    <h4 className="font-bold text-lg text-gray-800 dark:text-white mb-3">
+                                                        {assignedShift.name}
+                                                    </h4>
+
+                                                    <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
+
+
+
+                                                        <div className="flex justify-between">
+                                                            <span>Timing:</span>
+                                                            <span>
+                                                                {assignedShift.startTime} - {assignedShift.endTime}
+                                                            </span>
+                                                        </div>
+
+                                                        <div className="flex justify-between">
+                                                            <span>Break:</span>
+                                                            <span>{assignedShift.breakDuration} mins</span>
+                                                        </div>
+
+                                                        <div className="flex justify-between">
+                                                            <span>Grace Time:</span>
+                                                            <span>{assignedShift.graceTime} mins</span>
+                                                        </div>
+
+                                                        <div className="flex justify-between">
+                                                            <span>Night Shift:</span>
+                                                            <span>
+                                                                {assignedShift.isNightShift ? 'Yes' : 'No'}
+                                                            </span>
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <p>No Shift Assigned</p>
+                                            );
+                                        })()}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                    {activeTab === 'salary' && (
+                        <div className="bg-white dark:bg-brand-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-white/5 animate-fade-in-up">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-xl font-bold text-gray-800 dark:text-white">
+                                    Salary Overview
+
+                                </h3>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+
+                                <div className="p-5 rounded-2xl bg-green-500/10 border border-green-500/30 relative overflow-hidden">
+                                    <div className="absolute right-3 top-3 w-9 h-9 rounded-xl bg-green-500/20 flex items-center justify-center text-green-400">
+                                        <TrendingUp size={26} />
+                                    </div>
+
+                                    <p className="text-green-400 font-bold text-sm">Total Earnings</p>
+                                    <p className="text-2xl font-black text-gray-800 dark:text-white mt-2">
+                                        ₹ {salaryOverviewEarnings.toLocaleString('en-IN')}
+                                    </p>
+                                    <p className="text-gray-400 text-sm mt-1">Per Month</p>
+                                </div>
+
+                                <div className="p-5 rounded-2xl bg-red-500/10 border border-red-500/30 relative overflow-hidden">
+                                    <div className="absolute right-3 top-3 w-9 h-9 rounded-xl bg-red-500/20 flex items-center justify-center text-red-400">
+                                        <TrendingDown size={26} />
+                                    </div>
+
+                                    <p className="text-red-400 font-bold text-sm">Total Deductions</p>
+                                    <p className="text-2xl font-black text-gray-800 dark:text-white mt-2">
+                                        ₹ {salaryOverviewDeductions.toLocaleString('en-IN')}
+                                    </p>
+                                    <p className="text-gray-400 text-sm mt-1">Per Month</p>
+                                </div>
+
+                                <div className="p-5 rounded-2xl bg-blue-500/10 border border-blue-500/30 relative overflow-hidden">
+                                    <div className="absolute right-3 top-3 w-9 h-9 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400">
+                                        <Coins size={26} />
+                                    </div>
+
+                                    <p className="text-blue-400 font-bold text-sm">Net Salary</p>
+                                    <p className="text-2xl font-black text-gray-800 dark:text-white mt-2">
+                                        ₹ {salaryOverviewNet.toLocaleString('en-IN')}
+                                    </p>
+                                    <p className="text-gray-400 text-sm mt-1">Per Month</p>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div className="rounded-2xl border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-5">
+                                    <h4 className="text-lg font-bold text-green-500 mb-4">
+                                        Earnings
+                                    </h4>
+
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between gap-4 border-b border-gray-200 dark:border-white/10 pb-3">
+                                            <div className="flex-1">
+                                                <p className="font-bold text-gray-800 dark:text-white">
+                                                    Basic Salary
+                                                </p>
+
+                                                {errors.basic && (
+                                                    <p className="text-red-500 text-xs mt-1">
+                                                        {errors.basic}
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            {isEditing && hasPermission(['HR_ADMIN']) ? (
+                                                <input
+                                                    type="text"
+                                                    value={profile.salary?.basic || ''}
+                                                    onChange={(e) =>
+                                                        handleSalaryChange('basic', e.target.value.replace(/\D/g, ''))
+                                                    }
+                                                    placeholder="Enter salary"
+                                                    className={`w-36 px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.basic ? 'border-red-500' : 'border-gray-200 dark:border-white/10'
+                                                        } rounded-lg outline-none text-gray-800 dark:text-white font-bold text-right`}
+                                                />
+                                            ) : (
+                                                <p className="font-bold text-gray-800 dark:text-white">
+                                                    ₹ {Number(profile.salary?.basic || 0).toLocaleString('en-IN')}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        {earningsComponents.map((component: any) => (
+                                            <div
+                                                key={component.id}
+                                                className="flex items-center justify-between gap-4 border-b border-gray-200 dark:border-white/10 pb-3"
+                                            >
+                                                <div>
+                                                    <p className="font-bold text-gray-800 dark:text-white">
+                                                        {component.name}
+                                                    </p>
+
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                        {component.calculationType === 'FLAT'
+                                                            ? 'Fixed'
+                                                            : `${component.value}% of Basic`}
+                                                    </p>
+                                                </div>
+
+                                                <div className="flex items-center gap-3">
+                                                    <p className="font-bold text-gray-800 dark:text-white">
+                                                        ₹ {getComponentAmount(component).toLocaleString('en-IN')}
+                                                    </p>
+
+                                                    {isEditing && hasPermission(['HR_ADMIN']) && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeSalaryComponent(component.id)}
+                                                            className="p-2 rounded-lg text-red-500 hover:bg-red-500/10 transition"
+                                                        >
+                                                            <Trash2 size={18} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        {isEditing && hasPermission(['HR_ADMIN']) && (
+                                            <div className="relative">
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setComponentPickerType(componentPickerType === 'EARNING' ? null : 'EARNING')
+                                                    }
+                                                    className="w-full mt-4 py-3 rounded-xl border border-dashed border-green-500/40 text-green-500 font-bold hover:bg-green-500/10 transition"
+                                                >
+                                                    + Add Earnings Component
+                                                </button>
+
+                                                {componentPickerType === 'EARNING' && (
+                                                    <div className="absolute z-[9999] mt-2 w-full max-h-64 overflow-y-auto rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-brand-950 shadow-2xl p-3 space-y-2">
+                                                        {salaryComponents
+                                                            .filter((component: any) => component.type === 'EARNING')
+                                                            .filter((component: any) =>
+                                                                !selectedSalaryComponents.some((item: any) => item.id === component.id)
+                                                            )
+                                                            .map((component: any) => (
+                                                                <button
+                                                                    key={component.id}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        toggleSalaryComponent(component);
+                                                                        setComponentPickerType(null);
+                                                                    }}
+                                                                    className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 text-left"
+                                                                >
+                                                                    <span className="font-bold text-gray-800 dark:text-white">
+                                                                        {component.name}
+                                                                    </span>
+
+                                                                    <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">
+                                                                        EARNING
+                                                                    </span>
+                                                                </button>
+                                                            ))}
+
+                                                        {salaryComponents.filter((component: any) => component.type === 'EARNING')
+                                                            .filter((component: any) =>
+                                                                !selectedSalaryComponents.some((item: any) => item.id === component.id)
+                                                            ).length === 0 && (
+                                                                <p className="text-sm text-gray-400 text-center py-3">
+                                                                    No earning component available
+                                                                </p>
+                                                            )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="rounded-2xl border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-5">
+                                    <h4 className="text-lg font-bold text-red-500 mb-4">
+                                        Deductions
+                                    </h4>
+
+                                    <div className="space-y-3">
+                                        {deductionComponents.map((component: any) => (
+                                            <div
+                                                key={component.id}
+                                                className="flex items-center justify-between gap-4 border-b border-gray-200 dark:border-white/10 pb-3"
+                                            >
+                                                <div>
+                                                    <p className="font-bold text-gray-800 dark:text-white">
+                                                        {component.name}
+                                                    </p>
+
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                        {component.calculationType === 'FLAT'
+                                                            ? 'Fixed'
+                                                            : `${component.value}% of Basic`}
+                                                    </p>
+                                                </div>
+
+                                                <div className="flex items-center gap-3">
+                                                    <p className="font-bold text-gray-800 dark:text-white">
+                                                        ₹ {getComponentAmount(component).toLocaleString('en-IN')}
+                                                    </p>
+
+                                                    {isEditing && hasPermission(['HR_ADMIN']) && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeSalaryComponent(component.id)}
+                                                            className="p-2 rounded-lg text-red-500 hover:bg-red-500/10 transition"
+                                                        >
+                                                            <Trash2 size={18} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        {isEditing && hasPermission(['HR_ADMIN']) && (
+                                            <div className="relative">
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setComponentPickerType(componentPickerType === 'DEDUCTION' ? null : 'DEDUCTION')
+                                                    }
+                                                    className="w-full mt-4 py-3 rounded-xl border border-dashed border-red-500/40 text-red-500 font-bold hover:bg-red-500/10 transition"
+                                                >
+                                                    + Add Deduction Component
+                                                </button>
+
+                                                {componentPickerType === 'DEDUCTION' && (
+                                                    <div className="absolute z-[9999] mt-2 w-full max-h-64 overflow-y-auto rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-brand-950 shadow-2xl p-3 space-y-2">
+                                                        {salaryComponents
+                                                            .filter((component: any) => component.type === 'DEDUCTION')
+                                                            .filter((component: any) =>
+                                                                !selectedSalaryComponents.some((item: any) => item.id === component.id)
+                                                            )
+                                                            .map((component: any) => (
+                                                                <button
+                                                                    key={component.id}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        toggleSalaryComponent(component);
+                                                                        setComponentPickerType(null);
+                                                                    }}
+                                                                    className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 text-left"
+                                                                >
+                                                                    <span className="font-bold text-gray-800 dark:text-white">
+                                                                        {component.name}
+                                                                    </span>
+
+                                                                    <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400">
+                                                                        DEDUCTION
+                                                                    </span>
+                                                                </button>
+                                                            ))}
+
+                                                        {salaryComponents.filter((component: any) => component.type === 'DEDUCTION')
+                                                            .filter((component: any) =>
+                                                                !selectedSalaryComponents.some((item: any) => item.id === component.id)
+                                                            ).length === 0 && (
+                                                                <p className="text-sm text-gray-400 text-center py-3">
+                                                                    No deduction component available
+                                                                </p>
+                                                            )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {isEditing && hasPermission(['HR_ADMIN']) && (
+                                <p className="text-center text-sm text-gray-400 mt-6">
+                                    Changes will be reflected after saving.
+                                </p>
+                            )}
+                        </div>
+                    )}
+                    {activeTab === 'team' && (
+                        <div className="bg-white dark:bg-brand-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-white/5 animate-fade-in-up space-y-6">
+                            {/* Team & Manager Details */}
+                            <div>
+                                <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-gray-800 dark:text-white">
+                                    <Briefcase className="text-green-500" size={20} /> Team & Manager Details
+                                </h3>
+                                {employee.teamMembers && employee.teamMembers.length > 0 ? (
+                                    <div className="space-y-4">
+                                        {employee.teamMembers.map((membership: any) => {
+                                            const team = membership.team;
+                                            const teamManager = team?.manager;
+                                            return (
+                                                <div key={membership.id} className="bg-gray-55/50 dark:bg-white/5 p-4 rounded-xl border border-gray-100 dark:border-white/10 space-y-4">
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Team Name</label>
+                                                        <p className="font-bold text-brand-600 dark:text-brand-400 text-lg">{team?.name || 'N/A'}</p>
+                                                        {team?.description && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{team.description}</p>}
+                                                    </div>
+
+                                                    {teamManager ? (
+                                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-gray-200/50 dark:border-white/10 pt-3">
+                                                            <div className="space-y-1">
+                                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Team Manager Name</label>
+                                                                <p className="font-semibold text-gray-800 dark:text-gray-200 text-sm">{teamManager.name}</p>
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Team Manager Email</label>
+                                                                <p className="font-semibold text-gray-800 dark:text-gray-200 text-sm break-all">{teamManager.email}</p>
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Team Manager Phone</label>
+                                                                <p className="font-semibold text-gray-800 dark:text-gray-200 text-sm">{teamManager.employeeProfile?.phone || 'N/A'}</p>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-gray-550 dark:text-gray-400 italic border-t border-gray-200/50 dark:border-white/10 pt-3 text-xs">No Team Manager Assigned for this Team</p>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <p className="text-gray-500 dark:text-gray-400 italic bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-gray-100 dark:border-white/10">No Team Assigned</p>
+                                )}
                             </div>
                         </div>
                     )}
@@ -394,14 +2671,24 @@ export default function EmployeeProfile() {
                         <h4 className="font-bold text-gray-800 dark:text-white mb-4">Quick Actions</h4>
                         <div className="space-y-3">
                             <button
-                                onClick={() => setShowPayslip(true)}
-                                className="w-full py-2.5 px-4 bg-brand-50 dark:bg-white/5 text-brand-700 dark:text-brand-300 rounded-xl text-sm font-medium hover:bg-brand-100 transition-colors text-left flex items-center gap-3"
+                                onClick={() => {
+                                    const lastMonth = new Date();
+                                    lastMonth.setMonth(lastMonth.getMonth() - 1);
+
+                                    setSelectedPayslipMonth(lastMonth.getMonth());
+                                    setSelectedPayslipYear(lastMonth.getFullYear());
+                                    setInputMonth(MONTH_NAMES[lastMonth.getMonth()]);
+                                    setInputYear(String(lastMonth.getFullYear()));
+
+                                    setShowPayslip(true);
+                                }}
+                                className="w-full py-2.5 px-4 bg-brand-50 dark:bg-white/5 text-brand-700 dark:text-brand-300 rounded-xl text-sm font-medium hover:bg-brand-700 hover:text-white transition-colors text-left flex items-center gap-3"
                             >
                                 <FileText size={16} /> Generate Payslip
                             </button>
                             <button
                                 onClick={() => setShowIDCard(true)}
-                                className="w-full py-2.5 px-4 bg-brand-50 dark:bg-white/5 text-brand-700 dark:text-brand-300 rounded-xl text-sm font-medium hover:bg-brand-100 transition-colors text-left flex items-center gap-3"
+                                className="w-full py-2.5 px-4 bg-brand-50 dark:bg-white/5 text-brand-700 dark:text-brand-300 rounded-xl text-sm font-medium hover:bg-brand-700 hover:text-white transition-colors text-left flex items-center gap-3"
                             >
                                 <User size={16} /> ID Card Preview
                             </button>
@@ -412,168 +2699,659 @@ export default function EmployeeProfile() {
             </div>
 
             {/* Payslip Modal (Keep original UI logic, but ensure it uses the dynamic data) */}
-            {showPayslip && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in overflow-y-auto">
-                    <div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden my-8">
-                        <div className="p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50 dark:bg-white/5">
-                            <h3 className="text-xl font-bold font-mono text-gray-800 dark:text-white">Payslip Preview</h3>
-                            <button onClick={() => setShowPayslip(false)} className="bg-gray-200 dark:bg-white/10 p-2 rounded-full hover:bg-gray-300 transition-colors">
-                                <X size={20} className="text-gray-600 dark:text-gray-300" />
-                            </button>
-                        </div>
+            {showPayslip && createPortal(
+                <div className="fixed inset-0 z-[999999] flex items-center justify-center  bg-black/70 backdrop-blur-sm p-4 animate-fade-in overflow-y-auto custom-scrollbar scrollbar-thin scrollbar-thumb-brand-500/60">
+                    <div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden">
 
-                        <div className="p-8 bg-gray-100 dark:bg-white/5 overflow-x-auto flex justify-center">
-                            <div id="payslip-content" className="w-[210mm] min-w-[210mm] bg-white border border-gray-300 p-8 min-h-[297mm] shadow-lg relative text-gray-900">
-                                <div className="flex justify-between items-start border-b-2 border-brand-900 pb-6 mb-6">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-16 h-16 bg-brand-900 text-white flex items-center justify-center font-bold text-2xl rounded-lg">EH</div>
-                                        <div className="text-right">
-                                            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">EnCalm <span className="text-brand-600">HRX</span></h1>
-                                        </div>
-                                    </div>
-                                    <div className="mt-6 mb-2">
-                                        <p>EncalmIT Consultancy Pvt. Ltd.</p>
-                                        <p>Gurgaon, Haryana, India</p>
-                                        <p>CIN: U12345HR2023PTC123456</p>
-                                    </div>
+                        {/* Header */}
+                        <div className="px-6 py-4 border-b border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 shrink-0">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                {/* Left title */}
+                                <div>
+                                    <h3 className="text-lg font-bold text-gray-800 dark:text-white">Payslip Preview</h3>
+                                    {selectedMonthLabel && (
+                                        <p className="text-xs text-brand-600 font-semibold mt-0.5">Payslip for {selectedMonthLabel}</p>
+                                    )}
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-8 mb-8">
-                                    <div className="space-y-3">
-                                        <h4 className="font-bold text-gray-400 text-xs uppercase tracking-wider mb-2 border-b pb-1">Employee Details</h4>
-                                        <div className="grid grid-cols-3 gap-2 text-sm">
-                                            <span className="text-gray-500 font-medium">Name:</span>
-                                            <span className="col-span-2 font-bold">{employee.name}</span>
-                                            <span className="text-gray-500 font-medium">Employee ID:</span>
-                                            <span className="col-span-2 font-bold">{employee.id}</span>
-                                            <span className="text-gray-500 font-medium">Designation:</span>
-                                            <span className="col-span-2 font-bold">{profile.title || 'N/A'}</span>
-                                            <span className="text-gray-500 font-medium">Department:</span>
-                                            <span className="col-span-2 font-bold">{profile.department || 'N/A'}</span>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-3">
-                                        <h4 className="font-bold text-gray-400 text-xs uppercase tracking-wider mb-2 border-b pb-1">Bank & Pan Details</h4>
-                                        <div className="grid grid-cols-3 gap-2 text-sm">
-                                            <span className="text-gray-500 font-medium">Bank Name:</span>
-                                            <span className="col-span-2 font-bold">{bank.bankName || 'N/A'}</span>
-                                            <span className="text-gray-500 font-medium">Account No:</span>
-                                            <span className="col-span-2 font-bold">XXXX{(bank.accountNumber || '').slice(-4)}</span>
-                                            <span className="text-gray-500 font-medium">PAN Number:</span>
-                                            <span className="col-span-2 font-bold">{statutory.pan || 'N/A'}</span>
-                                            <span className="text-gray-500 font-medium">UAN:</span>
-                                            <span className="col-span-2 font-bold">{statutory.uan || 'N/A'}</span>
-                                        </div>
-                                    </div>
-                                </div>
+                                {/* Right: month + year fields */}
+                                <div className="flex items-center gap-3">
+                                    <div className="flex items-center border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden bg-white dark:bg-brand-800 shadow-sm">
+                                        <div className="relative">
+                                            <select
+                                                value={inputMonth}
+                                                onChange={(e) => {
+                                                    setInputMonth(e.target.value);
+                                                    setPayslipError('');
+                                                }}
+                                                className="appearance-none px-4 pr-8 py-2 text-sm font-bold bg-brand-700 outline-none text-white cursor-pointer w-32 border-r border-brand-600">
+                                                {availableMonths.map((month) => (
+                                                    <option key={month} value={month} className="dark:bg-brand-900">
+                                                        {month}
+                                                    </option>
+                                                ))}
+                                            </select>
 
-                                <div className="border border-gray-200 rounded-sm mb-8">
-                                    <div className="grid grid-cols-2 bg-gray-100 border-b border-gray-200">
-                                        <div className="p-3 font-bold text-gray-700 text-sm uppercase text-center border-r border-gray-200">Earnings</div>
-                                        <div className="p-3 font-bold text-gray-700 text-sm uppercase text-center">Deductions</div>
-                                    </div>
-                                    <div className="grid grid-cols-2 text-sm min-h-[200px]">
-                                        <div className="border-r border-gray-200 p-0">
-                                            <div className="flex justify-between p-3 border-b border-gray-100">
-                                                <span className="text-gray-600">Basic Salary</span>
-                                                <span className="font-semibold">₹ 0.00</span>
-                                            </div>
-                                            <div className="flex justify-between p-3 italic text-gray-400">
-                                                <span>Salary structure pending setup...</span>
-                                            </div>
+                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-white pointer-events-none text-xs">
+                                                ▼
+                                            </span>
                                         </div>
-                                        <div className="p-0">
-                                            <div className="flex justify-between p-3 border-b border-gray-100">
-                                                <span className="text-gray-600">Total Deductions</span>
-                                                <span className="font-bold text-red-700">₹ 0.00</span>
-                                            </div>
+                                        <div className="relative">
+                                            <select
+                                                value={inputYear}
+                                                onChange={(e) => {
+                                                    setInputYear(e.target.value);
+                                                    setPayslipError('');
+                                                }}
+                                                className="appearance-none px-4 pr-8 py-2 text-sm font-bold bg-brand-700 outline-none text-white cursor-pointer w-24">
+                                                {availableYears.map((year) => (
+                                                    <option key={year} value={String(year)} className="dark:bg-brand-900">
+                                                        {year}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-white pointer-events-none text-xs">
+                                                ▼
+                                            </span>
                                         </div>
+
                                     </div>
-                                </div>
-                                
-                                <div className="text-center text-xs text-gray-400 mt-auto pt-8 border-t border-gray-100">
-                                    <p>This is a computer-generated document and does not require a signature.</p>
-                                    <p className="mt-1">Generated on {new Date().toLocaleDateString()}</p>
+                                    <button
+                                        onClick={applyPayslipMonth}
+                                        className="px-5 py-2 bg-brand-600 text-white text-sm font-bold rounded-xl hover:bg-brand-700 active:scale-95 transition-all shadow-sm"
+                                    >
+                                        Apply
+                                    </button>
+                                    {payslipError && (
+                                        <span className="text-xs text-rose-500 font-semibold">{payslipError}</span>
+                                    )}
+                                    <button
+                                        onClick={() => setShowPayslip(false)}
+                                        className="p-2 bg-gray-200 dark:bg-white/10 rounded-full hover:bg-gray-300 dark:hover:bg-white/20 transition-colors"
+                                    >
+                                        <X size={18} className="text-gray-600 dark:text-gray-300" />
+                                    </button>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div className="p-6 border-t border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 flex justify-center">
-                        <button
-                            onClick={() => {
-                                const input = document.getElementById('payslip-content');
-                                if (input) {
-                                    html2canvas(input, { scale: 2 }).then((canvas) => {
-                                        const imgData = canvas.toDataURL('image/png');
-                                        const pdf = new jsPDF('p', 'mm', 'a4');
-                                        const pdfWidth = pdf.internal.pageSize.getWidth();
-                                        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-                                        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-                                        pdf.save(`Payslip_${employee.name}.pdf`);
-                                    });
-                                }
-                            }}
-                            className="flex items-center gap-2 px-6 py-3 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 transition-colors shadow-lg shadow-brand-500/20"
-                        >
-                            <Download size={20} /> Download PDF
-                        </button>
+                        {/* Content (Scrollable if absolutely necessary, but designed to fit) */}
+                        <div className="p-4 md:p-6 bg-gray-100 dark:bg-brand-950 overflow-y-auto custom-scrollbar flex-1 flex justify-center items-start">
+
+                            {payslipBlockMessage ? (
+                                <div className="min-h-[520px] flex items-center justify-center">
+                                    <div className="max-w-sm w-full bg-white rounded-2xl p-7 text-center shadow-[0_18px_45px_rgba(0,0,0,0.22)] border-2 border-gray-300 dark:bg-[#0b0b24] dark:border-white/10">
+                                        <div className="flex justify-center mb-5">
+                                            <div className="w-14 h-14 rounded-full bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
+                                                <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center">
+                                                    <span className="text-white text-2xl font-bold">!</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <h4 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-3">
+                                            No Salary Slip
+                                        </h4>
+
+                                        <p className="text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+                                            {payslipBlockMessage}
+                                        </p>
+                                    </div>
+                                </div>
+                            ) : (
+
+                                <div id="payslip-content" className="w-full max-w-3xl bg-white border border-gray-200 p-6 md:p-8 shadow-sm rounded-xl relative text-gray-900 text-sm">
+                                    <div className="flex justify-between items-start border-b-2 border-brand-900 pb-4 mb-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-12 h-12 md:w-14 md:h-14 bg-brand-900 text-white flex items-center justify-center font-bold text-xl rounded-lg">OH</div>
+                                            <div className="text-left">
+                                                <h1 className="text-2xl font-bold text-gray-900 tracking-tight">OmniHR</h1>
+                                            </div>
+                                        </div>
+                                        <div className="text-right text-xs text-gray-600">
+                                            <p className="font-bold text-gray-800">EncalmIT Consultancy Pvt. Ltd.</p>
+                                            <p>Gurgaon, Haryana, India</p>
+                                            <p>CIN: U12345HR2023PTC123456</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-6 mb-4">
+                                        <div className="space-y-2">
+                                            <h4 className="font-bold text-brand-600 text-[10px] uppercase tracking-wider mb-1 border-b border-gray-100 pb-1">Employee Details</h4>
+                                            <div className="grid grid-cols-3 gap-1 text-xs">
+                                                <span className="text-gray-500 font-medium">Name:</span>
+                                                <span className="col-span-2 font-bold">{employee.name}</span>
+                                                <span className="text-gray-500 font-medium">Employee ID:</span>
+                                                <span className="col-span-2 font-bold">{employee.id}</span>
+                                                <span className="text-gray-500 font-medium">Role:</span>
+                                                <span className="col-span-2 font-bold break-words whitespace-normal">{profile.title || 'N/A'}</span>
+                                                <span className="text-gray-500 font-medium">Department:</span>
+                                                <span className="col-span-2 font-bold break-words whitespace-normal">{profile.department || 'N/A'}</span>
+                                                <span className="text-gray-500 font-medium">DOB:</span>
+                                                <span className="col-span-2 font-bold">
+                                                    {profile.dob ? new Date(profile.dob).toLocaleDateString('en-IN') : 'N/A'}
+                                                </span>
+                                                <span className="text-gray-500 font-medium">Date of Joining:</span>
+                                                <span className="col-span-2 font-bold">{joiningDate}</span>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <h4 className="font-bold text-brand-600 text-[10px] uppercase tracking-wider mb-1 border-b border-gray-100 pb-1">Bank & Pan Details</h4>
+                                            <div className="grid grid-cols-3 gap-1 text-xs">
+                                                <span className="text-gray-500 font-medium">Bank Name:</span>
+                                                <span className="col-span-2 font-bold break-words whitespace-normal">{bank.bankName || 'N/A'}</span>
+                                                <span className="text-gray-500 font-medium">Account No:</span>
+                                                <span className="col-span-2 font-bold">XXXX{(bank.accountNumber || '').slice(-4)}</span>
+                                                <span className="text-gray-500 font-medium">PAN Number:</span>
+                                                <span className="col-span-2 font-bold">{statutory.pan || 'N/A'}</span>
+                                                <span className="text-gray-500 font-medium">UAN:</span>
+                                                <span className="col-span-2 font-bold">{statutory.uan || 'N/A'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Payroll Summary Bar */}
+                                    <div className="flex items-center gap-0 mb-4 border border-gray-200 rounded-lg overflow-hidden text-xs">
+                                        <div className="flex-1 bg-gray-50 px-3 py-2 text-center border-r border-gray-200">
+                                            <p className="text-gray-400 font-medium uppercase tracking-wider text-[9px]">Total Working Days</p>
+                                            <p className="font-bold text-gray-800 text-sm mt-0.5">{calendarDays}</p>
+                                        </div>
+                                        <div className="flex-1 bg-gray-50 px-3 py-2 text-center border-r border-gray-200">
+                                            <p className="text-gray-400 font-medium uppercase tracking-wider text-[9px]">Paid Days</p>
+                                            <p className="font-bold text-green-700 text-sm mt-0.5">{paidDays}</p>
+                                        </div>
+                                        <div className="flex-1 bg-gray-50 px-3 py-2 text-center">
+                                            <p className="text-gray-400 font-medium uppercase tracking-wider text-[9px]">Leave Taken (LWP)</p>
+                                            <p className="font-bold text-sm mt-0.5" style={{ color: lwpDays > 0 ? '#e11d48' : '#1f2937' }}>{lwpDays}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="border border-gray-200 rounded-lg overflow-hidden mb-6">
+                                        <div className="grid grid-cols-2 bg-gray-50 border-b border-gray-200">
+                                            <div className="p-2 font-bold text-gray-700 text-xs uppercase text-center border-r border-gray-200">Earnings</div>
+                                            <div className="p-2 font-bold text-gray-700 text-xs uppercase text-center">Deductions</div>
+                                        </div>
+                                        <div className="grid grid-cols-2 text-xs min-h-[120px]">
+                                            <div className="border-r border-gray-200 p-0 flex flex-col justify-between">
+                                                <div>
+
+
+                                                    <div className="flex justify-between p-2 border-b border-gray-50">
+                                                        <span className="text-gray-600 font-semibold">Basic Salary</span>
+                                                        <span className="font-semibold">
+                                                            ₹ {paidBasic.toLocaleString('en-IN', {
+                                                                minimumFractionDigits: 2,
+                                                                maximumFractionDigits: 2,
+                                                            })}
+                                                        </span>
+                                                    </div>
+                                                    {payslipEarningComponents.map((component: any) => (
+                                                        <div
+                                                            key={`${component.id}-${component.name}`}
+                                                            className="flex justify-between p-2 border-b border-gray-50"
+                                                        >
+                                                            <span className="text-gray-600">{component.name}</span>
+                                                            <span className="font-semibold">
+                                                                ₹ {Number(component.amount || 0).toLocaleString('en-IN', {
+                                                                    minimumFractionDigits: 2,
+                                                                    maximumFractionDigits: 2,
+                                                                })}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+
+                                                    {totalEarnings === 0 && (
+                                                        <div className="flex justify-between p-2 md:p-3 italic text-gray-400">
+                                                            <span>Salary structure pending setup...</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {totalEarnings > 0 && (
+                                                    <div className="flex justify-between p-2 bg-gray-50 border-t border-gray-100 font-bold text-gray-800">
+                                                        <span>Total Earnings</span>
+                                                        <span>
+                                                            ₹ {totalEarnings.toLocaleString('en-IN', {
+                                                                minimumFractionDigits: 2,
+                                                                maximumFractionDigits: 2,
+                                                            })}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="p-0 flex flex-col justify-between">
+                                                <div>
+                                                    {payslipDeductionComponents.map((component: any) => (
+                                                        <div
+                                                            key={`${component.id}-${component.name}`}
+                                                            className="flex justify-between p-2 border-b border-gray-50"
+                                                        >
+                                                            <span className="text-gray-600">{component.name}</span>
+                                                            <span className="font-semibold">
+                                                                ₹ {Number(component.amount || 0).toLocaleString('en-IN', {
+                                                                    minimumFractionDigits: 2,
+                                                                    maximumFractionDigits: 2,
+                                                                })}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                    {paidLeaveDays > 0 && (
+                                                        <div className="flex justify-between p-2 border-b border-gray-50 bg-green-50/40">
+                                                            <span className="text-gray-600">
+                                                                Paid Leaves ({paidLeaveText || `${paidLeaveDays} days`})
+                                                            </span>
+                                                            <span className="font-semibold text-green-700">
+                                                                ₹ 0.00
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                    {lwpDeduction > 0 && (
+                                                        <div className="flex justify-between p-2 border-b border-gray-50" style={{ color: '#e11d48', backgroundColor: 'rgba(255, 241, 242, 0.5)' }}>
+                                                            <span className="font-semibold">LWP Deduction ({lwpDays} days)</span>
+                                                            <span className="font-semibold">₹ {lwpDeduction.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                        </div>
+                                                    )}
+                                                    {totalDeductions === 0 && (
+                                                        <div className="flex justify-between p-2 md:p-3 italic text-gray-400">
+                                                            <span>No deductions applicable</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+
+                                                <div className="flex justify-between p-2 bg-gray-50 border-t border-gray-100 font-bold">
+                                                    <span className="text-gray-700">Total Deductions</span>
+                                                    <span className="text-gray-800 font-bold">
+                                                        ₹ {totalDeductions.toLocaleString('en-IN', {
+                                                            minimumFractionDigits: 2,
+                                                            maximumFractionDigits: 2,
+                                                        })}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-between p-2 bg-gray-50 border-t border-gray-200 font-bold text-xs">
+                                            <span className="text-gray-800">Total Salary</span>
+                                            <span className="text-green-700 font-bold">
+                                                ₹ {totalSalary.toLocaleString('en-IN', {
+                                                    minimumFractionDigits: 2,
+                                                    maximumFractionDigits: 2,
+                                                })}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="text-center text-[10px] text-gray-400 mt-4 pt-4 border-t border-gray-100">
+                                        <p>This is a computer-generated document and does not require a signature.</p>
+                                        <p className="mt-1">Generated on {new Date().toLocaleDateString()}</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer Buttons */}
+                        <div className="p-4 border-t border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 flex justify-end gap-3 shrink-0">
+                            <button
+                                onClick={() => setShowPayslip(false)}
+                                className="px-6 py-2.5 bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-300 dark:hover:bg-white/20 transition-colors"
+                            >
+                                Back
+                            </button>
+                            {!payslipBlockMessage && (
+
+                                <button
+
+                                    onClick={async () => {
+
+                                        const input = document.getElementById('payslip-content');
+                                        if (!input) {
+                                            toast.error("Could not find payslip content");
+                                            return;
+                                        }
+
+                                        try {
+                                            const toastId = toast.loading("Generating PDF...");
+                                            const canvas = await html2canvas(input, {
+                                                scale: 2,
+                                                useCORS: true,
+                                                allowTaint: true,
+                                                backgroundColor: '#ffffff',
+                                                onclone: (clonedDoc) => {
+                                                    const elements = clonedDoc.querySelectorAll('*');
+                                                    elements.forEach((el) => {
+                                                        const HTMLElement = el as HTMLElement;
+                                                        const style = window.getComputedStyle(HTMLElement);
+                                                        if (style.color.includes('oklch')) HTMLElement.style.color = '#000000';
+                                                        if (style.backgroundColor.includes('oklch')) HTMLElement.style.backgroundColor = '#ffffff';
+                                                        if (style.borderColor.includes('oklch')) HTMLElement.style.borderColor = '#e5e7eb';
+                                                    });
+                                                }
+                                            });
+
+                                            const imgData = canvas.toDataURL('image/png');
+                                            const pdf = new jsPDF('p', 'mm', 'a4');
+                                            const pdfWidth = pdf.internal.pageSize.getWidth();
+                                            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+                                            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                                            pdf.save(`Payslip_${employee.name}_${selectedMonthShort}.pdf`);
+
+                                            toast.success("PDF Downloaded", { id: toastId });
+                                        } catch (err) {
+                                            console.error("PDF Export Error:", err);
+                                            toast.error("Failed to generate PDF");
+                                        }
+                                    }}
+                                    className="flex items-center gap-2 px-6 py-2.5 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 transition-colors shadow-lg shadow-brand-500/20"
+                                >
+                                    <Download size={18} /> Download PDF
+                                </button>
+                            )}
+
+                        </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* ID Card Modal (Keep original UI logic, with dynamic data) */}
-            {showIDCard && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in">
+            {showIDCard && createPortal(
+                <div className="fixed inset-0 z-[999999] flex items-start justify-center pt-20 bg-black/80 backdrop-blur-md p-4 animate-fade-in">
                     <div className="relative">
                         <button onClick={() => setShowIDCard(false)} className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors">
                             <X size={24} />
                         </button>
 
-                        <div className="w-[320px] h-[500px] bg-white rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden relative flex flex-col">
-                            <div className="absolute top-0 inset-x-0 h-48 bg-gradient-to-br from-brand-800 to-brand-600 rounded-b-[50px] z-0"></div>
+                        <div id="id-card-container" className="w-[320px] h-[540px] bg-white rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden relative flex flex-col animate-scale-in">
+                            <div
+                                className="absolute top-0 inset-x-0 h-48 rounded-b-[50px] z-0"
+                                style={{ background: 'linear-gradient(to bottom right, #5b21b6, #7c3aed)' }}
+                            ></div>
                             <div className="mx-auto w-16 h-3 bg-white/20 rounded-full mt-4 relative z-10 backdrop-blur-sm"></div>
                             <div className="flex justify-between items-start mb-6 px-6 pt-4 relative z-10">
-                                <h2 className="text-white font-bold tracking-widest text-lg opacity-90">EnCalm <span className="text-brand-300">HRX</span></h2>
+                                <h2 className="text-white font-bold tracking-widest text-lg opacity-90">OmniHR</h2>
                                 <div className="w-10 h-8 bg-gradient-to-br from-yellow-200 to-yellow-500 rounded-md opacity-80 shadow-inner border border-yellow-300/50"></div>
                             </div>
                             <div className="relative z-10 mx-auto mt-6">
-                                <div className="w-32 h-32 rounded-full border-4 border-white shadow-lg overflow-hidden bg-brand-600 flex items-center justify-center text-white font-bold text-4xl">
-                                    {employee.name.split(' ').map((n:any) => n[0]).join('')}
+                                <div
+                                    className="w-32 h-32 rounded-full border-4 border-white shadow-lg overflow-hidden flex items-center justify-center text-white font-bold text-4xl"
+                                    style={{ background: '#7c3aed' }}
+                                >
+                                    {displayedProfilePictureUrl ? (
+                                        <img
+                                            src={displayedProfilePictureUrl}
+                                            alt="Profile"
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                                (e.target as HTMLElement).style.display = 'none';
+                                            }}
+                                        />
+                                    ) : (
+                                        employee.name.split(' ').map((n: any) => n[0]).join('')
+                                    )}
                                 </div>
                             </div>
                             <div className="text-center mt-4 flex-1 flex flex-col items-center">
                                 <h1 className="text-2xl font-bold text-gray-800 px-4">{employee.name}</h1>
                                 <p className="text-brand-600 font-medium text-sm mt-1">{profile.title || 'Employee'}</p>
                                 <div className="w-12 h-1 bg-brand-200 rounded-full my-4"></div>
-                                <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-left text-sm w-full px-10">
-                                    <div>
-                                        <p className="text-xs text-gray-400 uppercase font-bold">Emp ID</p>
-                                        <p className="font-semibold text-gray-700">{employee.id}</p>
+                                <div className="grid grid-cols-[1.3fr_0.7fr] gap-x-5 gap-y-2 text-left w-full px-8">    {/* First row */}
+                                    <div className="min-w-0">
+                                        <p className="text-[9px] text-gray-400 uppercase font-bold">
+                                            Employee ID
+                                        </p>
+                                        <p className="text-sm font-semibold text-gray-700">
+                                            {employee.id}
+                                        </p>
                                     </div>
-                                    <div>
-                                        <p className="text-xs text-gray-400 uppercase font-bold">Blood Group</p>
-                                        <p className="font-semibold text-gray-700">{profile.bloodGroup || 'N/A'}</p>
+
+                                    <div className="min-w-0">
+                                        <p className="text-[10px] text-gray-400 uppercase font-bold">
+                                            Blood Group
+                                        </p>
+                                        <p className="text-sm font-semibold text-gray-700">
+                                            {profile.bloodGroup || 'N/A'}
+                                        </p>
                                     </div>
-                                    <div className="col-span-2">
-                                        <p className="text-xs text-gray-400 uppercase font-bold">Department</p>
-                                        <p className="font-semibold text-gray-700">{profile.department || 'N/A'}</p>
+
+                                    {/* Second row */}
+                                    <div className="min-w-0">
+                                        <p className="text-[10px] text-gray-400 uppercase font-bold">
+                                            Department
+                                        </p>
+                                        <p className="text-sm font-semibold text-gray-700 truncate">
+                                            {profile.department || 'N/A'}
+                                        </p>
+                                    </div>
+
+                                    <div className="min-w-0">
+                                        <p className="text-[9px] text-gray-400 uppercase font-bold whitespace-nowrap">
+                                            Mobile Number
+                                        </p>
+                                        <p className="text-sm font-semibold text-gray-700 whitespace-nowrap">
+                                            {profile.phone || 'N/A'}
+                                        </p>
                                     </div>
                                 </div>
+
                             </div>
-                            <div className="bg-gray-50 p-4 border-t border-gray-100 flex justify-between items-center mt-auto">
-                                <div className="w-16 h-16 bg-white p-1 rounded-lg border border-gray-200 flex items-center justify-center text-[8px] text-gray-400 uppercase">QR Code</div>
-                                <div className="text-right italic text-gray-400 text-xs">Authorized Sig.</div>
+                            <div className="bg-white p-4 flex justify-between items-center mt-auto">
+                                <div className="w-16 h-16 bg-white p-1 rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden">
+                                    <img
+                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`Employee ID: ${employee.id}\nName: ${employee.name}\nRole: ${profile.title || 'Employee'}\nDept: ${profile.department || 'N/A'}`)}`}
+                                        alt="QR Code"
+                                        className="w-full h-full object-contain"
+                                    />
+                                </div>
+                                <div className="text-right flex flex-col items-end justify-end">
+                                    <div className=" w-30 h-full object-contain object-bottom "> {adminSignatureUrl && (
+                                        <img
+                                            src={adminSignatureUrl}
+                                            alt="Admin Signature"
+
+                                        />
+                                    )}
+                                    </div>
+                                    <div className=" text-[13px] italic text-gray-300 text-s leading-none">
+                                        Authorized Sig.
+                                    </div>
+                                </div>
+
                             </div>
                         </div>
                         <div className="flex justify-center mt-6">
-                            <button className="flex items-center gap-2 px-6 py-2 bg-white text-gray-800 font-bold rounded-full shadow-lg hover:bg-gray-100 transition-colors">
+                            <button
+                                onClick={() => {
+                                    const printContent =
+                                        document.getElementById('id-card-container');
+
+                                    if (!printContent) {
+                                        toast.error('ID card not found');
+                                        return;
+                                    }
+
+                                    const oldPrintStyle =
+                                        document.getElementById('id-card-print-style');
+
+                                    if (oldPrintStyle) {
+                                        oldPrintStyle.remove();
+                                    }
+
+                                    const printStyle = document.createElement('style');
+                                    printStyle.id = 'id-card-print-style';
+
+                                    printStyle.innerHTML = `
+        @page {
+            margin: 0;
+        }
+
+        @media print {
+            html,
+            body {
+                margin: 0 !important;
+                padding: 0 !important;
+                background: white !important;
+            }
+
+            body * {
+                visibility: hidden !important;
+            }
+
+            #id-card-container,
+            #id-card-container * {
+                visibility: visible !important;
+            }
+
+            #id-card-container {
+                position: fixed !important;
+                left: 50% !important;
+                top: 100px !important;
+                width: 320px !important;
+                height: 540px !important;
+                margin: 0 !important;
+                transform: translateX(-50%) !important;
+                animation: none !important;
+                border-radius: 24px !important;
+                overflow: hidden !important;
+                box-shadow: none !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+    `;
+
+                                    document.head.appendChild(printStyle);
+
+                                    const removePrintStyle = () => {
+                                        printStyle.remove();
+
+                                        window.removeEventListener(
+                                            'afterprint',
+                                            removePrintStyle
+                                        );
+                                    };
+
+                                    window.addEventListener(
+                                        'afterprint',
+                                        removePrintStyle
+                                    );
+
+                                    window.print();
+                                }}
+                                className="flex items-center gap-2 px-6 py-2 bg-white text-gray-800 font-bold rounded-full shadow-lg hover:bg-gray-100 transition-colors"
+                            >
                                 <Printer size={18} /> Print
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
+            {/* Document Deletion Confirmation */}
+            {docToDelete !== null && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setDocToDelete(null)} />
+                    <div className="relative bg-white dark:bg-brand-950 w-full max-w-sm rounded-[2rem] shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden animate-scale-in">
+                        <div className="p-8 text-center">
+                            <div className="w-16 h-16 bg-red-50 dark:bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <X size={32} />
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Delete Document?</h3>
+                            <p className="text-gray-500 dark:text-gray-400 text-sm mb-8 leading-relaxed">
+                                Are you sure you want to delete <strong>{profile?.documents?.[docToDelete]?.name || 'this document'}</strong>? This action cannot be undone.
+                            </p>
+                            <div className="flex flex-col gap-3">
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            const docId = profile.documents[docToDelete]?.id;
+                                            const empId = id || employee.id;
+
+                                            if (docId) {
+                                                await api.delete(`/employee/${empId}/documents/${docId}`);
+                                            }
+
+                                            setEmployee((prev: any) => ({
+                                                ...prev,
+                                                employeeProfile: {
+                                                    ...(prev.employeeProfile || {}),
+                                                    documents: prev.employeeProfile.documents.filter((_: any, idx: number) => idx !== docToDelete)
+                                                }
+                                            }));
+                                            setDocToDelete(null);
+                                            toast.success('Document deleted from server');
+                                            fetchEmployee();
+                                        } catch (error) {
+                                            console.error('Delete error:', error);
+                                            toast.error('Failed to delete document from server');
+                                        }
+                                    }}
+                                    className="w-full py-3.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-red-600/20"
+                                >
+                                    Yes, Delete
+                                </button>
+                                <button
+                                    onClick={() => setDocToDelete(null)}
+                                    className="w-full py-3.5 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 font-bold rounded-2xl hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+            {/* Profile Picture Deletion Confirmation */}
+            {showProfilePictureDeleteModal &&
+                createPortal(
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+                        <div
+                            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
+                            onClick={() =>
+                                setShowProfilePictureDeleteModal(false)
+                            }
+                        />
+
+                        <div className="relative bg-white dark:bg-brand-950 w-full max-w-sm rounded-[2rem] shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden animate-scale-in">
+                            <div className="p-8 text-center">
+                                <div className="w-16 h-16 bg-red-50 dark:bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                                    <X size={32} />
+                                </div>
+
+                                <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">
+                                    Delete Profile Picture?
+                                </h3>
+
+                                <p className="text-gray-500 dark:text-gray-400 text-sm mb-8 leading-relaxed">
+                                    Are you sure you want to delete this profile
+                                    picture? This action cannot be undone.
+                                </p>
+
+                                <div className="flex flex-col gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={handleProfilePictureDelete}
+                                        className="w-full py-3.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-red-600/20"
+                                    >
+                                        Yes, Delete
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setShowProfilePictureDeleteModal(false)
+                                        }
+                                        className="w-full py-3.5 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 font-bold rounded-2xl hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>,
+                    document.body
+                )}
         </div>
     );
 }
