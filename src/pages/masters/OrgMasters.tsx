@@ -22,7 +22,7 @@ export default function OrgMasters() {
         try {
             const res = await api.get('/masters/company');
             if (res.data) setCompany(res.data);
-        } catch (error){ console.error(error); }
+        } catch (error) { console.error(error); }
     };
 
     const handleCompanyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -661,7 +661,7 @@ export default function OrgMasters() {
                                                         signature.startsWith('blob:') ||
                                                         signature.startsWith('data:')
                                                         ? signature
-                                                        : `http://localhost:3001${signature.startsWith('/') ? '' : '/'}${signature}`
+                                                        : `https://omnihr-backend-19fx.onrender.com${signature.startsWith('/') ? '' : '/'}${signature}`
                                                 }
                                                 alt="Signature Preview"
                                                 className="max-h-full max-w-full object-contain p-4"

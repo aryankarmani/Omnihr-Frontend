@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'http://localhost:3001/api',
+    baseURL: 'https://omnihr-backend-19fx.onrender.com/api',
 });
 let isRefreshing = false;
 
@@ -49,7 +49,7 @@ api.interceptors.response.use(
                 }
 
                 const res = await axios.post(
-                    'http://localhost:3001/api/auth/refresh-token',
+                    'https://omnihr-backend-19fx.onrender.com/api/auth/refresh-token',
                     { refreshToken }
                 );
 
