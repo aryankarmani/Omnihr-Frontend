@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'https://omnihr-backend-19fx.onrender.com/api',
+    baseURL: 'https://omnihr-frontend.vercel.app/api',
 });
 let isRefreshing = false;
 
@@ -49,7 +49,7 @@ api.interceptors.response.use(
                 }
 
                 const res = await axios.post(
-                    'https://omnihr-backend-19fx.onrender.com/api/auth/refresh-token',
+                    'https://omnihr-frontend.vercel.app/api/auth/refresh-token',
                     { refreshToken }
                 );
 

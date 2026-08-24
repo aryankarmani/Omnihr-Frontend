@@ -725,7 +725,7 @@ export default function EmployeeProfile() {
         const otherDocs = employee?.employeeProfile?.documents?.filter((d: any) => d.name !== docName) || [];
         try {
             for (const doc of otherDocs) {
-                const baseUrl = 'https://omnihr-backend-19fx.onrender.com';
+                const baseUrl = 'https://omnihr-frontend.vercel.app';
                 const fullUrl = doc.url.startsWith('http') ? doc.url : (doc.url.startsWith('/uploads/') ? `${baseUrl}${doc.url}` : `${baseUrl}/uploads/${doc.url}`);
                 const res = await api.head(fullUrl);
                 const existingSize = parseInt((res.headers as any)['content-length'] || '0', 10);
@@ -786,7 +786,7 @@ export default function EmployeeProfile() {
     const profile = employee.employeeProfile || {};
     const statutory = profile.statutory || {};
     const bank = profile.bank || {};
-    const API_BASE_URL = 'https://omnihr-backend-19fx.onrender.com';
+    const API_BASE_URL = 'https://omnihr-frontend.vercel.app';
 
     const buildProfilePictureUrl = (value?: string | null) => {
         if (!value || typeof value !== 'string') {
@@ -892,7 +892,7 @@ export default function EmployeeProfile() {
     const adminSignatureUrl = companySignature
         ? companySignature.startsWith('http')
             ? companySignature
-            : `https://omnihr-backend-19fx.onrender.com${companySignature}`
+            : `https://omnihr-frontend.vercel.app${companySignature}`
         : null;
     // Dynamic salary calculations for payslip preview using selected salary components
     const basic = Number(profile.salary?.basic || 0);
@@ -1434,7 +1434,7 @@ export default function EmployeeProfile() {
                                                         e.preventDefault();
                                                         e.stopPropagation();
                                                         if (savedDoc?.url) {
-                                                            const baseUrl = 'https://omnihr-backend-19fx.onrender.com';
+                                                            const baseUrl = 'https://omnihr-frontend.vercel.app';
                                                             const fullUrl = savedDoc.url.startsWith('http') ? savedDoc.url : (savedDoc.url.startsWith('/uploads/') ? `${baseUrl}${savedDoc.url}` : `${baseUrl}/uploads/${savedDoc.url}`);
                                                             window.open(fullUrl, '_blank');
                                                         }
@@ -1624,7 +1624,7 @@ export default function EmployeeProfile() {
                                                         e.preventDefault();
                                                         e.stopPropagation();
                                                         if (cf.documentUrl) {
-                                                            const baseUrl = 'https://omnihr-backend-19fx.onrender.com';
+                                                            const baseUrl = 'https://omnihr-frontend.vercel.app';
                                                             const fullUrl = cf.documentUrl.startsWith('http') ? cf.documentUrl : `/uploads/${cf.documentUrl}`;
                                                             window.open(fullUrl.startsWith('http') ? fullUrl : `${baseUrl}${fullUrl}`, '_blank');
                                                         }
@@ -2108,7 +2108,7 @@ export default function EmployeeProfile() {
                                                                             onClick={(e) => {
                                                                                 e.preventDefault();
                                                                                 if (cf.documentUrl) {
-                                                                                    const baseUrl = 'https://omnihr-backend-19fx.onrender.com';
+                                                                                    const baseUrl = 'https://omnihr-frontend.vercel.app';
                                                                                     const fullUrl = cf.documentUrl.startsWith('http') ? cf.documentUrl : `/uploads/${cf.documentUrl}`;
                                                                                     window.open(fullUrl.startsWith('http') ? fullUrl : `${baseUrl}${fullUrl}`, '_blank');
                                                                                 }
@@ -2190,7 +2190,7 @@ export default function EmployeeProfile() {
                                                                 onClick={(e) => {
                                                                     e.preventDefault();
                                                                     if (cf.documentUrl) {
-                                                                        const baseUrl = 'https://omnihr-backend-19fx.onrender.com';
+                                                                        const baseUrl = 'https://omnihr-frontend.vercel.app';
                                                                         const fullUrl = cf.documentUrl.startsWith('http') ? cf.documentUrl : `/uploads/${cf.documentUrl}`;
                                                                         window.open(fullUrl.startsWith('http') ? fullUrl : `${baseUrl}${fullUrl}`, '_blank');
                                                                     }
