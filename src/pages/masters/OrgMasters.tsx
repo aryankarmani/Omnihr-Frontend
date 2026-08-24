@@ -661,7 +661,7 @@ export default function OrgMasters() {
                                                         signature.startsWith('blob:') ||
                                                         signature.startsWith('data:')
                                                         ? signature
-                                                        : `https://omnihr-frontend.vercel.app${signature.startsWith('/') ? '' : '/'}${signature}`
+                                                        : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}${signature.startsWith('/') ? '' : '/'}${signature}`
                                                 }
                                                 alt="Signature Preview"
                                                 className="max-h-full max-w-full object-contain p-4"
