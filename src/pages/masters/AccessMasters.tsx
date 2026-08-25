@@ -4,6 +4,19 @@ import { Shield, Plus, Edit2, Check, Lock, Trash2, X, Loader2 } from 'lucide-rea
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
 
+const moduleLabels: Record<string, string> = {
+    DASHBOARD: 'Dashboard',
+    ATTENDANCE: 'My Attendance',
+    EMPLOYEE: 'Employee List',
+    TEAM: 'Team',
+    LEAVE: 'Leave',
+    REPORTS: 'Reports',
+    MASTERS: 'Masters',
+    TASK: 'Task',
+    MY_PROFILE: 'My Profile',
+    PAYROLL: 'Payroll'
+};
+
 export default function AccessMasters() {
     const [roles, setRoles] = useState<any[]>([]);
     const [permissions, setPermissions] = useState<any[]>([]);
@@ -46,8 +59,8 @@ export default function AccessMasters() {
     const handleSave = async () => {
         if (!roleName) return toast.error("Role Name is required");
 
-        const payload = { 
-            name: roleName, 
+        const payload = {
+            name: roleName,
             permissionIds: selectedPermissions,
             accessibleModules: selectedModules.join(',')
         };
@@ -146,6 +159,21 @@ export default function AccessMasters() {
                                 </div>
                             )}
                         </div>
+
+                        <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                            <h4 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Module Access</h4>
+                            <div className="flex flex-wrap gap-1.5">
+                                {role.accessibleModules ? (
+                                    role.accessibleModules.split(',').filter(Boolean).map((module: string) => (
+                                        <span key={module} className="text-[10px] bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300 px-2 py-0.5 rounded-lg font-bold">
+                                            {moduleLabels[module] || module}
+                                        </span>
+                                    ))
+                                ) : (
+                                    <span className="text-[10px] text-gray-400 italic">No modules enabled</span>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 ))}
             </div>
@@ -153,8 +181,8 @@ export default function AccessMasters() {
             {/* Role Modal */}
             {/* changes made */}
             {showModal && createPortal(
-            <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-xl">
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col animate-fade-in-up">
+                <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-xl">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col animate-fade-in-up">
                         <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
                             <h3 className="text-xl font-bold dark:text-white">{editingRole ? 'Edit Role' : 'Create Role'}</h3>
                             <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
@@ -175,7 +203,7 @@ export default function AccessMasters() {
                             <div className="mb-8">
                                 <label className="block text-sm font-bold mb-3 dark:text-gray-300 uppercase tracking-tight">Module Access</label>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                    {['DASHBOARD', 'ATTENDANCE', 'EMPLOYEE', 'TEAM', 'LEAVE', 'REPORTS', 'MASTERS', 'TASK'].map(module => (
+                                    {['DASHBOARD', 'ATTENDANCE', 'EMPLOYEE', 'TEAM', 'LEAVE', 'REPORTS', 'MASTERS', 'TASK', 'MY_PROFILE', 'EMPLOYEE_ATTENDANCE', 'PAYROLL'].map(module => (
                                         <label key={module} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${selectedModules.includes(module)
                                             ? 'bg-brand-50 border-brand-300 dark:bg-brand-900/40 dark:border-brand-500/50'
                                             : 'bg-white border-gray-100 dark:bg-gray-800 dark:border-gray-700 hover:border-gray-300 shadow-sm'
@@ -192,7 +220,7 @@ export default function AccessMasters() {
                                                 }}
                                                 className="w-4 h-4 rounded text-brand-600"
                                             />
-                                            <span className="text-xs font-bold capitalize">{module.toLowerCase()}</span>
+                                            <span className="text-xs font-bold">{moduleLabels[module] || module}</span>
                                         </label>
                                     ))}
                                 </div>
@@ -252,7 +280,7 @@ export default function AccessMasters() {
                             </button>
                         </div>
                     </div>
-                </div>,document.body
+                </div>, document.body
             )}
 
             {/* Delete Confirmation Modal (MATCHING THEME) */}
@@ -264,7 +292,7 @@ export default function AccessMasters() {
                         </div>
                         <h3 className="text-xl font-bold text-white mb-2">Delete Role?</h3>
                         <p className="text-[#8a8b94] mb-8 text-sm leading-relaxed px-2">
-                            Are you sure you want to delete <span className="font-bold text-gray-200">{itemToDelete.name}</span>? <br/>
+                            Are you sure you want to delete <span className="font-bold text-gray-200">{itemToDelete.name}</span>? <br />
                             This action cannot be undone and will permanently remove all associated permissions.
                         </p>
                         <div className="flex gap-4 px-2">

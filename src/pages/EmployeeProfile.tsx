@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useRBAC } from '../hooks/useRBAC';
-import { ArrowLeft, User, FileText, CreditCard, Download, Briefcase, Save, X, Edit, Printer, Loader2, Eye, Trash2, Upload, TrendingUp, TrendingDown, Coins } from 'lucide-react';
+import { ArrowLeft, User, FileText, CreditCard, Download, Briefcase, Save, X, Edit, Printer, Loader2, Eye, Trash2, Upload, TrendingUp, TrendingDown, Coins, ChevronDown } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import toast from 'react-hot-toast';
@@ -55,6 +55,7 @@ export default function EmployeeProfile() {
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [newProfilePicture, setNewProfilePicture] = useState<File | null>(null);
     const [newProfilePicturePreview, setNewProfilePicturePreview] = useState<string | null>(null);
+    const [countryCode, setCountryCode] = useState('+91');
 
     const fetchEmployee = async () => {
         try {
@@ -257,6 +258,16 @@ export default function EmployeeProfile() {
         fetchSalaryComponents();
         fetchCustomFields();
     }, [id]);
+
+    useEffect(() => {
+        if (employee?.employeeProfile?.phone) {
+            const parts = employee.employeeProfile.phone.split(' ');
+            if (parts.length === 2) {
+                setCountryCode(parts[0]);
+            }
+        }
+    }, [employee]);
+
     const getSalaryStorageKey = () => {
         return `employee_salary_components_${employee?.id || id}`;
     };
@@ -302,8 +313,11 @@ export default function EmployeeProfile() {
             newErrors.email = "Please enter valid email";
         }
 
-        if (!pd.phone) newErrors.phone = "Phone number is required";
-        else if (!/^\d{10}$/.test(pd.phone)) {
+        const rawPhone = pd.phone || '';
+        const phoneNum = rawPhone.includes(' ') ? rawPhone.split(' ')[1] : rawPhone;
+
+        if (!phoneNum) newErrors.phone = "Phone number is required";
+        else if (!/^\d{10}$/.test(phoneNum)) {
             newErrors.phone = "Enter valid 10 digit phone number";
         }
         if (!pd.dob) {
@@ -313,8 +327,6 @@ export default function EmployeeProfile() {
         }
         if (!pd.joiningDate) {
             newErrors.joiningDate = "Date of joining is required";
-        } else if (new Date(pd.joiningDate) > new Date()) {
-            newErrors.joiningDate = "Future date is not allowed";
         }
 
         if (!pd.bloodGroup) {
@@ -456,8 +468,12 @@ export default function EmployeeProfile() {
                 getLocalSalaryComponents();
 
             saveSalaryComponentsLocally(currentSelectedComponents);
+            const rawPhone = employee.employeeProfile?.phone || '';
+            const phoneNum = rawPhone.includes(' ') ? rawPhone.split(' ')[1] : rawPhone;
+            const combinedPhone = `${countryCode} ${phoneNum}`.trim();
+
             const profileData = {
-                phone: employee.employeeProfile?.phone,
+                phone: combinedPhone,
                 dob: employee.employeeProfile?.dob,
                 joiningDate: employee.employeeProfile?.joiningDate,
                 bloodGroup: employee.employeeProfile?.bloodGroup,
@@ -1700,8 +1716,48 @@ export default function EmployeeProfile() {
                                     <label className="text-xs font-bold text-gray-400 uppercase">Phone</label>
                                     {isEditing ? (
                                         <>
-                                            <input type="text" value={profile.phone || ''} onChange={(e) => handleInputChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
-                                                className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.phone ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg outline-none`} />
+                                            <div className="flex gap-2">
+                                                <div className="relative shrink-0 animate-fade-in">
+                                                    <select
+                                                        value={countryCode}
+                                                        onChange={(e) => setCountryCode(e.target.value)}
+                                                        className="appearance-none w-24 pl-3 pr-8 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg outline-none text-gray-700 dark:text-white text-sm font-medium focus:ring-2 focus:ring-brand-500 transition-all cursor-pointer"
+                                                    >
+                                                        <option value="+91" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇮🇳 +91</option>
+                                                        <option value="+1" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇺🇸 +1</option>
+                                                        <option value="+44" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇬🇧 +44</option>
+                                                        <option value="+971" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇦🇪 +971</option>
+                                                        <option value="+65" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇸🇬 +65</option>
+                                                        <option value="+61" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇦🇺 +61</option>
+                                                        <option value="+966" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇸🇦 +966</option>
+                                                        <option value="+965" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇰🇼 +965</option>
+                                                        <option value="+974" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇶🇦 +974</option>
+                                                        <option value="+973" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇧🇭 +973</option>
+                                                        <option value="+968" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇴🇲 +968</option>
+                                                        <option value="+81" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇯🇵 +81</option>
+                                                        <option value="+49" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇩🇪 +49</option>
+                                                        <option value="+33" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇫🇷 +33</option>
+                                                        <option value="+86" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇨🇳 +86</option>
+                                                        <option value="+7" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇷🇺 +7</option>
+                                                        <option value="+92" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇵🇰 +92</option>
+                                                        <option value="+880" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇧🇩 +880</option>
+                                                        <option value="+94" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇱🇰 +94</option>
+                                                        <option value="+977" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇳🇵 +977</option>
+                                                        <option value="+27" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇿🇦 +27</option>
+                                                        <option value="+62" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇮🇩 +62</option>
+                                                        <option value="+60" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇲🇾 +60</option>
+                                                    </select>
+                                                    <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 dark:text-gray-500">
+                                                        <ChevronDown size={14} />
+                                                    </div>
+                                                </div>
+                                                <input
+                                                    type="text"
+                                                    value={((employee.employeeProfile?.phone || '').includes(' ') ? (employee.employeeProfile?.phone || '').split(' ')[1] : (employee.employeeProfile?.phone || ''))}
+                                                    onChange={(e) => handleInputChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                                                    className={`flex-1 px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.phone ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg outline-none`}
+                                                />
+                                            </div>
                                             {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
                                         </>
                                     ) : <p className="font-semibold text-gray-800 dark:text-gray-200">{profile.phone || 'N/A'}</p>}
@@ -1750,7 +1806,6 @@ export default function EmployeeProfile() {
                                             <input
                                                 type="date"
                                                 value={profile.joiningDate ? profile.joiningDate.split('T')[0] : ''}
-                                                max={new Date().toISOString().split('T')[0]}
                                                 onChange={(e) => handleInputChange('joiningDate', e.target.value)}
                                                 className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.joiningDate ? 'border-red-500' : 'border-gray-200 dark:border-white/10'
                                                     } rounded-lg outline-none`}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { BadgeIndianRupee, Scale, School, Save, Plus, Trash2, X, Loader2 } from 'lucide-react';
+import { BadgeIndianRupee, Scale, School, Save, Plus, Trash2, X, Loader2, Edit } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
 const INDIA_STATES = [
@@ -51,6 +51,7 @@ export default function StatutoryMasters() {
         name: '', type: 'EARNING', taxability: 'TAXABLE', isWageCodeComponent: false, isPartOfWages: false,
         isFBP: false, calculationType: 'FLAT', value: 0, prorationMethod: 'CALENDAR_DAYS'
     });
+    const [editingComponentId, setEditingComponentId] = useState<any>(null);
 
     useEffect(() => {
         if (activeTab === 'components') fetchComponents();
@@ -78,14 +79,20 @@ export default function StatutoryMasters() {
     const saveComponent = async () => {
         try {
             setLoading(true);
-            await api.post('/masters/salary-components', newComp);
+            if (editingComponentId) {
+                await api.put(`/masters/salary-components/${editingComponentId}`, newComp);
+                toast.success("Component updated!");
+            } else {
+                await api.post('/masters/salary-components', newComp);
+                toast.success("Component saved!");
+            }
             fetchComponents();
             setShowCompModal(false);
-            toast.success("Component saved!");
             setNewComp({
                 name: '', type: 'EARNING', taxability: 'TAXABLE', isWageCodeComponent: false, isPartOfWages: false,
                 isFBP: false, calculationType: 'FLAT', value: 0, prorationMethod: 'CALENDAR_DAYS'
             });
+            setEditingComponentId(null);
         } catch (e) { toast.error("Failed to save"); }
         finally { setLoading(false); }
     };
@@ -167,7 +174,17 @@ export default function StatutoryMasters() {
                     <div className="space-y-6 animate-fade-in">
                         <div className="flex justify-between items-center">
                             <h3 className="text-lg font-semibold dark:text-white">Earnings & Deductions</h3>
-                            <button onClick={() => setShowCompModal(true)} className="flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm">
+                            <button
+                                onClick={() => {
+                                    setEditingComponentId(null);
+                                    setNewComp({
+                                        name: '', type: 'EARNING', taxability: 'TAXABLE', isWageCodeComponent: false, isPartOfWages: false,
+                                        isFBP: false, calculationType: 'FLAT', value: 0, prorationMethod: 'CALENDAR_DAYS'
+                                    });
+                                    setShowCompModal(true);
+                                }}
+                                className="flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm cursor-pointer"
+                            >
                                 <Plus size={16} /> Add Component
                             </button>
                         </div>
@@ -177,11 +194,33 @@ export default function StatutoryMasters() {
                                 <div key={comp.id} className="group p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:shadow-md transition-all relative">
                                     <div className="flex justify-between items-start mb-2 gap-2">
                                         <h4 className="font-bold text-gray-900 dark:text-white flex-1">{comp.name}</h4>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-1 shrink-0">
                                             <span className={`text-[10px] px-2 py-1 rounded-full font-bold ${comp.type === 'EARNING' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>{comp.type}</span>
                                             <button
+                                                onClick={() => {
+                                                    setEditingComponentId(comp.id);
+                                                    setNewComp({
+                                                        name: comp.name,
+                                                        type: comp.type,
+                                                        taxability: comp.taxability,
+                                                        isWageCodeComponent: comp.isWageCodeComponent || false,
+                                                        isPartOfWages: comp.isPartOfWages || false,
+                                                        isFBP: comp.isFBP || false,
+                                                        calculationType: comp.calculationType,
+                                                        value: comp.value || 0,
+                                                        prorationMethod: comp.prorationMethod || 'CALENDAR_DAYS'
+                                                    });
+                                                    setShowCompModal(true);
+                                                }}
+                                                className="p-1.5 text-gray-400 hover:text-brand-500 dark:hover:text-brand-400 transition-colors cursor-pointer"
+                                                title="Edit component"
+                                            >
+                                                <Edit size={14} />
+                                            </button>
+                                            <button
                                                 onClick={() => setItemToDelete({ id: comp.id, name: comp.name, type: 'salary-component' })}
-                                                className="p-1.5 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                className="p-1.5 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
+                                                title="Delete component"
                                             >
                                                 <Trash2 size={14} />
                                             </button>
@@ -299,9 +338,9 @@ export default function StatutoryMasters() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
                     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md p-6 animate-fade-in-up">
                         <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-lg font-bold dark:text-white">Add Salary Component</h3>
-                            <button onClick={() => setShowCompModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
-                        </div>
+                                <h3 className="text-lg font-bold dark:text-white">{editingComponentId ? 'Edit Salary Component' : 'Add Salary Component'}</h3>
+                                <button onClick={() => { setShowCompModal(false); setEditingComponentId(null); }} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+                            </div>
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium mb-1 dark:text-gray-300">Component Name</label>
@@ -348,7 +387,7 @@ export default function StatutoryMasters() {
                                 <label className="flex items-center gap-3 text-sm dark:text-gray-300 cursor-pointer"><input type="checkbox" className="w-4 h-4 rounded text-brand-600" checked={newComp.isFBP} onChange={e => setNewComp({ ...newComp, isFBP: e.target.checked })} /> FBP Eligible</label>
                             </div>
 
-                            <button onClick={saveComponent} className="w-full py-3 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 transition-colors shadow-lg shadow-brand-500/20">Save Component</button>
+                            <button onClick={saveComponent} className="w-full py-3 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 transition-colors shadow-lg shadow-brand-500/20">{editingComponentId ? 'Update Component' : 'Save Component'}</button>
                         </div>
                     </div>
                 </div>

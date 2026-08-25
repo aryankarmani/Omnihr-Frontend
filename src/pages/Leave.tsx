@@ -69,6 +69,8 @@ export default function Leave() {
     const [leaveType, setLeaveType] = useState('CL');
     const [fromDate, setFromDate] = useState('');
     const [toDate, setToDate] = useState('');
+    const [fromTime, setFromTime] = useState('');
+    const [toTime, setToTime] = useState('');
     const [reason, setReason] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [selectedLeaveForReason, setSelectedLeaveForReason] = useState<any | null>(null);
@@ -137,6 +139,16 @@ export default function Leave() {
     const handleApplyLeave = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        if (!fromDate || !toDate) {
+            toast.error('Please select a valid date');
+            return;
+        }
+
+        if (['HD', 'SHL'].includes(leaveType) && (!fromTime || !toTime)) {
+            toast.error('Please select both start and end time');
+            return;
+        }
+
         // Weekend validation (timezone-safe local parsing)
         const [startYear, startMonth, startDay] = fromDate.split('-').map(Number);
         const start = new Date(startYear, startMonth - 1, startDay);
@@ -157,14 +169,24 @@ export default function Leave() {
 
         setSubmitting(true);
         try {
-            await api.post('/leave/apply', {
+            const payload: any = {
                 leaveTypeCode: leaveType,
                 startDate: fromDate,
                 endDate: toDate,
                 reason
-            });
+            };
+            if (['HD', 'SHL'].includes(leaveType)) {
+                payload.fromTime = fromTime;
+                payload.toTime = toTime;
+            }
+            await api.post('/leave/apply', payload);
             toast.success('Leave application submitted!');
             setShowApplyModal(false);
+            setFromDate('');
+            setToDate('');
+            setFromTime('');
+            setToTime('');
+            setReason('');
             fetchData();
         } catch (error: any) {
             console.error('Apply leave error:', error);
@@ -616,7 +638,13 @@ export default function Leave() {
                                                 </span>
                                             </td>
                                             <td className="py-5 px-4 text-sm text-gray-600 dark:text-gray-400">
-                                                {new Date(l.startDate).toLocaleDateString()} - {new Date(l.endDate).toLocaleDateString()}
+                                                {new Date(l.startDate).toLocaleDateString()}
+                                                {new Date(l.startDate).toLocaleDateString() !== new Date(l.endDate).toLocaleDateString() && ` - ${new Date(l.endDate).toLocaleDateString()}`}
+                                                {l.fromTime && l.toTime && (
+                                                    <span className="block text-xs font-semibold text-brand-600 dark:text-brand-400 mt-1">
+                                                        Time: {l.fromTime} - {l.toTime}
+                                                    </span>
+                                                )}
                                             </td>
                                             <td
                                                 onClick={() => setSelectedLeaveForReason(l)}
@@ -744,7 +772,14 @@ export default function Leave() {
                                     <label className="text-xs font-bold text-gray-500 uppercase">Leave Type</label>
                                     <select
                                         value={leaveType}
-                                        onChange={(e) => setLeaveType(e.target.value)}
+                                        onChange={(e) => {
+                                            const newType = e.target.value;
+                                            setLeaveType(newType);
+                                            setFromDate('');
+                                            setToDate('');
+                                            setFromTime('');
+                                            setToTime('');
+                                        }}
                                         className="w-full px-4 py-2 bg-gray-50 dark:bg-brand-800 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-800 dark:text-white transition-all cursor-pointer"
                                         required
                                     >
@@ -769,30 +804,70 @@ export default function Leave() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-gray-500 uppercase">From Date</label>
-                                    <input
-                                        type="date"
-                                        min={new Date().toISOString().split('T')[0]}
-                                        value={fromDate}
-                                        onChange={(e) => setFromDate(e.target.value)}
-                                        className="w-full px-4 py-2 bg-gray-50 dark:bg-brand-800 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-700 dark:text-gray-300 transition-all"
-                                        required
-                                    />
+                            {/* Date Fields */}
+                            {['HD', 'SHL'].includes(leaveType) ? (
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-gray-500 uppercase">Date</label>
+                                        <input
+                                            type="date"
+                                            min={new Date().toISOString().split('T')[0]}
+                                            value={fromDate}
+                                            onChange={(e) => {
+                                                setFromDate(e.target.value);
+                                                setToDate(e.target.value);
+                                            }}
+                                            className="w-full px-4 py-2 bg-gray-50 dark:bg-brand-800 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-750 dark:text-gray-200 transition-all"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-gray-500 uppercase">From Time</label>
+                                        <input
+                                            type="time"
+                                            value={fromTime}
+                                            onChange={(e) => setFromTime(e.target.value)}
+                                            className="w-full px-4 py-2 bg-gray-50 dark:bg-brand-800 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-750 dark:text-gray-200 transition-all"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-gray-500 uppercase">To Time</label>
+                                        <input
+                                            type="time"
+                                            value={toTime}
+                                            onChange={(e) => setToTime(e.target.value)}
+                                            className="w-full px-4 py-2 bg-gray-50 dark:bg-brand-800 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-750 dark:text-gray-200 transition-all"
+                                            required
+                                        />
+                                    </div>
                                 </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-gray-500 uppercase">To Date</label>
-                                    <input
-                                        type="date"
-                                        min={fromDate || new Date().toISOString().split('T')[0]}
-                                        value={toDate}
-                                        onChange={(e) => setToDate(e.target.value)}
-                                        className="w-full px-4 py-2 bg-gray-50 dark:bg-brand-800 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-700 dark:text-gray-300 transition-all"
-                                        required
-                                    />
+                            ) : (
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-gray-500 uppercase">From Date</label>
+                                        <input
+                                            type="date"
+                                            min={new Date().toISOString().split('T')[0]}
+                                            value={fromDate}
+                                            onChange={(e) => setFromDate(e.target.value)}
+                                            className="w-full px-4 py-2 bg-gray-50 dark:bg-brand-800 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-700 dark:text-gray-300 transition-all"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-gray-500 uppercase">To Date</label>
+                                        <input
+                                            type="date"
+                                            min={fromDate || new Date().toISOString().split('T')[0]}
+                                            value={toDate}
+                                            onChange={(e) => setToDate(e.target.value)}
+                                            className="w-full px-4 py-2 bg-gray-50 dark:bg-brand-800 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-700 dark:text-gray-300 transition-all"
+                                            required
+                                        />
+                                    </div>
                                 </div>
-                            </div>
+                            )}
 
                             <div className="pt-4 flex gap-3">
                                 <button
@@ -978,7 +1053,13 @@ export default function Leave() {
                             <div>
                                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Leave Duration</label>
                                 <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl font-bold text-sm text-gray-800 dark:text-white">
-                                    {new Date(selectedLeaveForReason.startDate).toLocaleDateString()} - {new Date(selectedLeaveForReason.endDate).toLocaleDateString()}
+                                    {new Date(selectedLeaveForReason.startDate).toLocaleDateString()}
+                                    {new Date(selectedLeaveForReason.startDate).toLocaleDateString() !== new Date(selectedLeaveForReason.endDate).toLocaleDateString() && ` - ${new Date(selectedLeaveForReason.endDate).toLocaleDateString()}`}
+                                    {selectedLeaveForReason.fromTime && selectedLeaveForReason.toTime && (
+                                        <span className="block text-xs font-bold text-brand-600 dark:text-brand-400 mt-1">
+                                            Time: {selectedLeaveForReason.fromTime} - {selectedLeaveForReason.toTime}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
 

@@ -122,6 +122,7 @@ export default function AddEmployee() {
     const [profilePicture, setProfilePicture] = useState<File | null>(null);
     const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(null);
     const [confirmDeleteDoc, setConfirmDeleteDoc] = useState<string | null>(null);
+    const [countryCode, setCountryCode] = useState('+91');
 
     const [errors, setErrors] = useState<any>({});
     const steps = [
@@ -311,15 +312,6 @@ export default function AddEmployee() {
 
             if (!formData.joiningDate) {
                 newErrors.joiningDate = 'Date of joining is required';
-            } else {
-                const selectedJoiningDate = new Date(formData.joiningDate);
-                const today = new Date();
-
-                today.setHours(0, 0, 0, 0);
-
-                if (selectedJoiningDate > today) {
-                    newErrors.joiningDate = 'Future date is not allowed';
-                }
             }
 
             if (!formData.address.trim()) {
@@ -330,7 +322,7 @@ export default function AddEmployee() {
             customFieldMasters.filter(cf => cf.category === 'PERSONAL_DETAILS').forEach(cf => {
                 const value = customFieldValues[cf.id];
                 const file = customFieldFiles[cf.id];
-                
+
                 if (cf.type === 'FILE') {
                     if (!file) {
                         newErrors[`customField-${cf.id}`] = 'Please upload a file';
@@ -366,105 +358,12 @@ export default function AddEmployee() {
 
 
         if (currentStep === 2) {
-            const newErrors: any = {};
-
-            const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
-
-            if (!formData.pan) {
-                newErrors.pan = 'PAN is required';
-            }
-            else if (!panRegex.test(formData.pan.trim().toUpperCase())) {
-                newErrors.pan = 'Invalid PAN format';
-            }
-
-            if (!formData.aadhaar) {
-                newErrors.aadhaar = 'Aadhaar is required';
-            }
-            else if (!/^\d{12}$/.test(formData.aadhaar)) {
-                newErrors.aadhaar = 'Aadhaar must be 12 digits';
-            }
-
-            const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
-            if (!formData.ifsc) {
-                newErrors.ifsc = 'IFSC is required';
-
-            }
-            if (!ifscRegex.test(formData.ifsc.trim().toUpperCase())) {
-                newErrors.ifsc = 'Invalid IFSC format';
-
-            }
-
-            if (!formData.accountNumber) {
-                newErrors.accountNumber = 'Account Number is required';
-            } else if (!/^\d{9,18}$/.test(formData.accountNumber)) {
-                newErrors.accountNumber = 'Account Number must be 9–18 digits';
-            }
-
-
-
-            if (!formData.uan) {
-                newErrors.uan = 'UAN is required';
-            }
-            else if (!/^\d{12}$/.test(formData.uan)) {
-                newErrors.uan = 'UAN must be 12 digits';
-            }
-
-            if (!formData.esic) {
-                newErrors.esic = 'ESIC is required';
-            }
-            else if (!/^\d{10}$/.test(formData.esic)) {
-                newErrors.esic = 'ESIC must be 10 digits';
-            }
-            const bankName = formData.bankName.trim();
-
-            if (!bankName) {
-                newErrors.bankName = 'Bank Name is required';
-            } else if (!/^[A-Za-z\s]{2,50}$/.test(bankName)) {
-                newErrors.bankName = 'Bank Name must contain only letters';
-            }
-            setErrors(newErrors);
-
-            if (Object.keys(newErrors).length > 0) {
-                return;
-            }
+            // Statutory validation bypassed/removed
         }
         // STEP 3 VALIDATION
         // STEP 4 VALIDATION
         if (currentStep === 4) {
-            const newErrors: any = {};
-
-            if (!documents.aadhaar) {
-                newErrors.aadhaar = 'Aadhaar Card is required';
-            }
-
-            if (!documents.pan) {
-                newErrors.pan = 'PAN Card is required';
-            }
-
-            if (!documents.degree) {
-                newErrors.degree = 'Highest Qualification Degree is required';
-            }
-
-            if (!profilePicture) {
-                newErrors.profilePicture = 'Profile picture is required';
-            }
-
-            setErrors((prev: any) => ({
-                ...prev,
-                ...newErrors,
-            }));
-
-            if (Object.keys(newErrors).length > 0) {
-                toast.error('Please upload all required documents');
-                return;
-            }
-            const missingCustomDocs = customFieldMasters
-                .filter(cf => cf.category === 'DOCUMENT_VAULT')
-                .some(cf => !customFieldFiles[cf.id]);
-            if (missingCustomDocs) {
-                toast.error('Please upload all required custom documents');
-                return;
-            }
+            // Documentation validation bypassed/removed
         }
 
         if (currentStep < 4) {
@@ -475,6 +374,7 @@ export default function AddEmployee() {
                 // Keep original submissionData exactly untouched
                 const submissionData = {
                     ...formData,
+                    phone: `${countryCode} ${formData.phone}`.trim(),
                     name: `${formData.firstName} ${formData.lastName}`.trim(),
                     customFieldValues
                 };
@@ -628,27 +528,63 @@ export default function AddEmployee() {
                             </div>
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Phone Number *</label>
-                                <input
-                                    autoComplete="off"
-                                    name="phone"
-                                    value={formData.phone}
-                                    onChange={(e) => {
-                                        const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                <div className="flex gap-2">
+                                    <div className="relative shrink-0">
+                                        <select
+                                            value={countryCode}
+                                            onChange={(e) => setCountryCode(e.target.value)}
+                                            className="appearance-none w-24 pl-3 pr-8 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl outline-none text-gray-700 dark:text-white text-sm font-medium focus:ring-4 focus:ring-brand-500/20 transition-all cursor-pointer"
+                                        >
+                                            <option value="+91" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇮🇳 +91</option>
+                                            <option value="+1" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇺🇸 +1</option>
+                                            <option value="+44" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇬🇧 +44</option>
+                                            <option value="+971" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇦🇪 +971</option>
+                                            <option value="+65" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇸🇬 +65</option>
+                                            <option value="+61" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇦🇺 +61</option>
+                                            <option value="+966" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇸🇦 +966</option>
+                                            <option value="+965" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇰🇼 +965</option>
+                                            <option value="+974" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇶🇦 +974</option>
+                                            <option value="+973" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇧🇭 +973</option>
+                                            <option value="+968" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇴🇲 +968</option>
+                                            <option value="+81" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇯🇵 +81</option>
+                                            <option value="+49" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇩🇪 +49</option>
+                                            <option value="+33" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇫🇷 +33</option>
+                                            <option value="+86" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇨🇳 +86</option>
+                                            <option value="+7" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇷🇺 +7</option>
+                                            <option value="+92" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇵🇰 +92</option>
+                                            <option value="+880" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇧🇩 +880</option>
+                                            <option value="+94" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇱🇰 +94</option>
+                                            <option value="+977" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇳🇵 +977</option>
+                                            <option value="+27" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇿🇦 +27</option>
+                                            <option value="+62" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇮🇩 +62</option>
+                                            <option value="+60" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇲🇾 +60</option>
+                                        </select>
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 dark:text-gray-500">
+                                            <ChevronDown size={14} />
+                                        </div>
+                                    </div>
+                                    <input
+                                        autoComplete="off"
+                                        name="phone"
+                                        value={formData.phone}
+                                        onChange={(e) => {
+                                            const value = e.target.value.replace(/\D/g, '').slice(0, 10);
 
-                                        setFormData(prev => ({
-                                            ...prev,
-                                            phone: value
-                                        }));
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                phone: value
+                                            }));
 
-                                        setErrors((prev: any) => ({
-                                            ...prev,
-                                            phone: ''
-                                        }));
-                                    }}
-                                    type="tel"
-                                    className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
-                                    placeholder="+91 "
-                                />
+                                            setErrors((prev: any) => ({
+                                                ...prev,
+                                                phone: ''
+                                            }));
+                                        }}
+                                        type="tel"
+                                        className="flex-1 px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
+                                        placeholder="Phone number"
+                                    />
+                                </div>
                                 {errors.phone && <p className="text-red-500 text-xs ml-1">{errors.phone}</p>}
                             </div>
 
@@ -682,7 +618,6 @@ export default function AddEmployee() {
                                     type="date"
                                     name="joiningDate"
                                     value={formData.joiningDate}
-                                    max={new Date().toISOString().split('T')[0]}
                                     onChange={handleInputChange}
                                     className={`w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border ${errors.joiningDate ? 'border-red-500' : 'border-gray-200 dark:border-white/10'
                                         } rounded-2xl outline-none text-gray-800 dark:text-white`}
@@ -869,7 +804,7 @@ export default function AddEmployee() {
                             )}                            {customFieldMasters.filter(cf => cf.category === 'PERSONAL_DETAILS').map((cf) => {
                                 const fieldType = cf.type || 'TEXT';
                                 const hasError = !!errors[`customField-${cf.id}`];
-                                
+
                                 return (
                                     <div key={cf.id} className="space-y-2">
                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">{cf.name}</label>
@@ -902,7 +837,7 @@ export default function AddEmployee() {
                                                 )}
                                             </>
                                         ) : fieldType === 'FILE' ? (
-                                             <>
+                                            <>
                                                 <div className={`w-full flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-white/5 border ${hasError ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-2xl h-[46px]`}>
                                                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate max-w-[220px]">
                                                         {customFieldFiles[cf.id] ? customFieldFiles[cf.id]?.name : 'No file chosen'}
@@ -1541,21 +1476,35 @@ export default function AddEmployee() {
                     >
                         {currentStep === 1 ? 'Cancel' : 'Back'}
                     </button>
-                    <button
-                        onClick={handleNext}
-                        disabled={loading}
-                        className="flex items-center gap-2 px-8 py-3 bg-brand-600 text-white rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-700 transition-all font-bold disabled:opacity-50"
-                    >
-                        {loading ? (
-                            <>
-                                <Loader2 size={18} className="animate-spin" /> Processing...
-                            </>
-                        ) : (
-                            <>
-                                {currentStep === 4 ? 'Complete Onboarding' : 'Next Step'} <ChevronRight size={18} />
-                            </>
+                    <div className="flex items-center gap-3">
+                        {currentStep === 2 && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setErrors({});
+                                    setCurrentStep(3);
+                                }}
+                                className="px-6 py-3 rounded-xl border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 font-bold hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                            >
+                                Skip
+                            </button>
                         )}
-                    </button>
+                        <button
+                            onClick={handleNext}
+                            disabled={loading}
+                            className="flex items-center gap-2 px-8 py-3 bg-brand-600 text-white rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-700 transition-all font-bold disabled:opacity-50"
+                        >
+                            {loading ? (
+                                <>
+                                    <Loader2 size={18} className="animate-spin" /> Processing...
+                                </>
+                            ) : (
+                                <>
+                                    {currentStep === 4 ? 'Complete Onboarding' : 'Next Step'} <ChevronRight size={18} />
+                                </>
+                            )}
+                        </button>
+                    </div>
                 </div>
             </div>
             {confirmDeleteDoc && createPortal(
@@ -1582,7 +1531,7 @@ export default function AddEmployee() {
 
                                         setErrors((prev: any) => ({
                                             ...prev,
-                                            profilePicture: 'Profile picture is required',
+                                            profilePicture: '',
                                         }));
                                     } else {
                                         const isCustom = customFieldMasters.some(
@@ -1600,19 +1549,10 @@ export default function AddEmployee() {
                                                 [confirmDeleteDoc]: null,
                                             }));
 
-                                            const requiredDocumentMessages: Record<string, string> = {
-                                                aadhaar: 'Aadhaar Card is required',
-                                                pan: 'PAN Card is required',
-                                                degree: 'Highest Qualification Degree is required',
-                                            };
-
-                                            if (requiredDocumentMessages[confirmDeleteDoc]) {
-                                                setErrors((prev: any) => ({
-                                                    ...prev,
-                                                    [confirmDeleteDoc]:
-                                                        requiredDocumentMessages[confirmDeleteDoc],
-                                                }));
-                                            }
+                                            setErrors((prev: any) => ({
+                                                ...prev,
+                                                [confirmDeleteDoc]: '',
+                                            }));
                                         }
                                     }
 
