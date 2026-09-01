@@ -35,7 +35,7 @@ export default function SignIn() {
                     type="text"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-className="login-input w-full px-4 py-3 bg-gray-50 border border-gray-300 focus:border-brand-400 focus:bg-white focus:ring-4 focus:ring-brand-500/10 rounded-xl text-black font-medium transition-all placeholder:text-gray-500 shadow-sm hover:border-gray-400"
+                    className="login-input w-full px-4 py-3 bg-gray-50 border border-gray-300 focus:border-brand-400 focus:bg-white focus:ring-4 focus:ring-brand-500/10 rounded-xl text-black font-medium transition-all placeholder:text-gray-500 shadow-sm hover:border-gray-400"
                 />
             </div>
 
@@ -46,7 +46,7 @@ className="login-input w-full px-4 py-3 bg-gray-50 border border-gray-300 focus:
                         type={showPassword ? "text" : "password"}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-    className="login-input w-full px-4 py-3 bg-gray-50 border border-gray-300 focus:border-brand-400 focus:bg-white focus:ring-4 focus:ring-brand-500/10 rounded-xl text-black font-medium transition-all placeholder:text-gray-500 shadow-sm hover:border-gray-400"
+                        className="login-input w-full px-4 py-3 bg-gray-50 border border-gray-300 focus:border-brand-400 focus:bg-white focus:ring-4 focus:ring-brand-500/10 rounded-xl text-black font-medium transition-all placeholder:text-gray-500 shadow-sm hover:border-gray-400"
                     />
                     <button
                         type="button"
@@ -67,9 +67,9 @@ className="login-input w-full px-4 py-3 bg-gray-50 border border-gray-300 focus:
                     Log In
                 </button>
             </div>
-            
+
             <div className="text-center space-y-3 pt-1">
-                <Link 
+                <Link
                     to="/forgot-password"
                     className="text-brand-500 font-bold hover:underline text-xs md:text-sm block w-full"
                 >
@@ -131,3 +131,4 @@ className="login-input w-full px-4 py-3 bg-gray-50 border border-gray-300 focus:
         </div>
     );
 }
+ 

@@ -48,7 +48,7 @@
     @apply bg-brand-950 text-white;
   }
 
-  button, 
+  button,
   [role="button"],
   select,
   input[type="submit"],
@@ -178,17 +178,18 @@ select:-webkit-autofill:focus {
   -webkit-text-fill-color: #ffffff !important;
   caret-color: #ffffff !important;
 }
+
 /* Sign-in input text */
 .login-input {
-    color: #000000 !important;
-    -webkit-text-fill-color: #000000 !important;
-    caret-color: #000000 !important;
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  caret-color: #000000 !important;
 }
 
 .login-input::placeholder {
-    color: #6b7280 !important;
-    -webkit-text-fill-color: #6b7280 !important;
-    opacity: 1;
+  color: #6b7280 !important;
+  -webkit-text-fill-color: #6b7280 !important;
+  opacity: 1;
 }
 
 /* Fix Chrome autofill text colour */
@@ -196,9 +197,9 @@ select:-webkit-autofill:focus {
 .login-input:-webkit-autofill:hover,
 .login-input:-webkit-autofill:focus,
 .login-input:-webkit-autofill:active {
-    color: #000000 !important;
-    -webkit-text-fill-color: #000000 !important;
-    caret-color: #000000 !important;
-    -webkit-box-shadow: 0 0 0 1000px #f9fafb inset !important;
-    box-shadow: 0 0 0 1000px #f9fafb inset !important;
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  caret-color: #000000 !important;
+  -webkit-box-shadow: 0 0 0 1000px #f9fafb inset !important;
+  box-shadow: 0 0 0 1000px #f9fafb inset !important;
 }
