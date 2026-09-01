@@ -4,7 +4,7 @@ import {
     Shield, Plus, Edit2, Check, Lock, Trash2, X, Loader2,
     LayoutDashboard, Fingerprint, Users, UsersRound, CalendarRange,
     BarChart3, Settings2, CheckSquare, UserCircle, Calendar, FileSpreadsheet,
-    ChevronDown, ChevronUp, CheckCheck, AlertCircle, Info, Sparkles, ShieldCheck
+    ChevronDown, ChevronUp, CheckCheck, Info, ShieldCheck
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
