@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
+import { calculateProfileCompletion } from '../utils/profileCompletion';
 // import { getTeams } from '../utils/teamApi';
 
 export default function EmployeeList() {
@@ -1019,6 +1020,53 @@ export default function EmployeeList() {
                                     <p className="text-brand-500 dark:text-brand-400 font-bold uppercase text-xs tracking-widest mt-1">
                                         {selectedEmployeeForActions.employeeProfile?.title || 'Employee'}
                                     </p>
+
+                                    {/* Mini Profile Completion Status */}
+                                    {(() => {
+                                        const comp = selectedEmployeeForActions.profileCompletion || calculateProfileCompletion(selectedEmployeeForActions);
+                                        return (
+                                            <div className="mt-5 p-4 rounded-2xl bg-white dark:bg-brand-950/60 border border-gray-100 dark:border-white/10 shadow-sm">
+                                                <div className="flex items-center justify-between text-xs font-bold mb-2">
+                                                    <span className="text-gray-700 dark:text-gray-300">Profile completion</span>
+                                                    <span className={comp.percentage === 100 ? 'text-emerald-500 font-bold' : 'text-amber-500 font-bold'}>
+                                                        {comp.percentage}%
+                                                    </span>
+                                                </div>
+                                                <div className="w-full bg-gray-100 dark:bg-white/10 h-2 rounded-full overflow-hidden mb-2">
+                                                    <div
+                                                        className={`h-full rounded-full transition-all duration-300 ${
+                                                            comp.percentage === 100 ? 'bg-emerald-500' : 'bg-amber-400'
+                                                        }`}
+                                                        style={{ width: `${comp.percentage}%` }}
+                                                    />
+                                                </div>
+                                                {comp.missingFields && comp.missingFields.length > 0 ? (
+                                                    <div className="mt-2">
+                                                        <p className="text-[10px] font-black uppercase tracking-wider text-amber-500 dark:text-amber-400 mb-1">
+                                                            MISSING
+                                                        </p>
+                                                        <ul className="space-y-1">
+                                                            {comp.missingFields.slice(0, 3).map((f: string, i: number) => (
+                                                                <li key={i} className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
+                                                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                                                                    <span>{f}</span>
+                                                                </li>
+                                                            ))}
+                                                            {comp.missingFields.length > 3 && (
+                                                                <li className="text-[11px] text-gray-400 dark:text-gray-500 italic pl-3">
+                                                                    +{comp.missingFields.length - 3} more remaining
+                                                                </li>
+                                                            )}
+                                                        </ul>
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                                                        ✓ Profile 100% complete
+                                                    </p>
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
 
                                 {/* Action List */}

@@ -3,11 +3,12 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useRBAC } from '../hooks/useRBAC';
-import { ArrowLeft, User, FileText, CreditCard, Download, Briefcase, Save, X, Edit, Printer, Loader2, Eye, Trash2, Upload, TrendingUp, TrendingDown, Coins, ChevronDown } from 'lucide-react';
+import { ArrowLeft, User, FileText, CreditCard, Download, Briefcase, Save, X, Edit, Printer, Loader2, Eye, Trash2, Upload, TrendingUp, TrendingDown, Coins, ChevronDown, CheckCircle2 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
+import { calculateProfileCompletion } from '../utils/profileCompletion';
 
 const parseRadioOptions = (optionsString: string | null | undefined): string[] => {
     if (!optionsString) return ['Yes', 'No'];
@@ -37,6 +38,11 @@ export default function EmployeeProfile() {
 
     const [activeTab, setActiveTab] = useState<'personal' | 'statutory' | 'documents' | 'shiftRoster' | 'salary' | 'team'>('statutory');
     const [isEditing, setIsEditing] = useState(initialEditMode);
+
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        setIsEditing(params.get('edit') === 'true');
+    }, [location.search]);
     const [showPayslip, setShowPayslip] = useState(false);
     const [showIDCard, setShowIDCard] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -296,8 +302,10 @@ export default function EmployeeProfile() {
 
         setNewProfilePicture(null);
         setNewProfilePicturePreview(null);
+        setErrors({});
 
         setIsEditing(false);
+        navigate(location.pathname, { replace: true });
     };
 
     const validate = () => {
@@ -537,6 +545,7 @@ export default function EmployeeProfile() {
             await api.put(customFieldsEndpoint, { customFields: customFieldsPayload });
 
             setIsEditing(false);
+            navigate(location.pathname, { replace: true });
             toast.success('Profile Updated Successfully!');
             fetchCustomFields();
         } catch (error) {
@@ -1236,7 +1245,10 @@ export default function EmployeeProfile() {
                             </>
                         ) : (
                             hasPermission(['HR_ADMIN']) && (
-                                <button onClick={() => setIsEditing(true)} className="px-4 py-2 bg-brand-600 text-white rounded-xl shadow-lg shadow-brand-500/20 hover:bg-brand-700 transition-all font-bold flex items-center gap-2">
+                                <button onClick={() => {
+                                    setIsEditing(true);
+                                    navigate(`${location.pathname}?edit=true`, { replace: true });
+                                }} className="px-4 py-2 bg-brand-600 text-white rounded-xl shadow-lg shadow-brand-500/20 hover:bg-brand-700 transition-all font-bold flex items-center gap-2">
                                     <Edit size={18} /> Edit Profile
                                 </button>
                             )
@@ -2725,8 +2737,68 @@ export default function EmployeeProfile() {
                     )}
                 </div>
 
-                {/* Sidebar / Quick Actions */}
+                {/* Sidebar / Quick Actions & Profile Completion */}
                 <div className="space-y-6">
+                    {/* Profile Completion Card */}
+                    {(() => {
+                        const profileCompletion = calculateProfileCompletion(employee);
+                        const completionPercentage = profileCompletion.percentage;
+                        const missingItems = profileCompletion.missingItems;
+
+                        return (
+                            <div className="bg-white dark:bg-brand-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-white/5 transition-all">
+                                <div className="flex items-center justify-between mb-3">
+                                    <h4 className="font-bold text-gray-800 dark:text-white text-base">Profile completion</h4>
+                                    <span className={`text-base font-bold tracking-tight ${
+                                        completionPercentage === 100
+                                            ? 'text-emerald-500 dark:text-emerald-400'
+                                            : 'text-amber-500 dark:text-amber-400'
+                                    }`}>
+                                        {completionPercentage}%
+                                    </span>
+                                </div>
+
+                                {/* Progress Bar */}
+                                <div className="w-full bg-gray-100 dark:bg-white/10 h-2 rounded-full overflow-hidden mb-4">
+                                    <div
+                                        className={`h-full rounded-full transition-all duration-500 ease-out ${
+                                            completionPercentage === 100
+                                                ? 'bg-emerald-500'
+                                                : 'bg-amber-400'
+                                        }`}
+                                        style={{ width: `${completionPercentage}%` }}
+                                    />
+                                </div>
+
+                                {/* Missing fields or completed message */}
+                                {missingItems.length > 0 ? (
+                                    <div className="space-y-2">
+                                        <p className="text-[11px] font-black uppercase tracking-wider text-amber-500 dark:text-amber-400">
+                                            MISSING
+                                        </p>
+                                        <ul className="space-y-2">
+                                            {missingItems.map((item, idx) => (
+                                                <li
+                                                    key={idx}
+                                                    onClick={() => setActiveTab(item.tabKey)}
+                                                    className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 font-medium flex items-start gap-2.5 cursor-pointer hover:text-brand-600 dark:hover:text-brand-400 transition-colors group"
+                                                >
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 dark:bg-amber-400 mt-1.5 shrink-0 group-hover:scale-125 transition-transform" />
+                                                    <span>{item.label}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-xs sm:text-sm font-semibold pt-1">
+                                        <CheckCircle2 size={16} className="shrink-0" />
+                                        <span>Profile 100% complete</span>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })()}
+
                     <div className="bg-white dark:bg-brand-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-white/5">
                         <h4 className="font-bold text-gray-800 dark:text-white mb-4">Quick Actions</h4>
                         <div className="space-y-3">
