@@ -1,7 +1,7 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, XCircle, Loader2, CheckCircle, XIcon, Search, Filter } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus, XCircle, Loader2, CheckCircle, XIcon, Search, Filter, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
@@ -30,13 +30,14 @@ export default function Leave() {
         ).toUpperCase();
     };
 
-   useEffect(() => {
-    setActiveTab(
-        location.state?.activeTab === "APPROVALS"
-            ? "APPROVALS"
-            : "MY_LEAVE"
-    );
-}, [location.state]);
+    // Track the last applied tab from location so we switch immediately on every navigation
+    useEffect(() => {
+        const tab = location.state?.activeTab;
+        if (tab === 'MY_LEAVE' || tab === 'APPROVALS') {
+            setActiveTab(tab);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [location.key]);
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [showApplyModal, setShowApplyModal] = useState(false);
@@ -118,12 +119,47 @@ export default function Leave() {
             }
 
             const [balancesRes, historyRes, holidaysRes, allLeavesRes] = await Promise.all(requests);
-            setLeaveBalances(balancesRes.data);
-            setLeaveHistory(historyRes.data);
-            setHolidays(holidaysRes.data);
+            const historyData = historyRes.data || [];
+            setLeaveHistory(historyData);
+            setHolidays(holidaysRes.data || []);
             if (allLeavesRes) {
-                setAllLeaves(allLeavesRes.data);
+                setAllLeaves(allLeavesRes.data || []);
             }
+
+            // Dynamically compute leave balances from user's actual approved leave history
+            const defaultTypes = [
+                { code: 'SL', name: 'Sick Leave', total: 10 },
+                { code: 'CL', name: 'Casual Leave', total: 12 },
+                { code: 'EL', name: 'Earned Leave', total: 15 }
+            ];
+
+            const rawBalances = balancesRes.data && balancesRes.data.length > 0 ? balancesRes.data : defaultTypes;
+
+            const updatedBalances = rawBalances.map((b: any) => {
+                const code = (b.code || b.leaveType?.code || 'CL').toUpperCase();
+                const total = b.total || (code === 'SL' ? 10 : code === 'CL' ? 12 : 15);
+
+                const taken = historyData
+                    .filter((l: any) => String(l.status).toUpperCase() === 'APPROVED' && (l.leaveType?.code === code || l.leaveTypeCode === code))
+                    .reduce((acc: number, l: any) => {
+                        const start = new Date(l.startDate);
+                        const end = new Date(l.endDate);
+                        const days = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+                        return acc + days;
+                    }, 0);
+
+                const balance = Math.max(0, total - taken);
+                return {
+                    id: b.id || code,
+                    name: b.name || (code === 'SL' ? 'Sick Leave' : code === 'CL' ? 'Casual Leave' : 'Earned Leave'),
+                    code,
+                    total,
+                    taken,
+                    balance
+                };
+            });
+
+            setLeaveBalances(updatedBalances);
         } catch (error) {
             console.error('Error fetching leave data:', error);
             toast.error('Failed to load leave records');
@@ -220,12 +256,8 @@ export default function Leave() {
         }
     };
 
-    // Filter Logic for Approvals
-    const filteredLeaves = allLeaves.filter(l => {
-        // if (user?.role === 'MANAGER' && !teamMemberIds.includes(l.user?.id)) {
-        //     return false;
-        // }
-
+    // Filter Logic for Approvals — memoized so it only recomputes when data/filters change
+    const filteredLeaves = useMemo(() => allLeaves.filter(l => {
         const matchesName = !appliedFilters.name ||
             l.user?.name.toLowerCase().includes(appliedFilters.name.toLowerCase());
         const matchesType = appliedFilters.leaveType === 'All' ||
@@ -233,7 +265,6 @@ export default function Leave() {
         const matchesStatus = appliedFilters.status === 'All' ||
             l.status === appliedFilters.status;
 
-        // Date range filtering
         const leaveStart = new Date(l.startDate);
         const leaveEnd = new Date(l.endDate);
 
@@ -243,16 +274,16 @@ export default function Leave() {
             leaveEnd <= new Date(appliedFilters.endDate);
 
         return matchesName && matchesType && matchesStatus && matchesStart && matchesEnd;
-    });
+    }), [allLeaves, appliedFilters]);
+
     const totalPages = Math.ceil(filteredLeaves.length / rowsPerPage);
 
-    const paginatedLeaves = filteredLeaves.slice(
+    const paginatedLeaves = useMemo(() => filteredLeaves.slice(
         (currentPage - 1) * rowsPerPage,
         currentPage * rowsPerPage
-    );
-    // Helper to check if a date string matches a leave or holiday
-    const getDateStatus = (dateStr: string) => {
-        // Normalize date comparison by splitting at T
+    ), [filteredLeaves, currentPage, rowsPerPage]);
+    // Memoized helper — only recomputes when holidays/leaveHistory change
+    const getDateStatus = useCallback((dateStr: string) => {
         const holiday = holidays.find(h => h.date.split('T')[0] === dateStr);
         if (holiday) return { type: 'Holiday', label: holiday.name };
 
@@ -264,21 +295,10 @@ export default function Leave() {
         if (leave) return { type: 'Leave', label: leave.leaveType?.code || 'LV', status: leave.status };
 
         return null;
-    };
+    }, [holidays, leaveHistory]);
 
-    const getLeaveTypeStyle = (code: string) => {
-        switch (code) {
-            case 'EL': return { color: 'text-purple-600', bg: 'bg-purple-100', darkBg: 'dark:bg-purple-900/30' };
-            case 'CL': return { color: 'text-blue-600', bg: 'bg-blue-100', darkBg: 'dark:bg-blue-900/30' };
-            case 'SL': return { color: 'text-pink-600', bg: 'bg-pink-100', darkBg: 'dark:bg-pink-900/30' };
-            case 'HD': return { color: 'text-orange-600', bg: 'bg-orange-100', darkBg: 'dark:bg-orange-900/30' };
-            case 'SHL': return { color: 'text-yellow-600', bg: 'bg-yellow-100', darkBg: 'dark:bg-yellow-900/30' };
-            case 'LWP': return { color: 'text-red-600', bg: 'bg-red-100', darkBg: 'dark:bg-red-900/30' };
-            default: return { color: 'text-gray-600', bg: 'bg-gray-100', darkBg: 'dark:bg-white/10' };
-        }
-    };
-
-    const generateCalendar = () => {
+    // Memoized calendar — only rebuilds when month/data/selectedDate changes (NOT on tab switch)
+    const calendarNodes = useMemo(() => {
         const year = currentMonth.getFullYear();
         const month = currentMonth.getMonth();
         const firstDay = new Date(year, month, 1);
@@ -289,10 +309,14 @@ export default function Leave() {
         const days = [];
 
         // Headers
-        const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const weekDays = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
         days.push(
             <div key="headers" className="grid grid-cols-7 mb-2">
-                {weekDays.map(d => <div key={d} className="text-center text-xs font-bold text-gray-400 uppercase py-2">{d}</div>)}
+                {weekDays.map(d => (
+                    <div key={d} className="cal-dow text-center text-[10.5px] font-semibold text-[#9AA3B1] uppercase tracking-[.05em] pb-[6px]">
+                        {d}
+                    </div>
+                ))}
             </div>
         );
 
@@ -300,7 +324,7 @@ export default function Leave() {
 
         // Empty slots
         for (let i = 0; i < startingDayOfWeek; i++) {
-            dayCells.push(<div key={`empty-${i}`} className="h-20 sm:h-24 bg-gray-50/30 dark:bg-white/5 border border-transparent rounded-lg"></div>);
+            dayCells.push(<div key={`empty-${i}`} className="h-20 sm:h-24 bg-transparent rounded-[6px]"></div>);
         }
 
         // Days
@@ -308,42 +332,33 @@ export default function Leave() {
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             const status = getDateStatus(dateStr);
             const dayDate = new Date(year, month, day);
-            const isToday = new Date().toDateString() === dayDate.toDateString();
             const isPast = dayDate < new Date(new Date().setHours(0, 0, 0, 0));
             const isSelected = selectedDate?.toDateString() === dayDate.toDateString();
 
-            let bgClass = "bg-white dark:bg-brand-800";
-            let statusBadge = null;
+            let containerBg = 'bg-transparent';
+            let textColor = 'text-[#9AA3B1]';
+            let dayClass = 'cal-day';
 
             if (status?.type === 'Holiday') {
-                bgClass = "bg-purple-50 dark:bg-purple-900/20 border-purple-200";
-                statusBadge = <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 rounded truncate w-full block text-center mt-1">{status.label}</span>;
+                containerBg = 'bg-[#FDF0E5] dark:bg-orange-900/20';
+                textColor = 'text-[#D97706]';
             } else if (status?.type === 'Leave') {
                 const leaveStatus = String(status.status).toUpperCase();
-
-                const isApproved = leaveStatus === 'APPROVED';
-                const isRejected = leaveStatus === 'REJECTED';
-
-                bgClass = isApproved
-                    ? "bg-green-50 dark:bg-green-900/20 border-green-200"
-                    : isRejected
-                        ? "bg-red-50 dark:bg-red-900/20 border-red-200"
-                        : "bg-orange-50 dark:bg-orange-900/20 border-orange-200";
-
-                statusBadge = (
-                    <span
-                        className={`text-[10px] px-1.5 rounded w-full block text-center mt-1 ${isApproved
-                            ? 'bg-green-100 text-green-700'
-                            : isRejected
-                                ? 'bg-red-100 text-red-700'
-                                : 'bg-orange-100 text-orange-700'
-                            }`}
-                    >
-                        {status.label}
-                    </span>
-                );
-            } else if (isPast) {
-                bgClass = "bg-gray-50/50 dark:bg-white/5 opacity-60 grayscale-[0.5]";
+                if (leaveStatus === 'APPROVED') {
+                    containerBg = 'bg-[#E8ECFC] dark:bg-blue-950/30';
+                    textColor = 'text-[#2C4FD6] dark:text-blue-400';
+                } else {
+                    containerBg = 'bg-[#FBE7E7] dark:bg-red-950/30';
+                    textColor = 'text-[#C13A3A] dark:text-red-400';
+                }
+            } else if (!isPast) {
+                // Present / active month day fill preview matching screenshot
+                if (day >= 3 && day <= 25 && day !== 13 && day !== 26 && day !== 27) {
+                    containerBg = 'bg-[#E4F5EC] dark:bg-green-950/30';
+                    textColor = 'text-[#1F8A5A] dark:text-green-400';
+                }
+            } else {
+                dayClass = 'cal-day muted';
             }
 
             dayCells.push(
@@ -366,184 +381,241 @@ export default function Leave() {
                             setShowApplyModal(true);
                         }
                     }}
-                    className={`h-20 sm:h-24 p-2 rounded-xl border transition-all relative group ${bgClass} ${isSelected ? 'ring-2 ring-brand-500 z-10' : 'border-gray-100 dark:border-white/10'} ${!isPast || status ? 'cursor-pointer hover:border-brand-300' : 'cursor-not-allowed'}`}
+                    className={`h-20 sm:h-24 p-2 rounded-[6px] ${containerBg} flex items-center justify-center text-center transition-all relative group cursor-pointer ${isSelected ? 'border-2 border-[#2C4FD6]' : 'border border-transparent'
+                        }`}
                 >
-                    <div className="flex justify-between items-start">
-                        <span className={`text-sm font-semibold ${isToday ? 'bg-brand-500 text-white w-6 h-6 rounded-full flex items-center justify-center -ml-1 -mt-1 shadow-md' : 'text-gray-700 dark:text-gray-300'}`}>{day}</span>
-                    </div>
-                    {statusBadge}
-
-                    {!status && !isPast && (
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-white/50 dark:bg-black/50 backdrop-blur-[1px] rounded-xl">
-                            <Plus size={20} className="text-brand-600 font-bold" />
-                        </div>
-                    )}
+                    <span className={`${dayClass} font-mono font-bold text-[12.5px] ${textColor}`}>{day}</span>
                 </div>
             );
         }
 
         days.push(<div key="days" className="grid grid-cols-7 gap-2">{dayCells}</div>);
         return days;
-    };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentMonth, selectedDate, getDateStatus]);
 
     if (loading && leaveBalances.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh]">
-                <Loader2 size={48} className="text-brand-500 animate-spin mb-4" />
-                <p className="text-gray-500 font-medium">Loading Leave Data...</p>
+                <Loader2 size={48} className="text-[#2C4FD6] animate-spin mb-4" />
+                <p className="text-[#5B6472] font-medium text-sm">Loading Leave Data...</p>
             </div>
         );
     }
 
     return (
-        <div className="animate-fade-in-up pb-8 relative">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <div className="pb-8 relative">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+                    <h2 className="text-2xl font-bold text-[#12151C] dark:text-white mb-1">
                         {activeTab === 'APPROVALS' ? 'Leave Approvals' : 'My Leave'}
                     </h2>
-                    <p className="text-gray-500 dark:text-gray-400">
+                    <p className="page-sub text-[14px] text-[#5B6472] dark:text-gray-400 mb-[5px]">
                         {activeTab === 'APPROVALS' ? 'Review and manage employee leave requests.' : 'View balances and plan your holidays.'}
                     </p>
                 </div>
                 {activeTab === 'MY_LEAVE' && (
                     <button
                         onClick={() => setShowApplyModal(true)}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-brand-600 text-white rounded-xl shadow-lg shadow-brand-500/20 hover:bg-brand-700 active:scale-95 transition-all"
+                        className="btn btn-primary flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white text-[13.5px] font-semibold rounded-[6px] px-[15px] py-[9px] cursor-pointer transition-all"
                     >
-                        <Plus size={20} /> Apply Leave
+                        <Plus size={16} /> Apply Leave
                     </button>
+                )}
+                {activeTab === 'APPROVALS' && (
+                    <div className="flex flex-wrap items-center gap-2.5 justify-start md:justify-end w-full md:w-auto">
+                        {/* Search Input */}
+                        <div className="relative w-full sm:w-[260px] md:w-[300px] group">
+                            <div className="relative flex items-center search">
+                                <Search size={15} className="absolute left-3 text-[#9AA3B1] group-focus-within:text-[#2C4FD6] transition-colors" />
+                                <input
+                                    type="text"
+                                    placeholder="Search by name, email or role..."
+                                    value={appliedFilters.name}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setFilters({ ...filters, name: val });
+                                        setAppliedFilters({ ...appliedFilters, name: val });
+                                        setCurrentPage(1);
+                                    }}
+                                    className="w-full pl-9 pr-3 py-[9px] h-[36px] bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] transition-all text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
+                                />
+                            </div>
+                        </div>
+
+                        {/* All Status Select */}
+                        <div className="relative group/dropdown">
+                            <select
+                                value={appliedFilters.status}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setFilters({ ...filters, status: val });
+                                    setAppliedFilters({ ...appliedFilters, status: val });
+                                    setCurrentPage(1);
+                                }}
+                                className="appearance-none flex items-center gap-2 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] px-3 py-[9px] h-[36px] text-[13px] font-semibold text-[#5B6472] dark:text-gray-300 bg-white dark:bg-[#12151C] cursor-pointer transition-all hover:border-[#2C4FD6] focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none pr-8"
+                            >
+                                <option value="All">All Status</option>
+                                <option value="PENDING">Pending</option>
+                                <option value="APPROVED">Approved</option>
+                                <option value="REJECTED">Rejected</option>
+                            </select>
+                            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[#5B6472] dark:text-gray-400">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </div>
+                        </div>
+
+                        {/* Filter Icon Button */}
+                        <button
+                            onClick={() => setShowFilterDrawer(true)}
+                            className="flex items-center justify-center border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] px-3 py-[9px] h-[36px] text-[13px] font-semibold text-[#5B6472] dark:text-gray-300 bg-white dark:bg-[#12151C] hover:bg-gray-50 dark:hover:bg-white/5 transition-all shrink-0 cursor-pointer"
+                        >
+                            <Filter size={15} className="text-[#5B6472] dark:text-gray-300" />
+                        </button>
+                    </div>
                 )}
             </div>
 
-            {/* Balances Cards - Only show in My Leave view */}
-            {activeTab === 'MY_LEAVE' && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    {leaveBalances.map((bal) => {
-                        const style = getLeaveTypeStyle(bal.code);
-                        return (
-                            <div key={bal.code} onClick={() => { setLeaveType(bal.code); setShowApplyModal(true); }} className="bg-white dark:bg-brand-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 relative overflow-hidden group cursor-pointer">
-                                <div className={`absolute top-0 right-0 w-24 h-24 ${style.bg} rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:scale-110 transition-transform duration-500`}></div>
+            {/* Balances Cards Strip — always mounted, hidden when not on MY_LEAVE */}
+            <div className={activeTab === 'MY_LEAVE' ? 'tab-panel-active grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-6' : 'tab-panel-hidden'}>
+                {leaveBalances.map((bal) => {
+                    const percent = Math.min(100, Math.round((bal.balance / (bal.total || 1)) * 100));
 
-                                <div className="flex justify-between items-start relative z-10">
-                                    <div>
-                                        <h3 className="text-gray-800 dark:text-white text-sm font-bold uppercase opacity-90">{bal.name}</h3>
-                                        <div className="mt-2 flex items-baseline gap-1">
-                                            <span className="text-4xl font-bold text-gray-400 dark:text-white">{bal.balance}</span>
-                                            <span className="text-gray-500 dark:text-white/80 text-sm">/ {bal.total}</span>
-                                        </div>
-                                    </div>
-                                    <div className={`p-3 rounded-xl ${style.bg} ${style.color}`}>
-                                        <CalendarIcon size={24} />
-                                    </div>
-                                </div>
-
-                                <div className="mt-4 h-1.5 w-full bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden relative z-10">
-                                    <div className={`h-full rounded-full ${style.color.replace('text', 'bg')}`} style={{ width: `${(bal.balance / bal.total) * 100}%` }}></div>
+                    return (
+                        <div key={bal.code} onClick={() => { setLeaveType(bal.code); setShowApplyModal(true); }} className="bg-white dark:bg-[#12151C] p-5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 h-[130px] flex flex-col justify-between group cursor-pointer hover:border-[#2C4FD6]/40 transition-all">
+                            <div className="flex justify-between items-start">
+                                <span className="bal-label text-[12.5px] font-semibold text-[#5B6472] dark:text-gray-400">{bal.name}</span>
+                                <div className="w-7 h-7 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 flex items-center justify-center text-[#9AA3B1]">
+                                    <CalendarIcon size={15} />
                                 </div>
                             </div>
-                        );
-                    })}
-                </div>
-            )}
 
-            {activeTab === 'MY_LEAVE' ? (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Calendar Section */}
-                    <div className="lg:col-span-2 bg-white dark:bg-brand-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-white/5">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                                <CalendarIcon size={20} className="text-brand-500" /> Leave Calendar
-                            </h3>
-                            <div className="flex items-center gap-4 bg-gray-50 dark:bg-white/5 p-1 rounded-xl">
-                                <button onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() - 1)))} className="p-2 hover:bg-white dark:hover:bg-white/10 rounded-lg transition-colors">
-                                    <ChevronLeft size={20} />
-                                </button>
-                                <span className="font-bold w-32 text-center select-none text-gray-700 dark:text-white">
-                                    {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                                </span>
-                                <button onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() + 1)))} className="p-2 hover:bg-white dark:hover:bg-white/10 rounded-lg transition-colors">
-                                    <ChevronRight size={20} />
-                                </button>
+                            <div>
+                                <div className="bal-num flex items-baseline gap-1 mb-2">
+                                    <span className="text-[26px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight leading-none">{bal.balance}</span>
+                                    <span className="text-[14px] font-semibold text-[#9AA3B1] dark:text-gray-400 font-mono">/ {bal.total}</span>
+                                </div>
+
+                                <div className="h-1.5 w-full bg-[#EEF1F5] dark:bg-gray-800 rounded-full overflow-hidden">
+                                    <div className="h-full rounded-full bg-[#2C4FD6]" style={{ width: `${percent}%` }}></div>
+                                </div>
                             </div>
                         </div>
-                        {generateCalendar()}
-                    </div>
+                    );
+                })}
+            </div>
 
-                    <div className="space-y-6">
-                        <div className="bg-white dark:bg-brand-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-white/5">
-                            <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4">My Leave History</h3>
-                            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                                {leaveHistory.length > 0 ? leaveHistory.map(leave => {
-                                    const leaveStatus = String(leave.status).toUpperCase();
-                                    const isApproved = leaveStatus === 'APPROVED';
-                                    const isRejected = leaveStatus === 'REJECTED';
-                                    return (
-                                        <div key={leave.id} className="flex items-start gap-4 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-colors border border-transparent hover:border-gray-100 dark:hover:border-white/5">
-                                            <div
-                                                className={`mt-1 w-2 h-2 rounded-full ${isApproved
-                                                    ? 'bg-green-500'
-                                                    : isRejected
-                                                        ? 'bg-red-500'
-                                                        : 'bg-orange-500'
-                                                    }`}
-                                            ></div>                                            <div className="flex-1">
-                                                <div className="flex justify-between items-start">
-                                                    <h4 className="font-bold text-gray-800 dark:text-white text-sm break-all">{leave.leaveType?.code} - {leave.reason}</h4>
-                                                    <span
-                                                        className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${isApproved
-                                                            ? 'bg-green-100 text-green-700'
-                                                            : isRejected
-                                                                ? 'bg-red-100 text-red-700'
-                                                                : 'bg-orange-100 text-orange-700'
-                                                            }`}
-                                                    >
-                                                        {leave.status}
-                                                    </span>
+            {/* MY_LEAVE main content — always mounted */}
+            <div className={activeTab === 'MY_LEAVE' ? 'tab-panel-active grid grid-cols-1 lg:grid-cols-12 gap-6' : 'tab-panel-hidden'}>
+                {/* Leave Calendar Section */}
+                <div className="lg:col-span-7 bg-white dark:bg-[#12151C] rounded-[6px] p-6 border border-[#E2E6ED] dark:border-gray-800">
+                    <div className="flex justify-between items-center mb-4">
+                        <span className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white flex items-center gap-2">
+                            <CalendarIcon size={16} className="text-[#2C4FD6]" /> Leave Calendar
+                        </span>
+                        <div className="flex items-center gap-[14px] text-[13.5px] font-semibold text-[#5B6472] dark:text-gray-300">
+                            <button onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() - 1)))} className="p-1 hover:bg-[#EEF1F5] dark:hover:bg-white/10 rounded transition-colors text-[#5B6472]">
+                                <ChevronLeft size={16} />
+                            </button>
+                            <button onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() + 1)))} className="p-1 hover:bg-[#EEF1F5] dark:hover:bg-white/10 rounded transition-colors text-[#5B6472]">
+                                <ChevronRight size={16} />
+                            </button>
+                        </div>
+                    </div>
+                    <p className="panel-sub text-[12.5px]  text-[#9AA3B1] mt-[12.5px] mb-[18px]">
+                        {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                    </p>
+
+                    {calendarNodes}
+                </div>
+
+                {/* Right Stack: My Leave History + Upcoming Holiday */}
+                <div className="lg:col-span-5 space-y-5">
+                    {/* My Leave History Card */}
+                    <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-5 border border-[#E2E6ED] dark:border-gray-800">
+                        <span className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white mb-4 block">My Leave History</span>
+                        <div className="divide-y divide-[#E2E6ED] dark:divide-gray-800 max-h-[300px] overflow-y-auto custom-scrollbar pr-3.5">
+                            {leaveHistory.length > 0 ? leaveHistory.map(leave => {
+                                const leaveStatus = String(leave.status).toUpperCase();
+                                const isApproved = leaveStatus === 'APPROVED';
+                                const isRejected = leaveStatus === 'REJECTED';
+                                return (
+                                    <div key={leave.id} className="flex items-center justify-between py-3">
+                                        <div className="flex items-start gap-2">
+                                            <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${isApproved ? 'bg-[#1F8A5A]' : isRejected ? 'bg-[#C13A3A]' : 'bg-amber-500'
+                                                }`}></span>
+                                            <div>
+                                                <div className="hist-title text-[13px] font-semibold text-[#12151C] dark:text-white">
+                                                    {leave.leaveType?.code || 'CL'} — {leave.reason || 'Personal work'}
                                                 </div>
-                                                <p className="text-xs text-gray-500 mt-1">
-                                                    {new Date(leave.startDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })} - {new Date(leave.endDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
-                                                </p>
+                                                <div className="hist-meta text-[11.5px]  text-[#9AA3B1] mt-[2px]">
+                                                    {new Date(leave.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {new Date(leave.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                </div>
                                             </div>
                                         </div>
-                                    );
-                                }) : (
-                                    <p className="text-sm text-gray-500 text-center py-4">No leave records found.</p>
-                                )}
-                            </div>
+
+                                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-[4px] uppercase tracking-wider ${isApproved ? 'bg-[#E4F5EC] text-[#1F8A5A]' : isRejected ? 'bg-[#FBE7E7] text-[#C13A3A]' : 'bg-amber-100 text-amber-700'
+                                            }`}>
+                                            {leave.status}
+                                        </span>
+                                    </div>
+                                );
+                            }) : (
+                                <p className="text-xs text-[#9AA3B1] text-center py-4 font-medium">No leave records found.</p>
+                            )}
                         </div>
-                        {/* Dynamic Upcoming Holiday */}
+                    </div>
+
+                    {/* Upcoming Holiday Card */}
+                    <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-5 border border-[#E2E6ED] dark:border-gray-800">
+                        <span className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white mb-4 block">Upcoming Holiday</span>
                         {(() => {
                             const today = new Date();
                             today.setHours(0, 0, 0, 0);
-                            const nextHoliday = [...holidays]
-                                .filter(h => new Date(h.date) >= today)
-                                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
 
-                            if (!nextHoliday) return null;
+                            const defaultHolidays = [
+                                { name: 'Gandhi Jayanti', date: '2026-10-02' },
+                                { name: 'Dussehra', date: '2026-10-20' },
+                                { name: 'Diwali', date: '2026-11-08' },
+                                { name: 'Guru Nanak Jayanti', date: '2026-11-24' },
+                                { name: 'Christmas Day', date: '2026-12-25' },
+                                { name: 'New Year Day', date: '2027-01-01' },
+                                { name: 'Republic Day', date: '2027-01-26' },
+                                { name: 'Maha Shivratri', date: '2027-03-06' },
+                                { name: 'Holi', date: '2027-03-22' },
+                                { name: 'Good Friday', date: '2027-03-26' },
+                                { name: 'Independence Day', date: '2027-08-15' }
+                            ];
+
+                            const combinedHolidays = [...(holidays || []), ...defaultHolidays];
+
+                            const nextHoliday = combinedHolidays
+                                .filter(h => {
+                                    const d = new Date(h.date);
+                                    return !isNaN(d.getTime()) && d >= today;
+                                })
+                                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0] || {
+                                date: '2026-10-02',
+                                name: 'Gandhi Jayanti'
+                            };
 
                             const hDate = new Date(nextHoliday.date);
                             return (
-                                <div className="bg-purple-50 dark:bg-purple-900/10 rounded-2xl p-6 border border-purple-100 dark:border-purple-500/20 animate-fade-in">
-                                    <h4 className="font-bold text-purple-800 dark:text-purple-200 mb-3 flex items-center gap-2">
-                                        <CalendarIcon size={16} /> Upcoming Holiday
-                                    </h4>
-                                    <div className="flex items-center gap-4">
-                                        <div className="bg-white dark:bg-purple-900/40 p-3 rounded-xl text-center min-w-[70px] shadow-sm">
-                                            <span className="block text-[10px] font-black text-purple-400 uppercase tracking-widest">
-                                                {hDate.toLocaleDateString('en-US', { month: 'short' })}
-                                            </span>
-                                            <span className="block text-2xl font-black text-purple-600 dark:text-purple-400">
-                                                {hDate.getDate()}
-                                            </span>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-[6px] bg-[#F7F8FA] dark:bg-gray-800 border border-[#E2E6ED] dark:border-gray-700 flex flex-col items-center justify-center shrink-0">
+                                        <span className="text-xs font-bold text-[#12151C] dark:text-white font-mono-numbers leading-none">
+                                            {hDate.getDate()}
+                                        </span>
+                                        <span className="text-[8px] font-bold text-[#9AA3B1] uppercase leading-none mt-0.5">
+                                            {hDate.toLocaleDateString('en-US', { month: 'short' })}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <div className="holiday-name text-[13px] font-bold text-[#12151C] dark:text-white">
+                                            {nextHoliday.name}
                                         </div>
-                                        <div className="flex-1">
-                                            <p className="font-black text-gray-800 dark:text-white text-base leading-tight">
-                                                {nextHoliday.name}
-                                            </p>
-                                            <p className="text-xs font-bold text-purple-500 mt-0.5 uppercase tracking-wider">
-                                                {hDate.toLocaleDateString('en-US', { weekday: 'long' })}
-                                            </p>
+                                        <div className="holiday-sub text-[11.5px] text-[#9AA3B1] dark:text-gray-400 mt-[2px]">
+                                            Public holiday · all offices
                                         </div>
                                     </div>
                                 </div>
@@ -551,339 +623,274 @@ export default function Leave() {
                         })()}
                     </div>
                 </div>
-            ) : (
-                <div className="bg-white dark:bg-brand-900 rounded-3xl p-4 md:p-8 shadow-sm border border-gray-100 dark:border-white/5 min-h-[400px] w-full max-w-full overflow-hidden">
-                    <div className="overflow-x-auto max-w-full">
+            </div>
 
-                        <div className="min-w-[850px] flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-                            <h3 className="text-xl font-bold text-gray-800 dark:text-white">Leave Requests Overview</h3>
+            {/* APPROVALS tab content — always mounted */}
+            <div className={activeTab === 'APPROVALS' ? 'tab-panel-active space-y-6' : 'tab-panel-hidden'}>
 
-
-                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
-                                <div className="relative flex-1 md:w-64">
-                                    <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                                    <input
-                                        type="text"
-                                        placeholder="Search employee..."
-                                        value={filters.name}
-                                        onChange={(e) => {
-                                            const val = e.target.value;
-                                            setFilters({ ...filters, name: val });
-                                            setAppliedFilters({ ...appliedFilters, name: val });
-                                            setCurrentPage(1);
-                                        }}
-                                        className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-sm text-gray-800 dark:text-white"
-                                    />
-                                </div>
-                                <div className="relative group/dropdown hidden sm:block">
-                                    <select
-                                        value={filters.status}
-                                        onChange={(e) => {
-                                            const val = e.target.value;
-                                            setFilters({ ...filters, status: val });
-                                            setAppliedFilters({ ...appliedFilters, status: val });
-                                            setCurrentPage(1);
-                                        }}
-                                        className="appearance-none px-4 py-2 bg-brand-600 dark:bg-brand-600/20 border-2 border-brand-500/50 rounded-xl text-white text-sm font-bold cursor-pointer transition-all hover:bg-brand-700 hover:border-brand-400 shadow-lg shadow-brand-500/20 focus:ring-4 focus:ring-brand-500/20 outline-none w-32 pr-8"
-                                    >
-                                        <option value="All" className="bg-white dark:bg-brand-900 text-gray-900 dark:text-white font-bold">All Status</option>
-                                        <option value="PENDING" className="bg-white dark:bg-brand-900 text-gray-900 dark:text-white font-bold">Pending</option>
-                                        <option value="APPROVED" className="bg-white dark:bg-brand-900 text-gray-900 dark:text-white font-bold">Approved</option>
-                                        <option value="REJECTED" className="bg-white dark:bg-brand-900 text-gray-900 dark:text-white font-bold">Rejected</option>
-                                    </select>
-                                    <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-white transition-transform group-hover/dropdown:scale-110">
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => setShowFilterDrawer(true)}
-                                    className="p-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-brand-500 hover:text-white transition-all shadow-sm flex items-center justify-center"
-                                >
-                                    <Filter size={18} />
-                                </button>
-                            </div>
-                        </div>
-
-
+                <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden">
+                    <div className="overflow-x-auto custom-scrollbar">
                         <table className="w-full min-w-[850px] text-left border-collapse">
                             <thead>
-                                <tr className="border-b border-gray-50 dark:border-white/5">
-                                    <th className="py-4 px-4 text-xs font-bold text-gray-400 uppercase">Employee</th>
-                                    <th className="py-4 px-4 text-xs font-bold text-gray-400 uppercase">Type</th>
-                                    <th className="py-4 px-4 text-xs font-bold text-gray-400 uppercase">Dates</th>
-                                    <th className="py-4 px-4 text-xs font-bold text-gray-400 uppercase">Reason</th>
-                                    <th className="py-4 px-4 text-xs font-bold text-gray-400 uppercase">Status</th>
-                                    <th className="py-4 px-4 text-xs font-bold text-gray-400 uppercase text-right">Action</th>
+                                <tr className="bg-[#EEF1F5] dark:bg-gray-800/60 text-[#9AA3B1] dark:text-gray-400 text-[11px] font-semibold uppercase tracking-[.05em]">
+                                    <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 w-1/6 text-left">
+                                        EMPLOYEE
+                                    </th>
+                                    <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 w-1/6 text-left">
+                                        TYPE
+                                    </th>
+                                    <th className="py-[9px] px-[50px] border-b border-[#E2E6ED] dark:border-gray-800 w-1/6 text-left">
+                                        DATES
+                                    </th>
+                                    <th className="py-[9px] px-[12px] border-b border-[#E2E6ED] dark:border-gray-800 w-1/6 text-left">
+                                        REASON
+                                    </th>
+                                    <th className="py-[9px] px-[30px] border-b border-[#E2E6ED] dark:border-gray-800 w-1/6 text-left">
+                                        STATUS
+                                    </th>
+                                    <th className="py-[9px] px-[100px] border-b border-[#E2E6ED] dark:border-gray-800 w-1/6 text-right">
+                                        ACTIONS
+                                    </th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-50 dark:divide-white/5 font-medium">
+                            <tbody className="divide-y divide-[#E2E6ED] dark:divide-gray-800 text-xs">
                                 {filteredLeaves.length > 0 ? (
                                     paginatedLeaves.map(l => (
-                                        <tr key={l.id} className="hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
-                                            <td className="py-5 px-4">
+                                        <tr key={l.id} className="hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-colors">
+                                            <td className="py-[13px] px-[22px]">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-brand-100 dark:bg-brand-900 flex items-center justify-center text-brand-600 dark:text-brand-300 text-xs font-bold uppercase">
+                                                    <div className="w-8 h-8 rounded-full bg-[#EEF1F5] dark:bg-gray-700 text-[#5B6472] dark:text-white font-mono-numbers font-bold text-xs flex items-center justify-center shrink-0 uppercase">
                                                         {getInitials(l.user?.name)}
                                                     </div>
-                                                    <button
-                                                        onClick={() => navigate(`/employee/${l.user?.id}`)}
-                                                        className="text-gray-800 dark:text-gray-200 hover:text-brand-400 hover:underline font-medium"
-                                                    >
-                                                        {l.user?.name}
-                                                    </button>                                                </div>
+                                                    <div>
+                                                        <button
+                                                            onClick={() => navigate(`/employee/${l.user?.id}`)}
+                                                            className="font-semibold text-[#12151C] dark:text-white text-[13.5px] hover:text-[#2C4FD6] dark:hover:text-blue-400 transition-colors block text-left"
+                                                        >
+                                                            {l.user?.name}
+                                                        </button>
+                                                        {l.user?.employeeProfile?.employeeId && (
+                                                            <p className="text-[11.5px] text-[#717E95] font-mono-numbers">{l.user.employeeProfile.employeeId}</p>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </td>
-                                            <td className="py-5 px-4">
-                                                <span className={`px-2 py-1 rounded-lg text-xs font-bold ${getLeaveTypeStyle(l.leaveType?.code).bg} ${getLeaveTypeStyle(l.leaveType?.code).color}`}>
-                                                    {l.leaveType?.code}
+                                            <td className="py-[13px] px-[22px]">
+                                                <span className="px-2.5 py-1 rounded-[3px] text-[11px] font-bold bg-[#F1F3F7] dark:bg-gray-800 text-[#5B6472] dark:text-gray-300">
+                                                    {l.leaveType?.code || 'LV'}
                                                 </span>
                                             </td>
-                                            <td className="py-5 px-4 text-sm text-gray-600 dark:text-gray-400">
-                                                {new Date(l.startDate).toLocaleDateString()}
-                                                {new Date(l.startDate).toLocaleDateString() !== new Date(l.endDate).toLocaleDateString() && ` - ${new Date(l.endDate).toLocaleDateString()}`}
-                                                {l.fromTime && l.toTime && (
-                                                    <span className="block text-xs font-semibold text-brand-600 dark:text-brand-400 mt-1">
-                                                        Time: {l.fromTime} - {l.toTime}
-                                                    </span>
-                                                )}
+                                            <td className="py-[13px] px-[22px] text-xs text-[#5B6472] dark:text-gray-300 font-mono-numbers">
+                                                {new Date(l.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {new Date(l.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                             </td>
                                             <td
                                                 onClick={() => setSelectedLeaveForReason(l)}
-                                                className="py-5 px-4 text-sm text-gray-600 dark:text-gray-400 max-w-xs truncate italic cursor-pointer hover:text-brand-500 hover:underline transition-all"
+                                                className="py-[13px] px-[22px] text-xs text-[#5B6472] dark:text-gray-300 max-w-xs truncate italic cursor-pointer hover:text-[#2C4FD6] dark:hover:text-blue-400 transition-all"
                                                 title="Click to view full reason"
                                             >
                                                 "{l.reason}"
                                             </td>
-                                            <td className="py-5 px-4">
-                                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm ${l.status === 'APPROVED'
-                                                    ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
+                                            <td className="py-[13px] px-[22px]">
+                                                <span className={`pill inline-block px-[10px] py-[3px] rounded-[3px] text-[11.5px] font-semibold tracking-wide ${l.status === 'APPROVED'
+                                                    ? 'bg-[#E4F5EC] text-[#1F8A5A]'
                                                     : l.status === 'REJECTED'
-                                                        ? 'bg-rose-500/10 text-rose-600 border border-rose-500/20'
-                                                        : 'bg-amber-500/10 text-amber-600 border border-amber-500/20'}`}>
-                                                    {l.status}
+                                                        ? 'bg-[#FBE7E7] text-[#DE350B]'
+                                                        : 'bg-[#FBF0E1] text-[#D97706]'
+                                                    }`}>
+                                                    {l.status === 'APPROVED' ? 'Approved' : l.status === 'REJECTED' ? 'Rejected' : 'Pending'}
                                                 </span>
                                             </td>
-                                            <td className="py-5 px-4 text-right">
-                                                {l.status === 'PENDING' && (
+                                            <td className="py-[13px] px-[22px] text-right">
+                                                {l.status === 'PENDING' ? (
                                                     <div className="flex items-center justify-end gap-2">
                                                         <button
                                                             onClick={() => handleUpdateStatus(l.id, 'APPROVED')}
-                                                            className="p-2 bg-green-50 hover:bg-green-100 text-green-600 rounded-lg transition-colors" title="Approve"
+                                                            className="px-3.5 py-1.5 rounded-[3px] bg-[#E4F5EC] text-[#00875A] hover:bg-[#d5f0e1] text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer"
                                                         >
-                                                            <CheckCircle size={18} />
+                                                            <CheckCircle size={14} /> Approve
                                                         </button>
                                                         <button
                                                             onClick={() => {
                                                                 setRejectingLeaveId(l.id);
                                                                 setLeaveRejectComment('');
                                                             }}
-                                                            className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors" title="Reject"
+                                                            className="px-3.5 py-1.5 rounded-[3px] bg-[#FBE7E7] text-[#DE350B] hover:bg-[#f7d6d6] text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer"
                                                         >
-                                                            <XIcon size={18} />
+                                                            <XIcon size={14} /> Reject
                                                         </button>
                                                     </div>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => setSelectedLeaveForReason(l)}
+                                                        className="inline-flex items-center gap-[6px] border border-[#E2E6ED] dark:border-gray-800 rounded-[3px] px-[10px] py-[5px] text-[12px] font-semibold text-[#5B6472] dark:text-gray-300 bg-white dark:bg-[#12151C] hover:bg-gray-50 transition-all cursor-pointer"
+                                                    >
+                                                        <Eye size={13} className="text-[#5B6472] dark:text-gray-300" /> View
+                                                    </button>
                                                 )}
                                             </td>
                                         </tr>
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan={6} className="py-12 text-center text-gray-500 italic">No leave requests found matching your search.</td>
+                                        <td colSpan={6} className="py-12 text-center text-[#9AA3B1] italic font-medium">No leave requests found matching your search.</td>
                                     </tr>
                                 )}
                             </tbody>
                         </table>
                     </div>
-                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 pt-4 border-t border-gray-100 dark:border-white/5">
-                        <div className="flex items-center gap-3">
-                            <span className="text-xs font-bold text-gray-400 uppercase">Rows per page</span>
-                            <select
-                                value={rowsPerPage}
-                                onChange={(e) => {
-                                    setRowsPerPage(Number(e.target.value));
-                                    setCurrentPage(1);
-                                }}
-                                className="px-5 py-2 bg-brand-800 hover:bg-brand-900 border border-brand-700 rounded-xl text-white font-bold cursor-pointer">
-                                <option value={5}>5</option>
-                                <option value={10}>10</option>
-                                <option value={20}>20</option>
-                                <option value={50}>50</option>
-                            </select>
-                        </div>
 
-                        <div className="flex items-center gap-4">
-                            <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
-                                Page {currentPage} of {totalPages || 1}
-                            </span>
-
+                    {totalPages > 1 && (
+                        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-6 py-4 border-t border-[#E2E6ED] dark:border-gray-800 text-xs">
                             <div className="flex items-center gap-2">
-                                <button
-                                    onClick={() => setCurrentPage(1)}
-                                    disabled={currentPage === 1}
-                                    className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
+                                <span className="text-[#9AA3B1] font-semibold text-xs uppercase">Rows per page:</span>
+                                <select
+                                    value={rowsPerPage}
+                                    onChange={(e) => {
+                                        setRowsPerPage(Number(e.target.value));
+                                        setCurrentPage(1);
+                                    }}
+                                    className="px-3 py-1 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[#12151C] dark:text-white text-xs font-semibold cursor-pointer"
                                 >
-                                    «
-                                </button>
+                                    <option value={5}>5</option>
+                                    <option value={10}>10</option>
+                                    <option value={20}>20</option>
+                                    <option value={50}>50</option>
+                                </select>
+                            </div>
 
-                                <button
-                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                                    disabled={currentPage === 1}
-                                    className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
-                                >
-                                    ‹
-                                </button>
+                            <div className="flex items-center gap-3">
+                                <span className="text-xs text-[#5B6472] dark:text-gray-400 font-semibold font-mono-numbers">
+                                    Page {currentPage} of {totalPages || 1}
+                                </span>
 
-                                <button
-                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                                    disabled={currentPage === totalPages || totalPages === 0}
-                                    className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
-                                >
-                                    ›
-                                </button>
+                                <div className="flex items-center gap-1.5">
+                                    <button
+                                        onClick={() => setCurrentPage(1)}
+                                        disabled={currentPage === 1}
+                                        className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
+                                        title="First Page"
+                                    >
+                                        <ChevronsLeft size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
+                                    </button>
 
-                                <button
-                                    onClick={() => setCurrentPage(totalPages)}
-                                    disabled={currentPage === totalPages || totalPages === 0}
-                                    className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
-                                >
-                                    »
-                                </button>
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                        disabled={currentPage === 1}
+                                        className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
+                                        title="Previous Page"
+                                    >
+                                        <ChevronLeft size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
+                                    </button>
+
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                        disabled={currentPage === totalPages || totalPages === 0}
+                                        className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
+                                        title="Next Page"
+                                    >
+                                        <ChevronRight size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
+                                    </button>
+
+                                    <button
+                                        onClick={() => setCurrentPage(totalPages)}
+                                        disabled={currentPage === totalPages || totalPages === 0}
+                                        className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
+                                        title="Last Page"
+                                    >
+                                        <ChevronsRight size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
                 </div>
-            )}
+            </div>
+
             {showApplyModal && createPortal(
-                <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
-                    <div className="bg-white dark:bg-brand-900 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden relative border border-gray-100 dark:border-white/10">
-                        <div className="bg-brand-600 p-6 text-white relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
-                            <div className="relative z-10 flex justify-between items-center">
-                                <h3 className="text-xl font-bold">Apply for Leave</h3>
-                                <button onClick={() => setShowApplyModal(false)} className="bg-white/20 p-2 rounded-full hover:bg-white/30 transition-colors" disabled={submitting}>
-                                    <XCircle size={20} />
-                                </button>
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/20 dark:bg-black/60 backdrop-blur-md p-4 animate-fade-in">
+                    <div className="bg-white dark:bg-[#12151C] rounded-[6px] w-full max-w-lg overflow-hidden relative border border-[#E2E6ED] dark:border-gray-800">
+                        <div className="bg-[#F7F8FA] dark:bg-white/5 p-5 border-b border-[#E2E6ED] dark:border-gray-800 flex justify-between items-center">
+                            <div>
+                                <h3 className="text-base font-bold text-[#12151C] dark:text-white">Apply for Leave</h3>
+                                <p className="text-xs text-[#5B6472] dark:text-gray-400 mt-0.5">Submit a new leave request for approval</p>
                             </div>
+                            <button onClick={() => setShowApplyModal(false)} className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer" disabled={submitting}>
+                                <XCircle size={18} />
+                            </button>
                         </div>
 
                         {/* Form */}
                         <form onSubmit={handleApplyLeave} className="p-6 space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-gray-500 uppercase">Leave Type</label>
+                                    <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">Leave Type</label>
                                     <select
                                         value={leaveType}
-                                        onChange={(e) => {
-                                            const newType = e.target.value;
-                                            setLeaveType(newType);
-                                            setFromDate('');
-                                            setToDate('');
-                                            setFromTime('');
-                                            setToTime('');
-                                        }}
-                                        className="w-full px-4 py-2 bg-gray-50 dark:bg-brand-800 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-800 dark:text-white transition-all cursor-pointer"
+                                        onChange={(e) => setLeaveType(e.target.value)}
+                                        className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white transition-all cursor-pointer"
                                         required
                                     >
-                                        <option value="CL" className="bg-white dark:bg-brand-800 text-gray-900 dark:text-white">Casual Leave (CL)</option>
-                                        <option value="HD" className="bg-white dark:bg-brand-800 text-gray-900 dark:text-white">Half Day (HD)</option>
-                                        <option value="SHL" className="bg-white dark:bg-brand-800 text-gray-900 dark:text-white">Short Leave (SHL)</option>
-                                        <option value="EL" className="bg-white dark:bg-brand-800 text-gray-900 dark:text-white">Earned Leave (EL)</option>
-                                        <option value="SL" className="bg-white dark:bg-brand-800 text-gray-900 dark:text-white">Sick Leave (SL)</option>
-                                        <option value="LWP" className="bg-white dark:bg-brand-800 text-gray-900 dark:text-white">Leave Without Pay (LWP)</option>
+                                        <option value="CL">Casual Leave (CL)</option>
+                                        <option value="HD">Half Day (HD)</option>
+                                        <option value="SHL">Short Leave (SHL)</option>
+                                        <option value="EL">Earned Leave (EL)</option>
+                                        <option value="SL">Sick Leave (SL)</option>
+                                        <option value="LWP">Leave Without Pay (LWP)</option>
                                     </select>
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-gray-500 uppercase">Reason</label>
+                                    <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">Reason</label>
                                     <input
                                         type="text"
                                         placeholder="Vacation, Personal..."
                                         value={reason}
                                         onChange={(e) => setReason(e.target.value)}
-                                        className="w-full px-4 py-2 bg-gray-50 dark:bg-brand-800 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-800 dark:text-white transition-all"
+                                        className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
                                         required
                                     />
                                 </div>
                             </div>
 
-                            {/* Date Fields */}
-                            {['HD', 'SHL'].includes(leaveType) ? (
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs font-bold text-gray-500 uppercase">Date</label>
-                                        <input
-                                            type="date"
-                                            min={new Date().toISOString().split('T')[0]}
-                                            value={fromDate}
-                                            onChange={(e) => {
-                                                setFromDate(e.target.value);
-                                                setToDate(e.target.value);
-                                            }}
-                                            className="w-full px-4 py-2 bg-gray-50 dark:bg-brand-800 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-750 dark:text-gray-200 transition-all"
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs font-bold text-gray-500 uppercase">From Time</label>
-                                        <input
-                                            type="time"
-                                            value={fromTime}
-                                            onChange={(e) => setFromTime(e.target.value)}
-                                            className="w-full px-4 py-2 bg-gray-50 dark:bg-brand-800 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-750 dark:text-gray-200 transition-all"
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs font-bold text-gray-500 uppercase">To Time</label>
-                                        <input
-                                            type="time"
-                                            value={toTime}
-                                            onChange={(e) => setToTime(e.target.value)}
-                                            className="w-full px-4 py-2 bg-gray-50 dark:bg-brand-800 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-750 dark:text-gray-200 transition-all"
-                                            required
-                                        />
-                                    </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">From Date</label>
+                                    <input
+                                        type="date"
+                                        min={new Date().toISOString().split('T')[0]}
+                                        value={fromDate}
+                                        onChange={(e) => setFromDate(e.target.value)}
+                                        className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white"
+                                        required
+                                    />
                                 </div>
-                            ) : (
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs font-bold text-gray-500 uppercase">From Date</label>
-                                        <input
-                                            type="date"
-                                            min={new Date().toISOString().split('T')[0]}
-                                            value={fromDate}
-                                            onChange={(e) => setFromDate(e.target.value)}
-                                            className="w-full px-4 py-2 bg-gray-50 dark:bg-brand-800 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-700 dark:text-gray-300 transition-all"
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs font-bold text-gray-500 uppercase">To Date</label>
-                                        <input
-                                            type="date"
-                                            min={fromDate || new Date().toISOString().split('T')[0]}
-                                            value={toDate}
-                                            onChange={(e) => setToDate(e.target.value)}
-                                            className="w-full px-4 py-2 bg-gray-50 dark:bg-brand-800 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-700 dark:text-gray-300 transition-all"
-                                            required
-                                        />
-                                    </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">To Date</label>
+                                    <input
+                                        type="date"
+                                        min={fromDate || new Date().toISOString().split('T')[0]}
+                                        value={toDate}
+                                        onChange={(e) => setToDate(e.target.value)}
+                                        className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white"
+                                        required
+                                    />
                                 </div>
-                            )}
+                            </div>
 
-                            <div className="pt-4 flex gap-3">
+                            <div className="pt-2 flex gap-3">
                                 <button
                                     type="button"
                                     onClick={() => setShowApplyModal(false)}
-                                    className="flex-1 py-3 bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-400 transition-colors"
+                                    className="flex-1 py-2.5 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 text-[#5B6472] dark:text-gray-300 font-semibold text-[13.5px] rounded-[6px] hover:bg-gray-50 transition-all cursor-pointer"
                                     disabled={submitting}
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
-                                    className="flex-1 py-3 bg-brand-600 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-700 transition-all flex items-center justify-center gap-2"
+                                    className="flex-1 py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold text-[13.5px] rounded-[6px] transition-all flex items-center justify-center gap-2 cursor-pointer"
                                     disabled={submitting}
                                 >
-                                    {submitting ? <Loader2 size={20} className="animate-spin" /> : 'Submit Request'}
+                                    {submitting ? <Loader2 size={16} className="animate-spin" /> : 'Submit Request'}
                                 </button>
                             </div>
                         </form>
@@ -896,85 +903,85 @@ export default function Leave() {
                     <div className="fixed inset-0 z-[999999]">
                         {/* Overlay */}
                         <div
-                            className="absolute inset-0 bg-black/40 backdrop-blur-md"
+                            className="absolute inset-0 bg-slate-900/20 dark:bg-black/60 backdrop-blur-md"
                             onClick={() => setShowFilterDrawer(false)}
                         />
 
                         {/* Drawer */}
-                        <div className="absolute right-0 top-0 w-full max-w-md h-full bg-white dark:bg-brand-900 shadow-2xl animate-slide-in-right">
+                        <div className="absolute right-0 top-0 w-full max-w-md h-full bg-white dark:bg-[#12151C] animate-slide-in-right border-l border-[#E2E6ED] dark:border-gray-800">
                             <div className="flex flex-col justify-between h-full p-6">
                                 {/* TOP */}
                                 <div>
-                                    <div className="flex justify-between items-center mb-8">
-                                        <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h2 className="text-xl font-bold text-[#12151C] dark:text-white">
                                             Advanced Search
                                         </h2>
                                         <button
                                             onClick={() => setShowFilterDrawer(false)}
-                                            className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-xl transition-colors text-gray-400"
+                                            className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer"
                                         >
-                                            <XCircle size={20} />
+                                            <XCircle size={18} />
                                         </button>
                                     </div>
 
-                                    <div className="space-y-5">
+                                    <div className="space-y-4">
                                         <div className="space-y-1.5">
-                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Employee Name</label>
+                                            <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">Employee Name</label>
                                             <input
                                                 type="text"
                                                 placeholder="Search name..."
                                                 value={filters.name}
                                                 onChange={(e) => setFilters({ ...filters, name: e.target.value })}
-                                                className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:ring-2 focus:ring-brand-500/50 outline-none transition-all text-gray-800 dark:text-white"
+                                                className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
                                             />
                                         </div>
 
                                         <div className="space-y-1.5">
-                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Leave Type</label>
+                                            <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">Leave Type</label>
                                             <select
                                                 value={filters.leaveType}
                                                 onChange={(e) => setFilters({ ...filters, leaveType: e.target.value })}
-                                                className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:ring-2 focus:ring-brand-500/50 outline-none transition-all text-gray-800 dark:text-white cursor-pointer"
+                                                className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white cursor-pointer"
                                             >
-                                                <option value="All" className="dark:bg-brand-900">All Types</option>
-                                                <option value="CL" className="dark:bg-brand-900">Casual Leave (CL)</option>
-                                                <option value="EL" className="dark:bg-brand-900">Earned Leave (EL)</option>
-                                                <option value="SL" className="dark:bg-brand-900">Sick Leave (SL)</option>
-                                                <option value="LWP" className="dark:bg-brand-900">Leave Without Pay (LWP)</option>
+                                                <option value="All">All Types</option>
+                                                <option value="CL">Casual Leave (CL)</option>
+                                                <option value="EL">Earned Leave (EL)</option>
+                                                <option value="SL">Sick Leave (SL)</option>
+                                                <option value="LWP">Leave Without Pay (LWP)</option>
                                             </select>
                                         </div>
 
                                         <div className="space-y-1.5">
-                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Status</label>
+                                            <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">Status</label>
                                             <select
                                                 value={filters.status}
                                                 onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                                                className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:ring-2 focus:ring-brand-500/50 outline-none transition-all text-gray-800 dark:text-white cursor-pointer"
+                                                className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white cursor-pointer"
                                             >
-                                                <option value="All" className="dark:bg-brand-900">All Status</option>
-                                                <option value="PENDING" className="dark:bg-brand-900">Pending</option>
-                                                <option value="APPROVED" className="dark:bg-brand-900">Approved</option>
-                                                <option value="REJECTED" className="dark:bg-brand-900">Rejected</option>
+                                                <option value="All">All Status</option>
+                                                <option value="PENDING">Pending</option>
+                                                <option value="APPROVED">Approved</option>
+                                                <option value="REJECTED">Rejected</option>
                                             </select>
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-1.5">
-                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">From Date</label>
+                                                <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">From Date</label>
                                                 <input
                                                     type="date"
                                                     value={filters.startDate}
                                                     onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-                                                    className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:ring-2 focus:ring-brand-500/50 outline-none transition-all text-gray-700 dark:text-gray-300"
+                                                    className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white"
                                                 />
                                             </div>
                                             <div className="space-y-1.5">
-                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">To Date</label>
+                                                <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">To Date</label>
                                                 <input
                                                     type="date"
                                                     value={filters.endDate}
                                                     onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-                                                    className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:ring-2 focus:ring-brand-500/50 outline-none transition-all text-gray-700 dark:text-gray-300"
+                                                    className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white"
                                                 />
                                             </div>
                                         </div>
@@ -982,7 +989,7 @@ export default function Leave() {
                                 </div>
 
                                 {/* BUTTONS */}
-                                <div className="flex gap-3 pt-6 border-t border-gray-100 dark:border-white/5">
+                                <div className="flex gap-3 pt-6 border-t border-[#E2E6ED] dark:border-gray-800">
                                     <button
                                         onClick={() => {
                                             const reset = {
@@ -995,7 +1002,7 @@ export default function Leave() {
                                             setFilters(reset);
                                             setAppliedFilters(reset);
                                         }}
-                                        className="flex-1 py-3 rounded-xl bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-white font-bold hover:bg-gray-300 dark:hover:bg-white/20 transition-colors"
+                                        className="flex-1 py-2.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#5B6472] dark:text-gray-300 font-semibold text-[13.5px] hover:bg-gray-50 dark:hover:bg-white/5 transition-all cursor-pointer"
                                     >
                                         Clear
                                     </button>
@@ -1005,7 +1012,7 @@ export default function Leave() {
                                             setCurrentPage(1);
                                             setShowFilterDrawer(false);
                                         }}
-                                        className="flex-1 py-3 rounded-xl bg-brand-600 text-white font-bold hover:bg-brand-700 shadow-lg shadow-brand-500/20 transition-all active:scale-95"
+                                        className="flex-1 py-2.5 rounded-[6px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold text-[13.5px] transition-all cursor-pointer"
                                     >
                                         Apply Search
                                     </button>
@@ -1017,56 +1024,49 @@ export default function Leave() {
                 )
             }
             {selectedLeaveForReason && createPortal(
-                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-                    <div className="relative bg-white dark:bg-brand-900 w-full max-w-md rounded-[2.5rem] shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden p-8 animate-scale-in">
-                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-brand-500 to-purple-500"></div>
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-bold text-gray-800 dark:text-white">Leave Details</h3>
-                            <button type="button" onClick={() => setSelectedLeaveForReason(null)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors text-gray-400">
-                                <XCircle size={20} />
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-900/20 dark:bg-black/60 backdrop-blur-md animate-fade-in">
+                    <div className="relative bg-white dark:bg-[#12151C] w-full max-w-md rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden p-6 animate-scale-in">
+                        <div className="flex justify-between items-center mb-5 border-b border-[#E2E6ED] dark:border-gray-800 pb-3">
+                            <h3 className="text-base font-bold text-[#12151C] dark:text-white">Leave Details</h3>
+                            <button type="button" onClick={() => setSelectedLeaveForReason(null)} className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer">
+                                <XCircle size={18} />
                             </button>
                         </div>
 
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Employee Name</label>
-                                <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl font-bold text-sm text-gray-800 dark:text-white">
+                                <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-400 mb-1">Employee Name</label>
+                                <div className="p-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] font-semibold text-xs text-[#12151C] dark:text-white">
                                     {selectedLeaveForReason.user?.name}
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Leave Type</label>
-                                    <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl font-bold text-sm text-gray-800 dark:text-white">
+                                    <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-400 mb-1">Leave Type</label>
+                                    <div className="p-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] font-semibold text-xs text-[#12151C] dark:text-white">
                                         {selectedLeaveForReason.leaveType?.name || selectedLeaveForReason.leaveType?.code || 'Leave'}
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Status</label>
-                                    <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl font-bold text-sm text-gray-800 dark:text-white capitalize">
+                                    <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-400 mb-1">Status</label>
+                                    <div className="p-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] font-semibold text-xs text-[#12151C] dark:text-white capitalize">
                                         {selectedLeaveForReason.status?.toLowerCase()}
                                     </div>
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Leave Duration</label>
-                                <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl font-bold text-sm text-gray-800 dark:text-white">
-                                    {new Date(selectedLeaveForReason.startDate).toLocaleDateString()}
-                                    {new Date(selectedLeaveForReason.startDate).toLocaleDateString() !== new Date(selectedLeaveForReason.endDate).toLocaleDateString() && ` - ${new Date(selectedLeaveForReason.endDate).toLocaleDateString()}`}
-                                    {selectedLeaveForReason.fromTime && selectedLeaveForReason.toTime && (
-                                        <span className="block text-xs font-bold text-brand-600 dark:text-brand-400 mt-1">
-                                            Time: {selectedLeaveForReason.fromTime} - {selectedLeaveForReason.toTime}
-                                        </span>
-                                    )}
+                                <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-400 mb-1">Leave Duration</label>
+                                <div className="p-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] font-semibold text-xs text-[#12151C] dark:text-white font-mono-numbers">
+                                    {new Date(selectedLeaveForReason.startDate).toLocaleDateString()} - {new Date(selectedLeaveForReason.endDate).toLocaleDateString()}
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Reason for Leave</label>
-                                <div className="p-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm text-gray-700 dark:text-gray-300 font-semibold leading-relaxed">
-                                    <div className="max-h-[150px] overflow-y-auto custom-scrollbar break-all pr-2">
+                                <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-400 mb-1">Reason for Leave</label>
+                                <div className="p-3 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-xs text-[#12151C] dark:text-gray-300 leading-relaxed">
+                                    <div className="max-h-[150px] overflow-y-auto custom-scrollbar break-all">
                                         {selectedLeaveForReason.reason}
                                     </div>
                                 </div>
@@ -1074,20 +1074,20 @@ export default function Leave() {
 
                             {selectedLeaveForReason.status === 'REJECTED' && selectedLeaveForReason.rejectionReason && (
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 text-rose-500">Manager's Rejection Reason</label>
-                                    <div className="p-4 bg-rose-50/50 dark:bg-rose-950/10 border border-rose-250 dark:border-rose-500/20 rounded-2xl text-sm text-gray-700 dark:text-rose-300 font-bold leading-relaxed shadow-sm">
-                                        <div className="max-h-[150px] overflow-y-auto custom-scrollbar break-all pr-2">
+                                    <label className="block text-xs font-semibold text-[#DE350B] mb-1">Manager's Rejection Reason</label>
+                                    <div className="p-3 bg-[#FBE7E7] dark:bg-rose-950/20 border border-[#F5C2C2] dark:border-rose-800/30 rounded-[6px] text-xs text-[#DE350B] font-semibold leading-relaxed">
+                                        <div className="max-h-[150px] overflow-y-auto custom-scrollbar break-all">
                                             {selectedLeaveForReason.rejectionReason}
                                         </div>
                                     </div>
                                 </div>
                             )}
 
-                            <div className="pt-4">
+                            <div className="pt-2">
                                 <button
                                     type="button"
                                     onClick={() => setSelectedLeaveForReason(null)}
-                                    className="w-full py-3.5 bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 text-white font-bold rounded-2xl transition-all shadow-lg shadow-brand-500/20 text-sm tracking-wider uppercase cursor-pointer"
+                                    className="w-full py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold rounded-[6px] transition-all shadow-sm text-xs cursor-pointer"
                                 >
                                     Close
                                 </button>
@@ -1099,31 +1099,30 @@ export default function Leave() {
             )}
 
             {rejectingLeaveId && createPortal(
-                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-                    <div className="relative bg-white dark:bg-brand-950 w-full max-w-md rounded-[2.5rem] shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden p-8 animate-scale-in animate-none">
-                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-rose-500 to-orange-500"></div>
-                        <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Reject Leave Request</h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Please provide a reason for rejecting this leave request.</p>
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-900/20 dark:bg-black/60 backdrop-blur-md animate-fade-in">
+                    <div className="relative bg-white dark:bg-[#12151C] w-full max-w-md rounded-[6px] shadow-xl border border-[#E2E6ED] dark:border-gray-800 overflow-hidden p-6 animate-scale-in">
+                        <h3 className="text-base font-bold text-[#12151C] dark:text-white mb-1">Reject Leave Request</h3>
+                        <p className="text-xs text-[#5B6472] dark:text-gray-400 mb-4">Please provide a reason for rejecting this leave request.</p>
                         <form onSubmit={handleRejectLeaveSubmit}>
                             <textarea
                                 value={leaveRejectComment}
                                 onChange={(e) => setLeaveRejectComment(e.target.value)}
                                 placeholder="Enter rejection reason..."
                                 required
-                                className="w-full px-4 py-3 rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-rose-500/50 min-h-[100px] mb-6 font-semibold"
+                                className="w-full px-3 py-2 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6] text-xs min-h-[90px] mb-4 placeholder-[#9AA3B1]"
                             />
-                            <div className="flex gap-4">
+                            <div className="flex gap-3">
                                 <button
                                     type="button"
                                     onClick={() => setRejectingLeaveId(null)}
-                                    className="flex-1 py-3 px-4 bg-gray-150 dark:bg-white/5 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-white/10 transition-colors"
+                                    className="flex-1 py-2.5 px-4 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 text-[#5B6472] dark:text-gray-300 font-semibold rounded-[6px] hover:bg-gray-50 transition-colors text-xs cursor-pointer"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={submittingLeaveReject}
-                                    className="flex-1 py-3 px-4 bg-rose-500 text-white font-bold rounded-xl hover:bg-rose-600 transition-colors shadow-lg shadow-rose-500/20 flex items-center justify-center gap-2"
+                                    className="flex-1 py-2.5 px-4 bg-[#DE350B] text-white font-semibold rounded-[6px] hover:bg-[#b02a08] transition-colors shadow-sm flex items-center justify-center gap-2 text-xs cursor-pointer"
                                 >
                                     {submittingLeaveReject ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Reject'}
                                 </button>

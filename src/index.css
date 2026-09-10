@@ -1,51 +1,59 @@
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: 'Inter', 'sans-serif';
+  --font-ui: "Instrument Sans", -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
 
-  --color-brand-50: #f5f3ff;
-  --color-brand-100: #ede9fe;
-  --color-brand-200: #ddd6fe;
-  --color-brand-300: #c4b5fd;
-  --color-brand-400: #a78bfa;
-  --color-brand-500: #8b5cf6;
-  --color-brand-600: #7c3aed;
-  --color-brand-700: #6d28d9;
-  --color-brand-800: #5b21b6;
-  --color-brand-900: #4c1d95;
-  --color-brand-950: #0B0A1F;
+  /* Primary Font mapping */
+  --font-sans: "Instrument Sans", -apple-system, "Segoe UI", sans-serif;
 
-  --color-mobile-blue-50: #eff6ff;
-  --color-mobile-blue-100: #dbeafe;
-  --color-mobile-blue-400: #60a5fa;
-  /* Added implicit 400 for gradient */
-  --color-mobile-blue-500: #3b82f6;
-  --color-mobile-blue-600: #2563eb;
-  --color-mobile-blue-700: #1d4ed8;
-  --color-mobile-blue-DEFAULT: #0056D2;
+  /* Omni Design System Tokens */
+  --color-omni-bg: #F7F8FA;
+  --color-omni-surface: #FFFFFF;
+  --color-omni-sunken: #EEF1F5;
+  --color-omni-ink: #12151C;
+  --color-omni-ink-muted: #5B6472;
+  --color-omni-ink-faint: #9AA3B1;
+  --color-omni-border: #E2E6ED;
+  --color-omni-accent: #2C4FD6;
+  --color-omni-accent-soft: #E8ECFC;
+  --color-omni-success: #1F8A5A;
+  --color-omni-success-soft: #E4F5EC;
+  --color-omni-warning: #B8792A;
+  --color-omni-warning-soft: #FBF0E1;
+  --color-omni-critical: #C13A3A;
+  --color-omni-critical-soft: #FBE7E7;
 
-  --color-sidebar: #1e1b4b;
-  --color-sidebar-active: #4c1d95;
+  --radius-omni: 11px;
+  --radius-omni-sm: 7px;
 
-  --color-mint-50: #f0fdf9;
-  --color-mint-100: #ccfbf1;
-  --color-mint-200: #99f6e4;
-  --color-mint-300: #5eead4;
-  --color-mint-400: #2dd4bf;
-  --color-mint-500: #14b8a6;
-  --color-mint-600: #0d9488;
+  /* Compatibility mappings for brand */
+  --color-brand-50: #E8ECFC;
+  --color-brand-100: #E8ECFC;
+  --color-brand-500: #2C4FD6;
+  --color-brand-600: #2442B8;
+  --color-brand-700: #1D3599;
+  --color-brand-950: #12151C;
 }
 
+:root {
+  --font-ui: "Instrument Sans", -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
+}
 
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900;
+    font-family: var(--font-ui);
+    background-color: #F7F8FA;
+    color: #12151C;
   }
 
-  .dark body {
-    @apply bg-brand-950 text-white;
+  .font-mono-numbers {
+    font-family: var(--font-mono);
   }
 
   button,
@@ -62,13 +70,13 @@
 /* Custom utilities if needed */
 @layer utilities {
   .animate-fade-in-up {
-    animation: fadeInUp 0.5s ease-out forwards;
+    animation: fadeInUp 0.18s ease-out forwards;
   }
 
   @keyframes fadeInUp {
     from {
       opacity: 0;
-      transform: translateY(20px);
+      transform: translateY(8px);
     }
 
     to {
@@ -80,6 +88,7 @@
 
 ::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -87,12 +96,20 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, #7c3aed, #a855f7);
+  background: #CBD5E1;
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a855f7;
+  background: #94A3B8;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
 }
 
 @keyframes slide-in-right {
@@ -120,11 +137,31 @@
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.3s ease-out forwards;
+  animation: fadeIn 0.12s ease-out forwards;
+}
+
+/* Tab panel show/hide — keeps both panels mounted for zero-cost switching */
+.tab-panel-hidden {
+  display: none;
+}
+
+.tab-panel-active {
+  animation: tabFadeIn 0.12s ease-out forwards;
+}
+
+@keyframes tabFadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
+  width: 5px;
+  height: 5px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -132,12 +169,20 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(139, 92, 246, 0.5);
+  background: #CBD5E1;
   border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 92, 246, 0.8);
+  background: #94A3B8;
+}
+
+html.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
+html.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #475569;
 }
 
 /* Remove outline/border highlight when clicking on charts */
@@ -181,14 +226,20 @@ select:-webkit-autofill:focus {
 
 /* Sign-in input text */
 .login-input {
-  color: #000000 !important;
-  -webkit-text-fill-color: #000000 !important;
-  caret-color: #000000 !important;
+  color: #12151C !important;
+  -webkit-text-fill-color: #12151C !important;
+  caret-color: #12151C !important;
+}
+
+.dark .login-input {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  caret-color: #FFFFFF !important;
 }
 
 .login-input::placeholder {
-  color: #6b7280 !important;
-  -webkit-text-fill-color: #6b7280 !important;
+  color: #9AA3B1 !important;
+  -webkit-text-fill-color: #9AA3B1 !important;
   opacity: 1;
 }
 
@@ -197,9 +248,35 @@ select:-webkit-autofill:focus {
 .login-input:-webkit-autofill:hover,
 .login-input:-webkit-autofill:focus,
 .login-input:-webkit-autofill:active {
-  color: #000000 !important;
-  -webkit-text-fill-color: #000000 !important;
-  caret-color: #000000 !important;
-  -webkit-box-shadow: 0 0 0 1000px #f9fafb inset !important;
-  box-shadow: 0 0 0 1000px #f9fafb inset !important;
+  color: #12151C !important;
+  -webkit-text-fill-color: #12151C !important;
+  caret-color: #12151C !important;
+  -webkit-box-shadow: 0 0 0 1000px #F7F8FA inset !important;
+  box-shadow: 0 0 0 1000px #F7F8FA inset !important;
+}
+
+.dark .login-input:-webkit-autofill,
+.dark .login-input:-webkit-autofill:hover,
+.dark .login-input:-webkit-autofill:focus,
+.dark .login-input:-webkit-autofill:active {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  caret-color: #FFFFFF !important;
+  -webkit-box-shadow: 0 0 0 1000px #12151C inset !important;
+  box-shadow: 0 0 0 1000px #12151C inset !important;
+}
+
+/* Remove all shadows from cards, graphs, modals, buttons, panels across the app */
+*,
+::before,
+::after {
+  box-shadow: none !important;
+}
+
+.login-input:-webkit-autofill {
+  box-shadow: 0 0 0 1000px #F7F8FA inset !important;
+}
+
+.dark .login-input:-webkit-autofill {
+  box-shadow: 0 0 0 1000px #12151C inset !important;
 }

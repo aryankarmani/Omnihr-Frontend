@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -183,13 +183,12 @@ export default function EmployeeAttendanceView() {
     const startingDayOfWeek = firstDay.getDay();
 
     const days = [];
-
     // Empty slots for days before the 1st
     for (let i = 0; i < startingDayOfWeek; i++) {
       days.push(
         <div
           key={`empty-${i}`}
-          className="h-24 bg-gray-50/50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-xl"
+          className="h-24 bg-gray-50/50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-[6px]"
         />
       );
     }
@@ -221,7 +220,7 @@ export default function EmployeeAttendanceView() {
       days.push(
         <div
           key={day}
-          className={`h-24 p-2 rounded-xl border transition-shadow hover:shadow-md cursor-pointer ${isToday
+          className={`h-24 p-2 rounded-[6px] border transition-shadow hover:shadow-md cursor-pointer ${isToday
             ? 'border-brand-500 ring-2 ring-brand-500 shadow-[0_0_15px_rgba(124,58,237,0.2)] z-10'
             : 'border-gray-100 dark:border-white/10'
             } ${holiday ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200' : 'bg-white dark:bg-brand-800'}`}
@@ -243,10 +242,8 @@ export default function EmployeeAttendanceView() {
             </span>
           </div>
 
-
-
           {holiday && (
-            <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-1 rounded truncate w-full block text-center mt-1 font-bold shadow-sm">
+            <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-1 rounded-[6px] truncate w-full block text-center mt-1 font-bold shadow-sm">
               {holiday.name}
             </span>
           )}
@@ -288,7 +285,7 @@ export default function EmployeeAttendanceView() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate(-1)}
-            className="p-2 bg-white dark:bg-brand-900 border border-gray-100 dark:border-white/10 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-colors shadow-sm"
+            className="p-2 bg-white dark:bg-brand-900 border border-gray-100 dark:border-white/10 rounded-[6px] hover:bg-gray-50 dark:hover:bg-white/5 transition-colors shadow-sm"
           >
             <ArrowLeft size={20} className="text-gray-600 dark:text-gray-300" />
           </button>
@@ -306,77 +303,75 @@ export default function EmployeeAttendanceView() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div className="bg-white dark:bg-brand-900 p-6 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm">
-          <div className="w-10 h-10 bg-green-100 text-green-600 rounded-lg flex items-center justify-center mb-4">
-            <CheckCircle size={20} />
+        <div className="bg-white dark:bg-[#12151C] p-6 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 shadow-sm flex flex-col justify-start h-[260px]">
+          <div className="w-9 h-9 border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 text-[#9AA3B1] rounded-[6px] flex items-center justify-center mb-6">
+            <CheckCircle size={18} />
           </div>
-          <h4 className="text-2xl font-bold text-gray-800 dark:text-white">
+          <h4 className="text-4xl font-black text-[#12151C] dark:text-white font-mono-numbers tracking-tight">
             {stats.present}
           </h4>
-          <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase mt-1">
+          <p className="text-xs text-[#9AA3B1] font-medium mt-1.5">
             Present Days
           </p>
         </div>
 
-        <div className="bg-white dark:bg-brand-900 p-6 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm">
-          <div className="w-10 h-10 bg-red-100 text-red-600 rounded-lg flex items-center justify-center mb-4">
-            <AlertCircle size={20} />
+        <div className="bg-white dark:bg-[#12151C] p-6 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 shadow-sm flex flex-col justify-start h-[260px]">
+          <div className="w-9 h-9 border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 text-[#9AA3B1] rounded-[6px] flex items-center justify-center mb-6">
+            <AlertCircle size={18} />
           </div>
-          <h4 className="text-2xl font-bold text-gray-800 dark:text-white">
+          <h4 className="text-4xl font-black text-[#12151C] dark:text-white font-mono-numbers tracking-tight">
             {stats.absent}
           </h4>
-          <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase mt-1">
+          <p className="text-xs text-[#9AA3B1] font-medium mt-1.5">
             Absents
           </p>
         </div>
 
-
-
-        <div className="bg-white dark:bg-brand-900 p-6 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm">
-          <div className="w-10 h-10 bg-orange-100 text-orange-600 rounded-lg flex items-center justify-center mb-4">
-            <Clock size={20} />
+        <div className="bg-white dark:bg-[#12151C] p-6 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 shadow-sm flex flex-col justify-start h-[260px]">
+          <div className="w-9 h-9 border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 text-[#9AA3B1] rounded-[6px] flex items-center justify-center mb-6">
+            <Clock size={18} />
           </div>
-          <h4 className="text-2xl font-bold text-gray-800 dark:text-white">
+          <h4 className="text-4xl font-black text-[#12151C] dark:text-white font-mono-numbers tracking-tight">
             {stats.late}
           </h4>
-          <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase mt-1">
+          <p className="text-xs text-[#9AA3B1] font-medium mt-1.5">
             Late Marks
           </p>
         </div>
 
-        <div className="bg-white dark:bg-brand-900 p-6 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm">
-          <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center mb-4">
-            <Coffee size={20} />
+        <div className="bg-white dark:bg-[#12151C] p-6 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 shadow-sm flex flex-col justify-start h-[260px]">
+          <div className="w-9 h-9 border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 text-[#9AA3B1] rounded-[6px] flex items-center justify-center mb-6">
+            <Coffee size={18} />
           </div>
-          <h4 className="text-2xl font-bold text-gray-800 dark:text-white">
+          <h4 className="text-4xl font-black text-[#12151C] dark:text-white font-mono-numbers tracking-tight">
             {holidays.filter(h => {
               const hDate = new Date(h.date);
               return hDate.getMonth() === selectedMonth.getMonth() &&
                 hDate.getFullYear() === selectedMonth.getFullYear();
             }).length}
           </h4>
-          <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase mt-1">
+          <p className="text-xs text-[#9AA3B1] font-medium mt-1.5">
             Holidays
           </p>
         </div>
       </div>
 
       {/* Monthly Calendar */}
-      <div className="bg-white dark:bg-brand-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-white/5">
+      <div className="bg-white dark:bg-brand-900 rounded-[6px] p-6 shadow-sm border border-gray-100 dark:border-white/5">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
             <Calendar size={20} className="text-brand-500" /> Monthly Log
           </h3>
 
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-4 bg-gray-50 dark:bg-white/5 p-1 rounded-xl">
+            <div className="flex items-center gap-4 bg-gray-50 dark:bg-white/5 p-1 rounded-[6px]">
               <button
                 onClick={() =>
                   setSelectedMonth(
                     new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() - 1, 1)
                   )
                 }
-                className="p-2 hover:bg-white dark:hover:bg-white/10 rounded-lg transition-colors"
+                className="p-2 hover:bg-white dark:hover:bg-white/10 rounded-[6px] transition-colors"
               >
                 <ChevronLeft size={20} />
               </button>
@@ -392,7 +387,7 @@ export default function EmployeeAttendanceView() {
                     new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 1)
                   )
                 }
-                className="p-2 hover:bg-white dark:hover:bg-white/10 rounded-lg transition-colors"
+                className="p-2 hover:bg-white dark:hover:bg-white/10 rounded-[6px] transition-colors"
               >
                 <ChevronRight size={20} />
               </button>
@@ -415,7 +410,7 @@ export default function EmployeeAttendanceView() {
         {/* Calendar grid */}
         <div className="grid grid-cols-7 gap-2 relative min-h-[400px]">
           {loading && (
-            <div className="absolute inset-0 bg-white/60 dark:bg-brand-900/60 backdrop-blur-sm z-10 flex items-center justify-center rounded-2xl">
+            <div className="absolute inset-0 bg-white/60 dark:bg-brand-900/60 backdrop-blur-sm z-10 flex items-center justify-center rounded-[6px]">
               <Loader2 className="animate-spin text-brand-500" size={40} />
             </div>
           )}

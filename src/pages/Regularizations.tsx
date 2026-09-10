@@ -6,13 +6,12 @@ import {
   Search,
   Loader2,
   CheckCircle,
-  XIcon
+  XIcon,
+  Filter
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { createPortal } from 'react-dom';
-// import { useAuth } from '../context/AuthContext';
-// import { getTeams } from '../utils/teamApi';
 
 interface RegularizationRequest {
   id: string;
@@ -44,12 +43,10 @@ export default function Regularizations() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectComment, setRejectComment] = useState('');
   const [submittingReject, setSubmittingReject] = useState(false);
   const [selectedRequestForReason, setSelectedRequestForReason] = useState<RegularizationRequest | null>(null);
-
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -67,7 +64,6 @@ export default function Regularizations() {
   useEffect(() => {
     fetchRequests();
   }, []);
-
 
   const handleApprove = async (id: string) => {
     try {
@@ -105,11 +101,9 @@ export default function Regularizations() {
     }
   };
 
-
   const formatTime12h = (timeStr?: string) => {
     if (!timeStr) return '--:--';
     try {
-
       if (/^\d{2}:\d{2}(:\d{2})?$/.test(timeStr)) {
         const [hoursStr, minutesStr] = timeStr.split(':');
         let hours = parseInt(hoursStr, 10);
@@ -121,10 +115,8 @@ export default function Regularizations() {
         return `${hours}:${minutesFormatted} ${ampm}`;
       }
 
-
       const date = new Date(timeStr);
       if (isNaN(date.getTime())) {
-
         const match = timeStr.match(/(\d{2}):(\d{2})/);
         if (match) {
           let hours = parseInt(match[1], 10);
@@ -143,12 +135,7 @@ export default function Regularizations() {
     }
   };
 
-
   const filteredRequests = requests.filter(req => {
-    // if (user?.role === 'MANAGER' && !teamMemberIds.includes(req.userId || req.user?.id || 0)) {
-    //   return false;
-    // }
-
     const name = req.user?.name || '';
     const email = req.user?.email || '';
     const title = req.user?.employeeProfile?.title || '';
@@ -165,73 +152,71 @@ export default function Regularizations() {
 
   return (
     <div className="animate-fade-in-up pb-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Attendance Regularizations</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Review and approve attendance regularization requests</p>
+        </div>
+      </div>
 
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-        <div className="flex items-center gap-4">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Attendance Regularizations</h2>
-            <p className="text-gray-500 dark:text-gray-400">Review and approve attendance regularization requests</p>
+      {/* Filter Row */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-6">
+        <div className="relative w-full max-w-[340px] group">
+          <div className="relative flex items-center search">
+            <Search size={15} className="absolute left-3 text-[#9AA3B1] group-focus-within:text-[#2C4FD6] transition-colors" />
+            <input
+              type="text"
+              placeholder="Search by name, role or reason..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-3 py-[9px] h-[36px] bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[7px] outline-none focus:border-[#2C4FD6] transition-all text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
+            />
           </div>
         </div>
+
+        <button className="flex items-center gap-2 border border-[#E2E6ED] dark:border-gray-800 rounded-[8px] px-3 py-[9px] text-[13px] font-semibold text-[#5B6472] dark:text-gray-300 bg-white dark:bg-[#12151C] hover:bg-gray-50 dark:hover:bg-white/5 transition-all shrink-0 cursor-pointer self-end sm:self-auto">
+          <Filter size={15} className="text-[#5B6472] dark:text-gray-300" />
+        </button>
       </div>
-
-
-
-
-      <div className="bg-white dark:bg-brand-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 mb-6 flex flex-col md:flex-row gap-4 items-center">
-        <div className="relative flex-1 w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-          <input
-            type="text"
-            placeholder="Search by name, role or reason..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-gray-800 dark:text-white font-medium"
-          />
-        </div>
-
-      </div>
-
 
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-brand-900 rounded-3xl border border-gray-100 dark:border-white/5">
-          <Loader2 className="w-12 h-12 text-brand-500 animate-spin mb-4" />
-          <p className="text-gray-500 dark:text-gray-400 font-medium">Fetching requests...</p>
+        <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-900 rounded-xl border border-[#E2E6ED] dark:border-gray-800">
+          <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-3" />
+          <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Fetching requests...</p>
         </div>
       ) : filteredRequests.length === 0 ? (
-        <div className="text-center py-20 bg-white dark:bg-brand-900 rounded-3xl border border-gray-100 dark:border-white/5 shadow-inner">
-          <Calendar size={48} className="mx-auto text-gray-300 mb-4 opacity-50" />
-          <h3 className="text-xl font-bold text-gray-800 dark:text-white">No Pending Regularizations</h3>
-          <p className="text-gray-500 dark:text-gray-400 mt-2">All requests have been processed successfully.</p>
+        <div className="text-center py-20 bg-white dark:bg-gray-900 rounded-xl border border-[#E2E6ED] dark:border-gray-800">
+          <Calendar size={44} className="mx-auto text-gray-300 mb-3 opacity-60" />
+          <h3 className="text-lg font-bold text-gray-800 dark:text-white">No Pending Regularizations</h3>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">All requests have been processed successfully.</p>
         </div>
       ) : (
-        <div className="bg-white dark:bg-brand-900 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm overflow-hidden animate-fade-in-up">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-[#E2E6ED] dark:border-gray-800 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead className="bg-gray-50 dark:bg-white/5">
-                <tr>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
-                    Employee
-                  </th>                  <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Date</th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Proposed In/Out Times</th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Reason</th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest text-right">Actions</th>
+            <table className="w-full text-left border-collapse min-w-[700px]">
+              <thead>
+                <tr className="bg-[#EEF1F5] dark:bg-gray-800/60 text-[#9AA3B1] dark:text-gray-400 text-[11px] font-semibold uppercase tracking-[.05em]">
+                  <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800">
+                    EMPLOYEE
+                  </th>
+                  <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800">
+                    DATE
+                  </th>
+                  <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800">
+                    PROPOSED IN/OUT
+                  </th>
+                  <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800">
+                    REASON
+                  </th>
+                  <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 text-right"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                {filteredRequests.map((req, index) => {
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                {filteredRequests.map((req) => {
                   const name = req.user?.name || `Employee #${req.userId}`;
                   const title = req.user?.employeeProfile?.title || 'Employee';
                   const department = req.user?.employeeProfile?.department || 'General';
-                  const colors = [
-                    'bg-blue-500',
-                    'bg-purple-500',
-                    'bg-orange-500',
-                    'bg-pink-500',
-                    'bg-teal-500',
-                  ];
-
-                  const avatarColor = colors[index % colors.length];
 
                   const initials = name
                     .trim()
@@ -239,43 +224,40 @@ export default function Regularizations() {
                     .slice(0, 2)
                     .map((word) => word.charAt(0).toUpperCase())
                     .join('');
+
                   return (
-                    <tr key={req.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
-                      <td className="px-6 py-4">
+                    <tr key={req.id} className="hover:bg-gray-50/60 dark:hover:bg-gray-800/40 transition-colors">
+                      <td className="py-[13px] px-[22px]">
                         <div className="flex items-center gap-3">
-                          <div
-                            className={`w-11 h-11 shrink-0 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md ${avatarColor}`}
-                          >
+                          <div className="w-8 h-8 rounded-full bg-[#EEF1F5] dark:bg-gray-700 text-[#5B6472] dark:text-gray-300 font-bold text-xs flex items-center justify-center shrink-0 uppercase font-mono-numbers">
                             {initials}
                           </div>
-
                           <div>
                             <button
                               onClick={() => navigate(`/employee/${req.user?.id || req.userId}`)}
-                              className="font-bold text-gray-800 dark:text-white hover:text-brand-400 hover:underline"
+                              className="font-semibold text-[#12151C] dark:text-white text-[13.5px] hover:text-[#2C4FD6] dark:hover:text-blue-400 transition-colors block text-left"
                             >
                               {name}
                             </button>
-
-                            <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                            <div className="text-[11.5px] text-[#717E95] dark:text-gray-400">
                               {title} • {department}
                             </div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-800 dark:text-white font-bold">
+                      <td className="py-[13px] px-[22px] text-xs text-[#12151C] dark:text-white font-mono-numbers">
                         {req.date}
                       </td>
-                      <td className="px-6 py-4 text-sm">
+                      <td className="py-[13px] px-[22px] text-xs">
                         <div className="flex flex-col gap-1">
                           {(req.proposedIn || req.inTime) && (
-                            <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold">
+                            <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-medium text-xs">
                               <Clock size={12} />
                               <span>In: {formatTime12h(req.proposedIn || req.inTime)}</span>
                             </div>
                           )}
                           {(req.proposedOut || req.outTime) && (
-                            <div className="flex items-center gap-1.5 text-rose-500 dark:text-rose-400 font-semibold">
+                            <div className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400 font-medium text-xs">
                               <Clock size={12} />
                               <span>Out: {formatTime12h(req.proposedOut || req.outTime)}</span>
                             </div>
@@ -284,26 +266,28 @@ export default function Regularizations() {
                       </td>
                       <td
                         onClick={() => setSelectedRequestForReason(req)}
-                        className="px-6 py-4 text-xs font-semibold text-gray-600 dark:text-gray-300 max-w-xs truncate italic cursor-pointer hover:text-brand-500 dark:hover:text-brand-400 hover:underline transition-all"
+                        className="py-[13px] px-[22px] text-xs text-[#5B6472] dark:text-gray-300 max-w-xs truncate cursor-pointer hover:text-[#2C4FD6] dark:hover:text-blue-400 transition-colors"
                         title="Click to view full reason"
                       >
                         "{req.reason}"
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex gap-2 justify-end">
+                      <td className="py-[13px] px-[22px] text-right">
+                        <div className="flex items-center gap-2 justify-end">
                           <button
                             onClick={() => handleApprove(req.id)}
-                            className="p-2 bg-green-50 hover:bg-green-100 text-green-600 rounded-lg transition-colors"
+                            className="inline-flex items-center gap-1 px-3 py-1 rounded-[3px] border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-xs font-semibold transition-colors cursor-pointer"
                             title="Approve Request"
                           >
-                            <CheckCircle size={18} />
+                            <CheckCircle size={14} />
+                            <span>Approve</span>
                           </button>
                           <button
                             onClick={() => handleRejectClick(req.id)}
-                            className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
+                            className="inline-flex items-center gap-1 px-3 py-1 rounded-[3px] border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 text-xs font-semibold transition-colors cursor-pointer"
                             title="Reject Request"
                           >
-                            <XIcon size={18} />
+                            <XIcon size={14} />
+                            <span>Reject</span>
                           </button>
                         </div>
                       </td>
@@ -316,33 +300,32 @@ export default function Regularizations() {
         </div>
       )}
 
-
       {rejectingId && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setRejectingId(null)} />
-          <div className="relative bg-white dark:bg-brand-950 w-full max-w-md rounded-[2rem] shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden p-8 animate-scale-in">
-            <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Reject Request</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Please provide a reason for rejecting this regularization request.</p>
+          <div className="absolute inset-0 bg-slate-900/20 dark:bg-black/60 backdrop-blur-md" onClick={() => setRejectingId(null)} />
+          <div className="relative bg-white dark:bg-[#12151C] w-full max-w-md rounded-[11px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden p-6 animate-scale-in">
+            <h3 className="text-base font-bold text-[#12151C] dark:text-white mb-1">Reject Request</h3>
+            <p className="text-xs text-[#5B6472] dark:text-gray-400 mb-4">Please provide a reason for rejecting this regularization request.</p>
             <form onSubmit={handleRejectSubmit}>
               <textarea
                 value={rejectComment}
                 onChange={(e) => setRejectComment(e.target.value)}
                 placeholder="Enter rejection reason..."
                 required
-                className="w-full px-4 py-3 rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-rose-500/50 min-h-[100px] mb-6 font-semibold"
+                className="w-full px-3 py-2 rounded-[7px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white text-xs outline-none focus:border-[#2C4FD6] min-h-[90px] mb-4 placeholder-[#9AA3B1]"
               />
-              <div className="flex gap-4">
+              <div className="flex gap-3">
                 <button
                   type="button"
                   onClick={() => setRejectingId(null)}
-                  className="flex-1 py-3 px-4 bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-white/10 transition-colors"
+                  className="flex-1 py-2.5 px-4 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 text-[#5B6472] dark:text-gray-300 font-semibold rounded-[8px] hover:bg-gray-50 transition-colors text-xs cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submittingReject}
-                  className="flex-1 py-3 px-4 bg-rose-500 text-white font-bold rounded-xl hover:bg-rose-600 transition-colors shadow-lg shadow-rose-500/20 flex items-center justify-center gap-2"
+                  className="flex-1 py-2.5 px-4 bg-[#DE350B] text-white font-semibold rounded-[8px] hover:bg-[#b02a08] transition-colors flex items-center justify-center gap-2 text-xs cursor-pointer"
                 >
                   {submittingReject ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Reject'}
                 </button>
@@ -354,45 +337,44 @@ export default function Regularizations() {
       )}
 
       {selectedRequestForReason && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="relative bg-white dark:bg-brand-950 w-full max-w-md rounded-[2rem] shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden p-8 animate-scale-in animate-none">
-            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-brand-500 to-purple-500"></div>
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-gray-800 dark:text-white">Regularization Reason</h3>
-              <button type="button" onClick={() => setSelectedRequestForReason(null)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors text-gray-400">
-                <XIcon size={20} />
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/20 dark:bg-black/60 backdrop-blur-md animate-fade-in">
+          <div className="relative bg-white dark:bg-[#12151C] w-full max-w-md rounded-[11px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden p-6">
+            <div className="flex justify-between items-center mb-4 border-b border-[#E2E6ED] dark:border-gray-800 pb-3">
+              <h3 className="text-base font-bold text-[#12151C] dark:text-white">Regularization Reason</h3>
+              <button type="button" onClick={() => setSelectedRequestForReason(null)} className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer">
+                <XIcon size={18} />
               </button>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Employee Name</label>
-                <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl font-bold text-sm text-gray-800 dark:text-white">
+                <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-400 mb-1">Employee Name</label>
+                <div className="p-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-800 rounded-[7px] font-semibold text-xs text-[#12151C] dark:text-white">
                   {selectedRequestForReason.user?.name || `Employee #${selectedRequestForReason.userId}`}
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Date Requested</label>
-                <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl font-bold text-sm text-gray-800 dark:text-white">
+                <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-400 mb-1">Date Requested</label>
+                <div className="p-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-800 rounded-[7px] font-semibold text-xs text-[#12151C] dark:text-white font-mono-numbers">
                   {selectedRequestForReason.date}
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Submission Reason</label>
-                <div className="p-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm text-gray-700 dark:text-gray-300 font-semibold leading-relaxed">
-                  <div className="max-h-[150px] overflow-y-auto custom-scrollbar break-words pr-2">
+                <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-400 mb-1">Submission Reason</label>
+                <div className="p-3 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-800 rounded-[7px] text-xs text-[#12151C] dark:text-gray-300 leading-relaxed">
+                  <div className="max-h-[150px] overflow-y-auto custom-scrollbar break-words">
                     {selectedRequestForReason.reason}
                   </div>
                 </div>
               </div>
 
-              <div className="pt-4">
+              <div className="pt-2">
                 <button
                   type="button"
                   onClick={() => setSelectedRequestForReason(null)}
-                  className="w-full py-3.5 bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 text-white font-bold rounded-2xl transition-all shadow-lg shadow-brand-500/20 text-sm tracking-wider uppercase cursor-pointer"
+                  className="w-full py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold rounded-[8px] transition-colors text-xs cursor-pointer"
                 >
                   Close
                 </button>
@@ -405,3 +387,4 @@ export default function Regularizations() {
     </div>
   );
 }
+

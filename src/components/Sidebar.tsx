@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
-    LayoutDashboard, Users, UsersRound, LogOut, ChevronLeft,
-    ChevronRight, AlertCircle, ChevronDown, 
+    LayoutDashboard, Users, UsersRound, LogOut,
+    AlertCircle, ChevronDown,
     Fingerprint, UserCog, FileCheck, BarChart3, Settings2,
-    CheckSquare, UserCircle, CalendarRange,FileText
+    CheckSquare, UserCircle, CalendarRange, FileText
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import vedaLogo from '../assets/veda-logo.png';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 import { getMyManagerAccess } from '../utils/teamApi';
@@ -17,6 +16,7 @@ interface MenuItem {
     label: string;
     path: string;
     module: string;
+    state?: any;
     children?: { label: string; path: string; module: string; icon?: any; state?: any }[];
 }
 
@@ -31,17 +31,17 @@ const menuItems: MenuItem[] = [
         children: [
             { label: 'List', path: '/employee', module: 'EMPLOYEE', icon: Users },
             { label: 'Leave Approval', path: '/leave', module: 'LEAVE', icon: FileCheck, state: { activeTab: 'APPROVALS' } },
-            { label: 'Regularizations', path: '/regularizations', module: 'EMPLOYEE_ATTENDANCE', icon: CheckSquare },
+            // { label: 'Regularizations', path: '/regularizations', module: 'EMPLOYEE_ATTENDANCE', icon: CheckSquare },
         ]
     },
     { icon: UsersRound, label: 'Team', path: '/team', module: 'TEAM' },
-    { icon: CalendarRange, label: 'Leave', path: '/leave', module: 'LEAVE' },
+    { icon: CalendarRange, label: 'Leave', path: '/leave', module: 'LEAVE', state: { activeTab: 'MY_LEAVE' } },
     { icon: BarChart3, label: 'Reports', path: '/reports', module: 'REPORTS' },
     { icon: Settings2, label: 'Masters', path: '/masters', module: 'MASTERS' },
-{ icon: CheckSquare, label: 'Task', path: '/task', module: 'TASK' },
-{ icon: FileText, label: 'Log', path: '/log-file', module: 'TASK' },
-{ icon: UserCircle, label: 'My Profile', path: '/profile', module: 'MY_PROFILE' },
-  
+    { icon: CheckSquare, label: 'Task', path: '/task', module: 'TASK' },
+    { icon: FileText, label: 'Log', path: '/log-file', module: 'TASK' },
+    { icon: UserCircle, label: 'My Profile', path: '/profile', module: 'MY_PROFILE' },
+
 ];
 
 interface SidebarProps {
@@ -51,7 +51,7 @@ interface SidebarProps {
     onToggleCollapse: () => void;
 }
 
-export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: SidebarProps) {
+export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse: _onToggleCollapse }: SidebarProps) {
     const { user } = useAuth();
     const { logout } = useAuth();
     const navigate = useNavigate();
@@ -179,26 +179,20 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
             <Overlay />
             <aside className={`
                 fixed md:static inset-y-0 left-0 z-50
-                ${isCollapsed ? 'w-20' : 'w-64'}
-                bg-sidebar min-h-screen text-white flex flex-col font-sans 
+                ${isCollapsed ? 'w-20' : 'w-60'}
+                bg-[#EEF2F8] dark:bg-[#12151C] border-r border-[#E2E6ED] dark:border-gray-800 min-h-screen text-[#12151C] dark:text-white flex flex-col font-sans 
                 transition-all duration-300 ease-in-out
                 ${isOpen ? 'translate-x-0' : '-translate-x-full'} 
                 md:translate-x-0
             `}>
-                <div className={`p-4 flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
-                    <div className="w-12 h-12 flex items-center justify-center shrink-0 transition-all duration-300">
-                        <img src={vedaLogo} alt="OmniHR" className="w-full h-full object-contain" />
+                <div className={`p-5 flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
+                    <div className="w-8 h-8 bg-[#2C4FD6] rounded-[6px] flex items-center justify-center text-white font-bold text-base shadow-sm shrink-0">
+                        O
                     </div>
-                    {!isCollapsed && <h1 className="text-xl font-bold tracking-wide whitespace-nowrap bg-clip-text text-transparent bg-gradient-to-r from-brand-700 to-brand-900 dark:from-white dark:to-brand-100">OmniHR</h1>}
-                    <button
-                        onClick={onToggleCollapse}
-                        className="hidden md:flex absolute -right-3 top-7 w-6 h-6 bg-brand-500 rounded-full items-center justify-center text-white shadow-md hover:bg-brand-600 transition-colors z-50"
-                    >
-                        {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-                    </button>
+                    {!isCollapsed && <span className="word text-[16px] font-semibold tracking-[-0.01em] text-[#12151C] dark:text-white">OmniHR</span>}
                 </div>
 
-                <nav className="flex-1 px-4 space-y-1 mt-4 overflow-y-auto overflow-x-hidden custom-scrollbar">
+                <nav className="flex-1 px-3 space-y-1 mt-2 overflow-y-auto overflow-x-hidden custom-scrollbar">
                     {menuItems.filter(item => {
                         if (item.module === 'EMPLOYEE_ATTENDANCE') {
                             return user?.role === 'HR_ADMIN' ||
@@ -209,7 +203,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                     }).map((item) => {
                         const hasChildren = item.children && item.children.length > 0;
                         const isOpen = openMenus.includes(item.label);
-                        const active = isActive(item.path) || (item.children?.some(child => isActive(child.path, child.state)) ?? false);
+                        const active = isActive(item.path, item.state) || (item.children?.some(child => isActive(child.path, child.state)) ?? false);
 
                         return (
                             <div key={item.label} className="space-y-1">
@@ -218,23 +212,20 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                                         if (hasChildren && !isCollapsed) {
                                             toggleMenu(item.label);
                                         } else {
-                                          navigate(item.path, {
-    state: { activeTab: 'MY_LEAVE' }
-});
+                                            navigate(item.path, { state: (item as any).state });
                                             if (window.innerWidth < 768) onClose();
                                         }
                                     }}
                                     title={isCollapsed ? item.label : ''}
-                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${active && !hasChildren
-                                        ? 'bg-brand-500 shadow-lg shadow-brand-900/20 text-white'
-                                        : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[6px] transition-all duration-200 ease-in-out group ${active && !hasChildren
+                                        ? 'bg-[#E8ECFC] text-[#2C4FD6] font-semibold border-l-[3.5px] border-[#2C4FD6]'
+                                        : 'text-[#5B6472] hover:bg-white/80 hover:text-[#2C4FD6] font-medium'
                                         } ${isCollapsed ? 'justify-center' : ''}`}
-                                
                                 >
-                                    <item.icon size={20} className={`flex-shrink-0 ${(active && !hasChildren) ? 'text-white' : 'text-gray-400 group-hover:text-white'}`} />
+                                    <item.icon size={18} className={`flex-shrink-0 transition-colors duration-200 ${(active && !hasChildren) ? 'text-[#2C4FD6]' : 'text-[#5B6472] group-hover:text-[#2C4FD6]'}`} />
                                     {!isCollapsed && (
                                         <>
-                                            <span className="font-medium text-sm whitespace-nowrap flex-1 text-left">{item.label}</span>
+                                            <span className="text-sm whitespace-nowrap flex-1 text-left">{item.label}</span>
                                             {hasChildren && (
                                                 <ChevronDown
                                                     size={16}
@@ -246,7 +237,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                                 </button>
 
                                 {hasChildren && isOpen && !isCollapsed && (
-                                    <div className="space-y-1 ml-4 border-l border-white/10 pl-2 animate-fade-in">
+                                    <div className="space-y-1 ml-4 border-l border-[#E2E6ED] dark:border-gray-800 pl-2 animate-fade-in">
                                         {item.children?.filter(child => {
                                             if (user?.role === 'HR_ADMIN') return true;
                                             if (managerAccess.isTeamManager) {
@@ -268,13 +259,13 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                                                         navigate(child.path, { state: child.state });
                                                         if (window.innerWidth < 768) onClose();
                                                     }}
-                                                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 group ${childActive
-                                                        ? 'bg-white/10 text-white'
-                                                        : 'text-gray-500 hover:bg-white/5 hover:text-white'
+                                                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-[6px] transition-all duration-150 group ${childActive
+                                                        ? 'bg-[#E8ECFC] text-[#2C4FD6] font-semibold'
+                                                        : 'text-[#5B6472] hover:bg-[#EEF1F5] hover:text-[#12151C] font-medium'
                                                         }`}
                                                 >
-                                                    <ChildIcon size={16} className={childActive ? 'text-brand-400' : 'text-gray-500 group-hover:text-white'} />
-                                                    <span className="text-xs font-medium whitespace-nowrap">{child.label}</span>
+                                                    <ChildIcon size={16} className={childActive ? 'text-[#2C4FD6]' : 'text-[#5B6472] group-hover:text-[#12151C]'} />
+                                                    <span className="text-xs whitespace-nowrap">{child.label}</span>
                                                 </button>
                                             );
                                         })}
@@ -285,14 +276,14 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                     })}
                 </nav>
 
-                <div className="p-4 border-t border-white/10">
+                <div className="p-3 border-t border-[#E2E6ED] dark:border-gray-800">
                     <button
                         onClick={() => setShowLogoutConfirm(true)}
                         title={isCollapsed ? 'Logout' : ''}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:bg-white/5 hover:text-white transition-all ${isCollapsed ? 'justify-center' : ''}`}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[6px] text-[#5B6472] hover:bg-[#FBE7E7] hover:text-[#C13A3A] font-medium transition-all ${isCollapsed ? 'justify-center' : ''}`}
                     >
-                        <LogOut size={20} className="flex-shrink-0" />
-                        {!isCollapsed && <span className="font-medium text-sm whitespace-nowrap">Logout</span>}
+                        <LogOut size={18} className="flex-shrink-0" />
+                        {!isCollapsed && <span className="text-sm whitespace-nowrap">Logout</span>}
                     </button>
                 </div>
             </aside>
@@ -307,7 +298,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                     />
 
                     {/* Modal Content */}
-                    <div className="relative bg-white dark:bg-brand-950 w-full max-w-sm rounded-[2rem] shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden animate-scale-in">
+                    <div className="relative bg-white dark:bg-brand-950 w-full max-w-[calc(100vw-2rem)] sm:max-w-sm rounded-[6px] shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden animate-scale-in">
                         <div className="p-8 text-center">
                             <div className="w-16 h-16 bg-red-50 dark:bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
                                 <AlertCircle size={32} />
@@ -326,13 +317,13 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                                         logout();
                                         navigate('/signin');
                                     }}
-                                    className="w-full py-3.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-red-600/20 active:scale-95"
+                                    className="w-full py-3.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-[6px] transition-all shadow-lg shadow-red-600/20 active:scale-95"
                                 >
                                     Yes, Logout
                                 </button>
                                 <button
                                     onClick={() => setShowLogoutConfirm(false)}
-                                    className="w-full py-3.5 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 font-bold rounded-2xl hover:bg-gray-200 dark:hover:bg-white/10 transition-all active:scale-95"
+                                    className="w-full py-3.5 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 font-bold rounded-[6px] hover:bg-gray-200 dark:hover:bg-white/10 transition-all active:scale-95"
                                 >
                                     Keep me logged in
                                 </button>

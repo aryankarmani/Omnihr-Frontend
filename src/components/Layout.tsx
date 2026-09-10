@@ -1,7 +1,6 @@
 import { useState,  useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
-import ChatWidget from '../components/ChatWidget';
 
 // ✅ Added for FCM push notification
 import { registerFcmToken } from '../services/pushNotificationService';
@@ -22,7 +21,7 @@ export default function Layout({ children }: LayoutProps) {
     }, []);
 
     return (
-        <div className="flex h-screen bg-brand-50 dark:bg-brand-950 overflow-hidden text-gray-900 dark:text-white transition-colors duration-300">
+        <div className="flex h-screen bg-[#F7F8FA] dark:bg-[#12151C] overflow-hidden text-[#12151C] dark:text-white transition-colors duration-300">
             {/* Sidebar with mobile state and collapse state */}
             <Sidebar
                 isOpen={isSidebarOpen}
@@ -35,10 +34,12 @@ export default function Layout({ children }: LayoutProps) {
                 {/* Header with toggle callback */}
                 <Header onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
 
-                <div className="flex-1 overflow-y-auto px-4 md:px-8 pb-8">
-                    {children}
+                <div className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 py-4 sm:py-6 pb-12">
+                    <div className="w-full">
+                        {children}
+                    </div>
                 </div>
-                <ChatWidget />
+                {/* <ChatWidget /> */}
             </main>
         </div>
     );

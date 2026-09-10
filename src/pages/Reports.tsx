@@ -1,11 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { FileText, TrendingUp, Users, DollarSign, Calendar, ChevronDown, Clock } from 'lucide-react';
+ 
+import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { FileText, TrendingUp, Users, Calendar, ChevronDown, Clock } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
-
-const COLORS = ['#8b5cf6', '#3b82f6', '#ec4899', '#f97316', '#10b981', '#facc15', '#e11d48', '#6366f1', '#14b8a6', '#f59e0b'];
 
 export default function Reports() {
     const [attendanceData, setAttendanceData] = useState<any[]>([]);
@@ -47,29 +45,17 @@ export default function Reports() {
                 }
             });
 
-
-
             const blob = new Blob([response.data]);
-
             const url = window.URL.createObjectURL(blob);
-
             const a = document.createElement('a');
-
             a.href = url;
             a.download = filename;
-
             document.body.appendChild(a);
-
             a.click();
-
             window.URL.revokeObjectURL(url);
-
             document.body.removeChild(a);
-
         } catch (err) {
-
             console.error('Download failed:', err);
-
             toast.error('Download failed');
         }
     };
@@ -91,217 +77,219 @@ export default function Reports() {
 
         fetchData();
     }, [period]);
+
+    // Calculate dynamic department payroll percentages
+    const totalPayrollAmount = payrollData.reduce((sum, item) => sum + (Number(item.value) || 0), 0);
+    const colorPalette = ['bg-[#2563EB]', 'bg-[#5B86E5]', 'bg-[#059669]', 'bg-[#C05621]', 'bg-[#9CA3AF]', 'bg-[#7C3AED]'];
+    const departmentBreakdown = payrollData.map((item, idx) => {
+        const value = Number(item.value) || 0;
+        const percent = totalPayrollAmount > 0 ? Math.round((value / totalPayrollAmount) * 100) : 0;
+        return {
+            name: item.name || 'Other',
+            value,
+            percent,
+            color: colorPalette[idx % colorPalette.length]
+        };
+    });
+
     return (
         <div className="animate-fade-in-up pb-8">
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Reports & Analytics</h2>
-             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-    <p className="text-gray-500 dark:text-gray-400">
-        Comprehensive insights into workforce performance and payroll.
-    </p>
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                <div>
+                    <h2 className="text-2xl font-bold text-[#12151C] dark:text-white mb-1">Reports & Analytics</h2>
+                    <p className="text-sm text-[#5B6472] dark:text-gray-400">
+                        Comprehensive insights into workforce performance and payroll.
+                    </p>
+                </div>
 
-    <div className="relative z-30">
-        <button
-            onClick={(e) => {
-                e.stopPropagation();
-                setIsOpen(!isOpen);
-            }}
-            className="flex items-center justify-between gap-3 px-5 py-3 bg-white dark:bg-brand-800 hover:bg-gray-50 dark:hover:bg-brand-900 border border-gray-200 dark:border-brand-700 rounded-2xl text-gray-700 dark:text-white font-bold cursor-pointer shadow-md dark:shadow-lg dark:shadow-brand-500/10 outline-none transition-all duration-300 min-w-[180px] hover:border-brand-500 dark:hover:border-brand-500"
-        >
-            <div className="flex items-center gap-2">
-                <selectedOption.icon size={18} className="text-brand-500" />
-                <span>{selectedOption.label}</span>
+                <div className="relative z-30">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setIsOpen(!isOpen);
+                        }}
+                        className="select-chip flex items-center justify-between gap-2 px-[12px] py-[9px] bg-white dark:bg-[#12151C] hover:bg-[#F7F8FA] dark:hover:bg-gray-800 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-[13px] font-semibold text-[#5B6472] dark:text-gray-300 cursor-pointer outline-none transition-all min-w-[130px]"
+                    >
+                        <span>{selectedOption.label}</span>
+                        <ChevronDown size={14} className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} text-[#9AA3B1]`} />
+                    </button>
+
+                    {isOpen && (
+                        <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] py-1 z-50 animate-fade-in overflow-hidden">
+                            {options.map((opt) => {
+                                const isSelected = opt.value === period;
+                                return (
+                                    <button
+                                        key={opt.value}
+                                        onClick={() => {
+                                            setPeriod(opt.value);
+                                            setIsOpen(false);
+                                        }}
+                                        className={`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold transition-all text-left cursor-pointer ${
+                                            isSelected
+                                                ? 'bg-[#E8ECFC] text-[#2C4FD6] dark:bg-blue-950/30'
+                                                : 'text-[#12151C] dark:text-gray-300 hover:bg-[#F7F8FA] dark:hover:bg-white/5'
+                                        }`}
+                                    >
+                                        <span>{opt.label}</span>
+                                        {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-[#2C4FD6]" />}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
             </div>
-            <ChevronDown size={18} className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} text-gray-400`} />
-        </button>
 
-        {isOpen && (
-            <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-brand-900 border border-gray-100 dark:border-brand-700/50 rounded-2xl shadow-xl dark:shadow-brand-500/5 py-2 z-50 animate-fade-in focus:outline-none overflow-hidden">
-                {options.map((opt) => {
-                    const isSelected = opt.value === period;
-                    return (
-                        <button
-                            key={opt.value}
-                            onClick={() => {
-                                setPeriod(opt.value);
-                                setIsOpen(false);
-                            }}
-                            className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-bold transition-all text-left border-0 outline-none cursor-pointer ${
-                                isSelected
-                                    ? 'bg-brand-50 dark:bg-white/5 text-brand-600 dark:text-brand-400'
-                                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 bg-transparent'
-                            }`}
-                        >
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${opt.color}`}>
-                                <opt.icon size={16} />
-                            </div>
-                            <span className="flex-1">{opt.label}</span>
-                            {isSelected && (
-                                <div className="w-1.5 h-1.5 rounded-full bg-brand-500" />
+            {/* Top Contiguous KPI Panel (Unified 3-column Card with Dividers matching Image 5) */}
+            <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden mb-6 grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[#E2E6ED] dark:divide-gray-800">
+                {/* Card 1: TOTAL PAYROLL */}
+                <div className="p-6 flex flex-col justify-between h-[130px]">
+                    <div className="flex justify-between items-start">
+                        <span className="kpi-label text-[11px] font-semibold text-[#9AA3B1] uppercase tracking-[.06em]">TOTAL PAYROLL</span>
+                        <div className="w-7 h-7 rounded-[6px] bg-[#EEF1F5] dark:bg-gray-800 text-[#5B6472] dark:text-gray-300 flex items-center justify-center font-bold text-xs">
+                            ₹
+                        </div>
+                    </div>
+                    <div>
+                        <div className="kpi-num text-[28px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight mb-[6px] leading-none">
+                            ₹{stats?.totalPayroll !== undefined ? Number(stats.totalPayroll).toLocaleString('en-IN') : '0'}
+                        </div>
+                        <div className="kpi-trend up text-[12px] text-[#1F8A5A] flex items-center gap-1">
+                            {stats?.payrollGrowth || '+4% from last month'}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Card 2: AVG ATTENDANCE */}
+                <div className="p-6 flex flex-col justify-between h-[130px]">
+                    <div className="flex justify-between items-start">
+                        <span className="kpi-label text-[11px] font-semibold text-[#9AA3B1] uppercase tracking-[.06em]">AVG ATTENDANCE</span>
+                        <div className="w-7 h-7 rounded-[6px] bg-[#EEF1F5] dark:bg-gray-800 text-[#5B6472] dark:text-gray-300 flex items-center justify-center">
+                            <Clock size={15} />
+                        </div>
+                    </div>
+                    <div>
+                        <div className="kpi-num text-[28px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight mb-[6px] leading-none">
+                            {stats?.avgAttendance !== undefined ? stats.avgAttendance : 0}%
+                        </div>
+                        <div className="kpi-trend up text-[12px] text-[#1F8A5A] flex items-center gap-1 ">
+                            {stats?.attendanceTrend || '+2pts vs last month'}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Card 3: PENDING LEAVES */}
+                <div className="p-6 flex flex-col justify-between h-[130px]">
+                    <div className="flex justify-between items-start">
+                        <span className="kpi-label text-[11px] font-semibold text-[#9AA3B1] uppercase tracking-[.06em]">PENDING LEAVES</span>
+                        <div className="w-7 h-7 rounded-[6px] bg-[#EEF1F5] dark:bg-gray-800 text-[#5B6472] dark:text-gray-300 flex items-center justify-center">
+                            <Calendar size={15} />
+                        </div>
+                    </div>
+                    <div>
+                        <div className="kpi-num text-[28px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight mb-[6px] leading-none">
+                            {stats?.pendingLeaves ?? 0}
+                        </div>
+                        <div className="kpi-trend text-[12px] text-[#9AA3B1]">
+                            {stats?.leaveStatus || 'No pending leaves'}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Bottom Section: Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* Monthly Attendance Chart Card */}
+                <div className="lg:col-span-7 bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 p-6">
+                    <span className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white block">Monthly Attendance</span>
+                    <p className="panel-sub text-[12.5px] text-[#9AA3B1] dark:text-gray-400 mt-[12.5px] mb-[18px]">Average check-ins per week</p>
+
+                    <div className="h-[230px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            {(() => {
+                                const chartData = attendanceData;
+                                if (!chartData || chartData.length === 0) {
+                                    return (
+                                        <div className="flex items-center justify-center h-full text-xs text-[#9AA3B1]">
+                                            No attendance records found for this period
+                                        </div>
+                                    );
+                                }
+                                return (
+                                    <BarChart data={chartData} margin={{ top: 10, right: 5, left: 5, bottom: 0 }} barCategoryGap="4%">
+                                        <XAxis
+                                            dataKey="name"
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fill: '#9AA3B1', fontSize: 10.5, fontFamily: 'JetBrains Mono, monospace' }}
+                                            dy={8}
+                                        />
+                                        <YAxis hide domain={[0, 100]} />
+                                        <Tooltip
+                                            cursor={{ fill: 'transparent' }}
+                                            contentStyle={{
+                                                backgroundColor: '#12151C',
+                                                border: '1px solid #E2E6ED',
+                                                borderRadius: '6px',
+                                                color: '#ffffff',
+                                                fontSize: '11px',
+                                                fontFamily: 'Instrument Sans, sans-serif'
+                                            }}
+                                        />
+                                        <Bar dataKey="present" radius={[12, 12, 12, 12]} barSize={110}>
+                                            {chartData.map((entry, index) => (
+                                                <Cell
+                                                    key={`cell-${index}`}
+                                                    fill={(entry.present || 0) >= 1 ? '#2C4FD6' : '#EEF2F8'}
+                                                    className="transition-all duration-200"
+                                                />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                );
+                            })()}
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                {/* Department Payroll Breakdown Card */}
+                <div className="lg:col-span-5 bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 p-6 flex flex-col justify-between">
+                    <div>
+                        <span className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white block">Department Payroll</span>
+                        <p className="panel-sub text-[12.5px] text-[#9AA3B1] dark:text-gray-400 mt-[12.5px] mb-[18px]">Share of total spend</p>
+
+                        {/* Legend Rows */}
+                        <div className="space-y-3.5">
+                            {departmentBreakdown.length === 0 ? (
+                                <p className="text-xs text-[#9AA3B1] py-4 text-center">No payroll breakdown data available</p>
+                            ) : (
+                                departmentBreakdown.map((dept) => (
+                                    <div key={dept.name} className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <span className={`w-3 h-3 rounded-[4px] ${dept.color}`}></span>
+                                            <span className="dept-name text-[13px] font-medium text-[#12151C] dark:text-white">{dept.name}</span>
+                                        </div>
+                                        <span className="text-[13px] font-semibold text-[#12151C] dark:text-white font-mono-numbers">{dept.percent}%</span>
+                                    </div>
+                                ))
                             )}
-                        </button>
-                    );
-                })}
-            </div>
-        )}
-    </div>
-</div>
-            {/* Top Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="bg-white dark:bg-brand-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 flex flex-col justify-between">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <p className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase">Total Payroll</p>
-                            <h3 className="text-2xl font-bold text-gray-800 dark:text-white mt-1">₹ {stats?.totalPayroll || 0}</h3>
-                        </div>
-                        <div className="w-10 h-10 bg-green-100 text-green-600 rounded-xl flex items-center justify-center">
-                            <DollarSign size={20} />
                         </div>
                     </div>
-                    <div className="mt-4 flex items-center gap-1 text-xs font-medium text-green-600">
-                        <TrendingUp size={14} /> {stats?.payrollGrowth || '0%'} {
-                            period === 'weekly' ? 'from last week' :
-                            period === 'this month' || period === 'monthly' ? 'from last month' :
-                            period === 'quarter' ? 'from last quarter' :
-                            period === 'semi-annual' ? 'from last 6 months' :
-                            period === 'annual' ? 'from last year' : 'from last month'
-                        }
-                    </div>
-                </div>
 
-                <div className="bg-white dark:bg-brand-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 flex flex-col justify-between">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <p className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase">Avg. Attendance</p>
-                            <h3 className="text-2xl font-bold text-gray-800 dark:text-white mt-1">{stats?.avgAttendance || 0}%</h3>
-                        </div>
-                        <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center">
-                            <Users size={20} />
-                        </div>
-                    </div>
-                    <div className="mt-4 flex items-center gap-1 text-xs font-medium text-blue-600">
-                        <TrendingUp size={14} /> {stats?.attendanceTrend || 'No data'}
-                    </div>
-                </div>
-
-                <div className="bg-white dark:bg-brand-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 flex flex-col justify-between">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <p className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase">Pending Leaves</p>
-                            <h3 className="text-2xl font-bold text-gray-800 dark:text-white mt-1">{stats?.pendingLeaves || 0}</h3>
-                        </div>
-                        <div className="w-10 h-10 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center">
-                            <Calendar size={20} />
-                        </div>
-                    </div>
-                    <div className="mt-4 text-xs font-medium text-orange-600">
-                        {stats?.leaveStatus || 'No data'}
+                    {/* Bottom Multi-segment Stacked Bar */}
+                    <div className="h-2 w-full rounded-full overflow-hidden flex bg-[#EEF1F5] dark:bg-gray-800 mt-6">
+                        {departmentBreakdown.map((dept) => (
+                            <div key={dept.name} className={`${dept.color} h-full`} style={{ width: `${dept.percent}%` }}></div>
+                        ))}
                     </div>
                 </div>
             </div>
 
-            {/* Charts Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                {/* Attendance Chart */}
-                <div className="bg-white dark:bg-brand-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5">
-                    <h3 className="font-bold text-gray-800 dark:text-white mb-6 capitalize">{period} Attendance</h3>
-                    <div className="h-64">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={attendanceData}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 12 }} dy={10} />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 12 }} />
-                                <Tooltip
-                                    cursor={{ fill: 'transparent' }}
-                                    contentStyle={{
-                                        backgroundColor: '#1f2937',
-                                        border: 'none',
-                                        borderRadius: '12px',
-                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                                    }}
-                                    labelStyle={{ color: '#9CA3AF', fontWeight: 'bold' }}
-                                    itemStyle={{ color: '#ffffff' }}
-                                />
-                                <Bar dataKey="present" stackId="a" fill="#8b5cf6" radius={[0, 0, 4, 4]} barSize={40} />
-                                <Bar dataKey="absent" stackId="a" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={40} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-
-                {/* Payroll Distribution */}
-                <div className="bg-white dark:bg-brand-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5">
-                    <h3 className="font-bold text-gray-800 dark:text-white mb-6">Department Payroll</h3>
-                    <div className="h-64 flex items-center justify-center">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={payrollData}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={80}
-                                    paddingAngle={5}
-                                    dataKey="value"
-                                >
-                                    {Array.isArray(payrollData) && payrollData.map((_, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip
-                                    contentStyle={{
-                                        backgroundColor: '#1f2937',
-                                        border: 'none',
-                                        borderRadius: '12px',
-                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                                    }}
-                                    itemStyle={{ color: '#ffffff' }}
-                                />
-                            </PieChart>
-                        </ResponsiveContainer>
-                        <div className="space-y-2 ml-4">
-                            {Array.isArray(payrollData) && payrollData.map((entry, index) => (
-                                <div key={entry.name} className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index] }}></div>
-                                    <span className="text-xs text-gray-500 dark:text-gray-400">{entry.name}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Quick Exports */}
-            <div className="bg-brand-600 rounded-2xl p-8 text-white relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
-
-                <div className="relative z-10">
-                    <h3 className="text-xl font-bold mb-4">Generate Reports</h3>                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div
-                            onClick={() => downloadFile('/reports/export/attendance', `${period.replace(/\s+/g, '_')}_attendance.csv`)}
-                            className="bg-white/10 hover:bg-white/20 transition-colors p-4 rounded-xl cursor-pointer backdrop-blur-sm border border-white/10"
-                        >
-                            <FileText size={24} className="mb-3 opacity-80" />
-                            <h4 className="font-bold text-sm capitalize">{period} Attendance</h4>
-                            <p className="text-xs opacity-70 mt-1">Download CSV</p>
-                        </div>
-                        <div
-                            onClick={() => downloadFile('/reports/export/salary', `${period.replace(/\s+/g, '_')}_salary.csv`)}
-                            className="bg-white/10 hover:bg-white/20 transition-colors p-4 rounded-xl cursor-pointer backdrop-blur-sm border border-white/10"
-                        >
-                            <DollarSign size={24} className="mb-3 opacity-80" />
-                            <h4 className="font-bold text-sm capitalize">{period} Salary Register</h4>
-                            <p className="text-xs opacity-70 mt-1">Download CSV</p>
-                        </div>
-                        <div
-                            onClick={() => downloadFile('/reports/export/leave', `${period.replace(/\s+/g, '_')}_leave.xlsx`)}
-                            className="bg-white/10 hover:bg-white/20 transition-colors p-4 rounded-xl cursor-pointer backdrop-blur-sm border border-white/10"
-                        >
-                            <Calendar size={24} className="mb-3 opacity-80" />
-                            <h4 className="font-bold text-sm capitalize">{period} Leave Balance</h4>
-                            <p className="text-xs opacity-70 mt-1">Download Excel</p>
-                        </div>
-                    </div>
-                </div>
+            {/* Hidden Export Triggers */}
+            <div className="hidden">
+                <button onClick={() => downloadFile('/reports/export/attendance', 'attendance.csv')}>Export Attendance</button>
             </div>
         </div>
     );

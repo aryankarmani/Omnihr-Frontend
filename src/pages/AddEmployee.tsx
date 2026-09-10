@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
@@ -437,30 +437,30 @@ export default function AddEmployee() {
                 <ArrowLeft size={20} /> Back to List
             </button>
 
-            <div className="bg-white dark:bg-brand-900 rounded-3xl shadow-sm border border-gray-100 dark:border-white/5 overflow-visible">
-                <div className="bg-brand-50/50 dark:bg-white/5 p-8 border-b border-gray-100 dark:border-white/10">
-                    <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Onboard New Employee</h1>
-                    <p className="text-gray-500 dark:text-gray-400 mb-8">Complete the following steps to add a new team member.</p>
+            <div className="bg-white dark:bg-[#161B26] rounded-[11px] shadow-sm border border-[#E2E6ED] dark:border-gray-800 overflow-hidden">
+                <div className="bg-[#F7F8FA] dark:bg-white/5 p-8 border-b border-[#E2E6ED] dark:border-white/10 rounded-t-[11px]">
+                    <h1 className="text-2xl font-bold text-[#12151C] dark:text-white mb-2">Onboard New Employee</h1>
+                    <p className="text-[#5B6472] dark:text-gray-400 mb-8">Complete the following steps to add a new team member.</p>
 
                     <div className="flex items-center justify-between max-w-2xl mx-auto relative">
                         {steps.map((step) => (
                             <div key={step.id} className="flex flex-col items-center relative z-10">
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all duration-300 ${currentStep >= step.id
-                                    ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/30'
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all duration-300 ${currentStep >= step.id
+                                    ? 'bg-[#2C4FD6] text-white shadow-md'
                                     : 'bg-gray-200 dark:bg-white/10 text-gray-400'
                                     }`}>
                                     {currentStep > step.id ? <Check size={20} /> : <step.icon size={18} />}
                                 </div>
-                                <span className={`mt-2 text-xs font-bold uppercase tracking-wider ${currentStep >= step.id ? 'text-brand-600 dark:text-brand-400' : 'text-gray-400'
+                                <span className={`mt-2 text-xs font-semibold uppercase tracking-wider ${currentStep >= step.id ? 'text-[#2C4FD6] dark:text-blue-400' : 'text-gray-400'
                                     }`}>
                                     {step.title}
                                 </span>
                             </div>
                         ))}
                         {/* Progress Line */}
-                        <div className="absolute top-5 left-0 w-full h-0.5 bg-gray-200 dark:bg-white/10 -z-0 hidden md:block">
+                        <div className="absolute top-5 left-[45px] right-[29px] h-0.5 bg-gray-200 dark:bg-white/10 -z-0 hidden md:block">
                             <div
-                                className="h-full bg-brand-500 transition-all duration-500"
+                                className="h-full bg-[#2C4FD6] transition-all duration-500"
                                 style={{
                                     width:
                                         currentStep === 1 ? '0%' :
@@ -474,18 +474,18 @@ export default function AddEmployee() {
                 </div>
 
                 {/* Form Content */}
-                <div className="p-8 max-w-4xl mx-auto">
+                <div className="p-8 w-full">
                     {currentStep === 1 && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 animate-fade-in">
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">First Name *</label>
+                                <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">First Name *</label>
                                 <input
                                     autoComplete="new-password"
                                     name="firstName"
                                     value={formData.firstName}
                                     onChange={handleInputChange}
                                     type="text"
-                                    className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
+                                    className="w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all placeholder:text-[#9AA3B1] placeholder:font-normal"
                                     placeholder="First"
                                 />{errors.firstName && (
                                     <p className="text-red-500 text-xs ml-1">
@@ -494,14 +494,14 @@ export default function AddEmployee() {
                                 )}
                             </div>
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Last Name </label>
+                                <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Last Name </label>
                                 <input
                                     autoComplete="new-password"
                                     name="lastName"
                                     value={formData.lastName}
                                     onChange={handleInputChange}
                                     type="text"
-                                    className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
+                                    className="w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all placeholder:text-[#9AA3B1] placeholder:font-normal"
                                     placeholder="Last"
                                 />
 
@@ -509,14 +509,14 @@ export default function AddEmployee() {
 
 
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Email Address *</label>
+                                <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Email Address *</label>
                                 <input
                                     autoComplete="new-password"
                                     name="email"
                                     value={formData.email}
                                     onChange={handleInputChange}
                                     type="email"
-                                    className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
+                                    className="w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all placeholder:text-[#9AA3B1] placeholder:font-normal"
                                     placeholder="Enter your email"
 
                                 />
@@ -527,70 +527,34 @@ export default function AddEmployee() {
                                 )}
                             </div>
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Phone Number *</label>
-                                <div className="flex gap-2">
-                                    <div className="relative shrink-0">
-                                        <select
-                                            value={countryCode}
-                                            onChange={(e) => setCountryCode(e.target.value)}
-                                            className="appearance-none w-24 pl-3 pr-8 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl outline-none text-gray-700 dark:text-white text-sm font-medium focus:ring-4 focus:ring-brand-500/20 transition-all cursor-pointer"
-                                        >
-                                            <option value="+91" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇮🇳 +91</option>
-                                            <option value="+1" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇺🇸 +1</option>
-                                            <option value="+44" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇬🇧 +44</option>
-                                            <option value="+971" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇦🇪 +971</option>
-                                            <option value="+65" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇸🇬 +65</option>
-                                            <option value="+61" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇦🇺 +61</option>
-                                            <option value="+966" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇸🇦 +966</option>
-                                            <option value="+965" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇰🇼 +965</option>
-                                            <option value="+974" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇶🇦 +974</option>
-                                            <option value="+973" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇧🇭 +973</option>
-                                            <option value="+968" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇴🇲 +968</option>
-                                            <option value="+81" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇯🇵 +81</option>
-                                            <option value="+49" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇩🇪 +49</option>
-                                            <option value="+33" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇫🇷 +33</option>
-                                            <option value="+86" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇨🇳 +86</option>
-                                            <option value="+7" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇷🇺 +7</option>
-                                            <option value="+92" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇵🇰 +92</option>
-                                            <option value="+880" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇧🇩 +880</option>
-                                            <option value="+94" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇱🇰 +94</option>
-                                            <option value="+977" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇳🇵 +977</option>
-                                            <option value="+27" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇿🇦 +27</option>
-                                            <option value="+62" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇮🇩 +62</option>
-                                            <option value="+60" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇲🇾 +60</option>
-                                        </select>
-                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 dark:text-gray-500">
-                                            <ChevronDown size={14} />
-                                        </div>
-                                    </div>
-                                    <input
-                                        autoComplete="off"
-                                        name="phone"
-                                        value={formData.phone}
-                                        onChange={(e) => {
-                                            const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Phone Number *</label>
+                                <input
+                                    autoComplete="off"
+                                    name="phone"
+                                    value={formData.phone}
+                                    onChange={(e) => {
+                                        const value = e.target.value.replace(/\D/g, '').slice(0, 10);
 
-                                            setFormData(prev => ({
-                                                ...prev,
-                                                phone: value
-                                            }));
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            phone: value
+                                        }));
 
-                                            setErrors((prev: any) => ({
-                                                ...prev,
-                                                phone: ''
-                                            }));
-                                        }}
-                                        type="tel"
-                                        className="flex-1 px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
-                                        placeholder="Phone number"
-                                    />
-                                </div>
+                                        setErrors((prev: any) => ({
+                                            ...prev,
+                                            phone: ''
+                                        }));
+                                    }}
+                                    type="tel"
+                                    className="w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all placeholder:text-[#9AA3B1] placeholder:font-normal"
+                                    placeholder="+91 "
+                                />
                                 {errors.phone && <p className="text-red-500 text-xs ml-1">{errors.phone}</p>}
                             </div>
 
 
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-400 uppercase">
+                                <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">
                                     Date of Birth *
                                 </label>
 
@@ -600,17 +564,17 @@ export default function AddEmployee() {
                                     value={formData.dob}
                                     max={new Date().toISOString().split('T')[0]}
                                     onChange={handleInputChange}
-                                    className={`w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border ${errors.dob ? 'border-red-500' : 'border-gray-200 dark:border-white/10'
-                                        } rounded-2xl outline-none text-gray-800 dark:text-white`}
+                                    className={`w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border ${errors.dob ? 'border-red-500' : 'border-[#E2E6ED] dark:border-white/10'
+                                        } rounded-[8px] outline-none text-[#12151C] dark:text-white text-sm font-medium`}
                                 />
 
                                 {errors.dob && (
-                                    <p className="text-red-500 text-xs mt-1">{errors.dob}</p>
+                                    <p className="text-red-500 text-xs mt-1 ml-1">{errors.dob}</p>
                                 )}
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-400 uppercase">
+                                <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">
                                     Date of Joining *
                                 </label>
 
@@ -619,17 +583,17 @@ export default function AddEmployee() {
                                     name="joiningDate"
                                     value={formData.joiningDate}
                                     onChange={handleInputChange}
-                                    className={`w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border ${errors.joiningDate ? 'border-red-500' : 'border-gray-200 dark:border-white/10'
-                                        } rounded-2xl outline-none text-gray-800 dark:text-white`}
+                                    className={`w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border ${errors.joiningDate ? 'border-red-500' : 'border-[#E2E6ED] dark:border-white/10'
+                                        } rounded-[8px] outline-none text-[#12151C] dark:text-white text-sm font-medium`}
                                 />
 
                                 {errors.joiningDate && (
-                                    <p className="text-red-500 text-xs mt-1">{errors.joiningDate}</p>
+                                    <p className="text-red-500 text-xs mt-1 ml-1">{errors.joiningDate}</p>
                                 )}
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Department *</label>
+                                <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Department *</label>
                                 <div className="relative group/select">
                                     <select
                                         name="departmentId"
@@ -645,15 +609,15 @@ export default function AddEmployee() {
                                                 departmentId: ''
                                             }));
                                         }}
-                                        className="appearance-none w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
+                                        className="appearance-none w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all cursor-pointer"
                                     >
-                                        <option value="" className="dark:bg-brand-900">Select Department</option>
+                                        <option value="" className="dark:bg-[#161B26]">Select Department</option>
                                         {masters.departments.map(dept => (
-                                            <option key={dept.id} value={dept.id} className="dark:bg-brand-900">{dept.name}</option>
+                                            <option key={dept.id} value={dept.id} className="dark:bg-[#161B26]">{dept.name}</option>
                                         ))}
                                     </select>
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover/select:text-brand-500 transition-colors">
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover/select:text-[#2C4FD6] transition-colors">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"></path></svg>
                                     </div>
                                 </div>
                                 {errors.departmentId && (
@@ -663,7 +627,7 @@ export default function AddEmployee() {
                                 )}
                             </div>
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">System Role *</label>
+                                <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">System Role *</label>
                                 <div className="relative group/select">
                                     <select
                                         name="roleId"
@@ -679,15 +643,15 @@ export default function AddEmployee() {
                                                 roleId: ''
                                             }));
                                         }}
-                                        className="appearance-none w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
+                                        className="appearance-none w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all cursor-pointer"
                                     >
-                                        <option value="" className="dark:bg-brand-900">Select Role</option>
+                                        <option value="" className="dark:bg-[#161B26]">Select Role</option>
                                         {masters.roles.map(role => (
-                                            <option key={role.id} value={role.id} className="dark:bg-brand-900">{role.name}</option>
+                                            <option key={role.id} value={role.id} className="dark:bg-[#161B26]">{role.name}</option>
                                         ))}
                                     </select>
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover/select:text-brand-500 transition-colors">
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover/select:text-[#2C4FD6] transition-colors">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"></path></svg>
                                     </div>
                                 </div>
                                 {errors.roleId && (
@@ -697,7 +661,7 @@ export default function AddEmployee() {
                                 )}
                             </div>
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Designation / Title *</label>
+                                <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Designation / Title *</label>
                                 <div className="relative group/select">
                                     <select
                                         name="designationId"
@@ -713,15 +677,15 @@ export default function AddEmployee() {
                                                 designationId: ''
                                             }));
                                         }}
-                                        className="appearance-none w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
+                                        className="appearance-none w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all cursor-pointer"
                                     >
-                                        <option value="" className="dark:bg-brand-900">Select Designation</option>
+                                        <option value="" className="dark:bg-[#161B26]">Select Designation</option>
                                         {masters.designations.map(desig => (
-                                            <option key={desig.id} value={desig.id} className="dark:bg-brand-900">{desig.name}</option>
+                                            <option key={desig.id} value={desig.id} className="dark:bg-[#161B26]">{desig.name}</option>
                                         ))}
                                     </select>
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover/select:text-brand-500 transition-colors">
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover/select:text-[#2C4FD6] transition-colors">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"></path></svg>
                                     </div>
                                 </div>
                                 {errors.designationId && (
@@ -731,7 +695,7 @@ export default function AddEmployee() {
                                 )}
                             </div>
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">
+                                <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">
                                     Blood Group
                                 </label>
 
@@ -740,19 +704,19 @@ export default function AddEmployee() {
                                         name="bloodGroup"
                                         value={formData.bloodGroup}
                                         onChange={handleInputChange}
-                                        className="appearance-none w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
+                                        className="appearance-none w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all cursor-pointer"
                                     >
-                                        <option value="" className="dark:bg-brand-900">Select Blood Group</option>
+                                        <option value="" className="dark:bg-[#161B26]">Select Blood Group</option>
                                         {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
-                                            <option key={bg} value={bg} className="dark:bg-brand-900">
+                                            <option key={bg} value={bg} className="dark:bg-[#161B26]">
                                                 {bg}
                                             </option>
                                         ))}
                                     </select>
 
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover/select:text-brand-500 transition-colors">
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover/select:text-[#2C4FD6] transition-colors">
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path>
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"></path>
                                         </svg>
                                     </div>
                                 </div>
@@ -765,8 +729,8 @@ export default function AddEmployee() {
                             </div>
 
                             <div className="md:col-span-2 space-y-2">
-                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Residential Address *</label>
-                                <div className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus-within:ring-4 focus-within:ring-brand-500/20 transition-all overflow-hidden h-[46px]">
+                                <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Residential Address *</label>
+                                <div className="w-full bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus-within:ring-2 focus-within:ring-[#2C4FD6]/20 transition-all overflow-hidden h-[46px]">
                                     <textarea
                                         id="employee-residential-input"
                                         autoComplete="new-password"
@@ -786,7 +750,7 @@ export default function AddEmployee() {
                                             }));
                                         }}
                                         rows={1}
-                                        className="w-full px-4 py-3 bg-transparent border-0 outline-none text-gray-700 dark:text-white text-sm font-medium placeholder:text-gray-400 dark:placeholder:text-gray-400 resize-none h-full overflow-y-auto block scrollbar-thin"
+                                        className="w-full px-4 py-3 bg-transparent border-0 outline-none text-[#12151C] dark:text-white text-sm font-medium placeholder:text-[#9AA3B1] placeholder:font-normal resize-none h-full overflow-y-auto block scrollbar-thin"
                                         placeholder="Enter full residential address"
                                     />
                                 </div>
@@ -799,18 +763,19 @@ export default function AddEmployee() {
 
                             {customFieldMasters.filter(cf => cf.category === 'PERSONAL_DETAILS').length > 0 && (
                                 <div className="md:col-span-2 border-t border-gray-100 dark:border-white/5 my-2 pt-4">
-                                    <h4 className="text-[10px] font-black text-brand-600 dark:text-brand-400 uppercase tracking-widest">Additional Details</h4>
+                                    <h4 className="text-xs font-semibold text-[#2C4FD6] uppercase tracking-wider">Additional Details</h4>
                                 </div>
-                            )}                            {customFieldMasters.filter(cf => cf.category === 'PERSONAL_DETAILS').map((cf) => {
+                            )}
+                            {customFieldMasters.filter(cf => cf.category === 'PERSONAL_DETAILS').map((cf) => {
                                 const fieldType = cf.type || 'TEXT';
                                 const hasError = !!errors[`customField-${cf.id}`];
 
                                 return (
                                     <div key={cf.id} className="space-y-2">
-                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">{cf.name}</label>
+                                        <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">{cf.name}</label>
                                         {fieldType === 'RADIO' ? (
                                             <>
-                                                <div className={`w-full flex gap-6 items-center px-4 py-3 bg-gray-50 dark:bg-white/5 border ${hasError ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-2xl h-[46px]`}>
+                                                <div className={`w-full flex gap-6 items-center px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border ${hasError ? 'border-red-500' : 'border-[#E2E6ED] dark:border-white/10'} rounded-[8px] h-[46px]`}>
                                                     {parseRadioOptions(cf.options).map((option: string) => (
                                                         <label key={option} className="flex items-center gap-1.5 cursor-pointer">
                                                             <input
@@ -824,9 +789,9 @@ export default function AddEmployee() {
                                                                         setErrors((prev: any) => ({ ...prev, [`customField-${cf.id}`]: '' }));
                                                                     }
                                                                 }}
-                                                                className="w-4 h-4 text-brand-600 focus:ring-brand-500 accent-brand-600"
+                                                                className="w-4 h-4 text-[#2C4FD6] focus:ring-[#2C4FD6] accent-[#2C4FD6]"
                                                             />
-                                                            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{option}</span>
+                                                            <span className="text-sm font-medium text-[#12151C] dark:text-gray-300">{option}</span>
                                                         </label>
                                                     ))}
                                                 </div>
@@ -838,15 +803,15 @@ export default function AddEmployee() {
                                             </>
                                         ) : fieldType === 'FILE' ? (
                                             <>
-                                                <div className={`w-full flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-white/5 border ${hasError ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-2xl h-[46px]`}>
-                                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate max-w-[220px]">
+                                                <div className={`w-full flex items-center justify-between px-4 py-2 bg-[#F7F8FA] dark:bg-white/5 border ${hasError ? 'border-red-500' : 'border-[#E2E6ED] dark:border-white/10'} rounded-[8px] h-[46px]`}>
+                                                    <span className="text-sm font-medium text-[#12151C] dark:text-gray-300 truncate max-w-[220px]">
                                                         {customFieldFiles[cf.id] ? customFieldFiles[cf.id]?.name : 'No file chosen'}
                                                     </span>
                                                     <div className="flex items-center gap-2">
                                                         <button
                                                             type="button"
                                                             onClick={() => document.getElementById(`cf-file-input-${cf.id}`)?.click()}
-                                                            className="px-4 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
+                                                            className="px-4 py-1.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[8px] text-xs font-semibold shadow-sm transition-all cursor-pointer"
                                                         >
                                                             Choose File
                                                         </button>
@@ -854,7 +819,7 @@ export default function AddEmployee() {
                                                             <button
                                                                 type="button"
                                                                 onClick={() => setConfirmDeleteDoc(cf.id)}
-                                                                className="p-1.5 text-red-500 hover:bg-red-55 dark:hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
+                                                                className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-[8px] transition-colors cursor-pointer"
                                                             >
                                                                 <Trash2 size={16} />
                                                             </button>
@@ -894,7 +859,7 @@ export default function AddEmployee() {
                                                             setErrors((prev: any) => ({ ...prev, [`customField-${cf.id}`]: '' }));
                                                         }
                                                     }}
-                                                    className={`w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border ${hasError ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400`}
+                                                    className={`w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border ${hasError ? 'border-red-500' : 'border-[#E2E6ED] dark:border-white/10'} rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all placeholder:text-[#9AA3B1] placeholder:font-normal`}
                                                     placeholder={`Enter ${cf.name.toLowerCase()}`}
                                                 />
                                                 {hasError && (
@@ -913,10 +878,10 @@ export default function AddEmployee() {
                     {currentStep === 2 && (
                         <div className="space-y-8 animate-fade-in">
                             <div className="space-y-4">
-                                <h3 className="font-bold text-gray-800 dark:text-white border-b border-gray-100 dark:border-white/10 pb-2">Statutory Details</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <h3 className="font-semibold text-[#12151C] dark:text-white border-b border-[#E2E6ED] dark:border-white/10 pb-2">Statutory Details</h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">PAN Number</label>
+                                        <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">PAN Number</label>
                                         <input
                                             autoComplete="off"
                                             name="pan"
@@ -933,13 +898,13 @@ export default function AddEmployee() {
                                                 }));
                                             }}
                                             type="text"
-                                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
+                                            className="w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all placeholder:text-[#9AA3B1] placeholder:font-normal"
                                             placeholder="E.g. ABCDE1234F"
                                         />
                                         {errors.pan && <p className="text-red-500 text-xs ml-1">{errors.pan}</p>}
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Aadhaar Number</label>
+                                        <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Aadhaar Number</label>
                                         <input
                                             autoComplete="off"
                                             name="aadhaar"
@@ -957,14 +922,14 @@ export default function AddEmployee() {
                                                 }));
                                             }}
                                             type="text"
-                                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
+                                            className="w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all placeholder:text-[#9AA3B1] placeholder:font-normal"
                                             placeholder="XXXX XXXX XXXX"
                                         />
                                         {errors.aadhaar && <p className="text-red-500 text-xs ml-1">{errors.aadhaar}</p>}
 
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">UAN (PF)</label>
+                                        <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">UAN (PF)</label>
                                         <input
                                             autoComplete="off"
                                             name="uan"
@@ -982,13 +947,13 @@ export default function AddEmployee() {
                                                 }));
                                             }}
                                             type="text"
-                                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
+                                            className="w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all placeholder:text-[#9AA3B1] placeholder:font-normal"
                                             placeholder="Enter 12-digit UAN number"
                                         />
                                         {errors.uan && <p className="text-red-500 text-xs ml-1">{errors.uan}</p>}
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">ESIC Number</label>
+                                        <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">ESIC Number</label>
                                         <input
                                             autoComplete="off"
                                             name="esic"
@@ -1006,7 +971,7 @@ export default function AddEmployee() {
                                                 }));
                                             }}
                                             type="text"
-                                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
+                                            className="w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all placeholder:text-[#9AA3B1] placeholder:font-normal"
                                             placeholder="Enter 10-digit ESIC number "
                                         />
                                         {errors.esic && <p className="text-red-500 text-xs ml-1">{errors.esic}</p>}
@@ -1016,38 +981,38 @@ export default function AddEmployee() {
                             </div>
 
                             <div className="space-y-4">
-                                <h3 className="font-bold text-gray-800 dark:text-white border-b border-gray-100 dark:border-white/10 pb-2">Bank Details</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <h3 className="font-semibold text-[#12151C] dark:text-white border-b border-[#E2E6ED] dark:border-white/10 pb-2">Bank Details</h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Bank Name</label>
+                                        <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Bank Name</label>
                                         <input
                                             autoComplete="off"
                                             name="bankName"
                                             value={formData.bankName}
                                             onChange={handleInputChange}
                                             type="text"
-                                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
+                                            className="w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all placeholder:text-[#9AA3B1] placeholder:font-normal"
                                             placeholder="e.g. HDFC Bank"
                                         />
                                         {errors.bankName && <p className="text-red-500 text-xs ml-1">{errors.bankName}</p>}
 
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">IFSC Code</label>
+                                        <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">IFSC Code</label>
                                         <input
                                             autoComplete="off"
                                             name="ifsc"
                                             value={formData.ifsc}
                                             onChange={handleInputChange}
                                             type="text"
-                                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all uppercase placeholder:normal-case placeholder:text-gray-400 dark:placeholder:text-gray-400"
+                                            className="w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all uppercase placeholder:normal-case placeholder:text-[#9AA3B1] placeholder:font-normal"
                                             placeholder="Enter IFSC code"
                                         />
                                         {errors.ifsc && <p className="text-red-500 text-xs ml-1">{errors.ifsc}</p>}
 
                                     </div>
                                     <div className="space-y-2 md:col-span-2">
-                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Account Number</label>
+                                        <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Account Number</label>
                                         <input
                                             name="accountNumber"
                                             autoComplete="off"
@@ -1065,7 +1030,7 @@ export default function AddEmployee() {
                                                     accountNumber: ''
                                                 }));
                                             }}
-                                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
+                                            className="w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all placeholder:text-[#9AA3B1] placeholder:font-normal"
 
                                             placeholder="Enter 9-18 digit account number"
                                         />
@@ -1079,14 +1044,14 @@ export default function AddEmployee() {
                     )}
                     {currentStep === 3 && (
                         <div className="space-y-6 animate-fade-in">
-                            <h3 className="font-bold text-gray-800 dark:text-white border-b border-gray-100 dark:border-white/10 pb-2">
+                            <h3 className="font-semibold text-[#12151C] dark:text-white border-b border-[#E2E6ED] dark:border-white/10 pb-2">
                                 Salary Info
                             </h3>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                                 {/* Basic Salary */}
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">
+                                    <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">
                                         Basic Salary *
                                     </label>
 
@@ -1094,7 +1059,7 @@ export default function AddEmployee() {
                                         type="text"
                                         value={formData.salary.basic}
                                         onChange={(e) => handleBasicSalaryChange(e.target.value)}
-                                        className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all placeholder:text-gray-400 dark:placeholder:text-gray-400"
+                                        className="w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all placeholder:text-[#9AA3B1] placeholder:font-normal"
                                         placeholder="Enter Basic Salary"
                                     />
 
@@ -1107,21 +1072,21 @@ export default function AddEmployee() {
 
                                 {/* Component Dropdown */}
                                 <div ref={salaryDropdownRef} className="space-y-2 relative">
-                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">
+                                    <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">
                                         Select Components
                                     </label>
 
                                     <button
                                         type="button"
                                         onClick={() => setShowComponentDropdown(!showComponentDropdown)}
-                                        className="w-full min-h-[42px] px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-700 dark:text-white text-sm font-medium transition-all flex items-center justify-between gap-3"
+                                        className="w-full min-h-[42px] px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all flex items-center justify-between gap-3 cursor-pointer"
                                     >
                                         <div className="flex flex-wrap gap-2 text-left">
                                             {formData.selectedSalaryComponents.length > 0 ? (
                                                 formData.selectedSalaryComponents.map((component: any) => (
                                                     <span
                                                         key={component.id}
-                                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-brand-600 text-white text-xs font-bold"
+                                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[6px] bg-[#2C4FD6] text-white text-xs font-semibold"
                                                     >
                                                         {component.name}
                                                         <span
@@ -1136,7 +1101,7 @@ export default function AddEmployee() {
                                                     </span>
                                                 ))
                                             ) : (
-                                                <span className="text-gray-400">Select components</span>
+                                                <span className="text-[#9AA3B1] font-normal">Select components</span>
                                             )}
                                         </div>
 
@@ -1147,40 +1112,41 @@ export default function AddEmployee() {
                                     </button>
 
                                     {showComponentDropdown && (
-                                        <div className="absolute z-[9999] mt-2 w-full max-h-64 overflow-y-auto rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-brand-950 shadow-2xl p-3 space-y-2">                                            {salaryComponents.length > 0 ? (
-                                            salaryComponents.map((component: any) => {
-                                                const checked = formData.selectedSalaryComponents.some(
-                                                    (item: any) => item.id === component.id
-                                                );
+                                        <div className="absolute z-[9999] mt-2 w-full max-h-64 overflow-y-auto rounded-[8px] border border-[#E2E6ED] dark:border-white/10 bg-white dark:bg-[#161B26] shadow-2xl p-3 space-y-2">
+                                            {salaryComponents.length > 0 ? (
+                                                salaryComponents.map((component: any) => {
+                                                    const checked = formData.selectedSalaryComponents.some(
+                                                        (item: any) => item.id === component.id
+                                                    );
 
-                                                return (
-                                                    <label
-                                                        key={component.id}
-                                                        className="flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5 text-gray-700 dark:text-white text-sm font-medium"
-                                                    >
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={checked}
-                                                            onChange={() => toggleSalaryComponent(component)}
-                                                            className="w-4 h-4 accent-brand-600"
-                                                        />
+                                                    return (
+                                                        <label
+                                                            key={component.id}
+                                                            className="flex items-center gap-3 px-3 py-2 rounded-[6px] cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5 text-[#12151C] dark:text-white text-sm font-medium"
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={checked}
+                                                                onChange={() => toggleSalaryComponent(component)}
+                                                                className="w-4 h-4 accent-[#2C4FD6]"
+                                                            />
 
-                                                        <span className="flex-1">{component.name}</span>
+                                                            <span className="flex-1">{component.name}</span>
 
-                                                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${component.type === 'EARNING'
-                                                            ? 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400'
-                                                            : 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400'
-                                                            }`}>
-                                                            {component.type}
-                                                        </span>
-                                                    </label>
-                                                );
-                                            })
-                                        ) : (
-                                            <p className="text-sm text-gray-400 px-3 py-4 text-center">
-                                                No salary components found
-                                            </p>
-                                        )}
+                                                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${component.type === 'EARNING'
+                                                                ? 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400'
+                                                                : 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400'
+                                                                }`}>
+                                                                {component.type}
+                                                            </span>
+                                                        </label>
+                                                    );
+                                                })
+                                            ) : (
+                                                <p className="text-sm text-gray-400 px-3 py-4 text-center">
+                                                    No salary components found
+                                                </p>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -1188,14 +1154,14 @@ export default function AddEmployee() {
 
                             {/* Selected Component Inputs */}
                             {(<div className="space-y-4 pt-2">
-                                <h4 className="text-xs font-black uppercase tracking-[0.2em] text-brand-500 dark:text-brand-400">
+                                <h4 className="text-xs font-semibold uppercase tracking-wider text-[#2C4FD6]">
                                     Selected Components
                                 </h4>
 
                                 {formData.selectedSalaryComponents.length === 0 ? (
-                                    <div className="min-h-[170px] rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 flex flex-col items-center justify-center text-center">
+                                    <div className="min-h-[170px] rounded-[8px] border border-[#E2E6ED] dark:border-white/10 bg-[#F7F8FA] dark:bg-white/5 flex flex-col items-center justify-center text-center">
                                         <FileText size={36} className="text-gray-400 mb-3" />
-                                        <p className="font-bold text-gray-700 dark:text-white">
+                                        <p className="font-semibold text-gray-700 dark:text-white">
                                             No components selected
                                         </p>
                                         <p className="text-sm text-gray-400 mt-1">
@@ -1203,20 +1169,20 @@ export default function AddEmployee() {
                                         </p>
                                     </div>
                                 ) : (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                                         {formData.selectedSalaryComponents.map((component: any) => (
                                             <div
                                                 key={component.id}
-                                                className="p-4 rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 flex items-center justify-between gap-4"
+                                                className="p-4 rounded-[8px] border border-[#E2E6ED] dark:border-white/10 bg-[#F7F8FA] dark:bg-white/5 flex items-center justify-between gap-4"
                                             >
                                                 <div>
                                                     <div className="flex items-center gap-2">
-                                                        <p className="font-bold text-gray-800 dark:text-white">
+                                                        <p className="font-semibold text-gray-800 dark:text-white">
                                                             {component.name}
                                                         </p>
 
                                                         <span
-                                                            className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${component.type === 'EARNING'
+                                                            className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${component.type === 'EARNING'
                                                                 ? 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400'
                                                                 : 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400'
                                                                 }`}
@@ -1256,7 +1222,7 @@ export default function AddEmployee() {
                     {currentStep === 4 && (
                         <div className="space-y-6 animate-fade-in">
                             <div className="space-y-4">
-                                <p className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">Required Documents Checklist</p>
+                                <p className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider mb-2 ml-1">Required Documents Checklist</p>
                                 {[
                                     { key: 'aadhaar', name: 'Aadhaar Card', required: true, isCustom: false, type: 'FILE' },
                                     { key: 'pan', name: 'PAN Card', required: true, isCustom: false, type: 'FILE' },
@@ -1282,25 +1248,25 @@ export default function AddEmployee() {
                                                 onClick={() =>
                                                     document.getElementById(`fileInput-${doc.key}`)?.click()
                                                 }
-                                                className={`flex items-center justify-between p-4 cursor-pointer border rounded-2xl transition-all ${hasFile
+                                                className={`flex items-center justify-between p-4 cursor-pointer border rounded-[8px] transition-all ${hasFile
                                                     ? 'border-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10'
                                                     : documentError
                                                         ? 'border-red-500 bg-red-500/5 dark:bg-red-500/10'
-                                                        : 'border-gray-200 dark:border-white/10 hover:border-brand-500 dark:hover:border-brand-500 bg-gray-50 dark:bg-white/5 hover:scale-[1.01] shadow-sm'
+                                                        : 'border-[#E2E6ED] dark:border-white/10 hover:border-[#2C4FD6] dark:hover:border-[#2C4FD6] bg-[#F7F8FA] dark:bg-white/5 hover:scale-[1.005] shadow-xs'
                                                     }`}
                                             >
                                                 <div className="flex items-center gap-4">
-                                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${hasFile
+                                                    <div className={`w-10 h-10 rounded-[6px] flex items-center justify-center transition-colors ${hasFile
                                                         ? 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
-                                                        : 'bg-gray-100 dark:bg-white/10 text-gray-400'
+                                                        : 'bg-[#E8ECFC] text-[#2C4FD6] dark:bg-white/10 dark:text-gray-300'
                                                         }`}>
-                                                        <FileText size={24} />
+                                                        <FileText size={20} />
                                                     </div>
                                                     <div>
-                                                        <p className="font-semibold text-gray-800 dark:text-white text-base">
+                                                        <p className="font-semibold text-[#12151C] dark:text-white text-sm">
                                                             {doc.name} {doc.required && <span className="text-red-500">*</span>}
                                                         </p>
-                                                        <p className={`text-xs font-medium transition-colors ${hasFile ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                                                        <p className={`text-xs font-medium transition-colors ${hasFile ? 'text-emerald-600 dark:text-emerald-400' : 'text-[#9AA3B1]'}`}>
                                                             {hasFile ? fileObj?.name : 'Click to upload document'}
                                                         </p>
                                                     </div>
@@ -1315,11 +1281,11 @@ export default function AddEmployee() {
                                                             }}
                                                             className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
                                                         >
-                                                            <Trash2 size={20} />
+                                                            <Trash2 size={18} />
                                                         </button>
                                                     ) : (
-                                                        <div className="w-8 h-8 rounded-full bg-brand-50 dark:bg-white/10 text-brand-600 dark:text-brand-400 flex items-center justify-center hover:scale-110 transition-transform">
-                                                            <Upload size={16} />
+                                                        <div className="w-7 h-7 rounded-full bg-[#E8ECFC] text-[#2C4FD6] dark:bg-white/10 dark:text-white flex items-center justify-center hover:scale-110 transition-transform">
+                                                            <Upload size={14} />
                                                         </div>
                                                     )}
                                                 </div>
@@ -1386,18 +1352,18 @@ export default function AddEmployee() {
                                     onClick={() =>
                                         document.getElementById('profile-picture-input')?.click()
                                     }
-                                    className={`flex items-center justify-between p-4 cursor-pointer border rounded-2xl transition-all ${profilePicture
+                                    className={`flex items-center justify-between p-4 cursor-pointer border rounded-[8px] transition-all ${profilePicture
                                         ? 'border-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10'
                                         : errors.profilePicture
                                             ? 'border-red-500 bg-red-500/5 dark:bg-red-500/10'
-                                            : 'border-gray-200 dark:border-white/10 hover:border-brand-500 dark:hover:border-brand-500 bg-gray-50 dark:bg-white/5 hover:scale-[1.01] shadow-sm'
+                                            : 'border-[#E2E6ED] dark:border-white/10 hover:border-[#2C4FD6] dark:hover:border-[#2C4FD6] bg-[#F7F8FA] dark:bg-white/5 hover:scale-[1.005] shadow-xs'
                                         }`}
                                 >
                                     <div className="flex items-center gap-4">
                                         <div
-                                            className={`w-12 h-12 rounded-xl overflow-hidden flex items-center justify-center ${profilePicturePreview
+                                            className={`w-10 h-10 rounded-[6px] overflow-hidden flex items-center justify-center ${profilePicturePreview
                                                 ? 'border border-emerald-500'
-                                                : 'bg-gray-100 dark:bg-white/10 text-gray-400'
+                                                : 'bg-[#E8ECFC] text-[#2C4FD6] dark:bg-white/10 dark:text-gray-300'
                                                 }`}
                                         >
                                             {profilePicturePreview ? (
@@ -1407,19 +1373,19 @@ export default function AddEmployee() {
                                                     className="w-full h-full object-cover"
                                                 />
                                             ) : (
-                                                <User size={24} />
+                                                <User size={20} />
                                             )}
                                         </div>
 
                                         <div>
-                                            <p className="font-semibold text-gray-800 dark:text-white text-base">
+                                            <p className="font-semibold text-[#12151C] dark:text-white text-sm">
                                                 Profile Picture <span className="text-red-500">*</span>
                                             </p>
 
                                             <p
                                                 className={`text-xs font-medium ${profilePicture
                                                     ? 'text-emerald-600 dark:text-emerald-400'
-                                                    : 'text-gray-400 dark:text-gray-500'
+                                                    : 'text-[#9AA3B1]'
                                                     }`}
                                             >
                                                 {profilePicture
@@ -1439,11 +1405,11 @@ export default function AddEmployee() {
                                                 }}
                                                 className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
                                             >
-                                                <Trash2 size={20} />
+                                                <Trash2 size={18} />
                                             </button>
                                         ) : (
-                                            <div className="w-8 h-8 rounded-full bg-brand-50 dark:bg-white/10 text-brand-600 dark:text-brand-400 flex items-center justify-center hover:scale-110 transition-transform">
-                                                <Upload size={16} />
+                                            <div className="w-7 h-7 rounded-full bg-[#E8ECFC] text-[#2C4FD6] dark:bg-white/10 dark:text-white flex items-center justify-center hover:scale-110 transition-transform">
+                                                <Upload size={14} />
                                             </div>
                                         )}
                                     </div>
@@ -1468,43 +1434,29 @@ export default function AddEmployee() {
                 </div>
 
                 {/* Footer / Navigation */}
-                <div className="p-8 border-t border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 flex justify-between items-center">
+                <div className="p-6 border-t border-[#E2E6ED] dark:border-white/10 bg-[#F7F8FA] dark:bg-white/5 flex justify-between items-center rounded-b-[11px]">
                     <button
                         onClick={handleBack}
                         disabled={loading}
-                        className="px-6 py-3 rounded-xl border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 font-bold hover:bg-gray-100 dark:hover:bg-white/10 transition-colors disabled:opacity-50"
+                        className="px-6 py-2.5 rounded-[8px] border border-[#E2E6ED] dark:border-gray-700 text-[#5B6472] dark:text-gray-300 font-semibold hover:bg-gray-100 dark:hover:bg-white/10 transition-colors disabled:opacity-50 cursor-pointer text-sm"
                     >
                         {currentStep === 1 ? 'Cancel' : 'Back'}
                     </button>
-                    <div className="flex items-center gap-3">
-                        {currentStep === 2 && (
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setErrors({});
-                                    setCurrentStep(3);
-                                }}
-                                className="px-6 py-3 rounded-xl border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 font-bold hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
-                            >
-                                Skip
-                            </button>
+                    <button
+                        onClick={handleNext}
+                        disabled={loading}
+                        className="flex items-center gap-2 px-7 py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[8px] shadow-sm transition-all font-semibold text-sm disabled:opacity-50 cursor-pointer"
+                    >
+                        {loading ? (
+                            <>
+                                <Loader2 size={18} className="animate-spin" /> Processing...
+                            </>
+                        ) : (
+                            <>
+                                {currentStep === 4 ? 'Complete Onboarding' : 'Next Step'} <ChevronRight size={18} />
+                            </>
                         )}
-                        <button
-                            onClick={handleNext}
-                            disabled={loading}
-                            className="flex items-center gap-2 px-8 py-3 bg-brand-600 text-white rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-700 transition-all font-bold disabled:opacity-50"
-                        >
-                            {loading ? (
-                                <>
-                                    <Loader2 size={18} className="animate-spin" /> Processing...
-                                </>
-                            ) : (
-                                <>
-                                    {currentStep === 4 ? 'Complete Onboarding' : 'Next Step'} <ChevronRight size={18} />
-                                </>
-                            )}
-                        </button>
-                    </div>
+                    </button>
                 </div>
             </div>
             {confirmDeleteDoc && createPortal(

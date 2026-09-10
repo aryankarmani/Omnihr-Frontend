@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { useEffect } from 'react';
-import { Users, Plus, MoreVertical, Briefcase, UserPlus, X, Trash2 } from 'lucide-react';
+import { Plus, MoreVertical, Briefcase, UserPlus, X, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
@@ -165,183 +165,187 @@ export default function Team() {
 
     return (
         <div className="animate-fade-in-up pb-8">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+            {/* Header section */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Team Management</h2>
-                    <p className="text-gray-500 dark:text-gray-400">Organize your workforce into functional units.</p>
+                    <h2 className="text-2xl font-bold text-[#12151C] dark:text-white mb-1">Team Management</h2>
+                    <p className="page-sub text-[14px] text-[#5B6472] dark:text-gray-400 mb-[5px]">Organize your workforce into functional units.</p>
                 </div>
                 {canManageTeams && (
                     <button
                         onClick={() => setShowCreateModal(true)}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-brand-600 text-white rounded-xl shadow-lg shadow-brand-500/20 hover:bg-brand-700 active:scale-95 transition-all"
+                        className="btn btn-primary inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white text-[13.5px] font-semibold rounded-[6px] px-[15px] py-[9px] active:scale-95 transition-all cursor-pointer"
                     >
-                        <Plus size={20} /> Create New Team
+                        <Plus size={16} /> Create New Team
                     </button>
                 )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {teams.map((team) => (
-                    <div key={team.id} className="bg-white dark:bg-brand-900 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
-                        <div className="p-6">
-                            <div className="flex justify-between items-start mb-4">
-                                <div className="w-12 h-12 bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 rounded-xl flex items-center justify-center">
-                                    <Briefcase size={24} />
-                                </div>
-                                <div className="relative">
+            {/* Team Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                {teams.map((team) => {
+                    const managerName = team.manager ? (typeof team.manager === 'object' ? team.manager.name : team.manager) : 'Unassigned';
+                    const initials = managerName.split(' ').map((n: string) => n[0]).join('').substring(0, 2);
 
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setMenuOpen(prev => prev === team.id ? null : team.id);
-                                        }}
-                                        className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"
-                                    >
-                                        <MoreVertical size={20} />
-                                    </button>
-                                    {menuOpen === team.id && (
-                                        <div
-                                            onClick={(e) => e.stopPropagation()}
-                                            className="absolute right-0 mt-2 w-36 bg-white dark:bg-brand-950 border border-gray-100 dark:border-white/10 rounded-xl shadow-xl overflow-hidden z-50">
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setMenuOpen(null);
-                                                    setEditTeam(team);
-                                                }}
-                                                className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10 transition-all font-semibold"
-                                            >
-                                                Edit
-                                            </button>
-                                            <button
-                                                onClick={async () => {
-                                                    setMenuOpen(null);
-                                                    // await deleteTeam(team.id);
-                                                    // fetchTeams();  mock
-                                                    setConfirmDelete(team.id);
-
-                                                }}
-                                                className="w-full text-left px-4 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all font-semibold border-b border-gray-100 dark:border-white/5"
-                                            >
-                                                Delete
-                                            </button>
-                                            {isAdmin && (
+                    return (
+                        <div key={team.id} className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 p-6 hover:border-[#2C4FD6]/40 transition-all flex flex-col justify-between min-h-[230px] relative">
+                            <div>
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="w-[36px] h-[36px] rounded-[6px] bg-[#E8ECFC] text-[#2C4FD6] dark:bg-blue-950/40 dark:text-blue-400 flex items-center justify-center mb-[14px]">
+                                        <Briefcase size={16} />
+                                    </div>
+                                    <div className="relative">
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setMenuOpen(prev => prev === team.id ? null : team.id);
+                                            }}
+                                            className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors p-1 cursor-pointer"
+                                        >
+                                            <MoreVertical size={16} />
+                                        </button>
+                                        {menuOpen === team.id && (
+                                            <div
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="absolute right-0 mt-1 w-36 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] overflow-hidden z-50">
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         setMenuOpen(null);
-                                                        handleOpenAccessControl(team);
+                                                        setEditTeam(team);
                                                     }}
-                                                    className="w-full text-left px-4 py-2 text-sm text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-500/10 transition-all font-semibold"
+                                                    className="w-full text-left px-4 py-2 text-xs text-[#12151C] dark:text-gray-200 hover:bg-[#EEF1F5] dark:hover:bg-white/10 transition-all font-semibold cursor-pointer"
                                                 >
-                                                    Access Control
+                                                    Edit
                                                 </button>
-                                            )}
+                                                <button
+                                                    onClick={async () => {
+                                                        setMenuOpen(null);
+                                                        setConfirmDelete(team.id);
+                                                    }}
+                                                    className="w-full text-left px-4 py-2 text-xs text-[#DE350B] dark:text-rose-400 hover:bg-[#FBE7E7] dark:hover:bg-rose-500/10 transition-all font-semibold border-b border-[#E2E6ED] dark:border-gray-800 cursor-pointer"
+                                                >
+                                                    Delete
+                                                </button>
+                                                {isAdmin && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setMenuOpen(null);
+                                                            handleOpenAccessControl(team);
+                                                        }}
+                                                        className="w-full text-left px-4 py-2 text-xs text-[#2C4FD6] dark:text-blue-400 hover:bg-[#E8ECFC] dark:hover:bg-blue-500/10 transition-all font-semibold cursor-pointer"
+                                                    >
+                                                        Access Control
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
 
+                                <h3 className="text-base font-semibold text-[#12151C] dark:text-white mb-0.5">{team.name}</h3>
+                                <p className="text-xs text-[#9AA3B1] dark:text-gray-400">
+                                    {team.description || 'No description provided'}
+                                </p>
+
+                                <div className="border-t border-[#E2E6ED] dark:border-gray-800 my-4"></div>
+
+                                <div className="flex items-center gap-2.5 mb-4">
+                                    <div className="w-7 h-7 rounded-full bg-[#EEF1F5] dark:bg-gray-700 text-[#5B6472] dark:text-white font-mono-numbers font-bold text-[10px] flex items-center justify-center shrink-0 uppercase">
+                                        {initials}
+                                    </div>
+                                    <div>
+                                        <div className="manager-role text-[10.5px] text-[#9AA3B1] dark:text-gray-400 uppercase tracking-[0.04em] leading-none mb-1">MANAGER</div>
+                                        <div className="manager-name text-[13px] font-semibold text-[#12151C] dark:text-white leading-none">
+                                            {managerName}
                                         </div>
-                                    )}
-
+                                    </div>
                                 </div>
-                            </div>
 
-                            <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2 break-all">{team.name}</h3>
-                            <p className="text-gray-500 dark:text-gray-400 text-sm mb-6 break-all">
-                                {team.description}
-                            </p>
-
-                            <div className="flex items-center gap-3 mb-6 p-3 bg-gray-50 dark:bg-white/5 rounded-xl">
-                                <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-white/5 flex items-center justify-center font-bold text-brand-600 dark:text-brand-400">
-                                    {team.manager ? (typeof team.manager === 'object' ? team.manager.name?.[0] : team.manager[0]) : '?'}
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[12.5px] text-[#5B6472] dark:text-gray-300">
+                                        {team.members ? team.members.length : 0} Members
+                                    </span>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedTeam(team.id);
+                                        }}
+                                        className="text-[12.5px] font-semibold text-[#2C4FD6] dark:text-blue-400 hover:underline cursor-pointer"
+                                    >
+                                        View Members
+                                    </button>
                                 </div>
-                                <div>
-                                    <p className="text-xs text-gray-400 uppercase font-bold">Manager</p>
-                                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                                        {team.manager ? (typeof team.manager === 'object' ? team.manager.name : team.manager) : 'Unassigned'}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-white/5">
-                                <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                                    <Users size={16} />
-                                    <span className="font-semibold">{team.members.length} Members</span>
-                                </div>
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setSelectedTeam(team.id);
-                                    }}
-                                    className="text-sm font-medium text-brand-600 dark:text-brand-400 hover:underline"
-                                >
-                                    View Members
-                                </button>
                             </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
             {showAddMemberModal && createPortal(
-                <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/70 backdrop-blur-xl">
-                    <div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+                <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-slate-900/20 dark:bg-black/60 backdrop-blur-md p-4">
+                    <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 w-full max-w-lg overflow-hidden animate-scale-in">
 
-                        <div className="p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50 dark:bg-white/5">
-                            <h3 className="text-xl font-bold text-gray-800 dark:text-white">Add Members</h3>
+                        <div className="p-5 border-b border-[#E2E6ED] dark:border-gray-800 flex justify-between items-center bg-[#F7F8FA] dark:bg-white/5">
+                            <h3 className="text-base font-bold text-[#12151C] dark:text-white">Add Members</h3>
                             <button
                                 onClick={() => setShowAddMemberModal(false)}
-                                className="text-gray-400 hover:text-gray-600 transition-colors"
+                                className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer"
                             >
-                                <X size={20} />
+                                <X size={18} />
                             </button>
                         </div>
-                        <div className="p-6 max-h-[40vh] overflow-y-auto space-y-3 custom-scroll">
+                        <div className="p-6 max-h-[40vh] overflow-y-auto space-y-2.5 custom-scrollbar">
 
                             {employees.map(emp => {
                                 const isSelected = selectedEmployees.includes(emp.id);
                                 const isManager = selectedManager === emp.id;
 
-                                let cardBgClass = "bg-gray-50 dark:bg-white/5 border border-transparent";
+                                let cardBgClass = "bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-800";
                                 if (isManager) {
-                                    cardBgClass = "bg-yellow-500/10 border border-yellow-500/30 dark:bg-yellow-500/10";
+                                    cardBgClass = "bg-amber-500/10 border border-amber-500/30 dark:bg-amber-500/10";
                                 } else if (isSelected) {
-                                    cardBgClass = "bg-green-500/10 border border-green-500/30 dark:bg-green-500/10";
+                                    cardBgClass = "bg-[#E4F5EC] border border-[#BBE5D0] dark:bg-emerald-500/10";
                                 }
 
                                 return (
                                     <div
                                         key={emp.id}
-                                        className={`flex items-center justify-between p-3 rounded-xl transition-all ${cardBgClass}`}
+                                        className={`flex items-center justify-between p-3 rounded-[6px] transition-all ${cardBgClass}`}
                                     >
-                                        <div>  <button
-                                            type="button"
-                                            onClick={() => {
-                                                sessionStorage.setItem(
-                                                    'teamModalState',
-                                                    JSON.stringify({
-                                                        modal: 'add-members',
-                                                        teamId: selectedTeam
-                                                    })
-                                                );
+                                        <div>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    sessionStorage.setItem(
+                                                        'teamModalState',
+                                                        JSON.stringify({
+                                                            modal: 'add-members',
+                                                            teamId: selectedTeam
+                                                        })
+                                                    );
 
-                                                navigate(`/employee/${emp.id}`);
-                                            }} className="font-semibold text-gray-800 dark:text-white text-sm hover:text-brand-400 hover:underline"
-                                        >
-                                            {emp.name}
-                                        </button>
+                                                    navigate(`/employee/${emp.id}`);
+                                                }} 
+                                                className="font-semibold text-[#12151C] dark:text-white text-[13.5px] hover:text-[#2C4FD6] hover:underline cursor-pointer"
+                                            >
+                                                {emp.name}
+                                            </button>
 
-                                            <p className="text-xs text-gray-500">{typeof emp.role === 'object' ? emp.role?.name || 'Employee' : emp.role || 'Employee'}</p>
+                                            <p className="text-[11.5px] text-[#717E95] dark:text-gray-400">{typeof emp.role === 'object' ? emp.role?.name || 'Employee' : emp.role || 'Employee'}</p>
                                         </div>
 
-                                        <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-2">
                                             <button
                                                 onClick={() => setSelectedManager(isManager ? null : emp.id)}
-                                                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${isManager
-                                                    ? 'bg-yellow-500 text-white shadow-sm shadow-yellow-500/20'
-                                                    : 'text-gray-400 hover:text-yellow-500 hover:bg-yellow-500/5'
+                                                className={`px-2.5 py-1 text-xs font-semibold rounded-[6px] transition-all cursor-pointer ${isManager
+                                                    ? 'bg-amber-500 text-white'
+                                                    : 'text-[#717E95] hover:text-amber-600 hover:bg-amber-50'
                                                     }`}
                                             >
                                                 Manager
                                             </button>
-                                            <div className="w-px h-4 bg-gray-200 dark:bg-white/20"></div>
+                                            <div className="w-px h-4 bg-[#E2E6ED] dark:bg-gray-800"></div>
                                             <button
                                                 onClick={() => {
                                                     if (isSelected) {
@@ -350,9 +354,9 @@ export default function Team() {
                                                         setSelectedEmployees(prev => [...prev, emp.id]);
                                                     }
                                                 }}
-                                                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${isSelected
-                                                    ? 'bg-green-500 text-white shadow-sm shadow-green-500/20'
-                                                    : 'bg-brand-600 text-white hover:bg-brand-700 shadow-sm shadow-brand-500/20'
+                                                className={`px-3 py-1 text-xs font-semibold rounded-[6px] transition-all cursor-pointer ${isSelected
+                                                    ? 'bg-[#1F8A5A] text-white'
+                                                    : 'bg-[#2C4FD6] text-white hover:bg-[#203FB4]'
                                                     }`}
                                             >
                                                 {isSelected ? 'Added' : 'Add'}
@@ -364,7 +368,7 @@ export default function Team() {
                             })}
 
                         </div>
-                        <div className="p-4 flex gap-3">
+                        <div className="p-5 border-t border-[#E2E6ED] dark:border-gray-800 flex gap-3">
                             <button
                                 onClick={() => {
                                     setShowAddMemberModal(false);
@@ -373,7 +377,7 @@ export default function Team() {
                                         setNewTeamDesc('');
                                     }
                                 }}
-                                className="flex-1 py-2 rounded-xl bg-gray-400 text-white hover:bg-gray-500 transition-all active:scale-95"
+                                className="flex-1 py-2.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#5B6472] dark:text-gray-300 font-semibold text-[13.5px] hover:bg-gray-50 dark:hover:bg-white/5 transition-all cursor-pointer"
                             >
                                 Cancel
                             </button>
@@ -410,7 +414,7 @@ export default function Team() {
                                     setSelectedManager(null);
 
                                 }}
-                                className="flex-1 py-2 rounded-xl bg-brand-600 text-white hover:bg-brand-700 shadow-lg shadow-brand-500/30 transition-all active:scale-95"
+                                className="flex-1 py-2.5 rounded-[6px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold text-[13.5px] transition-all cursor-pointer"
                             >
                                 {selectedTeam ? 'Add' : 'Create Team'}
                             </button>
@@ -421,40 +425,39 @@ export default function Team() {
                 , document.body)}
             {showCreateModal &&
                 createPortal(
-                    // changes were made here 
-                    <div className="fixed inset-0 z-[999999] bg-black/70 backdrop-blur-xl flex items-center justify-center p-4">
-                        <div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-                            <div className="p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center">
-                                <h3 className="text-xl font-bold text-gray-800 dark:text-white">Create New Team</h3>
-                                <button onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
-                                    <X size={20} />
+                    <div className="fixed inset-0 z-[999999] bg-slate-900/20 dark:bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+                        <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 w-full max-w-md overflow-hidden animate-scale-in">
+                            <div className="p-5 border-b border-[#E2E6ED] dark:border-gray-800 flex justify-between items-center bg-[#F7F8FA] dark:bg-white/5">
+                                <h3 className="text-base font-bold text-[#12151C] dark:text-white">Create New Team</h3>
+                                <button onClick={() => setShowCreateModal(false)} className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer">
+                                    <X size={18} />
                                 </button>
                             </div>
                             <form onSubmit={handleCreateTeam} className="p-6 space-y-4">
                                 <div className="space-y-1.5">
-                                    <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Team Name</label>
+                                    <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">Team Name</label>
                                     <input
                                         type="text"
                                         required
                                         value={newTeamName}
                                         onChange={(e) => setNewTeamName(e.target.value)}
                                         placeholder="e.g. Quality Assurance"
-                                        className="w-full px-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none"
+                                        className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
                                     />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Description</label>
+                                    <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">Description</label>
                                     <textarea
                                         rows={3}
                                         value={newTeamDesc}
                                         onChange={(e) => setNewTeamDesc(e.target.value)}
                                         placeholder="Brief description of the team's responsibilities"
-                                        className="w-full px-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none"
+                                        className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
                                     />
                                 </div>
                                 <button
                                     type="submit"
-                                    className="w-full py-3 bg-brand-600 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-700 transition-all mt-2"
+                                    className="w-full py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold text-[13.5px] rounded-[6px] transition-all cursor-pointer mt-2"
                                 >
                                     Create Team
                                 </button>
@@ -466,31 +469,31 @@ export default function Team() {
             }
 
             {editTeam && createPortal(
-                <div className="fixed inset-0 z-[999999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in">
-                        <div className="p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50 dark:bg-white/5">
-                            <h3 className="text-xl font-bold text-gray-800 dark:text-white">Edit Team</h3>
-                            <button onClick={() => setEditTeam(null)} className="text-gray-400 hover:text-gray-600 transition-colors">
-                                <X size={20} />
+                <div className="fixed inset-0 z-[999999] bg-slate-900/20 dark:bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 w-full max-w-md overflow-hidden animate-scale-in">
+                        <div className="p-5 border-b border-[#E2E6ED] dark:border-gray-800 flex justify-between items-center bg-[#F7F8FA] dark:bg-white/5">
+                            <h3 className="text-base font-bold text-[#12151C] dark:text-white">Edit Team</h3>
+                            <button onClick={() => setEditTeam(null)} className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer">
+                                <X size={18} />
                             </button>
                         </div>
                         <div className="p-6 space-y-4">
                             <div className="space-y-1.5">
-                                <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Team Name</label>
+                                <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">Team Name</label>
                                 <input
                                     type="text"
                                     value={editTeam.name}
                                     onChange={(e) => setEditTeam({ ...editTeam, name: e.target.value })}
-                                    className="w-full px-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-800 dark:text-white"
+                                    className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Description</label>
+                                <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">Description</label>
                                 <textarea
                                     rows={3}
                                     value={editTeam.description}
                                     onChange={(e) => setEditTeam({ ...editTeam, description: e.target.value })}
-                                    className="w-full px-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none text-gray-800 dark:text-white"
+                                    className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
                                 />
                             </div>
                             <button
@@ -507,7 +510,7 @@ export default function Team() {
                                     fetchTeams();
                                     setEditTeam(null);
                                 }}
-                                className="w-full py-3 bg-brand-600 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-700 transition-all mt-2 active:scale-95"
+                                className="w-full py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold text-[13.5px] rounded-[6px] transition-all cursor-pointer mt-2"
                             >
                                 Save Changes
                             </button>
@@ -517,32 +520,32 @@ export default function Team() {
                 document.body
             )}
 {selectedTeam && !showAddMemberModal && createPortal(
-                    <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-scale-in">
-                        <div className="p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50 dark:bg-white/5">
+                    <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-slate-900/20 dark:bg-black/60 backdrop-blur-md">
+                    <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 w-full max-w-lg overflow-hidden animate-scale-in">
+                        <div className="p-5 border-b border-[#E2E6ED] dark:border-gray-800 flex justify-between items-center bg-[#F7F8FA] dark:bg-white/5">
                             <div>
-                                <h3 className="text-xl font-bold text-gray-800 dark:text-white break-all">{teams.find(t => t.id === selectedTeam)?.name}</h3>
-                                <p className="text-sm text-gray-500">Team Roster</p>
+                                <h3 className="text-base font-bold text-[#12151C] dark:text-white break-all">{teams.find(t => t.id === selectedTeam)?.name}</h3>
+                                <p className="text-xs text-[#5B6472] dark:text-gray-400">Team Roster</p>
                             </div>
-                            <button onClick={() => setSelectedTeam(null)} className="text-gray-400 hover:text-gray-600 transition-colors">
-                                <X size={20} />
+                            <button onClick={() => setSelectedTeam(null)} className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer">
+                                <X size={18} />
                             </button>
                         </div>
-                        <div className="p-6 max-h-[45vh] overflow-y-auto space-y-2 custom-scroll">
+                        <div className="p-6 max-h-[45vh] overflow-y-auto space-y-2 custom-scrollbar">
 
                             {canManageTeams && (
                                 <button
                                     onClick={() => setShowAddMemberModal(true)}
-                                    className="w-full py-2 mb-4 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-xl text-gray-500 hover:border-brand-500 hover:text-brand-500 transition-all flex items-center justify-center gap-2 font-medium"
+                                    className="w-full py-2.5 mb-3 border-2 border-dashed border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[#5B6472] dark:text-gray-300 hover:border-[#2C4FD6] hover:text-[#2C4FD6] transition-all flex items-center justify-center gap-2 font-semibold text-xs cursor-pointer"
                                 >
-                                    <UserPlus size={18} /> Add Member
+                                    <UserPlus size={16} /> Add Member
                                 </button>
                             )}
 
                             {teams.find(t => t.id === selectedTeam)?.members.map((emp: any) => (
-                                <div key={emp.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-transparent hover:border-gray-200 dark:hover:border-white/10">
+                                <div key={emp.id} className="flex items-center justify-between p-3 bg-[#F7F8FA] dark:bg-white/5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center font-bold text-xs">
+                                        <div className="w-8 h-8 rounded-full bg-[#EEF1F5] dark:bg-gray-700 text-[#5B6472] dark:text-white font-mono-numbers font-bold text-xs flex items-center justify-center shrink-0 uppercase">
                                             {emp.name.split(' ').map((n: string) => n[0]).join('')}
                                         </div>
                                         <div className="min-w-0 flex-1">
@@ -558,32 +561,32 @@ export default function Team() {
                                                     );
 
                                                     navigate(`/employee/${emp.id}`);
-                                                }} className="font-semibold text-gray-800 dark:text-white text-sm break-all hover:text-brand-400 hover:underline text-left"
+                                                }} className="font-semibold text-[#12151C] dark:text-white text-[13.5px] break-all hover:text-[#2C4FD6] hover:underline text-left cursor-pointer"
                                             >
                                                 {emp.name}
-                                            </button>                                            <p className="text-xs text-gray-500 truncate">{emp.role}</p>
+                                            </button>                                            <p className="text-[11.5px] text-[#717E95] dark:text-gray-400 truncate">{emp.role}</p>
                                         </div>
                                     </div>
                                     {canManageTeams && (
                                         <div className="relative">
                                             <button
                                                 onClick={() => setConfirmRemove(emp.id)}
-                                                className="text-xs text-red-400 hover:text-red-300 transition-all"
+                                                className="text-xs font-semibold text-[#DE350B] hover:underline cursor-pointer transition-all"
                                             >
                                                 Remove
                                             </button>
 
                                             {confirmRemove === emp.id && (
-                                                <div className="absolute right-0 top-6 w-[180px] bg-brand-900 border border-white/10 rounded-xl shadow-xl p-3 z-50 animate-fade-in">
+                                                <div className="absolute right-0 top-6 w-[180px] bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] p-3 z-50 animate-fade-in">
 
-                                                    <p className="text-xs text-gray-300 mb-3">
+                                                    <p className="text-xs font-semibold text-[#12151C] dark:text-gray-200 mb-2.5">
                                                         Remove Employee?
                                                     </p>
 
                                                     <div className="flex gap-2">
                                                         <button
                                                             onClick={() => setConfirmRemove(null)}
-                                                            className="flex-1 text-xs py-1 rounded bg-gray-600 hover:bg-gray-500 transition-all"
+                                                            className="flex-1 text-xs py-1.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#5B6472] dark:text-gray-300 font-semibold cursor-pointer"
                                                         >
                                                             Cancel
                                                         </button>
@@ -597,7 +600,7 @@ export default function Team() {
 
                                                                 setConfirmRemove(null);
                                                             }}
-                                                            className="flex-1 text-xs py-1 rounded bg-red-500 hover:bg-red-600 transition-all"
+                                                            className="flex-1 text-xs py-1.5 rounded-[6px] bg-[#DE350B] text-white font-semibold cursor-pointer"
                                                         >
                                                             Remove
                                                         </button>
@@ -615,19 +618,19 @@ export default function Team() {
                 document.body
             )}
             {confirmDelete && createPortal(
-                <div className="fixed inset-0 z-[999999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center border border-gray-100 dark:border-white/10 animate-scale-in">
-                        <div className="w-16 h-16 mx-auto mb-4 bg-red-50 dark:bg-red-500/10 rounded-full flex items-center justify-center text-red-500">
-                            <Trash2 size={32} />
+                <div className="fixed inset-0 z-[999999] bg-slate-900/20 dark:bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 w-full max-w-sm p-6 text-center animate-scale-in">
+                        <div className="w-12 h-12 mx-auto mb-3 bg-[#FBE7E7] dark:bg-red-500/10 rounded-full flex items-center justify-center text-[#DE350B]">
+                            <Trash2 size={24} />
                         </div>
-                        <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Delete Team?</h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 font-medium">
+                        <h3 className="text-base font-bold text-[#12151C] dark:text-white mb-1">Delete Team?</h3>
+                        <p className="text-xs text-[#5B6472] dark:text-gray-400 mb-5">
                             Are you sure you want to delete this team? This action cannot be undone.
                         </p>
                         <div className="flex gap-3">
                             <button
                                 onClick={() => setConfirmDelete(null)}
-                                className="flex-1 py-2 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 font-semibold hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
+                                className="flex-1 py-2.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#5B6472] dark:text-gray-300 font-semibold text-[13.5px] hover:bg-gray-50 transition-all cursor-pointer"
                             >
                                 Cancel
                             </button>
@@ -647,7 +650,7 @@ export default function Team() {
                                     fetchTeams();
                                     setConfirmDelete(null);
                                 }}
-                                className="flex-1 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold shadow-lg shadow-red-500/30 transition-all active:scale-95"
+                                className="flex-1 py-2.5 rounded-[6px] bg-[#DE350B] hover:bg-[#b02a08] text-white font-semibold text-[13.5px] transition-all cursor-pointer"
                             >
                                 Yes, Delete
                             </button>
@@ -658,19 +661,19 @@ export default function Team() {
             )}
 
             {accessControlTeam && createPortal(
-                <div className="fixed inset-0 z-[999999] bg-black/70 backdrop-blur-xl flex items-center justify-center p-4 animate-fade-in">
-                    <div className="bg-white dark:bg-brand-900 rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden border border-gray-100 dark:border-white/10 animate-scale-in text-left">
-                        <div className="p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50/50 dark:bg-white/5">
+                <div className="fixed inset-0 z-[999999] bg-slate-900/20 dark:bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 w-full max-w-md overflow-hidden animate-scale-in text-left">
+                        <div className="p-5 border-b border-[#E2E6ED] dark:border-gray-800 flex justify-between items-center bg-[#F7F8FA] dark:bg-white/5">
                             <div>
-                                <h3 className="text-xl font-bold text-gray-800 dark:text-white">Access Control</h3>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Configure manager dashboard tabs for <strong>{accessControlTeam.name}</strong></p>
+                                <h3 className="text-base font-bold text-[#12151C] dark:text-white">Access Control</h3>
+                                <p className="text-xs text-[#5B6472] dark:text-gray-400 mt-0.5">Configure manager dashboard tabs for <strong>{accessControlTeam.name}</strong></p>
                             </div>
-                            <button onClick={() => setAccessControlTeam(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors p-1.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-xl">
-                                <X size={20} />
+                            <button onClick={() => setAccessControlTeam(null)} className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer">
+                                <X size={18} />
                             </button>
                         </div>
                         <div className="p-6 space-y-4">
-                            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Select allowed dashboard tabs</p>
+                            <p className="text-[11px] font-semibold text-[#9AA3B1] dark:text-gray-500 uppercase tracking-widest">Select allowed dashboard tabs</p>
 
                             <div className="grid grid-cols-1 gap-3">
                                 {[
@@ -684,20 +687,20 @@ export default function Team() {
                                         <div
                                             key={option.key}
                                             onClick={() => setPermissions(prev => ({ ...prev, [option.key]: !isChecked }))}
-                                            className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-4 ${isChecked
-                                                ? 'border-brand-500 bg-brand-500/10 dark:bg-brand-500/5'
-                                                : 'border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5 hover:border-gray-200 dark:hover:border-white/10'
+                                            className={`p-3.5 rounded-[6px] border transition-all cursor-pointer flex items-start gap-3 ${isChecked
+                                                ? 'border-[#2C4FD6] bg-[#E8ECFC]/40 dark:bg-blue-500/10'
+                                                : 'border-[#E2E6ED] dark:border-gray-800 bg-[#F7F8FA] dark:bg-white/5 hover:border-gray-300'
                                                 }`}
                                         >
                                             <input
                                                 type="checkbox"
                                                 checked={isChecked}
                                                 onChange={() => { }} // handled by div onClick
-                                                className="mt-1 accent-brand-600 rounded cursor-pointer"
+                                                className="mt-0.5 accent-[#2C4FD6] rounded cursor-pointer"
                                             />
                                             <div>
-                                                <h4 className="font-bold text-sm text-gray-800 dark:text-white">{option.label}</h4>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{option.desc}</p>
+                                                <h4 className="font-semibold text-xs text-[#12151C] dark:text-white">{option.label}</h4>
+                                                <p className="text-[11.5px] text-[#717E95] dark:text-gray-400 mt-0.5">{option.desc}</p>
                                             </div>
                                         </div>
                                     );
@@ -706,7 +709,7 @@ export default function Team() {
 
                             <button
                                 onClick={handleSaveAccessControl}
-                                className="w-full py-3.5 bg-brand-600 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 hover:bg-brand-700 transition-all mt-4 active:scale-95 text-sm"
+                                className="w-full py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold rounded-[6px] transition-all mt-2 cursor-pointer text-xs"
                             >
                                 Save Permissions
                             </button>
@@ -716,6 +719,7 @@ export default function Team() {
                 document.body
             )}
 
-        </div >
+        </div>
     );
 }
+

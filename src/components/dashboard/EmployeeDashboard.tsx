@@ -95,19 +95,19 @@ export default function EmployeeDashboard({ user }: { user: any }) {
     return (
         <div className="space-y-8 animate-fade-in-up">
             {/* GREETING SECTION */}
-            <div className="relative overflow-hidden bg-gradient-to-r from-brand-600 to-brand-800 rounded-[2rem] p-8 md:p-12 text-white shadow-2xl shadow-brand-500/20">
+            <div className="relative overflow-hidden bg-gradient-to-r from-brand-600 to-brand-800 rounded-[6px] p-5 sm:p-8 md:p-12 text-white shadow-2xl shadow-brand-500/20">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
                 <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
 
                 <div className="relative z-10">
-                    <h2 className="text-3xl md:text-4xl font-extrabold mb-2">Welcome, {user.name}!</h2>
-                    <p className="text-brand-100 text-lg opacity-90 max-w-md">Your personalized workspace is ready. Have a productive day!</p>
+                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-2">Welcome, {user.name}!</h2>
+                    <p className="text-brand-100 text-sm sm:text-base md:text-lg opacity-90 max-w-md">Your personalized workspace is ready. Have a productive day!</p>
 
-                    <div className="mt-8 flex flex-wrap gap-4">
+                    <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
                         <button
                             onClick={handlePunch}
                             disabled={isShiftCompleted || isHolidayToday}
-                            className={`flex items-center gap-3 px-8 py-3 rounded-2xl font-bold transition-all shadow-lg active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed ${isHolidayToday
+                            className={`flex items-center gap-3 px-8 py-3 rounded-[6px] font-bold transition-all shadow-lg active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed ${isHolidayToday
                                 ? 'bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30'
                                 : isPunchedIn
                                     ? 'bg-white text-brand-600 hover:bg-gray-100 shadow-white/10'
@@ -122,7 +122,7 @@ export default function EmployeeDashboard({ user }: { user: any }) {
 
                         <button
                             onClick={() => navigate('/leave')}
-                            className="flex items-center gap-3 px-8 py-3 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-2xl font-bold transition-all active:scale-95"
+                            className="flex items-center gap-3 px-8 py-3 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-[6px] font-bold transition-all active:scale-95"
                         >
                             Apply Leave
                         </button>
@@ -131,10 +131,10 @@ export default function EmployeeDashboard({ user }: { user: any }) {
             </div>
 
             {/* QUICK STATS */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div onClick={() => navigate('/attendance')} className="bg-white dark:bg-brand-900/50 p-6 rounded-3xl border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow group cursor-pointer">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                <div onClick={() => navigate('/attendance')} className="bg-white dark:bg-brand-900/50 p-6 rounded-[6px] border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow group cursor-pointer">
                     <div className="flex justify-between items-center mb-4">
-                        <div className="p-3 bg-blue-100 dark:bg-blue-500/20 rounded-2xl text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
+                        <div className="p-3 bg-blue-100 dark:bg-blue-500/20 rounded-[6px] text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
                             <Clock size={24} />
                         </div>
                         <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Attendance</span>
@@ -145,9 +145,9 @@ export default function EmployeeDashboard({ user }: { user: any }) {
                     </p>
                 </div>
 
-                <div onClick={() => navigate('/leave')} className="bg-white dark:bg-brand-900/50 p-6 rounded-3xl border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow group cursor-pointer">
+                <div onClick={() => navigate('/leave')} className="bg-white dark:bg-brand-900/50 p-6 rounded-[6px] border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow group cursor-pointer">
                     <div className="flex justify-between items-center mb-4">
-                        <div className="p-3 bg-brand-100 dark:bg-brand-500/20 rounded-2xl text-brand-600 dark:text-brand-400 group-hover:scale-110 transition-transform">
+                        <div className="p-3 bg-brand-100 dark:bg-brand-500/20 rounded-[6px] text-brand-600 dark:text-brand-400 group-hover:scale-110 transition-transform">
                             <Calendar size={24} />
                         </div>
                         <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Leaves</span>
@@ -156,9 +156,9 @@ export default function EmployeeDashboard({ user }: { user: any }) {
                     <p className="text-2xl font-bold mt-1 text-gray-800 dark:text-white">{totalLeaves} Days</p>
                 </div>
 
-                <div className="bg-white dark:bg-brand-900/50 p-6 rounded-3xl border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow group">
+                <div className="bg-white dark:bg-brand-900/50 p-6 rounded-[6px] border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow group">
                     <div className="flex justify-between items-center mb-4">
-                        <div className="p-3 bg-purple-100 dark:bg-purple-500/20 rounded-2xl text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform">
+                        <div className="p-3 bg-purple-100 dark:bg-purple-500/20 rounded-[6px] text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform">
                             <History size={24} />
                         </div>
                         <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
@@ -206,7 +206,7 @@ export default function EmployeeDashboard({ user }: { user: any }) {
             {/* LOWER CONTENT */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* RECENT ATTENDANCE */}
-                <div className="lg:col-span-2 bg-white dark:bg-brand-900/50 rounded-3xl p-8 border border-gray-100 dark:border-white/5 shadow-sm">
+                <div className="lg:col-span-2 bg-white dark:bg-brand-900/50 rounded-[6px] p-8 border border-gray-100 dark:border-white/5 shadow-sm">
                     <div className="flex justify-between items-center mb-6">
                         <h3 className="text-xl font-bold text-gray-800 dark:text-white">My Recent Activity</h3>
                         <button
@@ -219,9 +219,9 @@ export default function EmployeeDashboard({ user }: { user: any }) {
 
                     <div className="space-y-4">
                         {recentAttendance.length > 0 ? recentAttendance.map((log, index) => (
-                            <div key={index} onClick={() => navigate('/attendance')} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-transparent hover:border-brand-500/20 transition-all group cursor-pointer">
+                            <div key={index} onClick={() => navigate('/attendance')} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-white/5 rounded-[6px] border border-transparent hover:border-brand-500/20 transition-all group cursor-pointer">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-white dark:bg-brand-800 flex items-center justify-center text-gray-400 group-hover:text-brand-500 transition-colors shadow-sm">
+                                    <div className="w-12 h-12 rounded-[6px] bg-white dark:bg-brand-800 flex items-center justify-center text-gray-400 group-hover:text-brand-500 transition-colors shadow-sm">
                                         <Clock size={20} />
                                     </div>
                                     <div>
@@ -245,13 +245,13 @@ export default function EmployeeDashboard({ user }: { user: any }) {
                 </div>
 
                 {/* PROFILE PREVIEW */}
-                <div className="bg-gradient-to-br from-gray-900 to-black rounded-3xl p-8 text-white relative overflow-hidden group">
+                <div className="bg-gradient-to-br from-gray-900 to-black rounded-[6px] p-8 text-white relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-brand-500/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
 
                     <h3 className="text-xl font-bold mb-6 relative z-10">My Profile</h3>
 
                     <div className="flex flex-col items-center gap-4 relative z-10">
-                        <div className="w-24 h-24 rounded-[2rem] bg-brand-500 flex items-center justify-center text-3xl font-bold shadow-2xl shadow-brand-500/40 transform -rotate-3 group-hover:rotate-0 transition-transform duration-500">
+                        <div className="w-24 h-24 rounded-[6px] bg-brand-500 flex items-center justify-center text-3xl font-bold shadow-2xl shadow-brand-500/40 transform -rotate-3 group-hover:rotate-0 transition-transform duration-500">
                             {user.name.charAt(0)}
                         </div>
                         <div className="text-center">
@@ -273,7 +273,7 @@ export default function EmployeeDashboard({ user }: { user: any }) {
 
                     <button
                         onClick={() => navigate('/profile')}
-                        className="mt-10 w-full py-4 bg-brand-600 hover:bg-brand-700 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 group/btn"
+                        className="mt-10 w-full py-4 bg-brand-600 hover:bg-brand-700 rounded-[6px] font-bold transition-all flex items-center justify-center gap-2 group/btn"
                     >
                         View Full Profile
                         <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" />

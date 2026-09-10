@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Filter, Plus, MoreVertical, FileText, User, MapPin, Mail, Phone, Loader2, Edit, Trash2, LayoutGrid, List, ChevronRight, Eye } from 'lucide-react';
+import { Search, Filter, Plus, MoreVertical, User, Loader2, Edit, Trash2, Eye, Download, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
@@ -14,26 +14,6 @@ export default function EmployeeList() {
 
     // ✅ ADDED: Only HR_ADMIN can see Add Employee and Actions
     const isAdmin = user?.role === 'HR_ADMIN';
-    // const [teamMemberIds, setTeamMemberIds] = useState<number[]>([]);
-
-    // useEffect(() => {
-    //     const fetchManagerTeam = async () => {
-    //         if (user?.role === 'MANAGER') {
-    //             try {
-    //                 const res = await getTeams();
-    //                 const teams = res.data || [];
-    //                 const myTeam = teams.find((t: any) => t.managerId === user.id || t.manager?.id === user.id);
-    //                 if (myTeam) {
-    //                     const ids = myTeam.members.map((m: any) => m.id);
-    //                     setTeamMemberIds(ids);
-    //                 }
-    //             } catch (e) {
-    //                 console.error("Failed to load manager's team in EmployeeList", e);
-    //             }
-    //         }
-    //     };
-    //     fetchManagerTeam();
-    // }, [user]);
     const [showFilterDrawer, setShowFilterDrawer] = useState(false);
     const [filters, setFilters] = useState({
         name: '',
@@ -50,13 +30,6 @@ export default function EmployeeList() {
         status: 'All'
     });
     const [loading, setLoading] = useState(true);
-    const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
-
-    useEffect(() => {
-        if (!isAdmin) {
-            setViewMode('list');
-        }
-    }, [isAdmin]);
 
     // Employee State
     const [employees, setEmployees] = useState<any[]>([]);
@@ -241,29 +214,28 @@ export default function EmployeeList() {
         a.click();
 
         window.URL.revokeObjectURL(url);
-    };
-    return (
+    };    return (
         <div className="animate-fade-in-up">
             {/* Header Actions */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Employees</h2>
-                    <p className="text-gray-500 dark:text-gray-400">Manage your organization's workforce</p>
+                    <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-1">Employees</h2>
+                    <p className="page-sub text-[14px] text-[#5B6472] dark:text-gray-400 mb-[5px]">Manage your organization's workforce.</p>
                 </div>
-                <div className="flex gap-3 w-full md:w-auto">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
                     <button
                         onClick={handleExportCSV}
-                        className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors"
+                        className="btn btn-ghost flex-1 sm:flex-initial inline-flex items-center justify-center gap-[7px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white rounded-[8px] px-[15px] py-[9px] text-[13.5px] font-semibold whitespace-nowrap hover:bg-gray-50 dark:hover:bg-white/5 transition-all cursor-pointer shadow-2xs"
                     >
-                        <FileText size={18} />
-                        <span className="hidden md:inline">Export</span>
+                        <Download size={15} />
+                        <span>Export</span>
                     </button>
                     {isAdmin && (
                         <button
                             onClick={() => navigate('/employee/add')}
-                            className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-xl hover:bg-brand-700 active:scale-95 transition-all shadow-lg shadow-brand-500/20"
+                            className="btn btn-primary flex-1 sm:flex-initial inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#2442B8] text-white rounded-[8px] px-[15px] py-[9px] text-[13.5px] font-semibold whitespace-nowrap transition-all cursor-pointer shadow-sm"
                         >
-                            <Plus size={18} />
+                            <Plus size={16} />
                             <span>Add Employee</span>
                         </button>
                     )}
@@ -271,348 +243,215 @@ export default function EmployeeList() {
             </div>
 
             {/* Filters & Search */}
-            <div className="bg-white dark:bg-brand-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 mb-6 flex flex-col md:flex-row gap-4 items-center">
-                <div className="relative flex-1 w-full">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                    <input
-                        type="text"
-                        placeholder="Search by name, email or role..."
-                        value={filters.name}
-                        onChange={(e) => {
-                            const val = e.target.value;
-                            setFilters({ ...filters, name: val });
-                            setAppliedFilters({ ...appliedFilters, name: val });
-                            setCurrentPage(1);
-                        }}
-                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-gray-800 dark:text-white"
-                    />
-                </div>
-                <div className="flex gap-3 w-full md:w-auto">
-                    {/* View Toggle */}
-                    {isAdmin && (
-                        <div className="flex bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-1">
-
-                            {/* List first */}
-                            <button
-                                onClick={() => setViewMode('list')}
-                                className={`p-2 rounded-xl transition-all ${viewMode === 'list'
-                                        ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20'
-                                        : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
-                                    }`}
-                            >
-                                <List size={20} />
-                            </button>
-
-                            {/* Grid second */}
-                            <button
-                                onClick={() => setViewMode('grid')}
-                                className={`p-2 rounded-xl transition-all ${viewMode === 'grid'
-                                        ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20'
-                                        : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
-                                    }`}
-                            >
-                                <LayoutGrid size={20} />
-                            </button>
-
-                        </div>
-                    )}
-
-                    {/* Custom Styled Dropdown - Separately implemented here */}
-                    <div className="relative group/dropdown">
-                        <select
-                            value={filters.status}
+            <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 mb-6">
+                <div className="relative w-full max-w-[340px] group">
+                    <div className="relative flex items-center search">
+                        <Search size={15} className="absolute left-3 text-[#9AA3B1] group-focus-within:text-[#2C4FD6] transition-colors" />
+                        <input
+                            type="text"
+                            placeholder="Search by name, email or role..."
+                            value={appliedFilters.name}
                             onChange={(e) => {
                                 const val = e.target.value;
-                                setFilters({ ...filters, status: val });
+                                setAppliedFilters({ ...appliedFilters, name: val });
+                                setCurrentPage(1);
+                            }}
+                            className="w-full pl-9 pr-3 py-[9px] h-[36px] bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] transition-all text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
+                        />
+                    </div>
+                </div>
+                <div className="flex items-center gap-2 justify-end">
+                    {/* Status Dropdown */}
+                    <div className="relative group/dropdown">
+                        <select
+                            value={appliedFilters.status}
+                            onChange={(e) => {
+                                const val = e.target.value;
                                 setAppliedFilters({ ...appliedFilters, status: val });
                                 setCurrentPage(1);
-
                             }}
-                            className="appearance-none px-5 py-2.5 bg-brand-600 dark:bg-brand-600/20 border-2 border-brand-500/50 rounded-2xl text-white font-bold cursor-pointer transition-all hover:bg-brand-700 hover:border-brand-400 shadow-lg shadow-brand-500/20 focus:ring-4 focus:ring-brand-500/20 outline-none w-52 pr-10"
+                            className="appearance-none flex items-center gap-2 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] px-3 py-[9px] text-[13px] font-semibold text-[#5B6472] dark:text-gray-300 bg-white dark:bg-[#12151C] cursor-pointer transition-all hover:border-[#2C4FD6] shadow-2xs focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none pr-8"
                         >
-                            <option value="All" className="bg-white dark:bg-brand-900 text-gray-900 dark:text-white font-bold">All Status</option>
-                            <option value="Active" className="bg-white dark:bg-brand-900 text-gray-900 dark:text-white font-bold">Active</option>
-                            <option value="Inactive" className="bg-white dark:bg-brand-900 text-gray-900 dark:text-white font-bold">Inactive</option>
+                            <option value="All">All Status</option>
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
                         </select>
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white transition-transform group-hover/dropdown:scale-110">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
+                        <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[#5B6472] dark:text-gray-400">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                         </div>
                     </div>
                     <button
                         onClick={() => setShowFilterDrawer(true)}
-                        className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-gray-600 dark:text-gray-300 
-                        hover:bg-brand-500 hover:text-white hover:scale-105 
-                        transition-all duration-200 shadow-sm flex items-center justify-center"
+                        className="flex items-center gap-2 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] px-3 py-[9px] text-[13px] font-semibold text-[#5B6472] dark:text-gray-300 bg-white dark:bg-[#12151C] hover:bg-gray-50 dark:hover:bg-white/5 transition-all shadow-2xs shrink-0 cursor-pointer"
                     >
-                        <Filter size={20} />
+                        <Filter size={15} className="text-[#5B6472] dark:text-gray-300" />
                     </button>
                 </div>
             </div>
 
-            {/* Grid/List View */}
+            {/* List View Table */}
             {loading ? (
-                <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-brand-900 rounded-3xl border border-gray-100 dark:border-white/5">
-                    <Loader2 className="w-12 h-12 text-brand-500 animate-spin mb-4" />
-                    <p className="text-gray-500 dark:text-gray-400 font-medium tracking-wide">Fetching workforce data...</p>
+                <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800">
+                    <Loader2 className="w-10 h-10 text-[#2C4FD6] animate-spin mb-4" />
+                    <p className="text-[#5B6472] dark:text-gray-400 font-medium text-xs">Fetching workforce data...</p>
                 </div>
             ) : filteredEmployees.length === 0 ? (
-                <div className="text-center py-20 bg-white dark:bg-brand-900 rounded-3xl border border-gray-100 dark:border-white/5">
-                    <User size={48} className="mx-auto text-gray-300 mb-4" />
-                    <h3 className="text-xl font-bold text-gray-800 dark:text-white">No Employees Found</h3>
-                    <p className="text-gray-500 dark:text-gray-400 mt-2">Try adjusting your filters or search term.</p>
+                <div className="text-center py-20 bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 shadow-2xs">
+                    <User size={48} className="mx-auto text-[#9AA3B1] mb-4 opacity-50" />
+                    <h3 className="text-base font-bold text-[#12151C] dark:text-white">No Employees Found</h3>
+                    <p className="text-[#5B6472] dark:text-gray-400 text-xs mt-1">Try adjusting your filters or search term.</p>
                 </div>
             ) : (
-                viewMode === 'grid' ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {filteredEmployees.map((emp, index) => {
-                            const profile = emp.employeeProfile || {};
-                            const status = profile.status || 'Active';
-                            // Generate color based on index or name hash
-                            const colors = ['bg-blue-500', 'bg-purple-500', 'bg-orange-500', 'bg-pink-500', 'bg-teal-500'];
-                            const avatarColor = colors[index % colors.length];
+                <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 shadow-sm overflow-hidden animate-fade-in-up">
+                    <div className="overflow-x-auto custom-scrollbar">
+                        <table className="w-full text-left border-collapse min-w-[850px]">
+                            <thead>
+                                <tr className="bg-[#EEF1F5] dark:bg-gray-800/60 text-[#9AA3B1] dark:text-gray-400 text-[11px] font-semibold uppercase tracking-[.05em]">
+                                    <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 w-[30%]">EMPLOYEE</th>
+                                    <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 w-[25%]">ROLE / DESIGNATION</th>
+                                    <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 w-[20%]">STATUS</th>
+                                    <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 text-center w-[15%]">ATTENDANCE</th>
+                                    <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 text-right w-[10%]"></th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#E2E6ED] dark:divide-gray-800 text-xs">
+                                {paginatedEmployees.map((emp) => {
+                                    const profile = emp.employeeProfile || {};
+                                    const status = profile.status || 'Active';
+                                    const initials = emp.name.trim().split(/\s+/).slice(0, 2).map((n: string) => n[0]).join('').toUpperCase();
 
-                            return (
-                                <div
-                                    key={emp.id}
-                                    onClick={() => handleViewProfile(emp.id)}
-                                    className="bg-white dark:bg-brand-900 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-2xl hover:shadow-brand-500/10 transition-all duration-300 group relative overflow-hidden cursor-pointer hover:-translate-y-1.5 hover:border-brand-500/30"
-                                >
-                                    {/* Status Stripe */}
-                                    <div className={`absolute top-0 left-0 w-1 h-full ${status === 'Active' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-
-                                    <div className="flex flex-col justify-between h-full p-6">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div className="flex gap-4">
-                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg ${avatarColor}`}>
-                                                    {emp.name.split(' ').map((n: string) => n[0]).join('')}
-                                                </div>
-                                                <div>
-                                                    <h3 className="font-bold text-gray-800 dark:text-white text-lg">{emp.name}</h3>
-                                                    <p className="text-gray-500 dark:text-gray-400 text-sm">{profile.title || 'Employee'}</p>
-                                                </div>
-                                            </div>
-                                            <div className="relative">
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); setSelectedEmployeeForActions(emp); }}
-                                                    className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-white/5"
-                                                >
-                                                    <MoreVertical size={20} />
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-3 mb-6">
-                                            <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
-                                                <MapPin size={16} className="text-gray-400" />
-                                                {profile.location || 'N/A'}
-                                            </div>
-                                            <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
-                                                <Mail size={16} className="text-gray-400" />
-                                                {emp.email}
-                                            </div>
-                                            <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
-                                                <Phone size={16} className="text-gray-400" />
-                                                {profile.phone || 'N/A'}
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-white/5">
-                                            <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider shadow-sm transition-all hover:scale-105 ${status.toLowerCase() === 'active'
-                                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                                                : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
-                                                }`}>
-                                                {status}
-                                            </span>
-
-                                            {status === 'Inactive' ? (
-                                                <button
-                                                    onClick={(e) => e.stopPropagation()}
-                                                    className="text-sm font-medium text-red-500 hover:text-red-600 hover:underline"
-                                                >
-                                                    Process F&F
-                                                </button>
-                                            ) : (
-                                                <div className="flex items-center gap-1 text-sm font-bold text-brand-600 dark:text-brand-400 group-hover:text-brand-700 dark:group-hover:text-brand-300 transition-colors">
-                                                    <span>View Profile</span>
-                                                    <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                ) : (
-
-                    <div className="bg-white dark:bg-brand-900 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
-                                <thead className="bg-gray-50 dark:bg-white/5">
-                                    <tr>
-                                        <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
-                                            Employee
-                                        </th>
-
-                                        <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
-                                            Role / Designation
-                                        </th>
-
-                                        <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
-                                            Status
-                                        </th>
-
-                                        <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest text-center">
-                                            Attendance
-                                        </th>
-
-                                        {isAdmin && (
-                                            <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest text-center">
-                                                Action
-                                            </th>
-                                        )}
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                                    {paginatedEmployees.map((emp, index) => {
-                                        const profile = emp.employeeProfile || {};
-                                        const status = profile.status || 'Active';
-                                        const colors = ['bg-blue-500', 'bg-purple-500', 'bg-orange-500', 'bg-pink-500', 'bg-teal-500'];
-                                        const avatarColor = colors[index % colors.length];
-
-                                        return (
-                                            <tr
-                                                key={emp.id}
-                                                onClick={() => handleViewProfile(emp.id)}
-                                                className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group cursor-pointer"
-                                            >
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md ${avatarColor}`}>
-                                                            {emp.name.split(' ').map((n: string) => n[0]).join('')}
+                                    return (
+                                        <tr
+                                            key={emp.id}
+                                            onClick={() => handleViewProfile(emp.id)}
+                                            className="hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-colors group cursor-pointer"
+                                        >
+                                            <td className="py-[13px] px-[22px]">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-[#EEF1F5] dark:bg-gray-700 text-[#5B6472] dark:text-white font-mono-numbers font-bold text-xs flex items-center justify-center shrink-0 uppercase">
+                                                        {initials}
+                                                    </div>
+                                                    <div>
+                                                        <div className="emp-name font-semibold text-[#12151C] dark:text-white text-[13.5px] hover:text-[#2C4FD6] dark:hover:text-blue-400 transition-colors">
+                                                            {emp.name}
                                                         </div>
-                                                        <div>
-                                                            <div className="font-bold text-gray-800 dark:text-white">
-                                                                {emp.name}
-                                                            </div>
-
-                                                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                                {emp.email}
-                                                            </div>
+                                                        <div className="emp-email text-[11.5px] text-[#717E95] dark:text-gray-400">
+                                                            {emp.email}
                                                         </div>
                                                     </div>
-                                                </td>
+                                                </div>
+                                            </td>
 
-                                                <td className="px-6 py-4">
-                                                    <div className="text-sm text-gray-800 dark:text-white font-bold">{profile.title || 'Employee'}</div>
-                                                    <div className="text-[10px] text-gray-400 uppercase font-black tracking-widest">{profile.department || 'General'}</div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${status.toLowerCase() === 'active'
-                                                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                                                        : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
-                                                        }`}>
-                                                        {status}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 text-center">
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleViewAttendance(emp.id);
-                                                        }}
-                                                        className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-brand-500/60 text-brand-600 dark:text-brand-300 hover:bg-brand-600 hover:text-white hover:border-brand-600 transition-all text-xs font-bold"
-                                                    >
-                                                        <Eye size={15} />
-                                                        View
-                                                    </button>
-                                                </td>
-                                                {isAdmin && (
-                                                    <td className="px-6 py-4 text-center">
-                                                        <div className="relative inline-block">
-                                                            <button
-                                                                onClick={(e) => { e.stopPropagation(); setSelectedEmployeeForActions(emp); }}
-                                                                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-white/5"
-                                                            >
-                                                                <MoreVertical size={18} />
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                )}
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                         {viewMode === 'list' && (
-                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-6 py-5 border-t border-gray-100 dark:border-white/5">
-                    <div className="flex items-center gap-3">
-                        <span className="text-xs font-bold text-gray-400 uppercase">
-                            Rows per page
-                        </span>
-
-                        <select
-                            value={rowsPerPage}
-                            onChange={(e) => {
-                                setRowsPerPage(Number(e.target.value));
-                                setCurrentPage(1);
-                            }}
-                            className="px-5 py-2 bg-brand-800 hover:bg-brand-900 border border-brand-700 rounded-xl text-white font-bold cursor-pointer"
-                        >
-                            <option value={5}>5</option>
-                            <option value={10}>10</option>
-                            <option value={20}>20</option>
-                            <option value={50}>50</option>
-                        </select>
+                                            <td className="py-[13px] px-[22px]">
+                                                <div className="text-[13.5px] text-[#12151C] dark:text-white capitalize">{profile.title || 'Employee'}</div>
+                                                <div className="text-[11.5px] text-[#717E95] dark:text-gray-400 capitalize">{profile.department || 'General'}</div>
+                                            </td>
+                                            <td className="py-[13px] px-[22px]">
+                                                <span className={`pill inline-block px-[10px] py-[3px] rounded-[3px] text-[11.5px] font-semibold tracking-wide ${
+                                                    status.toLowerCase() === 'active'
+                                                        ? 'bg-[#E4F5EC] text-[#1F8A5A]'
+                                                        : status.toLowerCase() === 'on leave'
+                                                            ? 'bg-[#F1F3F7] text-[#5B6472]'
+                                                            : 'bg-[#FBE7E7] text-[#DE350B]'
+                                                }`}>
+                                                    {status}
+                                                </span>
+                                            </td>
+                                            <td className="py-[13px] px-[22px] text-center">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleViewAttendance(emp.id);
+                                                    }}
+                                                    className="view-btn inline-flex items-center gap-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#5B6472] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-all text-[12px] font-semibold rounded-[6px] px-[10px] py-[5px] cursor-pointer shadow-2xs"
+                                                >
+                                                    <Eye size={13} className="text-[#5B6472] dark:text-gray-300" /> View
+                                                </button>
+                                            </td>
+                                            <td className="py-[13px] px-[22px] text-right">
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); setSelectedEmployeeForActions(emp); }}
+                                                    className="p-1.5 text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors rounded-full"
+                                                >
+                                                    <MoreVertical size={16} />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
                     </div>
+                    {totalPages > 1 && (
+                        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-6 py-4 border-t border-[#E2E6ED] dark:border-gray-800 text-xs">
+                            <div className="flex items-center gap-2">
+                                <span className="text-[#9AA3B1] font-semibold text-xs uppercase">
+                                    Rows per page
+                                </span>
 
+                                <select
+                                    value={rowsPerPage}
+                                    onChange={(e) => {
+                                        setRowsPerPage(Number(e.target.value));
+                                        setCurrentPage(1);
+                                    }}
+                                    className="px-3 py-1 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[#12151C] dark:text-white text-xs font-semibold cursor-pointer shadow-2xs"
+                                >
+                                    <option value={5}>5</option>
+                                    <option value={10}>10</option>
+                                    <option value={20}>20</option>
+                                    <option value={50}>50</option>
+                                </select>
+                            </div>
 
-                    <div className="flex items-center gap-4">
-                        <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
-                            Page {currentPage} of {totalPages || 1}
-                        </span>
+                            <div className="flex items-center gap-3">
+                                <span className="text-xs font-bold text-[#5B6472] dark:text-gray-300 font-mono-numbers">
+                                    Page {currentPage} of {totalPages || 1}
+                                </span>
 
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={() => setCurrentPage(1)}
-                                disabled={currentPage === 1}
-                                className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"            >
-                                «
-                            </button>
+                                <div className="flex items-center gap-1.5">
+                                    <button
+                                        onClick={() => setCurrentPage(1)}
+                                        disabled={currentPage === 1}
+                                        className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                                        title="First Page"
+                                    >
+                                        <ChevronsLeft size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
+                                    </button>
 
-                            <button
-                                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                                disabled={currentPage === 1}
-                                className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"            >
-                                ‹
-                            </button>
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                        disabled={currentPage === 1}
+                                        className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                                        title="Previous Page"
+                                    >
+                                        <ChevronLeft size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
+                                    </button>
 
-                            <button
-                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                                disabled={currentPage === totalPages || totalPages === 0}
-                                className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
-                            >
-                                ›
-                            </button>
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                        disabled={currentPage === totalPages || totalPages === 0}
+                                        className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                                        title="Next Page"
+                                    >
+                                        <ChevronRight size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
+                                    </button>
 
-                            <button
-                                onClick={() => setCurrentPage(totalPages)}
-                                disabled={currentPage === totalPages || totalPages === 0}
-                                className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white disabled:opacity-40 hover:bg-brand-600 hover:text-white transition-all"
-                            >
-                                »
-                            </button>
+                                    <button
+                                        onClick={() => setCurrentPage(totalPages)}
+                                        disabled={currentPage === totalPages || totalPages === 0}
+                                        className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                                        title="Last Page"
+                                    >
+                                        <ChevronsRight size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             )}
 
-                    </div>
-                )
-
-            )}
-           
 
             {selectedEmployeeForActions && (
                 <div className="fixed inset-0 z-10" onClick={() => setSelectedEmployeeForActions(null)} />
@@ -622,7 +461,7 @@ export default function EmployeeList() {
             {employeeToDelete && createPortal(
                 <div
                     className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/80 backdrop-blur-xl">
-                    <div className="bg-white dark:bg-brand-950 rounded-3xl shadow-2xl w-full max-w-md p-8 border border-gray-100 dark:border-white/10 text-center relative overflow-hidden">
+                    <div className="bg-white dark:bg-brand-950 rounded-[6px] shadow-2xl w-full max-w-md p-8 border border-gray-100 dark:border-white/10 text-center relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-2 bg-red-500"></div>
 
 
@@ -636,7 +475,7 @@ export default function EmployeeList() {
                         <div className="flex gap-4">
                             <button
                                 onClick={() => setEmployeeToDelete(null)}
-                                className="flex-1 py-3 px-4 bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-white/10 transition-colors"
+                                className="flex-1 py-3 px-4 bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 font-bold rounded-[6px] hover:bg-gray-200 dark:hover:bg-white/10 transition-colors"
                             >
                                 Cancel
                             </button>
@@ -656,7 +495,7 @@ export default function EmployeeList() {
                                         setEmployeeToDelete(null);
                                     }
                                 }}
-                                className="flex-1 py-3 px-4 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20"
+                                className="flex-1 py-3 px-4 bg-red-500 text-white font-bold rounded-[6px] hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20"
                             >
                                 Yes, Delete
                             </button>
@@ -669,34 +508,34 @@ export default function EmployeeList() {
             {/* Add Employee Modal */}
             {showAddModal && createPortal(
                 <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-fade-in">
-                    <div className="bg-white dark:bg-brand-950 rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-gray-100 dark:border-brand-500/20 max-h-[90vh] flex flex-col">
-                        <div className="p-8 border-b border-gray-100 dark:border-white/5 flex justify-between items-center bg-gradient-to-r from-transparent to-brand-500/5">
+                    <div className="bg-white dark:bg-[#161B26] rounded-[6px] shadow-2xl w-full max-w-2xl overflow-hidden border border-gray-100 dark:border-gray-800 max-h-[90vh] flex flex-col">
+                        <div className="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center bg-[#F7F8FA] dark:bg-white/5">
                             <div>
-                                <h3 className="text-2xl font-black text-gray-800 dark:text-white tracking-tight">Add New Employee</h3>
-                                <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Create a new member profile</p>
+                                <h3 className="text-xl font-bold text-[#12151C] dark:text-white tracking-tight">Add New Employee</h3>
+                                <p className="text-[#5B6472] dark:text-gray-400 text-xs font-medium mt-0.5">Create a new member profile</p>
                             </div>
-                            <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-xl transition-colors">
-                                <Plus size={24} className="rotate-45 text-gray-400" />
+                            <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-[6px] transition-colors cursor-pointer">
+                                <Plus size={22} className="rotate-45 text-gray-400" />
                             </button>
                         </div>
-                        <form onSubmit={handleAddEmployee} className="p-8 overflow-y-auto custom-scrollbar space-y-8">
+                        <form onSubmit={handleAddEmployee} className="p-6 overflow-y-auto custom-scrollbar space-y-6">
                             {/* Personal Details Section */}
-                            <div className="space-y-6">
-                                <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-brand-500 dark:text-brand-400 opacity-70">Personal Details</h4>
-                                <div className="grid grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Full Name *</label>
+                            <div className="space-y-4">
+                                <h4 className="text-xs font-semibold uppercase tracking-wider text-[#2C4FD6]">Personal Details</h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Full Name *</label>
                                         <input
                                             type="text"
                                             required
                                             value={newEmployee.name}
                                             onChange={(e) => setNewEmployee({ ...newEmployee, name: e.target.value })}
                                             placeholder="John Doe"
-                                            className="w-full px-5 py-3.5 bg-gray-50 dark:bg-brand-900/50 border border-gray-200 dark:border-brand-500/20 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                                            className="w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all placeholder:text-[#9AA3B1] placeholder:font-normal"
                                         />
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">System Role *</label>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">System Role *</label>
                                         <div className="relative group/select">
                                             <select
                                                 required
@@ -706,20 +545,20 @@ export default function EmployeeList() {
                                                     const name = masters.roles.find(r => r.id === id)?.name || '';
                                                     setNewEmployee({ ...newEmployee, roleId: id, role: name });
                                                 }}
-                                                className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-brand-900/50 border border-gray-200 dark:border-brand-500/20 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
+                                                className="appearance-none w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all cursor-pointer"
                                             >
-                                                <option value="" className="dark:bg-brand-950">Select Role</option>
+                                                <option value="" className="dark:bg-[#161B26]">Select Role</option>
                                                 {masters.roles.map(role => (
-                                                    <option key={role.id} value={role.id} className="dark:bg-brand-950">{role.name}</option>
+                                                    <option key={role.id} value={role.id} className="dark:bg-[#161B26]">{role.name}</option>
                                                 ))}
                                             </select>
-                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover/select:text-brand-500 transition-colors">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover/select:text-[#2C4FD6] transition-colors">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"></path></svg>
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Designation / Title *</label>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Designation / Title *</label>
                                         <div className="relative group/select">
                                             <select
                                                 required
@@ -729,41 +568,41 @@ export default function EmployeeList() {
                                                     const name = masters.designations.find(d => d.id === id)?.name || '';
                                                     setNewEmployee({ ...newEmployee, designationId: id, title: name });
                                                 }}
-                                                className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-brand-900/50 border border-gray-200 dark:border-brand-500/20 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
+                                                className="appearance-none w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all cursor-pointer"
                                             >
-                                                <option value="" className="dark:bg-brand-950">Select Designation</option>
+                                                <option value="" className="dark:bg-[#161B26]">Select Designation</option>
                                                 {masters.designations.map(desig => (
-                                                    <option key={desig.id} value={desig.id} className="dark:bg-brand-950">{desig.name}</option>
+                                                    <option key={desig.id} value={desig.id} className="dark:bg-[#161B26]">{desig.name}</option>
                                                 ))}
                                             </select>
-                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover/select:text-brand-500 transition-colors">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover/select:text-[#2C4FD6] transition-colors">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"></path></svg>
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Email Address *</label>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Email Address *</label>
                                         <input
                                             type="email"
                                             required
                                             value={newEmployee.email}
                                             onChange={(e) => setNewEmployee({ ...newEmployee, email: e.target.value })}
                                             placeholder="john.doe@encalm.com"
-                                            className="w-full px-5 py-3.5 bg-gray-50 dark:bg-brand-900/50 border border-gray-200 dark:border-brand-500/20 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                                            className="w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all placeholder:text-[#9AA3B1] placeholder:font-normal"
                                         />
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Phone Number</label>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Phone Number</label>
                                         <input
                                             type="tel"
                                             value={newEmployee.phone}
                                             onChange={(e) => setNewEmployee({ ...newEmployee, phone: e.target.value })}
                                             placeholder="+91 98765 43210"
-                                            className="w-full px-5 py-3.5 bg-gray-50 dark:bg-brand-900/50 border border-gray-200 dark:border-brand-500/20 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                                            className="w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all placeholder:text-[#9AA3B1] placeholder:font-normal"
                                         />
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Department</label>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Department</label>
                                         <div className="relative group/select">
                                             <select
                                                 value={newEmployee.departmentId}
@@ -772,106 +611,107 @@ export default function EmployeeList() {
                                                     const name = masters.departments.find(d => d.id === id)?.name || '';
                                                     setNewEmployee({ ...newEmployee, departmentId: id, department: name });
                                                 }}
-                                                className="appearance-none w-full px-5 py-3.5 bg-gray-50 dark:bg-brand-900/50 border border-gray-200 dark:border-brand-500/20 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all cursor-pointer"
+                                                className="appearance-none w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all cursor-pointer"
                                             >
-                                                <option value="" className="dark:bg-brand-950">Select Department</option>
+                                                <option value="" className="dark:bg-[#161B26]">Select Department</option>
                                                 {masters.departments.map(dept => (
-                                                    <option key={dept.id} value={dept.id} className="dark:bg-brand-950">{dept.name}</option>
+                                                    <option key={dept.id} value={dept.id} className="dark:bg-[#161B26]">{dept.name}</option>
                                                 ))}
                                             </select>
-                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover/select:text-brand-500 transition-colors">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover/select:text-[#2C4FD6] transition-colors">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"></path></svg>
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Office Location</label>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Office Location</label>
                                         <input
                                             type="text"
                                             value={newEmployee.location}
                                             onChange={(e) => setNewEmployee({ ...newEmployee, location: e.target.value })}
                                             placeholder="e.g. Delhi HQ"
-                                            className="w-full px-5 py-3.5 bg-gray-50 dark:bg-brand-900/50 border border-gray-200 dark:border-brand-500/20 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                                            className="w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all placeholder:text-[#9AA3B1] placeholder:font-normal"
                                         />
                                     </div>
                                 </div>
                             </div>
 
                             {/* Statutory Details Section */}
-                            <div className="space-y-6 pt-4 border-t border-gray-100 dark:border-white/5">
-                                <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-brand-500 dark:text-brand-400 opacity-70">Statutory Details</h4>
-                                <div className="grid grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">PAN Number</label>
+                            <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-white/5">
+                                <h4 className="text-xs font-semibold uppercase tracking-wider text-[#2C4FD6]">Statutory Details</h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">PAN Number</label>
                                         <input
                                             type="text"
                                             value={newEmployee.panNumber}
                                             onChange={(e) => setNewEmployee({ ...newEmployee, panNumber: e.target.value.toUpperCase() })}
                                             placeholder="ABCDE1234F"
-                                            className="w-full px-5 py-3.5 bg-gray-50 dark:bg-brand-900/50 border border-gray-200 dark:border-brand-500/20 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all uppercase placeholder:normal-case placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                                            className="w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all uppercase placeholder:normal-case placeholder:text-[#9AA3B1] placeholder:font-normal"
                                         />
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Aadhaar Number</label>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Aadhaar Number</label>
                                         <input
                                             type="text"
                                             value={newEmployee.aadhaarNumber}
                                             onChange={(e) => setNewEmployee({ ...newEmployee, aadhaarNumber: e.target.value })}
                                             placeholder="XXXX XXXX XXXX"
-                                            className="w-full px-5 py-3.5 bg-gray-50 dark:bg-brand-900/50 border border-gray-200 dark:border-brand-500/20 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                                            className="w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all placeholder:text-[#9AA3B1] placeholder:font-normal"
                                         />
                                     </div>
                                 </div>
                             </div>
 
                             {/* Bank Details Section */}
-                            <div className="space-y-6 pt-4 border-t border-gray-100 dark:border-white/5">
-                                <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-brand-500 dark:text-brand-400 opacity-70">Bank Details</h4>
-                                <div className="grid grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Bank Name</label>
+                            <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-white/5">
+                                <h4 className="text-xs font-semibold uppercase tracking-wider text-[#2C4FD6]">Bank Details</h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Bank Name</label>
                                         <input
                                             type="text"
                                             value={newEmployee.bankName}
                                             onChange={(e) => setNewEmployee({ ...newEmployee, bankName: e.target.value })}
                                             placeholder="e.g. HDFC Bank"
-                                            className="w-full px-5 py-3.5 bg-gray-50 dark:bg-brand-900/50 border border-gray-200 dark:border-brand-500/20 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                                            className="w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all placeholder:text-[#9AA3B1] placeholder:font-normal"
                                         />
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">IFSC Code</label>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">IFSC Code</label>
                                         <input
                                             type="text"
                                             value={newEmployee.ifscCode}
                                             onChange={(e) => setNewEmployee({ ...newEmployee, ifscCode: e.target.value.toUpperCase() })}
                                             placeholder="HDFC0001234"
-                                            className="w-full px-5 py-3.5 bg-gray-50 dark:bg-brand-900/50 border border-gray-200 dark:border-brand-500/20 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all uppercase placeholder:normal-case placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                                            className="w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all uppercase placeholder:normal-case placeholder:text-[#9AA3B1] placeholder:font-normal"
                                         />
                                     </div>
-                                    <div className="col-span-2 space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Account Number</label>
+                                    <div className="col-span-2 space-y-1.5">
+                                        <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Account Number</label>
                                         <input
                                             type="text"
                                             value={newEmployee.accountNumber}
                                             onChange={(e) => setNewEmployee({ ...newEmployee, accountNumber: e.target.value })}
                                             placeholder="Enter bank account number"
-                                            className="w-full px-5 py-3.5 bg-gray-50 dark:bg-brand-900/50 border border-gray-200 dark:border-brand-500/20 rounded-2xl focus:ring-4 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white font-bold transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                                            className="w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all placeholder:text-[#9AA3B1] placeholder:font-normal"
                                         />
                                     </div>
                                 </div>
                             </div>
                         </form>
-                        <div className="p-8 bg-gray-50 dark:bg-brand-900/50 border-t border-gray-100 dark:border-white/5 flex gap-4">
+                        <div className="p-6 bg-[#F7F8FA] dark:bg-white/5 border-t border-[#E2E6ED] dark:border-white/10 flex gap-3">
                             <button
                                 type="button"
                                 onClick={() => setShowAddModal(false)}
-                                className="flex-1 py-4 text-gray-500 dark:text-gray-400 font-black uppercase text-xs tracking-widest hover:text-gray-800 dark:hover:text-white transition-all"
+                                className="flex-1 py-2.5 border border-[#E2E6ED] dark:border-gray-700 text-[#5B6472] dark:text-gray-300 font-semibold rounded-[6px] text-xs hover:bg-gray-100 dark:hover:bg-white/10 transition-all cursor-pointer"
                             >
                                 Cancel
                             </button>
                             <button
                                 type="submit"
-                                className="flex-[2] py-4 bg-brand-600 text-white font-black uppercase text-xs tracking-[0.2em] rounded-2xl shadow-xl shadow-brand-500/20 hover:bg-brand-700 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                                onClick={handleAddEmployee}
+                                className="flex-[2] py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold rounded-[6px] text-xs shadow-sm transition-all cursor-pointer"
                             >
                                 Create Employee
                             </button>
@@ -886,20 +726,29 @@ export default function EmployeeList() {
 
                         {/* Overlay */}
                         <div
-                            className="absolute inset-0 bg-black/40 backdrop-blur-md"
+                            className="absolute inset-0 bg-slate-900/30 dark:bg-black/60 backdrop-blur-md"
                             onClick={() => setShowFilterDrawer(false)}
                         />
 
                         {/* Drawer */}
-                        <div className="absolute right-0 top-0 w-full max-w-md h-full bg-white dark:bg-brand-900 shadow-2xl animate-slide-in-right">
+                        <div className="absolute right-0 top-0 w-full max-w-md h-full bg-white dark:bg-[#12151C] shadow-2xl animate-slide-in-right border-l border-[#E2E6ED] dark:border-gray-800">
 
                             <div className="flex flex-col justify-between h-full p-6">
 
                                 {/* TOP */}
                                 <div>
-                                    <h2 className="text-xl font-bold mb-6 text-gray-800 dark:text-white">
-                                        Advanced Search
-                                    </h2>
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h2 className="text-xl font-bold text-[#12151C] dark:text-white">
+                                            Advanced Search
+                                        </h2>
+                                        <button
+                                            onClick={() => setShowFilterDrawer(false)}
+                                            className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer"
+                                            title="Close"
+                                        >
+                                            <XCircle size={18} />
+                                        </button>
+                                    </div>
 
                                     <div className="space-y-4">
 
@@ -908,7 +757,7 @@ export default function EmployeeList() {
                                             placeholder="Search name..."
                                             value={filters.name}
                                             onChange={(e) => setFilters({ ...filters, name: e.target.value })}
-                                            className="w-full px-4 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10"
+                                            className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
                                         />
 
                                         <input
@@ -916,7 +765,7 @@ export default function EmployeeList() {
                                             placeholder="Search email..."
                                             value={filters.email}
                                             onChange={(e) => setFilters({ ...filters, email: e.target.value })}
-                                            className="w-full px-4 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10"
+                                            className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
                                         />
 
                                         <input
@@ -924,7 +773,7 @@ export default function EmployeeList() {
                                             placeholder="Filter by role..."
                                             value={filters.role}
                                             onChange={(e) => setFilters({ ...filters, role: e.target.value })}
-                                            className="w-full px-4 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10"
+                                            className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
                                         />
 
                                         <input
@@ -932,21 +781,21 @@ export default function EmployeeList() {
                                             placeholder="Filter by location..."
                                             value={filters.location}
                                             onChange={(e) => setFilters({ ...filters, location: e.target.value })}
-                                            className="w-full px-4 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10"
+                                            className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
                                         />
 
                                         <div className="relative group/dropdown">
                                             <select
                                                 value={filters.status}
                                                 onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                                                className="appearance-none w-full px-4 py-2.5 bg-brand-600 dark:bg-brand-600/20 border-2 border-brand-500/50 rounded-xl text-white font-bold cursor-pointer focus:ring-4 focus:ring-brand-500/20 outline-none pr-10 transition-all"
+                                                className="appearance-none flex items-center gap-2 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] px-3 py-[9px] text-[13px] font-semibold text-[#5B6472] dark:text-gray-300 bg-white dark:bg-[#12151C] cursor-pointer transition-all hover:border-[#2C4FD6] shadow-2xs focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none pr-8 w-full"
                                             >
-                                                <option value="All" className="bg-white dark:bg-brand-900 text-gray-900 dark:text-white">All Status</option>
-                                                <option value="Active" className="bg-white dark:bg-brand-900 text-gray-900 dark:text-white">Active</option>
-                                                <option value="Inactive" className="bg-white dark:bg-brand-900 text-gray-900 dark:text-white">Inactive</option>
+                                                <option value="All">All Status</option>
+                                                <option value="Active">Active</option>
+                                                <option value="Inactive">Inactive</option>
                                             </select>
-                                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
+                                            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[#5B6472] dark:text-gray-400">
+                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                                             </div>
                                         </div>
 
@@ -954,7 +803,7 @@ export default function EmployeeList() {
                                 </div>
 
                                 {/* BUTTONS */}
-                                <div className="flex gap-3 pt-6">
+                                <div className="flex gap-3 pt-6 border-t border-[#E2E6ED] dark:border-gray-800">
 
                                     <button
                                         onClick={() => {
@@ -968,7 +817,7 @@ export default function EmployeeList() {
                                             setFilters(reset);
                                             setAppliedFilters(reset);
                                         }}
-                                        className="flex-1 py-2 rounded-xl bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-white/20 cursor-pointer"
+                                        className="flex-1 py-2.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#5B6472] dark:text-gray-300 font-semibold text-[13.5px] hover:bg-gray-50 dark:hover:bg-white/5 transition-all cursor-pointer shadow-2xs"
                                     >
                                         Clear
                                     </button>
@@ -978,7 +827,7 @@ export default function EmployeeList() {
                                             setAppliedFilters(filters);
                                             setShowFilterDrawer(false);
                                         }}
-                                        className="flex-1 py-2 rounded-xl bg-gradient-to-r from-brand-500 to-brand-700 text-white cursor-pointer hover:from-brand-600 hover:to-brand-800 transition-all duration-200"
+                                        className="flex-1 py-2.5 rounded-[6px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold text-[13.5px] transition-all shadow-sm cursor-pointer"
                                     >
                                         Apply Filters
                                     </button>
@@ -1006,12 +855,12 @@ export default function EmployeeList() {
                                 {/* Header with Employee Summary */}
                                 <div className="p-8 border-b border-gray-100 dark:border-white/5 bg-gradient-to-br from-brand-500/5 to-transparent">
                                     <div className="flex justify-between items-start mb-6">
-                                        <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-white font-bold text-2xl shadow-xl bg-brand-500">
+                                        <div className="w-16 h-16 rounded-[6px] flex items-center justify-center text-white font-bold text-2xl shadow-xl bg-brand-500">
                                             {selectedEmployeeForActions.name.split(' ').map((n: string) => n[0]).join('')}
                                         </div>
                                         <button
                                             onClick={() => setSelectedEmployeeForActions(null)}
-                                            className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-xl transition-colors text-gray-400"
+                                            className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-[6px] transition-colors text-gray-400"
                                         >
                                             <Plus size={24} className="rotate-45" />
                                         </button>
@@ -1073,9 +922,9 @@ export default function EmployeeList() {
                                 <div className="flex-1 p-6 space-y-3">
                                     <button
                                         onClick={() => { navigate(`/employee/${selectedEmployeeForActions.id}`); setSelectedEmployeeForActions(null); }}
-                                        className="w-full flex items-center gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent hover:border-brand-500/30 hover:bg-white dark:hover:bg-brand-500/10 transition-all group"
+                                        className="w-full flex items-center gap-4 p-4 rounded-[6px] bg-gray-50 dark:bg-white/5 border border-transparent hover:border-brand-500/30 hover:bg-white dark:hover:bg-brand-500/10 transition-all group"
                                     >
-                                        <div className="p-3 bg-white dark:bg-brand-900 rounded-xl text-brand-500 shadow-sm group-hover:scale-110 transition-transform">
+                                        <div className="p-3 bg-white dark:bg-brand-900 rounded-[6px] text-brand-500 shadow-sm group-hover:scale-110 transition-transform">
                                             <User size={20} />
                                         </div>
                                         <div className="text-left">
@@ -1086,9 +935,9 @@ export default function EmployeeList() {
 
                                     <button
                                         onClick={() => { navigate(`/employee/${selectedEmployeeForActions.id}?edit=true`); setSelectedEmployeeForActions(null); }}
-                                        className="w-full flex items-center gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent hover:border-brand-500/30 hover:bg-white dark:hover:bg-brand-500/10 transition-all group"
+                                        className="w-full flex items-center gap-4 p-4 rounded-[6px] bg-gray-50 dark:bg-white/5 border border-transparent hover:border-brand-500/30 hover:bg-white dark:hover:bg-brand-500/10 transition-all group"
                                     >
-                                        <div className="p-3 bg-white dark:bg-brand-900 rounded-xl text-blue-500 shadow-sm group-hover:scale-110 transition-transform">
+                                        <div className="p-3 bg-white dark:bg-brand-900 rounded-[6px] text-blue-500 shadow-sm group-hover:scale-110 transition-transform">
                                             <Edit size={20} />
                                         </div>
                                         <div className="text-left">
@@ -1099,9 +948,9 @@ export default function EmployeeList() {
 
                                     <button
                                         onClick={() => { setEmployeeToDelete(selectedEmployeeForActions); setSelectedEmployeeForActions(null); }}
-                                        className="w-full flex items-center gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent hover:border-red-500/30 hover:bg-white dark:hover:bg-red-500/10 transition-all group"
+                                        className="w-full flex items-center gap-4 p-4 rounded-[6px] bg-gray-50 dark:bg-white/5 border border-transparent hover:border-red-500/30 hover:bg-white dark:hover:bg-red-500/10 transition-all group"
                                     >
-                                        <div className="p-3 bg-white dark:bg-brand-900 rounded-xl text-red-500 shadow-sm group-hover:scale-110 transition-transform">
+                                        <div className="p-3 bg-white dark:bg-brand-900 rounded-[6px] text-red-500 shadow-sm group-hover:scale-110 transition-transform">
                                             <Trash2 size={20} />
                                         </div>
                                         <div className="text-left">

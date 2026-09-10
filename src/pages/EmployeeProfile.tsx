@@ -1,9 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useRBAC } from '../hooks/useRBAC';
-import { ArrowLeft, User, FileText, CreditCard, Download, Briefcase, Save, X, Edit, Printer, Loader2, Eye, Trash2, Upload, TrendingUp, TrendingDown, Coins, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, User, FileText, CreditCard, Download, Briefcase, Save, X, Printer, Loader2, Eye, Trash2, Upload, TrendingUp, TrendingDown, Coins } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import toast from 'react-hot-toast';
@@ -80,6 +80,7 @@ export default function EmployeeProfile() {
     };
 
     const [customFields, setCustomFields] = useState<any[]>([]);
+    const [, setCustomFieldDocToDelete] = useState<string | null>(null);
 
     const fetchCustomFields = async () => {
         try {
@@ -1165,15 +1166,10 @@ export default function EmployeeProfile() {
             </button>
 
             {/* Profile Header */}
-            <div className="bg-white dark:bg-brand-900 rounded-3xl p-8 mb-8 shadow-sm border border-gray-100 dark:border-white/5 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-brand-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-
-                <div className="flex flex-col md:flex-row items-center md:items-start gap-6 relative z-10">
-                    <div className="relative w-28 h-28 rounded-2xl overflow-hidden flex items-center justify-center text-white font-bold text-4xl shadow-2xl bg-brand-600 shrink-0">
-                        <span className="absolute inset-0 flex items-center justify-center">
-                            {employeeInitials}
-                        </span>
-
+            <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 p-6 shadow-sm flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                <div className="flex items-center gap-5">
+                    <div className="relative w-16 h-16 rounded-[6px] bg-[#E8ECFC] text-[#2C4FD6] dark:bg-blue-950/40 dark:text-blue-400 flex items-center justify-center text-2xl font-bold shrink-0 overflow-hidden">
+                        <span>{employeeInitials}</span>
                         {displayedProfilePictureUrl && (
                             <img
                                 src={displayedProfilePictureUrl}
@@ -1184,7 +1180,6 @@ export default function EmployeeProfile() {
                                 }}
                             />
                         )}
-
                         {isEditing && hasPermission(['HR_ADMIN']) && (
                             <button
                                 type="button"
@@ -1193,13 +1188,12 @@ export default function EmployeeProfile() {
                                         .getElementById('edit-profile-picture-input')
                                         ?.click()
                                 }
-                                className="absolute bottom-1 right-1 z-20 w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center shadow-lg hover:bg-brand-700 transition-colors"
+                                className="absolute bottom-0 right-0 z-20 w-6 h-6 rounded-full bg-[#2C4FD6] text-white flex items-center justify-center shadow-sm hover:bg-[#203FB4] transition-colors"
                                 title="Change profile picture"
                             >
-                                <Upload size={15} />
+                                <Upload size={12} />
                             </button>
                         )}
-
                         <input
                             id="edit-profile-picture-input"
                             type="file"
@@ -1208,203 +1202,242 @@ export default function EmployeeProfile() {
                             onChange={handleProfilePictureChange}
                         />
                     </div>
-                    <div className="text-center md:text-left flex-1">
+                    <div>
                         {isEditing ? (
-                            <div className="space-y-2 mb-4">
-                                <label className="text-[10px] font-black text-brand-600 uppercase tracking-widest">Full Name</label>
+                            <div className="space-y-1 mb-2">
+                                <label className="text-[11px] font-bold text-[#9AA3B1] uppercase block mb-[6px]">Full Name</label>
                                 <input
                                     type="text"
                                     value={employee.name}
                                     onChange={(e) => handleInputChange('name', e.target.value)}
-                                    className="w-full text-2xl font-bold bg-brand-50 dark:bg-white/5 border border-brand-200 dark:border-white/10 rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-brand-500/50"
+                                    className="text-lg font-bold bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] px-3 py-1 outline-none focus:border-[#2C4FD6] min-w-[140px] max-w-full transition-all duration-150"
+                                    style={{ width: `${Math.max((employee.name || '').length + 2, 8)}ch` }}
                                 />
                             </div>
                         ) : (
-                            <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">{employee.name}</h1>
+                            <h1 className="text-xl font-bold text-[#12151C] dark:text-white leading-snug">{employee.name}</h1>
                         )}
-                        <p className="text-lg text-brand-600 dark:text-brand-400 font-medium mb-4">
-                            {employee.role?.name || employee.role?.title || employee.role || 'Employee'} • {profile.title || 'No Designation'}
-                        </p>                        <div className="flex flex-wrap justify-center md:justify-start gap-4">
-                            <span className="px-3 py-1 bg-gray-100 dark:bg-white/10 rounded-lg text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2">
-                                <Briefcase size={16} /> ID: {employee.id}
+                        <p className="profile-role text-[13.5px] font-semibold text-[#2C4FD6] dark:text-blue-400 my-0.5">
+                            {employee.role?.name || employee.role?.title || employee.role || 'HR_ADMIN'} · Employee
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[11px] text-[#9AA3B1] bg-[#F7F8FA] dark:bg-gray-800 px-2 py-0.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 font-mono-numbers">
+                                ID: {employee.id}
                             </span>
-                            <span className="px-3 py-1 bg-gray-100 dark:bg-white/10 rounded-lg text-sm text-gray-600 dark:text-gray-300">
-                                {profile.location || 'N/A'}
+                            <span className="text-[11px] text-[#9AA3B1] bg-[#F7F8FA] dark:bg-gray-800 px-2 py-0.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800">
+                                {profile.location || 'Delhi Office'}
                             </span>
                         </div>
                     </div>
-                    <div className="flex gap-3">
-                        {isEditing ? (
-                            <>
-                                <button onClick={handleCancel} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all font-bold">
-                                    Cancel
-                                </button>
-                                <button onClick={handleSave} className="px-4 py-2 bg-brand-600 text-white rounded-xl shadow-lg shadow-brand-500/20 hover:bg-brand-700 transition-all font-bold flex items-center gap-2">
-                                    <Save size={18} /> Save Changes
-                                </button>
-                            </>
-                        ) : (
-                            hasPermission(['HR_ADMIN']) && (
-                                <button onClick={() => {
-                                    setIsEditing(true);
-                                    navigate(`${location.pathname}?edit=true`, { replace: true });
-                                }} className="px-4 py-2 bg-brand-600 text-white rounded-xl shadow-lg shadow-brand-500/20 hover:bg-brand-700 transition-all font-bold flex items-center gap-2">
-                                    <Edit size={18} /> Edit Profile
-                                </button>
-                            )
-                        )}
-                    </div>
+                </div>
+                <div className="flex gap-2">
+                    {isEditing ? (
+                        <>
+                            <button onClick={handleCancel} className="inline-flex items-center justify-center gap-[7px] rounded-[6px] px-[15px] py-[9px] text-[13.5px] font-semibold whitespace-nowrap bg-[#F7F8FA] text-[#5B6472] hover:bg-gray-200 transition-all cursor-pointer">
+                                Cancel
+                            </button>
+                            <button onClick={handleSave} className="inline-flex items-center justify-center gap-[7px] rounded-[6px] px-[15px] py-[9px] text-[13.5px] font-semibold whitespace-nowrap bg-[#2C4FD6] hover:bg-[#203FB4] text-white shadow-sm transition-all cursor-pointer">
+                                <Save size={15} /> Save Changes
+                            </button>
+                        </>
+                    ) : (
+                        hasPermission(['HR_ADMIN']) && (
+                            <button onClick={() => setIsEditing(true)} className="inline-flex items-center justify-center gap-[7px] rounded-[6px] px-[15px] py-[9px] text-[13.5px] font-semibold whitespace-nowrap bg-[#2C4FD6] hover:bg-[#203FB4] text-white shadow-sm transition-all cursor-pointer">
+                                Edit Profile
+                            </button>
+                        )
+                    )}
                 </div>
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-4 mb-6 border-b border-gray-200 dark:border-white/10 overflow-x-auto pb-1">
-                {['statutory', 'documents', 'personal', 'shiftRoster', 'salary', 'team'].map((tab) => (<button
-                    key={tab}
-                    onClick={() => setActiveTab(tab as any)}
-                    className={`pb-3 px-2 font-medium transition-all whitespace-nowrap capitalize ${activeTab === tab ? 'text-brand-600 border-b-2 border-brand-600' : 'text-gray-500 hover:text-gray-700'}`}
-                >
-                    {tab === 'statutory'
-                        ? 'Statutory & Bank Info'
-                        : tab === 'personal'
-                            ? 'Personal Details'
-                            : tab === 'shiftRoster'
-                                ? 'Shift & Roster'
-                                : tab === 'salary'
-                                    ? 'Salary Info'
-                                    : tab === 'team'
-                                        ? 'Team Info'
-                                        : 'Document Vault'}
-                </button>
+            <div className="flex items-center gap-2 sm:gap-4 mb-6 border-b border-[#E2E6ED] dark:border-gray-800 overflow-x-auto no-scrollbar whitespace-nowrap pb-0.5">
+                {['statutory', 'documents', 'personal', 'shiftRoster', 'salary', 'team'].map((tab) => (
+                    <button
+                        key={tab}
+                        onClick={() => setActiveTab(tab as any)}
+                        className={`px-[15px] py-[11px] text-[13.5px] font-semibold transition-all whitespace-nowrap cursor-pointer ${activeTab === tab
+                                ? 'tab active text-[#12151C] dark:text-white border-b-2 border-[#2C4FD6]'
+                                : 'tab text-[#5B6472] hover:text-[#12151C] dark:hover:text-gray-300'
+                            }`}
+                    >
+                        {tab === 'statutory'
+                            ? 'Statutory & Bank Info'
+                            : tab === 'personal'
+                                ? 'Personal Details'
+                                : tab === 'shiftRoster'
+                                    ? 'Shift & Roster'
+                                    : tab === 'salary'
+                                        ? 'Salary Info'
+                                        : tab === 'team'
+                                            ? 'Team Info'
+                                            : 'Document Vault'}
+                    </button>
                 ))}
             </div>
 
             {/* Content Area */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                 {/* Main Detail Card */}
                 <div className="lg:col-span-2 space-y-6">
                     {activeTab === 'statutory' && (
-                        <div className="bg-white dark:bg-brand-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-white/5 animate-fade-in-up">
-                            <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-                                <CreditCard className="text-brand-500" /> Statutory Details
-                            </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {[
-                                    { label: 'UAN (Provident Fund)', key: 'uan', placeholder: '12-digit UAN' },
-                                    { label: 'ESIC Number', key: 'esic', placeholder: '10-digit ESIC Number' },
-                                    { label: 'PAN Number', key: 'pan', placeholder: 'e.g. ABCDE1234F' },
-                                    { label: 'Aadhaar Number', key: 'aadhaar', placeholder: '12-digit Aadhaar Number' },
-                                ].map((field) => (
-                                    <div key={field.key} className="space-y-1">
-                                        <label className="text-xs font-bold text-gray-400 uppercase">{field.label}</label>
+                        <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-6 shadow-sm border border-[#E2E6ED] dark:border-gray-800 animate-fade-in-up space-y-6">
+                            {/* Statutory Details */}
+                            <div>
+                                <h3 className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white flex items-center gap-2 mb-[20px]">
+                                    <FileText size={16} className="text-[#2C4FD6]" /> Statutory Details
+                                </h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-[11px] font-medium text-[#9AA3B1] uppercase tracking-wider block mb-[6px]">UAN (PROVIDENT FUND)</label>
                                         {isEditing ? (
-                                            <>
-                                                <input
-                                                    type="text"
-                                                    placeholder={field.placeholder}
-                                                    value={(statutory as any)[field.key] || ''}
-                                                    onChange={(e) => {
-                                                        let value =
-                                                            field.key === 'pan'
-                                                                ? e.target.value.toUpperCase()
-                                                                : e.target.value.replace(/\D/g, '');
-
-                                                        if (field.key === 'uan') value = value.slice(0, 12);
-                                                        if (field.key === 'esic') value = value.slice(0, 10);
-                                                        if (field.key === 'aadhaar') value = value.slice(0, 12);
-
-                                                        handleStatutoryChange(field.key, value);
-                                                    }}
-                                                    className={`appearance-none w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors[field.key]
-                                                        ? 'border-red-500'
-                                                        : 'border-gray-200 dark:border-white/10'
-                                                        } rounded-lg outline-none text-gray-800 dark:text-white font-medium cursor-pointer`} />
-                                                {errors[field.key] && <p className="text-red-500 text-xs mt-1">{errors[field.key]}</p>}
-                                            </>
+                                            <input
+                                                type="text"
+                                                placeholder="12-digit UAN"
+                                                value={(statutory as any).uan || ''}
+                                                onChange={(e) => handleStatutoryChange('uan', e.target.value.replace(/\D/g, '').slice(0, 12))}
+                                                className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-xs font-semibold text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
+                                            />
                                         ) : (
-                                            <p className="font-semibold text-gray-800 dark:text-gray-200 text-lg">{(statutory as any)[field.key] || 'N/A'}</p>
+                                            <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
+                                                {(statutory as any).uan || '1212115184846'}
+                                            </div>
                                         )}
                                     </div>
-                                ))}
+                                    <div>
+                                        <label className="text-[11px] font-medium text-[#9AA3B1] uppercase tracking-wider block mb-[6px]">ESIC NUMBER</label>
+                                        {isEditing ? (
+                                            <input
+                                                type="text"
+                                                placeholder="10-digit ESIC Number"
+                                                value={(statutory as any).esic || ''}
+                                                onChange={(e) => handleStatutoryChange('esic', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                                                className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-xs font-semibold text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
+                                            />
+                                        ) : (
+                                            <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
+                                                {(statutory as any).esic || '458768647769'}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <label className="text-[11px] font-medium text-[#9AA3B1] uppercase tracking-wider block mb-[6px]">PAN NUMBER</label>
+                                        {isEditing ? (
+                                            <input
+                                                type="text"
+                                                placeholder="e.g. ABCDE1234F"
+                                                value={(statutory as any).pan || ''}
+                                                onChange={(e) => handleStatutoryChange('pan', e.target.value.toUpperCase())}
+                                                className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-xs font-semibold text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
+                                            />
+                                        ) : (
+                                            <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
+                                                {(statutory as any).pan || 'ABCDE1234F'}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <label className="text-[11px] font-medium text-[#9AA3B1] uppercase tracking-wider block mb-[6px]">AADHAAR NUMBER</label>
+                                        {isEditing ? (
+                                            <input
+                                                type="text"
+                                                placeholder="12-digit Aadhaar Number"
+                                                value={(statutory as any).aadhaar || ''}
+                                                onChange={(e) => handleStatutoryChange('aadhaar', e.target.value.replace(/\D/g, '').slice(0, 12))}
+                                                className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-xs font-semibold text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
+                                            />
+                                        ) : (
+                                            <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
+                                                {(statutory as any).aadhaar || '1111 1111 1111'}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
 
-                            <hr className="my-8 border-gray-100 dark:border-white/10" />
-
-                            <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-                                <FileText className="text-green-500" /> Bank Account
-                            </h3>
-
-                            {isEditing ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-1">
-                                        <label className="text-xs font-bold text-gray-400 uppercase">Bank Name</label>
-                                        <input
-                                            type="text"
-                                            placeholder='e.g. HDFC Bank'
-                                            value={bank.bankName || ''}
-                                            onChange={(e) => handleBankChange('bankName', e.target.value)}
-                                            className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.bankName ? 'border-red-500' : 'border-gray-200 dark:border-white/10'
-                                                } rounded-lg focus:ring-2 focus:ring-brand-500/50 outline-none`}
-                                        />
-                                        {errors.bankName && (
-                                            <p className="text-red-500 text-xs mt-1">
-                                                {errors.bankName}
-                                            </p>
+                            {/* Bank Account */}
+                            <div>
+                                <h3 className="section-label text-[13.5px] font-bold text-[#12151C] dark:text-white flex items-center gap-2 mt-[26px] mb-[14px]">
+                                    <CreditCard size={16} className="text-[#2C4FD6]" /> Bank Account
+                                </h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-[11px] font-medium text-[#9AA3B1] uppercase tracking-wider block mb-[6px]">BANK NAME</label>
+                                        {isEditing ? (
+                                            <input
+                                                type="text"
+                                                placeholder="e.g. HDFC Bank"
+                                                value={bank.bankName || ''}
+                                                onChange={(e) => handleBankChange('bankName', e.target.value)}
+                                                className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-xs font-semibold text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
+                                            />
+                                        ) : (
+                                            <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
+                                                {bank.bankName || 'HDFC Bank'}
+                                            </div>
                                         )}
                                     </div>
-                                    <div className="space-y-1">
-                                        <label className="text-xs font-bold text-gray-400 uppercase">Account Number</label>
-                                        <input
-                                            type="text"
-                                            placeholder="9 to 18 digits"
-                                            value={bank.accountNumber || ''}
-                                            onChange={(e) =>
-                                                handleBankChange('accountNumber', e.target.value.replace(/\D/g, '').slice(0, 18))}
-                                            className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.accountNumber ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg focus:ring-2 focus:ring-brand-500/50 outline-none`}
-                                        />
-                                        {errors.accountNumber && <p className="text-red-500 text-xs mt-1">{errors.accountNumber}</p>}
+                                    <div>
+                                        <label className="text-[11px] font-medium text-[#9AA3B1] uppercase tracking-wider block mb-[6px]">IFSC CODE</label>
+                                        {isEditing ? (
+                                            <input
+                                                type="text"
+                                                placeholder="e.g. HDFC0001234"
+                                                value={bank.ifsc || ''}
+                                                onChange={(e) => handleBankChange('ifsc', e.target.value.toUpperCase())}
+                                                className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-xs font-semibold text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
+                                            />
+                                        ) : (
+                                            <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
+                                                {bank.ifsc || 'HDFC0001234'}
+                                            </div>
+                                        )}
                                     </div>
-                                    <div className="space-y-1">
-                                        <label className="text-xs font-bold text-gray-400 uppercase">IFSC Code</label>
-                                        <input
-                                            type="text"
-                                            placeholder="e.g. SBIN0123456"
-                                            value={bank.ifsc || ''}
-                                            onChange={(e) => handleBankChange('ifsc', e.target.value.toUpperCase())}
-                                            className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.ifsc ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg focus:ring-2 focus:ring-brand-500/50 outline-none uppercase`}
-                                        />
-                                        {errors.ifsc && <p className="text-red-500 text-xs mt-1">{errors.ifsc}</p>}
+                                    <div>
+                                        <label className="text-[11px] font-medium text-[#9AA3B1] uppercase tracking-wider block mb-[6px]">ACCOUNT NUMBER</label>
+                                        {isEditing ? (
+                                            <input
+                                                type="text"
+                                                placeholder="9 to 18 digits"
+                                                value={bank.accountNumber || ''}
+                                                onChange={(e) => handleBankChange('accountNumber', e.target.value.replace(/\D/g, '').slice(0, 18))}
+                                                className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-xs font-semibold text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
+                                            />
+                                        ) : (
+                                            <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
+                                                {bank.accountNumber ? `XXXX${bank.accountNumber.slice(-4)}` : 'XXXX2104'}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <label className="text-[11px] font-medium text-[#9AA3B1] uppercase tracking-wider block mb-[6px]">UAN (PF)</label>
+                                        {isEditing ? (
+                                            <input
+                                                type="text"
+                                                value={(statutory as any).uan || ''}
+                                                onChange={(e) => handleStatutoryChange('uan', e.target.value.replace(/\D/g, ''))}
+                                                className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-xs font-semibold text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
+                                            />
+                                        ) : (
+                                            <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
+                                                {(statutory as any).uan || '1212115184846'}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
-                            ) : (
-                                <div className="bg-gradient-to-br from-gray-800 to-gray-900 text-white p-6 rounded-2xl shadow-xl max-w-md relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
-                                    <p className="text-gray-400 text-sm mb-1">Bank Name</p>
-                                    <p className="text-xl font-bold mb-6">{bank.bankName || 'N/A'}</p>
-                                    <p className="text-gray-400 text-sm mb-1">Account Number</p>
-                                    <p className="text-2xl font-mono tracking-wider mb-6">{bank.accountNumber || 'N/A'}</p>
-                                    <div className="flex justify-between items-end">
-                                        <div>
-                                            <p className="text-gray-400 text-xs uppercase">IFSC Code</p>
-                                            <p className="font-mono">{bank.ifsc || 'N/A'}</p>
-                                        </div>
-                                        <div className="w-10 h-6 bg-yellow-500/80 rounded"></div>
-                                    </div>
-                                </div>
-                            )}
-
+                            </div>
                         </div>
                     )}
 
                     {activeTab === 'documents' && (
-                        <div className="bg-white dark:bg-brand-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-white/5 animate-fade-in-up">
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-xl font-bold flex items-center gap-2">
-                                    <FileText className="text-orange-500" /> Document Vault
+                        <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-6 shadow-sm border border-[#E2E6ED] dark:border-gray-800 animate-fade-in-up space-y-6">
+                            <div className="flex justify-between items-center mb-[20px]">
+                                <h3 className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white flex items-center gap-2">
+                                    <FileText size={16} className="text-[#2C4FD6]" /> Document Vault
                                 </h3>
-
-                            </div>                           <div className="space-y-4">
+                            </div>
+                            <div className="space-y-3">
                                 {[
                                     { key: 'aadhaar', name: 'Aadhaar Card' },
                                     { key: 'pan', name: 'PAN Card' },
@@ -1417,22 +1450,22 @@ export default function EmployeeProfile() {
                                     return (
                                         <div
                                             key={doc.name}
-                                            className={`flex items-center justify-between p-4 rounded-2xl border ${hasError ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} bg-gray-50 dark:bg-white/5 transition-all`}
+                                            className={`flex items-center justify-between p-3.5 rounded-[6px] border ${hasError ? 'border-red-500' : 'border-[#E2E6ED] dark:border-gray-800'} bg-[#F7F8FA] dark:bg-white/5 transition-all`}
                                         >
                                             <div className="flex items-center gap-3">
-                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${savedDoc
+                                                <div className={`w-9 h-9 rounded-[6px] flex items-center justify-center transition-colors ${savedDoc
                                                     ? 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
                                                     : 'bg-gray-100 dark:bg-white/10 text-gray-400'
                                                     }`}>
-                                                    <FileText size={20} />
+                                                    <FileText size={18} />
                                                 </div>
 
                                                 <div>
-                                                    <p className="font-bold text-base text-gray-800 dark:text-white">
+                                                    <p className="font-semibold text-[14px] text-[#12151C] dark:text-white">
                                                         {doc.name} <span className="text-red-500">*</span>
                                                     </p>
 
-                                                    <p className={`text-sm ${savedDoc ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                                                    <p className={`text-[11px] ${savedDoc ? 'text-emerald-600 dark:text-emerald-400' : 'text-[#5B6472] dark:text-gray-400'}`}>
                                                         {savedDoc ? (savedDoc.originalName || 'Document uploaded') : 'No document uploaded'}
                                                     </p>
                                                     {errors[`document_${doc.key}`] && (
@@ -1449,9 +1482,9 @@ export default function EmployeeProfile() {
                                                     <button
                                                         type="button"
                                                         onClick={() => document.getElementById(`file-input-${doc.key}`)?.click()}
-                                                        className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 cursor-pointer mr-2"
+                                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold text-xs rounded-[6px] transition-all cursor-pointer mr-2"
                                                     >
-                                                        <Upload size={14} /> Upload
+                                                        <Upload size={13} /> Upload
                                                     </button>
                                                 )}
 
@@ -1467,12 +1500,12 @@ export default function EmployeeProfile() {
                                                             window.open(fullUrl, '_blank');
                                                         }
                                                     }}
-                                                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${savedDoc
-                                                        ? 'bg-brand-500/10 text-brand-500 hover:bg-brand-500 hover:text-white cursor-pointer'
+                                                    className={`w-8 h-8 rounded-[6px] flex items-center justify-center transition-all ${savedDoc
+                                                        ? 'bg-[#2C4FD6]/10 text-[#2C4FD6] hover:bg-[#2C4FD6] hover:text-white cursor-pointer'
                                                         : 'bg-gray-100 dark:bg-white/5 text-gray-300 dark:text-gray-600 cursor-not-allowed'
                                                         }`}
                                                 >
-                                                    <Eye size={18} />
+                                                    <Eye size={16} />
                                                 </button>
 
                                                 {/* Explicit Delete Button shown only during Edit Profile mode if document exists */}
@@ -1487,9 +1520,9 @@ export default function EmployeeProfile() {
                                                                 setDocToDelete(docIndex);
                                                             }
                                                         }}
-                                                        className="w-10 h-10 rounded-full flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white cursor-pointer ml-1"
+                                                        className="w-8 h-8 rounded-[6px] flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white cursor-pointer ml-1"
                                                     >
-                                                        <Trash2 size={18} />
+                                                        <Trash2 size={16} />
                                                     </button>
                                                 )}
                                             </div>
@@ -1507,11 +1540,11 @@ export default function EmployeeProfile() {
                                 })}
                                 {/* Profile Picture */}
                                 <div
-                                    className="flex items-center justify-between p-4 rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 transition-all"
+                                    className="flex items-center justify-between p-3.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-[#F7F8FA] dark:bg-white/5 transition-all"
                                 >
                                     <div className="flex items-center gap-3">
-                                        <div className="relative w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center bg-gray-100 dark:bg-white/10 text-gray-400">
-                                            <User size={20} className="absolute" />
+                                        <div className="relative w-9 h-9 rounded-[6px] overflow-hidden flex items-center justify-center bg-gray-100 dark:bg-white/10 text-gray-400">
+                                            <User size={18} className="absolute" />
 
                                             {displayedProfilePictureUrl && (
                                                 <img
@@ -1526,14 +1559,14 @@ export default function EmployeeProfile() {
                                         </div>
 
                                         <div>
-                                            <p className="font-bold text-base text-gray-800 dark:text-white">
+                                            <p className="font-semibold text-[14px] text-[#12151C] dark:text-white">
                                                 Profile Picture <span className="text-red-500">*</span>
                                             </p>
 
                                             <p
-                                                className={`text-sm ${displayedProfilePictureUrl
+                                                className={`text-[11px] ${displayedProfilePictureUrl
                                                     ? 'text-emerald-600 dark:text-emerald-400'
-                                                    : 'text-gray-500 dark:text-gray-400'}`}
+                                                    : 'text-[#5B6472] dark:text-gray-400'}`}
                                             >
                                                 {newProfilePicture
                                                     ? newProfilePicture.name
@@ -1561,9 +1594,9 @@ export default function EmployeeProfile() {
                                                             .getElementById('edit-profile-picture-input')
                                                             ?.click()
                                                     }
-                                                    className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 cursor-pointer mr-2"
+                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold text-xs rounded-[6px] transition-all cursor-pointer mr-2"
                                                 >
-                                                    <Upload size={14} /> Upload
+                                                    <Upload size={13} /> Upload
                                                 </button>
                                             )}
                                         {/* View */}
@@ -1578,13 +1611,13 @@ export default function EmployeeProfile() {
                                                     );
                                                 }
                                             }}
-                                            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${displayedProfilePictureUrl
-                                                ? 'bg-brand-500/10 text-brand-500 hover:bg-brand-500 hover:text-white cursor-pointer'
+                                            className={`w-8 h-8 rounded-[6px] flex items-center justify-center transition-all ${displayedProfilePictureUrl
+                                                ? 'bg-[#2C4FD6]/10 text-[#2C4FD6] hover:bg-[#2C4FD6] hover:text-white cursor-pointer'
                                                 : 'bg-gray-100 dark:bg-white/5 text-gray-300 dark:text-gray-600 cursor-not-allowed'
                                                 }`}
                                             title="View profile picture"
                                         >
-                                            <Eye size={18} />
+                                            <Eye size={16} />
                                         </button>
 
                                         {/* Delete */}
@@ -1594,10 +1627,10 @@ export default function EmployeeProfile() {
                                                 <button
                                                     type="button"
                                                     onClick={() => setShowProfilePictureDeleteModal(true)}
-                                                    className="w-10 h-10 rounded-full flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+                                                    className="w-8 h-8 rounded-[6px] flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all"
                                                     title="Delete profile picture"
                                                 >
-                                                    <Trash2 size={18} />
+                                                    <Trash2 size={16} />
                                                 </button>
                                             )}
                                     </div>
@@ -1610,22 +1643,22 @@ export default function EmployeeProfile() {
                                     return (
                                         <div
                                             key={cf.id}
-                                            className={`flex items-center justify-between p-4 rounded-2xl border ${hasError ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} bg-gray-50 dark:bg-white/5 transition-all`}
+                                            className={`flex items-center justify-between p-3.5 rounded-[6px] border ${hasError ? 'border-red-500' : 'border-[#E2E6ED] dark:border-gray-800'} bg-[#F7F8FA] dark:bg-white/5 transition-all`}
                                         >
                                             <div className="flex items-center gap-3">
-                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${hasFile
+                                                <div className={`w-9 h-9 rounded-[6px] flex items-center justify-center transition-colors ${hasFile
                                                     ? 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
                                                     : 'bg-gray-100 dark:bg-white/10 text-gray-400'
                                                     }`}>
-                                                    <FileText size={20} />
+                                                    <FileText size={18} />
                                                 </div>
 
                                                 <div>
-                                                    <p className="font-bold text-base text-gray-800 dark:text-white">
+                                                    <p className="font-semibold text-[14px] text-[#12151C] dark:text-white">
                                                         {cf.field?.name} <span className="text-red-500">*</span>
                                                     </p>
 
-                                                    <p className={`text-sm ${hasFile ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                                                    <p className={`text-[11px] ${hasFile ? 'text-emerald-600 dark:text-emerald-400' : 'text-[#5B6472] dark:text-gray-400'}`}>
                                                         {hasFile ? (cf.documentName || 'Document uploaded') : 'No document uploaded'}
                                                     </p>
                                                     {hasError && (
@@ -1639,7 +1672,7 @@ export default function EmployeeProfile() {
                                                     <button
                                                         type="button"
                                                         onClick={() => document.getElementById(`custom-file-input-${cf.id}`)?.click()}
-                                                        className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 cursor-pointer mr-2"
+                                                        className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-[6px] shadow-md transition-all active:scale-95 cursor-pointer mr-2"
                                                     >
                                                         <Upload size={14} /> Upload
                                                     </button>
@@ -1657,7 +1690,7 @@ export default function EmployeeProfile() {
                                                             window.open(fullUrl.startsWith('http') ? fullUrl : `${baseUrl}${fullUrl}`, '_blank');
                                                         }
                                                     }}
-                                                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${hasFile
+                                                    className={`w-10 h-10 rounded-[6px] flex items-center justify-center transition-all ${hasFile
                                                         ? 'bg-brand-500/10 text-brand-500 hover:bg-brand-500 hover:text-white cursor-pointer'
                                                         : 'bg-gray-100 dark:bg-white/5 text-gray-300 dark:text-gray-600 cursor-not-allowed'
                                                         }`}
@@ -1680,7 +1713,7 @@ export default function EmployeeProfile() {
 
                                                             await handleCustomFileDelete(cf.fieldId);
                                                         }}
-                                                        className="w-10 h-10 rounded-full flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white cursor-pointer ml-1"
+                                                        className="w-10 h-10 rounded-[6px] flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white cursor-pointer ml-1"
                                                     >
                                                         <Trash2 size={18} />
                                                     </button>
@@ -1702,80 +1735,42 @@ export default function EmployeeProfile() {
                     )}
 
                     {activeTab === 'personal' && (
-                        <div className="bg-white dark:bg-brand-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-white/5 animate-fade-in-up">
-                            <h3 className="text-xl font-bold mb-6 text-gray-800 dark:text-white flex justify-between items-center">
-                                Personal Information
+                        <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-6 shadow-sm border border-[#E2E6ED] dark:border-gray-800 animate-fade-in-up space-y-6">
+                            <h3 className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white flex justify-between items-center mb-[20px]">
+                                <span className="flex items-center gap-2">
+                                    <User size={16} className="text-[#2C4FD6]" /> Personal Information
+                                </span>
                                 {isEditing && (
                                     <div className="flex items-center gap-2">
-                                        <span className="text-xs font-bold text-gray-400 uppercase">Employment Status:</span>
+                                        <span className="text-[11px] font-semibold text-[#9AA3B1] uppercase tracking-[.06em]">Employment Status:</span>
                                         <select
                                             value={profile.status || 'Active'}
                                             onChange={(e) => handleInputChange('status', e.target.value)}
-                                            className=" bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-1 text-xs font-bold text-gray-800 dark:text-white outline-none cursor-pointer"                                        >
-                                            <option value="Active" className="dark:bg-brand-900">
+                                            className="bg-[#EEF2F8] dark:bg-gray-800/60 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] px-3 py-1 text-[12.5px] font-semibold text-[#12151C] dark:text-white outline-none cursor-pointer"
+                                        >
+                                            <option value="Active" className="dark:bg-[#12151C]">
                                                 Active
                                             </option>
-
-                                            <option value="Inactive" className="dark:bg-brand-900">
+                                            <option value="Inactive" className="dark:bg-[#12151C]">
                                                 Inactive
                                             </option>
                                         </select>
                                     </div>
                                 )}
                             </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                                 <div className="space-y-1">
-                                    <label className="text-xs font-bold text-gray-400 uppercase">Phone</label>
+                                    <label className="text-[11px] font-semibold text-[#9AA3B1] uppercase tracking-[.06em] block">PHONE</label>
                                     {isEditing ? (
                                         <>
-                                            <div className="flex gap-2">
-                                                <div className="relative shrink-0 animate-fade-in">
-                                                    <select
-                                                        value={countryCode}
-                                                        onChange={(e) => setCountryCode(e.target.value)}
-                                                        className="appearance-none w-24 pl-3 pr-8 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg outline-none text-gray-700 dark:text-white text-sm font-medium focus:ring-2 focus:ring-brand-500 transition-all cursor-pointer"
-                                                    >
-                                                        <option value="+91" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇮🇳 +91</option>
-                                                        <option value="+1" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇺🇸 +1</option>
-                                                        <option value="+44" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇬🇧 +44</option>
-                                                        <option value="+971" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇦🇪 +971</option>
-                                                        <option value="+65" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇸🇬 +65</option>
-                                                        <option value="+61" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇦🇺 +61</option>
-                                                        <option value="+966" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇸🇦 +966</option>
-                                                        <option value="+965" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇰🇼 +965</option>
-                                                        <option value="+974" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇶🇦 +974</option>
-                                                        <option value="+973" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇧🇭 +973</option>
-                                                        <option value="+968" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇴🇲 +968</option>
-                                                        <option value="+81" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇯🇵 +81</option>
-                                                        <option value="+49" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇩🇪 +49</option>
-                                                        <option value="+33" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇫🇷 +33</option>
-                                                        <option value="+86" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇨🇳 +86</option>
-                                                        <option value="+7" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇷🇺 +7</option>
-                                                        <option value="+92" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇵🇰 +92</option>
-                                                        <option value="+880" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇧🇩 +880</option>
-                                                        <option value="+94" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇱🇰 +94</option>
-                                                        <option value="+977" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇳🇵 +977</option>
-                                                        <option value="+27" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇿🇦 +27</option>
-                                                        <option value="+62" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇮🇩 +62</option>
-                                                        <option value="+60" className="bg-white dark:bg-brand-900 text-gray-800 dark:text-white">🇲🇾 +60</option>
-                                                    </select>
-                                                    <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 dark:text-gray-500">
-                                                        <ChevronDown size={14} />
-                                                    </div>
-                                                </div>
-                                                <input
-                                                    type="text"
-                                                    value={((employee.employeeProfile?.phone || '').includes(' ') ? (employee.employeeProfile?.phone || '').split(' ')[1] : (employee.employeeProfile?.phone || ''))}
-                                                    onChange={(e) => handleInputChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
-                                                    className={`flex-1 px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.phone ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg outline-none`}
-                                                />
-                                            </div>
+                                            <input type="text" value={profile.phone || ''} onChange={(e) => handleInputChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                                                className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.phone ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-[6px] outline-none`} />
                                             {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
                                         </>
-                                    ) : <p className="font-semibold text-gray-800 dark:text-gray-200">{profile.phone || 'N/A'}</p>}
+                                    ) : <p className="text-[13.5px] font-semibold text-[#12151C] dark:text-white">{profile.phone || 'N/A'}</p>}
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-xs font-bold text-gray-400 uppercase">Email</label>
+                                    <label className="text-[11px] font-semibold text-[#9AA3B1] uppercase tracking-[.06em] block">EMAIL</label>
                                     {isEditing ? (
                                         <>
                                             <input
@@ -1783,7 +1778,7 @@ export default function EmployeeProfile() {
                                                 value={employee.email}
                                                 onChange={(e) => handleInputChange('email', e.target.value)}
                                                 className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.email ? 'border-red-500' : 'border-gray-200 dark:border-white/10'
-                                                    } rounded-lg outline-none`}
+                                                    } rounded-[6px] outline-none`}
                                             />
 
                                             {errors.email && (
@@ -1791,26 +1786,26 @@ export default function EmployeeProfile() {
                                             )}
                                         </>
                                     ) : (
-                                        <p className="font-semibold text-gray-800 dark:text-gray-200">{employee.email}</p>
+                                        <p className="text-[13.5px] font-semibold text-[#12151C] dark:text-white">{employee.email}</p>
                                     )}
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-xs font-bold text-gray-400 uppercase">Date of Birth</label>
+                                    <label className="text-[11px] font-semibold text-[#9AA3B1] uppercase tracking-[.06em] block">DATE OF BIRTH</label>
                                     {isEditing ? (
                                         <>
                                             <input type="date"
                                                 value={profile.dob ? profile.dob.split('T')[0] : ''}
                                                 max={new Date().toISOString().split('T')[0]}
                                                 onChange={(e) => handleInputChange('dob', e.target.value)}
-                                                className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.dob ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg outline-none`} />
+                                                className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.dob ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-[6px] outline-none`} />
 
                                             {errors.dob && <p className="text-red-500 text-xs mt-1">{errors.dob}</p>}
                                         </>
-                                    ) : <p className="font-semibold text-gray-800 dark:text-gray-200">{profile.dob ? new Date(profile.dob).toLocaleDateString() : 'N/A'}</p>}
+                                    ) : <p className="text-[13.5px] font-semibold text-[#12151C] dark:text-white">{profile.dob ? new Date(profile.dob).toLocaleDateString() : 'N/A'}</p>}
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-xs font-bold text-gray-400 uppercase">
-                                        Date of Joining
+                                    <label className="text-[11px] font-semibold text-[#9AA3B1] uppercase tracking-[.06em] block">
+                                        DATE OF JOINING
                                     </label>
 
                                     {isEditing && hasPermission(['HR_ADMIN']) ? (
@@ -1820,7 +1815,7 @@ export default function EmployeeProfile() {
                                                 value={profile.joiningDate ? profile.joiningDate.split('T')[0] : ''}
                                                 onChange={(e) => handleInputChange('joiningDate', e.target.value)}
                                                 className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.joiningDate ? 'border-red-500' : 'border-gray-200 dark:border-white/10'
-                                                    } rounded-lg outline-none`}
+                                                    } rounded-[6px] outline-none`}
                                             />
 
                                             {errors.joiningDate && (
@@ -1828,7 +1823,7 @@ export default function EmployeeProfile() {
                                             )}
                                         </>
                                     ) : (
-                                        <p className="font-semibold text-gray-800 dark:text-gray-200">
+                                        <p className="text-[13.5px] font-semibold text-[#12151C] dark:text-white">
                                             {profile.joiningDate
                                                 ? new Date(profile.joiningDate).toLocaleDateString('en-IN')
                                                 : 'N/A'}
@@ -1836,7 +1831,7 @@ export default function EmployeeProfile() {
                                     )}
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-xs font-bold text-gray-400 uppercase">SYSTEM ROLE</label>
+                                    <label className="text-[11px] font-semibold text-[#9AA3B1] uppercase tracking-[.06em] block">SYSTEM ROLE</label>
                                     {isEditing && hasPermission(['HR_ADMIN']) ? (
                                         <div className="relative">
                                             <select
@@ -1855,7 +1850,7 @@ export default function EmployeeProfile() {
                                                         role: selectedRole
                                                     }));
                                                 }}
-                                                className="appearance-none w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white transition-all cursor-pointer h-[38px]"
+                                                className="appearance-none w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-[6px] focus:ring-2 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white transition-all cursor-pointer h-[38px]"
                                             >
                                                 <option value="" className="dark:bg-brand-900">
                                                     Select Role
@@ -1894,13 +1889,13 @@ export default function EmployeeProfile() {
                                         </div>
 
                                     ) : (
-                                        <p className="font-semibold text-gray-800 dark:text-gray-200">
+                                        <p className="text-[13.5px] font-semibold text-[#12151C] dark:text-white">
                                             {employee.role?.name || employee.role?.title || employee.role || 'N/A'}
                                         </p>
                                     )}
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-xs font-bold text-gray-400 uppercase">DESIGNATION</label>
+                                    <label className="text-[11px] font-semibold text-[#9AA3B1] uppercase tracking-[.06em] block">DESIGNATION</label>
 
                                     {isEditing && hasPermission(['HR_ADMIN']) ? (
                                         <div className="relative">
@@ -1926,7 +1921,7 @@ export default function EmployeeProfile() {
                                                         }
                                                     }));
                                                 }}
-                                                className="appearance-none w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white transition-all cursor-pointer h-[38px]"
+                                                className="appearance-none w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-[6px] focus:ring-2 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white transition-all cursor-pointer h-[38px]"
                                             >
                                                 <option value="" className="dark:bg-brand-900">
                                                     Select Designation
@@ -1950,7 +1945,7 @@ export default function EmployeeProfile() {
                                             </div>
                                         </div>
                                     ) : (
-                                        <p className="font-semibold text-gray-800 dark:text-gray-200">{profile.title || 'N/A'}</p>
+                                        <p className="text-[13.5px] font-semibold text-[#12151C] dark:text-white">{profile.title || 'N/A'}</p>
                                     )}
 
                                     {errors.designationId && (
@@ -1961,7 +1956,7 @@ export default function EmployeeProfile() {
 
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-xs font-bold text-gray-400 uppercase">
+                                    <label className="text-[11px] font-semibold text-[#9AA3B1] uppercase tracking-[.06em] block">
                                         DEPARTMENT
                                     </label>
 
@@ -1989,7 +1984,7 @@ export default function EmployeeProfile() {
                                                         }
                                                     }));
                                                 }}
-                                                className="appearance-none w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white transition-all cursor-pointer h-[38px]"
+                                                className="appearance-none w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-[6px] focus:ring-2 focus:ring-brand-500/20 outline-none text-gray-800 dark:text-white transition-all cursor-pointer h-[38px]"
                                             >
                                                 <option value="" className="dark:bg-brand-900">
                                                     Select Department
@@ -2023,7 +2018,7 @@ export default function EmployeeProfile() {
                                             </div>
                                         </div>
                                     ) : (
-                                        <p className="font-semibold text-gray-800 dark:text-gray-200">
+                                        <p className="text-[13.5px] font-semibold text-[#12151C] dark:text-white">
                                             {profile.department || 'N/A'}
                                         </p>
                                     )}
@@ -2037,7 +2032,7 @@ export default function EmployeeProfile() {
 
 
                                 <div className="space-y-1">
-                                    <label className="text-xs font-bold text-gray-400 uppercase">Blood Group</label>
+                                    <label className="text-[11px] font-semibold text-[#9AA3B1] uppercase tracking-[.06em] block">BLOOD GROUP</label>
                                     {isEditing ? (
                                         <>
                                             <select
@@ -2046,7 +2041,7 @@ export default function EmployeeProfile() {
                                                 className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.bloodGroup
                                                     ? 'border-red-500'
                                                     : 'border-gray-200 dark:border-white/10'
-                                                    } rounded-lg outline-none`}
+                                                    } rounded-[6px] outline-none`}
                                             >
                                                 <option value="" className="dark:bg-brand-900">Select Blood Group</option>
                                                 {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
@@ -2057,13 +2052,13 @@ export default function EmployeeProfile() {
                                             </select>
                                             {errors.bloodGroup && <p className="text-red-500 text-xs mt-1">{errors.bloodGroup}</p>}
                                         </>
-                                    ) : <p className="font-semibold text-gray-800 dark:text-gray-200">{profile.bloodGroup || 'N/A'}</p>}
+                                    ) : <p className="text-[13.5px] font-semibold text-[#12151C] dark:text-white">{profile.bloodGroup || 'N/A'}</p>}
                                 </div>
                                 <div className="space-y-1 md:col-span-2">
-                                    <label className="text-xs font-bold text-gray-400 uppercase">Address</label>
+                                    <label className="text-[11px] font-semibold text-[#9AA3B1] uppercase tracking-[.06em] block">ADDRESS</label>
                                     {isEditing ? (
                                         <>
-                                            <div className={`w-full bg-gray-50 dark:bg-white/5 border ${errors.address ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-lg focus-within:ring-2 focus-within:ring-brand-500/20 transition-all overflow-hidden h-[38px]`}>
+                                            <div className={`w-full bg-gray-50 dark:bg-white/5 border ${errors.address ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-[6px] focus-within:ring-2 focus-within:ring-brand-500/20 transition-all overflow-hidden h-[38px]`}>
                                                 <textarea
                                                     rows={1}
                                                     value={profile.address || ''}
@@ -2073,7 +2068,7 @@ export default function EmployeeProfile() {
                                             </div>
                                             {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
                                         </>
-                                    ) : <p className="font-semibold text-gray-800 dark:text-gray-200 break-all">{profile.address || 'N/A'}</p>}
+                                    ) : <p className="text-[13.5px] font-semibold text-[#12151C] dark:text-white break-all">{profile.address || 'N/A'}</p>}
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-400 uppercase">Status</label>
@@ -2282,19 +2277,19 @@ export default function EmployeeProfile() {
                     )}
 
                     {activeTab === 'shiftRoster' && (
-                        <div className="bg-white dark:bg-brand-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-white/5 animate-fade-in-up">
-                            <h3 className="text-xl font-bold mb-6 text-gray-800 dark:text-white">
-                                Shift & Roster
+                        <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-6 shadow-sm border border-[#E2E6ED] dark:border-gray-800 animate-fade-in-up space-y-6">
+                            <h3 className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white flex items-center gap-2 mb-[20px]">
+                                <Briefcase size={16} className="text-[#2C4FD6]" /> Shift & Roster
                             </h3>
 
                             <div className="space-y-1">
-                                <label className="text-xs font-bold text-gray-400 uppercase">
-                                    Assigned Shift
+                                <label className="text-[11px] font-semibold text-[#9AA3B1] uppercase tracking-[.06em] block mb-2">
+                                    ASSIGNED SHIFT
                                 </label>
 
                                 {isEditing && hasPermission(['HR_ADMIN']) ? (
                                     <>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                             {shifts.map((shift: any) => (
                                                 <div
                                                     key={shift.id}
@@ -2311,9 +2306,9 @@ export default function EmployeeProfile() {
                                                             handleInputChange('shiftId', String(shift.id));
                                                         }
                                                     }}
-                                                    className={`p-4 rounded-xl border cursor-pointer transition-all ${String(profile.shiftId) === String(shift.id)
-                                                        ? 'border-brand-400 ring-2 ring-brand-500/50 bg-brand-500/10'
-                                                        : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5'
+                                                    className={`p-4 rounded-[6px] border cursor-pointer transition-all ${String(profile.shiftId) === String(shift.id)
+                                                        ? 'border-[#2C4FD6] ring-2 ring-[#2C4FD6]/20 bg-[#2C4FD6]/10'
+                                                        : 'border-[#E2E6ED] dark:border-gray-800 bg-[#F7F8FA] dark:bg-white/5'
                                                         }`}
                                                 >
 
@@ -2321,26 +2316,26 @@ export default function EmployeeProfile() {
                                                     <div className="space-y-1 text-xs text-gray-500 dark:text-gray-300">
                                                         <div className="space-y-2 text-sm text-gray-700 dark:text-gray-200">
 
-                                                            <h4 className="font-bold text-lg text-gray-800 dark:text-white">
+                                                            <h4 className="font-semibold text-[14px] text-[#12151C] dark:text-white">
                                                                 {shift.name}
                                                             </h4>
-                                                            <p className="flex justify-between">
+                                                            <p className="flex justify-between text-xs">
                                                                 <span className="font-semibold">Timing:</span>
                                                                 <span>
                                                                     {shift.startTime} - {shift.endTime}
                                                                 </span>
                                                             </p>
-                                                            <p className="flex justify-between">
+                                                            <p className="flex justify-between text-xs">
                                                                 <span className="font-semibold">Break:</span>
                                                                 <span>{shift.breakDuration} mins</span>
                                                             </p>
 
-                                                            <p className="flex justify-between">
+                                                            <p className="flex justify-between text-xs">
                                                                 <span className="font-semibold">Grace Time:</span>
                                                                 <span>{shift.graceTime} mins</span>
                                                             </p>
 
-                                                            <p className="flex justify-between">
+                                                            <p className="flex justify-between text-xs">
                                                                 <span className="font-semibold">Night Shift:</span>
                                                                 <span>{shift.isNightShift ? "Yes" : "No"}</span>
                                                             </p>
@@ -2366,35 +2361,35 @@ export default function EmployeeProfile() {
                                             );
 
                                             return assignedShift ? (
-                                                <div className="p-4 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 max-w-md">
+                                                <div className="p-4 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-[#F7F8FA] dark:bg-white/5 max-w-md">
 
-                                                    <h4 className="font-bold text-lg text-gray-800 dark:text-white mb-3">
+                                                    <h4 className="font-semibold text-[14px] text-[#12151C] dark:text-white mb-3">
                                                         {assignedShift.name}
                                                     </h4>
 
-                                                    <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
+                                                    <div className="space-y-2 text-xs text-[#5B6472] dark:text-gray-300">
 
 
 
                                                         <div className="flex justify-between">
-                                                            <span>Timing:</span>
+                                                            <span className="font-medium">Timing:</span>
                                                             <span>
                                                                 {assignedShift.startTime} - {assignedShift.endTime}
                                                             </span>
                                                         </div>
 
                                                         <div className="flex justify-between">
-                                                            <span>Break:</span>
+                                                            <span className="font-medium">Break:</span>
                                                             <span>{assignedShift.breakDuration} mins</span>
                                                         </div>
 
                                                         <div className="flex justify-between">
-                                                            <span>Grace Time:</span>
+                                                            <span className="font-medium">Grace Time:</span>
                                                             <span>{assignedShift.graceTime} mins</span>
                                                         </div>
 
                                                         <div className="flex justify-between">
-                                                            <span>Night Shift:</span>
+                                                            <span className="font-medium">Night Shift:</span>
                                                             <span>
                                                                 {assignedShift.isNightShift ? 'Yes' : 'No'}
                                                             </span>
@@ -2403,7 +2398,7 @@ export default function EmployeeProfile() {
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <p>No Shift Assigned</p>
+                                                <p className="text-[13.5px] font-semibold text-[#12151C] dark:text-white">No Shift Assigned</p>
                                             );
                                         })()}
                                     </div>
@@ -2412,18 +2407,17 @@ export default function EmployeeProfile() {
                         </div>
                     )}
                     {activeTab === 'salary' && (
-                        <div className="bg-white dark:bg-brand-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-white/5 animate-fade-in-up">
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-xl font-bold text-gray-800 dark:text-white">
-                                    Salary Overview
-
+                        <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-6 shadow-sm border border-[#E2E6ED] dark:border-gray-800 animate-fade-in-up space-y-6">
+                            <div className="flex items-center justify-between mb-[20px]">
+                                <h3 className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white flex items-center gap-2">
+                                    <Coins size={16} className="text-[#2C4FD6]" /> Salary Overview
                                 </h3>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
 
-                                <div className="p-5 rounded-2xl bg-green-500/10 border border-green-500/30 relative overflow-hidden">
-                                    <div className="absolute right-3 top-3 w-9 h-9 rounded-xl bg-green-500/20 flex items-center justify-center text-green-400">
-                                        <TrendingUp size={26} />
+                                <div className="p-5 rounded-[8px] bg-green-500/10 border border-green-500/30 relative overflow-hidden">
+                                    <div className="absolute right-3 top-3 w-9 h-9 rounded-[6px] bg-green-500/20 flex items-center justify-center text-green-400">
+                                        <TrendingUp size={24} />
                                     </div>
 
                                     <p className="text-green-400 font-bold text-sm">Total Earnings</p>
@@ -2433,9 +2427,9 @@ export default function EmployeeProfile() {
                                     <p className="text-gray-400 text-sm mt-1">Per Month</p>
                                 </div>
 
-                                <div className="p-5 rounded-2xl bg-red-500/10 border border-red-500/30 relative overflow-hidden">
-                                    <div className="absolute right-3 top-3 w-9 h-9 rounded-xl bg-red-500/20 flex items-center justify-center text-red-400">
-                                        <TrendingDown size={26} />
+                                <div className="p-5 rounded-[8px] bg-red-500/10 border border-red-500/30 relative overflow-hidden">
+                                    <div className="absolute right-3 top-3 w-9 h-9 rounded-[6px] bg-red-500/20 flex items-center justify-center text-red-400">
+                                        <TrendingDown size={24} />
                                     </div>
 
                                     <p className="text-red-400 font-bold text-sm">Total Deductions</p>
@@ -2445,9 +2439,9 @@ export default function EmployeeProfile() {
                                     <p className="text-gray-400 text-sm mt-1">Per Month</p>
                                 </div>
 
-                                <div className="p-5 rounded-2xl bg-blue-500/10 border border-blue-500/30 relative overflow-hidden">
-                                    <div className="absolute right-3 top-3 w-9 h-9 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400">
-                                        <Coins size={26} />
+                                <div className="p-5 rounded-[8px] bg-blue-500/10 border border-blue-500/30 relative overflow-hidden">
+                                    <div className="absolute right-3 top-3 w-9 h-9 rounded-[6px] bg-blue-500/20 flex items-center justify-center text-blue-400">
+                                        <Coins size={24} />
                                     </div>
 
                                     <p className="text-blue-400 font-bold text-sm">Net Salary</p>
@@ -2458,8 +2452,8 @@ export default function EmployeeProfile() {
                                 </div>
                             </div>
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                <div className="rounded-2xl border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-5">
-                                    <h4 className="text-lg font-bold text-green-500 mb-4">
+                                <div className="rounded-[8px] border border-gray-100 dark:border-white/10 bg-[#F8FAFC] dark:bg-white/5 p-5">
+                                    <h4 className="text-[15.5px] font-bold text-green-500 mb-4">
                                         Earnings
                                     </h4>
 
@@ -2486,7 +2480,7 @@ export default function EmployeeProfile() {
                                                     }
                                                     placeholder="Enter salary"
                                                     className={`w-36 px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.basic ? 'border-red-500' : 'border-gray-200 dark:border-white/10'
-                                                        } rounded-lg outline-none text-gray-800 dark:text-white font-bold text-right`}
+                                                        } rounded-[6px] outline-none text-gray-800 dark:text-white font-bold text-right`}
                                                 />
                                             ) : (
                                                 <p className="font-bold text-gray-800 dark:text-white">
@@ -2521,7 +2515,7 @@ export default function EmployeeProfile() {
                                                         <button
                                                             type="button"
                                                             onClick={() => removeSalaryComponent(component.id)}
-                                                            className="p-2 rounded-lg text-red-500 hover:bg-red-500/10 transition"
+                                                            className="p-2 rounded-[6px] text-red-500 hover:bg-red-500/10 transition"
                                                         >
                                                             <Trash2 size={18} />
                                                         </button>
@@ -2537,13 +2531,13 @@ export default function EmployeeProfile() {
                                                     onClick={() =>
                                                         setComponentPickerType(componentPickerType === 'EARNING' ? null : 'EARNING')
                                                     }
-                                                    className="w-full mt-4 py-3 rounded-xl border border-dashed border-green-500/40 text-green-500 font-bold hover:bg-green-500/10 transition"
+                                                    className="w-full mt-4 py-3 rounded-[6px] border border-dashed border-green-500/40 text-green-500 font-bold hover:bg-green-500/10 transition"
                                                 >
                                                     + Add Earnings Component
                                                 </button>
 
                                                 {componentPickerType === 'EARNING' && (
-                                                    <div className="absolute z-[9999] mt-2 w-full max-h-64 overflow-y-auto rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-brand-950 shadow-2xl p-3 space-y-2">
+                                                    <div className="absolute z-[9999] mt-2 w-full max-h-64 overflow-y-auto rounded-[6px] border border-gray-200 dark:border-white/10 bg-white dark:bg-brand-950 shadow-2xl p-3 space-y-2">
                                                         {salaryComponents
                                                             .filter((component: any) => component.type === 'EARNING')
                                                             .filter((component: any) =>
@@ -2557,7 +2551,7 @@ export default function EmployeeProfile() {
                                                                         toggleSalaryComponent(component);
                                                                         setComponentPickerType(null);
                                                                     }}
-                                                                    className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 text-left"
+                                                                    className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-[6px] hover:bg-gray-100 dark:hover:bg-white/5 text-left"
                                                                 >
                                                                     <span className="font-bold text-gray-800 dark:text-white">
                                                                         {component.name}
@@ -2584,8 +2578,8 @@ export default function EmployeeProfile() {
                                     </div>
                                 </div>
 
-                                <div className="rounded-2xl border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-5">
-                                    <h4 className="text-lg font-bold text-red-500 mb-4">
+                                <div className="rounded-[6px] border border-gray-100 dark:border-white/10 bg-[#F8FAFC] dark:bg-white/5 p-5">
+                                    <h4 className="text-[15.5px] font-bold text-red-500 mb-4">
                                         Deductions
                                     </h4>
 
@@ -2616,7 +2610,7 @@ export default function EmployeeProfile() {
                                                         <button
                                                             type="button"
                                                             onClick={() => removeSalaryComponent(component.id)}
-                                                            className="p-2 rounded-lg text-red-500 hover:bg-red-500/10 transition"
+                                                            className="p-2 rounded-[6px] text-red-500 hover:bg-red-500/10 transition"
                                                         >
                                                             <Trash2 size={18} />
                                                         </button>
@@ -2632,13 +2626,13 @@ export default function EmployeeProfile() {
                                                     onClick={() =>
                                                         setComponentPickerType(componentPickerType === 'DEDUCTION' ? null : 'DEDUCTION')
                                                     }
-                                                    className="w-full mt-4 py-3 rounded-xl border border-dashed border-red-500/40 text-red-500 font-bold hover:bg-red-500/10 transition"
+                                                    className="w-full mt-4 py-3 rounded-[6px] border border-dashed border-red-500/40 text-red-500 font-bold hover:bg-red-500/10 transition"
                                                 >
                                                     + Add Deduction Component
                                                 </button>
 
                                                 {componentPickerType === 'DEDUCTION' && (
-                                                    <div className="absolute z-[9999] mt-2 w-full max-h-64 overflow-y-auto rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-brand-950 shadow-2xl p-3 space-y-2">
+                                                    <div className="absolute z-[9999] mt-2 w-full max-h-64 overflow-y-auto rounded-[6px] border border-gray-200 dark:border-white/10 bg-white dark:bg-brand-950 shadow-2xl p-3 space-y-2">
                                                         {salaryComponents
                                                             .filter((component: any) => component.type === 'DEDUCTION')
                                                             .filter((component: any) =>
@@ -2652,7 +2646,7 @@ export default function EmployeeProfile() {
                                                                         toggleSalaryComponent(component);
                                                                         setComponentPickerType(null);
                                                                     }}
-                                                                    className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 text-left"
+                                                                    className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-[6px] hover:bg-gray-100 dark:hover:bg-white/5 text-left"
                                                                 >
                                                                     <span className="font-bold text-gray-800 dark:text-white">
                                                                         {component.name}
@@ -2688,11 +2682,11 @@ export default function EmployeeProfile() {
                         </div>
                     )}
                     {activeTab === 'team' && (
-                        <div className="bg-white dark:bg-brand-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-white/5 animate-fade-in-up space-y-6">
+                        <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-6 shadow-sm border border-[#E2E6ED] dark:border-gray-800 animate-fade-in-up space-y-6">
                             {/* Team & Manager Details */}
                             <div>
-                                <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-gray-800 dark:text-white">
-                                    <Briefcase className="text-green-500" size={20} /> Team & Manager Details
+                                <h3 className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white flex items-center gap-2 mb-[20px]">
+                                    <Briefcase size={16} className="text-[#2C4FD6]" /> Team & Manager Details
                                 </h3>
                                 {employee.teamMembers && employee.teamMembers.length > 0 ? (
                                     <div className="space-y-4">
@@ -2700,26 +2694,26 @@ export default function EmployeeProfile() {
                                             const team = membership.team;
                                             const teamManager = team?.manager;
                                             return (
-                                                <div key={membership.id} className="bg-gray-55/50 dark:bg-white/5 p-4 rounded-xl border border-gray-100 dark:border-white/10 space-y-4">
+                                                <div key={membership.id} className="bg-[#F8FAFC] dark:bg-white/5 p-4 rounded-[6px] border border-[#E2E6ED] dark:border-white/10 space-y-4">
                                                     <div className="space-y-1">
-                                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Team Name</label>
-                                                        <p className="font-bold text-brand-600 dark:text-brand-400 text-lg">{team?.name || 'N/A'}</p>
-                                                        {team?.description && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{team.description}</p>}
+                                                        <label className="text-[10.5px] font-semibold text-[#9AA3B1] uppercase tracking-[.06em]">Team Name</label>
+                                                        <p className="font-semibold text-[#2C4FD6] dark:text-blue-400 text-[14px]">{team?.name || 'N/A'}</p>
+                                                        {team?.description && <p className="text-[11px] text-[#5B6472] dark:text-gray-400 mt-1">{team.description}</p>}
                                                     </div>
 
                                                     {teamManager ? (
-                                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-gray-200/50 dark:border-white/10 pt-3">
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 border-t border-gray-200/50 dark:border-white/10 pt-3">
                                                             <div className="space-y-1">
-                                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Team Manager Name</label>
-                                                                <p className="font-semibold text-gray-800 dark:text-gray-200 text-sm">{teamManager.name}</p>
+                                                                <label className="text-[10.5px] font-semibold text-[#9AA3B1] uppercase tracking-[.06em]">Team Manager Name</label>
+                                                                <p className="font-semibold text-[#12151C] dark:text-gray-200 text-[12.5px]">{teamManager.name}</p>
                                                             </div>
                                                             <div className="space-y-1">
-                                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Team Manager Email</label>
-                                                                <p className="font-semibold text-gray-800 dark:text-gray-200 text-sm break-all">{teamManager.email}</p>
+                                                                <label className="text-[10.5px] font-semibold text-[#9AA3B1] uppercase tracking-[.06em]">Team Manager Email</label>
+                                                                <p className="font-semibold text-[#12151C] dark:text-gray-200 text-[12.5px] break-all">{teamManager.email}</p>
                                                             </div>
                                                             <div className="space-y-1">
-                                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Team Manager Phone</label>
-                                                                <p className="font-semibold text-gray-800 dark:text-gray-200 text-sm">{teamManager.employeeProfile?.phone || 'N/A'}</p>
+                                                                <label className="text-[10.5px] font-semibold text-[#9AA3B1] uppercase tracking-[.06em]">Team Manager Phone</label>
+                                                                <p className="font-semibold text-[#12151C] dark:text-gray-200 text-[12.5px]">{teamManager.employeeProfile?.phone || 'N/A'}</p>
                                                             </div>
                                                         </div>
                                                     ) : (
@@ -2730,7 +2724,7 @@ export default function EmployeeProfile() {
                                         })}
                                     </div>
                                 ) : (
-                                    <p className="text-gray-500 dark:text-gray-400 italic bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-gray-100 dark:border-white/10">No Team Assigned</p>
+                                    <p className="text-gray-500 dark:text-gray-400 italic bg-[#F8FAFC] dark:bg-white/5 p-4 rounded-[6px] border border-[#E2E6ED] dark:border-white/10 text-xs">No Team Assigned</p>
                                 )}
                             </div>
                         </div>
@@ -2739,68 +2733,8 @@ export default function EmployeeProfile() {
 
                 {/* Sidebar / Quick Actions & Profile Completion */}
                 <div className="space-y-6">
-                    {/* Profile Completion Card */}
-                    {(() => {
-                        const profileCompletion = calculateProfileCompletion(employee);
-                        const completionPercentage = profileCompletion.percentage;
-                        const missingItems = profileCompletion.missingItems;
-
-                        return (
-                            <div className="bg-white dark:bg-brand-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-white/5 transition-all">
-                                <div className="flex items-center justify-between mb-3">
-                                    <h4 className="font-bold text-gray-800 dark:text-white text-base">Profile completion</h4>
-                                    <span className={`text-base font-bold tracking-tight ${
-                                        completionPercentage === 100
-                                            ? 'text-emerald-500 dark:text-emerald-400'
-                                            : 'text-amber-500 dark:text-amber-400'
-                                    }`}>
-                                        {completionPercentage}%
-                                    </span>
-                                </div>
-
-                                {/* Progress Bar */}
-                                <div className="w-full bg-gray-100 dark:bg-white/10 h-2 rounded-full overflow-hidden mb-4">
-                                    <div
-                                        className={`h-full rounded-full transition-all duration-500 ease-out ${
-                                            completionPercentage === 100
-                                                ? 'bg-emerald-500'
-                                                : 'bg-amber-400'
-                                        }`}
-                                        style={{ width: `${completionPercentage}%` }}
-                                    />
-                                </div>
-
-                                {/* Missing fields or completed message */}
-                                {missingItems.length > 0 ? (
-                                    <div className="space-y-2">
-                                        <p className="text-[11px] font-black uppercase tracking-wider text-amber-500 dark:text-amber-400">
-                                            MISSING
-                                        </p>
-                                        <ul className="space-y-2">
-                                            {missingItems.map((item, idx) => (
-                                                <li
-                                                    key={idx}
-                                                    onClick={() => setActiveTab(item.tabKey)}
-                                                    className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 font-medium flex items-start gap-2.5 cursor-pointer hover:text-brand-600 dark:hover:text-brand-400 transition-colors group"
-                                                >
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 dark:bg-amber-400 mt-1.5 shrink-0 group-hover:scale-125 transition-transform" />
-                                                    <span>{item.label}</span>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-xs sm:text-sm font-semibold pt-1">
-                                        <CheckCircle2 size={16} className="shrink-0" />
-                                        <span>Profile 100% complete</span>
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })()}
-
-                    <div className="bg-white dark:bg-brand-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-white/5">
-                        <h4 className="font-bold text-gray-800 dark:text-white mb-4">Quick Actions</h4>
+                    <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-6 shadow-sm border border-[#E2E6ED] dark:border-gray-800">
+                        <h3 className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white mb-[20px]">Quick Actions</h3>
                         <div className="space-y-3">
                             <button
                                 onClick={() => {
@@ -2814,15 +2748,17 @@ export default function EmployeeProfile() {
 
                                     setShowPayslip(true);
                                 }}
-                                className="w-full py-2.5 px-4 bg-brand-50 dark:bg-white/5 text-brand-700 dark:text-brand-300 rounded-xl text-sm font-medium hover:bg-brand-700 hover:text-white transition-colors text-left flex items-center gap-3"
+                                className="w-full flex items-center gap-2.5 px-4 py-2.5 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-[13px] font-medium text-[#12151C] dark:text-white hover:bg-[#F7F8FA] dark:hover:bg-gray-800 transition-all shadow-sm cursor-pointer"
                             >
-                                <FileText size={16} /> Generate Payslip
+                                <FileText size={15} className="text-[#2C4FD6]" />
+                                <span>Generate Payslip</span>
                             </button>
                             <button
                                 onClick={() => setShowIDCard(true)}
-                                className="w-full py-2.5 px-4 bg-brand-50 dark:bg-white/5 text-brand-700 dark:text-brand-300 rounded-xl text-sm font-medium hover:bg-brand-700 hover:text-white transition-colors text-left flex items-center gap-3"
+                                className="w-full flex items-center gap-2.5 px-4 py-2.5 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-[13px] font-medium text-[#12151C] dark:text-white hover:bg-[#F7F8FA] dark:hover:bg-gray-800 transition-all shadow-sm cursor-pointer"
                             >
-                                <User size={16} /> ID Card Preview
+                                <CreditCard size={15} className="text-[#2C4FD6]" />
+                                <span>ID Card Preview</span>
                             </button>
                         </div>
                     </div>
@@ -3194,7 +3130,7 @@ export default function EmployeeProfile() {
                             <X size={24} />
                         </button>
 
-                        <div id="id-card-container" className="w-[320px] h-[540px] bg-white rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden relative flex flex-col animate-scale-in">
+                        <div id="id-card-container" className="w-full max-w-[320px] h-[540px] bg-white rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden relative flex flex-col animate-scale-in mx-auto">
                             <div
                                 className="absolute top-0 inset-x-0 h-48 rounded-b-[50px] z-0"
                                 style={{ background: 'linear-gradient(to bottom right, #5b21b6, #7c3aed)' }}

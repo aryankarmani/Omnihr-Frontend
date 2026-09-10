@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
-import { Calendar, Clock, MapPin, AlertCircle, CheckCircle, Coffee, ChevronLeft, ChevronRight, Loader2, X } from 'lucide-react';
+import { Calendar, Clock, MapPin, AlertCircle, CheckCircle, ChevronLeft, ChevronRight, Loader2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { createPortal } from 'react-dom';
@@ -19,7 +19,7 @@ interface DailyLog {
 export default function Attendance() {
     const [currentTime, setCurrentTime] = useState(new Date());
     const [isPunchedIn, setIsPunchedIn] = useState(false);
-    const [punchInTime, setPunchInTime] = useState<Date | null>(null);
+    const [_punchInTime, setPunchInTime] = useState<Date | null>(null);
     const [selectedMonth, setSelectedMonth] = useState(new Date());
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
@@ -275,32 +275,7 @@ export default function Attendance() {
         }
     };
 
-    const getStatusColor = (status: string) => {
-        if (status.startsWith('Leave (Pending)')) {
-            return 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 border border-dashed border-amber-300 dark:border-amber-500/30 font-semibold';
-        }
-        if (status.startsWith('Leave (Rejected)')) {
-            return 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 border border-dashed border-rose-300 dark:border-rose-500/30 font-semibold hover:scale-105 active:scale-95 transition-all duration-150 cursor-pointer';
-        }
-        if (status.startsWith('Leave')) {
-            return 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 font-semibold';
-        }
-        if (status.startsWith('Regularization (Pending)')) {
-            return 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 border border-dashed border-amber-300 dark:border-amber-500/30 font-semibold';
-        }
-        if (status.startsWith('Regularization (Rejected)')) {
-            return 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 border border-dashed border-rose-300 dark:border-rose-500/30 font-semibold hover:scale-105 active:scale-95 transition-all duration-150 cursor-pointer';
-        }
-        switch (status) {
-            case 'Present': return 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300';
-            case 'Absent': return 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300';
-            case 'Late': return 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300';
-            case 'Holiday': return 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300';
-            case 'Weekend': return 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400';
-            case 'Pending': return 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 animate-pulse font-semibold';
-            default: return 'bg-gray-100 text-gray-700';
-        }
-    };
+
 
     // Calendar Generation Logic
     const generateCalendarDays = () => {
@@ -315,7 +290,7 @@ export default function Attendance() {
 
         // Empty slots for previous month
         for (let i = 0; i < startingDayOfWeek; i++) {
-            days.push(<div key={`empty-${i}`} className="h-24 bg-gray-50/50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-xl"></div>);
+            days.push(<div key={`empty-${i}`} className="aspect-square bg-transparent rounded-[6px]"></div>);
         }
 
         const todayMidnight = new Date();
@@ -328,11 +303,7 @@ export default function Attendance() {
             const holiday = holidays.find(h => h.date.split('T')[0] === dateStr);
 
             const currentLoopDate = new Date(year, month, day);
-            const isWeekend = currentLoopDate.getDay() === 0 || currentLoopDate.getDay() === 6;
             const isBeforeJoining = joiningDate && currentLoopDate < joiningDate;
-
-            // Precise future date checking (tomorrow or later)
-            const isFuture = currentLoopDate > todayMidnight;
 
             // Find matching leave (APPROVED or PENDING)
             const leave = leaveHistory.find(l => {
@@ -341,68 +312,37 @@ export default function Attendance() {
                 return dateStr >= start && dateStr <= end;
             });
 
-            // Default logic if no log exists
-            let displayStatus: AttendanceStatus = log ? log.status : holiday ? 'Holiday' : isWeekend ? 'Weekend' : isBeforeJoining ? 'Weekend' : isFuture ? 'Weekend' : 'Absent';
-
             // Check for regularization status
             const request = regularizationRequests.find(r => r.date === dateStr);
             const hasPendingRequest = request && request.status === 'PENDING';
             const hasRejectedRequest = request && request.status === 'REJECTED';
 
-            if (hasPendingRequest) {
-                displayStatus = 'Pending';
-            }
 
-            let statusLabel: string = isBeforeJoining ? '-' : holiday ? 'Holiday' : (isFuture && !isWeekend) ? '-' : displayStatus;
 
-            if (!isBeforeJoining && !holiday) {
-                if (hasPendingRequest) {
-                    statusLabel = 'Regularization (Pending)';
-                } else if (hasRejectedRequest) {
-                    statusLabel = 'Regularization (Rejected)';
-                } else if ((displayStatus === 'Absent' || isFuture) && leave) {
-                    if (leave.status === 'APPROVED') {
-                        statusLabel = 'Leave (Approved)';
-                    } else if (leave.status === 'PENDING') {
-                        statusLabel = 'Leave (Pending)';
-                    } else if (leave.status === 'REJECTED') {
-                        statusLabel = 'Leave (Rejected)';
-                    }
-                }
-            }
-
-            const isToday = day === new Date().getDate() && month === new Date().getMonth() && year === new Date().getFullYear();
-
-            let containerBg = 'bg-white dark:bg-brand-800';
-            let borderStyle = 'border-gray-100 dark:border-white/10';
+            // Color rules matching Reference Image 2 100%:
+            // Present: soft green tile #E4F5EC, green Mono day number #1F8A5A
+            // Absent: soft red tile #FBE7E7, red Mono day number #C13A3A
+            // Approved Leave: soft blue tile #E8ECFC, blue Mono day number #2C4FD6
+            // Weekend / Off / No data: transparent/white cell, gray Mono day number #9AA3B1
+            let containerBg = 'bg-transparent';
+            let textColor = 'text-[#9AA3B1]';
 
             if (holiday) {
                 containerBg = 'bg-purple-50 dark:bg-purple-900/20';
-                borderStyle = 'border-purple-200';
+                textColor = 'text-purple-700';
+            } else if (!isBeforeJoining && log && (log.status === 'Present' || log.status === 'Late' || log.status === 'Half Day')) {
+                containerBg = 'bg-[#E4F5EC] dark:bg-green-950/30';
+                textColor = 'text-[#1F8A5A] dark:text-green-400';
+            } else if (!isBeforeJoining && log && log.status === 'Absent') {
+                containerBg = 'bg-[#FBE7E7] dark:bg-red-950/30';
+                textColor = 'text-[#C13A3A] dark:text-red-400';
+            } else if (!isBeforeJoining && leave && leave.status === 'APPROVED') {
+                containerBg = 'bg-[#E8ECFC] dark:bg-blue-950/30';
+                textColor = 'text-[#2C4FD6] dark:text-blue-400';
             } else if (!isBeforeJoining && hasPendingRequest) {
-                containerBg = 'bg-amber-50/30 dark:bg-amber-950/5';
-                borderStyle = 'border-amber-200/80 dark:border-amber-500/20 border-dashed';
-            } else if (!isBeforeJoining && hasRejectedRequest) {
-                containerBg = 'bg-rose-50/30 dark:bg-rose-950/5';
-                borderStyle = 'border-rose-200/80 dark:border-rose-500/20 border-dashed';
-            } else if (!isBeforeJoining && (displayStatus === 'Absent' || isFuture) && leave) {
-                if (leave.status === 'APPROVED') {
-                    containerBg = 'bg-blue-50/50 dark:bg-blue-950/10';
-                    borderStyle = 'border-blue-200 dark:border-blue-500/20';
-                } else if (leave.status === 'PENDING') {
-                    containerBg = 'bg-amber-50/30 dark:bg-amber-950/5';
-                    borderStyle = 'border-amber-200/80 dark:border-amber-500/20 border-dashed';
-                } else if (leave.status === 'REJECTED') {
-                    containerBg = 'bg-rose-50/30 dark:bg-rose-950/5';
-                    borderStyle = 'border-rose-200/80 dark:border-rose-500/20 border-dashed';
-                }
+                containerBg = 'bg-amber-50/50 dark:bg-amber-950/20';
+                textColor = 'text-amber-700';
             }
-
-            const targetMidnight = new Date(currentLoopDate);
-            targetMidnight.setHours(23, 59, 59, 999);
-            const diffTime = todayMidnight.getTime() - targetMidnight.getTime();
-            const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-            const isTooOld = diffDays > (attendancePolicy?.regularizationDays ?? 3);
 
             days.push(
                 <div
@@ -414,57 +354,9 @@ export default function Attendance() {
                             setRejectedLeaveToShow(leave);
                         }
                     }}
-                    className={`h-24 p-2 rounded-xl border ${isToday ? 'border-brand-500 ring-1 ring-brand-500' : borderStyle} ${containerBg} hover:shadow-md transition-shadow relative group cursor-pointer`}
+                    className={`cal-day present aspect-square rounded-[6px] ${containerBg} flex items-center justify-center text-center transition-all relative group cursor-pointer`}
                 >
-                    <div className="flex justify-between items-start">
-                        <span className={`font-semibold text-sm ${isToday ? 'text-brand-600 dark:text-brand-400' : 'text-gray-700 dark:text-gray-300'}`}>{day}</span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${holiday ? 'bg-purple-100 text-purple-700' : getStatusColor(isBeforeJoining || (isFuture && !leave && !holiday) ? 'Weekend' : statusLabel)}`}>
-                            {statusLabel}
-                        </span>
-                    </div>
-
-                    {holiday && (
-                        <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-1 rounded truncate w-full block text-center mt-1 font-bold shadow-sm">
-                            {holiday.name}
-                        </span>
-                    )}
-
-                    {!holiday && leave && !isBeforeJoining && (displayStatus === 'Absent' || isFuture) && (
-                        <span className={`text-[10px] px-1.5 py-1 rounded truncate w-full block text-center mt-1 font-bold shadow-sm ${leave.status === 'APPROVED'
-                            ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
-                            : leave.status === 'PENDING'
-                                ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
-                                : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300'
-                            }`}>
-                            {leave.leaveType?.name || 'Leave'}
-                        </span>
-                    )}
-
-
-
-                    {log && displayStatus !== 'Weekend' && log.inTime && (
-                        <div className="mt-2 space-y-1">
-                            <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
-                                <Clock size={10} /> {new Date(log.inTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
-                            </div>
-                            <div className="flex items-center gap-1 text-xs text-red-500 dark:text-red-400">
-                                <Clock size={10} /> {log.outTime ? new Date(log.outTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : '--:--'}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Add Regularize Button for Absent/Late/Missing Punch (strictly past 3 days and not future/today) */}
-                    {!isToday && !isFuture && !isTooOld && !hasPendingRequest && !hasRejectedRequest && !leave && (displayStatus === 'Absent' || displayStatus === 'Late') && (
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setRegularizeDate(dateStr);
-                            }}
-                            className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 text-[10px] bg-brand-50 text-brand-600 px-2 py-1 rounded border border-brand-200 hover:bg-brand-100 transition-all font-semibold"
-                        >
-                            Regularize
-                        </button>
-                    )}
+                    <span className={`font-mono font-bold text-[12.5px] ${textColor}`}>{day}</span>
                 </div>
             );
         }
@@ -472,227 +364,159 @@ export default function Attendance() {
         return days;
     };
 
-    const getFirstMissedPunch = () => {
-        if (loading) return null;
-
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const lookbackDays = attendancePolicy?.regularizationDays ?? 3;
-
-        for (let i = 1; i <= lookbackDays; i++) {
-            const checkDate = new Date(today);
-            checkDate.setDate(today.getDate() - i);
-            checkDate.setHours(0, 0, 0, 0);
-
-            const year = checkDate.getFullYear();
-            const month = checkDate.getMonth() + 1;
-            const day = checkDate.getDate();
-            const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-
-            const isWeekend = checkDate.getDay() === 0 || checkDate.getDay() === 6;
-            if (isWeekend) continue;
-
-            if (joiningDate && checkDate < joiningDate) continue;
-
-            const isHoliday = holidays.some(h => h.date.split('T')[0] === dateStr);
-            if (isHoliday) continue;
-
-            const log = attendanceHistory.find(d => d.date === dateStr);
-            const isAbsent = !log || log.status === 'Absent';
-            if (!isAbsent) continue;
-
-            const request = regularizationRequests.find(r => r.date === dateStr);
-            if (request) continue;
-
-            return dateStr;
-        }
-
-        return null;
-    };
-
-    const missedPunchDate = getFirstMissedPunch();
-
     return (
         <div className="animate-fade-in-up pb-8 relative">
-            <header className="mb-8">
-                <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">My Attendance</h2>
-                <p className="text-gray-500 dark:text-gray-400">Track your daily punches and regularization requests.</p>
+            <header className="mb-6">
+                <h2 className="text-2xl font-bold text-[#12151C] dark:text-white mb-1">My Attendance</h2>
+                <p className="page-sub text-[14px] text-[#5B6472] dark:text-gray-400 mb-[26px]">Track your daily punches and regularization requests.</p>
             </header>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-
-                {/* Punch Widget */}
-                <div className="bg-white dark:bg-brand-900 rounded-3xl p-8 shadow-sm border border-gray-100 dark:border-white/5 flex flex-col justify-center items-center text-center relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-brand-400 to-purple-500"></div>
-
-                    <p className="text-gray-500 dark:text-gray-400 font-medium mb-4">{currentTime.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                    <div className="text-5xl font-mono font-bold text-gray-800 dark:text-white mb-8 tracking-wider">
-                        {currentTime.toLocaleTimeString('en-US', { hour12: true })}
+            {/* Top Grid: Punch Card + 4 Stat Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.3fr_repeat(4,1fr)] gap-3 sm:gap-4 mb-6">
+                {/* Card 1: Punch Widget */}
+                <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 p-6 text-center shadow-sm flex flex-col justify-between items-center h-[340px]">
+                    <p className="text-[13px] text-[#5B6472] dark:text-gray-400 mb-[6px]">{currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                    <div className="clock-time text-[40px] text-[#12151C] dark:text-white font-mono font-bold leading-tight mb-[22px] flex flex-col items-center">
+                        <div>
+                            {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+                        </div>
+                        <div className="text-[32px] font-mono leading-none mt-1">
+                            {currentTime.getHours() >= 12 ? 'PM' : 'AM'}
+                        </div>
                     </div>
 
-                    {(() => {
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
-                        const isHolidayToday = holidays.some(h => {
-                            const hDate = new Date(h.date);
-                            hDate.setHours(0, 0, 0, 0);
-                            return hDate.getTime() === today.getTime();
-                        });
-
-                        const isOnLeaveToday = leaveHistory.some(l => {
-                            if (l.status !== 'APPROVED') return false;
-                            const start = new Date(l.startDate);
-                            start.setHours(0, 0, 0, 0);
-                            const end = new Date(l.endDate);
-                            end.setHours(23, 59, 59, 999);
-                            return today >= start && today <= end;
-                        });
-
-                        return (
-                            <div className="relative group">
-                                <div className={`absolute -inset-1 bg-gradient-to-r ${isHolidayToday ? 'from-purple-600 to-brand-600' : isOnLeaveToday ? 'from-rose-600 to-orange-600' : isPunchedIn ? 'from-red-600 to-orange-600' : 'from-green-600 to-emerald-600'} rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200`}></div>
-                                <button
-                                    onClick={handlePunch}
-                                    disabled={isHolidayToday || isOnLeaveToday || punchMutation.isPending}
-                                    className={`relative w-48 h-48 rounded-full border-4 flex flex-col items-center justify-center transition-all transform active:scale-95 shadow-xl disabled:opacity-80 disabled:cursor-not-allowed ${isHolidayToday
-                                        ? 'border-purple-500 bg-purple-50 dark:bg-purple-500/10 text-purple-600'
-                                        : isOnLeaveToday
-                                            ? 'border-rose-500 bg-rose-50 dark:bg-rose-500/10 text-rose-600'
-                                            : isPunchedIn
-                                                ? 'border-red-500 bg-red-50 dark:bg-red-500/10 text-red-600 hover:bg-red-100 dark:hover:bg-red-500/20'
-                                                : 'border-green-500 bg-green-50 dark:bg-green-500/10 text-green-600 hover:bg-green-100 dark:hover:bg-green-500/20'
-                                        }`}
-                                >
-                                    <div className="mb-2">
-                                        {isHolidayToday ? <Calendar size={48} /> : isOnLeaveToday ? <Calendar size={48} /> : isPunchedIn ? <Coffee size={48} /> : <MapPin size={48} />}
-                                    </div>
-                                    <span className="text-xl font-bold uppercase tracking-wider">
-                                        {isHolidayToday ? 'Holiday' : isOnLeaveToday ? 'On Leave' : isPunchedIn ? 'Punch Out' : 'Punch In'}
-                                    </span>
-                                    <span className="text-xs mt-1 font-medium opacity-70">
-                                        {isHolidayToday ? 'Relax & Enjoy!' : isOnLeaveToday ? 'Enjoy your leave!' : isPunchedIn ? 'Enjoy your evening!' : 'Delhi Office (GPS)'}
-                                    </span>
-                                </button>
-                            </div>
-                        );
-                    })()}
-
-                    {isPunchedIn && punchInTime && (
-                        <div className="mt-6 p-3 bg-brand-50 dark:bg-white/5 rounded-xl flex items-center gap-2 text-sm text-brand-700 dark:text-brand-300">
-                            <Clock size={16} />
-                            <span>In Time: <strong>{punchInTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}</strong></span>
-                        </div>
-                    )}
+                    <button
+                        onClick={handlePunch}
+                        disabled={punchMutation.isPending}
+                        className={`w-36 h-36 rounded-full border-2 flex flex-col items-center justify-center transition-all transform active:scale-95 shadow-sm ${
+                            isPunchedIn
+                                ? 'border-[#C13A3A] bg-[#FBE7E7] text-[#C13A3A]'
+                                : 'border-[#1F8A5A] bg-[#E4F5EC] text-[#1F8A5A]'
+                        }`}
+                    >
+                        <MapPin size={22} className="mb-1.5" />
+                        <span className="lbl text-[13px] font-extrabold uppercase tracking-wider leading-none">
+                            {isPunchedIn ? 'PUNCH OUT' : 'PUNCH IN'}
+                        </span>
+                        <span className="loc text-[10.5px] text-[#5B6472] dark:text-gray-400">
+                            Delhi Office (GPS)
+                        </span>
+                    </button>
                 </div>
 
-                {/* Quick Stats */}
-                <div className="lg:col-span-2 grid grid-cols-2 lg:grid-cols-4 gap-4 items-start">
-                    <div className="bg-white dark:bg-brand-900 p-6 h-80 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm">
-                        <div className="w-10 h-10 bg-green-100 text-green-600 rounded-lg flex items-center justify-center mb-4">
-                            <CheckCircle />
-                        </div>
-                        <h4 className="text-2xl font-bold text-gray-800 dark:text-white">{stats.present}</h4>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase mt-1">Present Days</p>
+                {/* Card 2: Present Days */}
+                <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 px-[18px] py-[16px] shadow-sm flex flex-col justify-start h-[340px]">
+                    <div className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 flex items-center justify-center text-[#5B6472] dark:text-gray-300 mb-4">
+                        <CheckCircle size={16} />
                     </div>
-                    <div className="bg-white dark:bg-brand-900 p-6 h-80 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm">
-                        <div className="w-10 h-10 bg-red-100 text-red-600 rounded-lg flex items-center justify-center mb-4">
-                            <AlertCircle />
-                        </div>
-                        <h4 className="text-2xl font-bold text-gray-800 dark:text-white">{stats.absent}</h4>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase mt-1">Absents</p>
+                    <div>
+                        <div className="num text-[26px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight leading-none">{stats.present}</div>
+                        <p className="text-[12px] text-[#9AA3B1] mt-[2px]">Present Days</p>
                     </div>
-                    <div className="bg-white dark:bg-brand-900 p-6 h-80 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm">
-                        <div className="w-10 h-10 bg-orange-100 text-orange-600 rounded-lg flex items-center justify-center mb-4">
-                            <Clock />
-                        </div>
-                        <h4 className="text-2xl font-bold text-gray-800 dark:text-white">{stats.late}</h4>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase mt-1">Late Marks</p>
+                </div>
+
+                {/* Card 3: Absents */}
+                <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 px-[18px] py-[16px] shadow-sm flex flex-col justify-start h-[340px]">
+                    <div className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 flex items-center justify-center text-[#5B6472] dark:text-gray-300 mb-4">
+                        <AlertCircle size={16} />
                     </div>
-                    <div className="bg-white dark:bg-brand-900 p-6 h-80 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm">
-                        <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center mb-4">
-                            <Coffee />
-                        </div>
-                        <h4 className="text-2xl font-bold text-gray-800 dark:text-white">
+                    <div>
+                        <div className="num text-[26px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight leading-none">{stats.absent}</div>
+                        <p className="text-[12px] text-[#9AA3B1] mt-[2px]">Absents</p>
+                    </div>
+                </div>
+
+                {/* Card 4: Late Marks */}
+                <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 px-[18px] py-[16px] shadow-sm flex flex-col justify-start h-[340px]">
+                    <div className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 flex items-center justify-center text-[#5B6472] dark:text-gray-300 mb-4">
+                        <Clock size={16} />
+                    </div>
+                    <div>
+                        <div className="num text-[26px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight leading-none">{stats.late}</div>
+                        <p className="text-[12px] text-[#9AA3B1] mt-[2px]">Late Marks</p>
+                    </div>
+                </div>
+
+                {/* Card 5: Holidays */}
+                <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 px-[18px] py-[16px] shadow-sm flex flex-col justify-start h-[340px]">
+                    <div className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 flex items-center justify-center text-[#5B6472] dark:text-gray-300 mb-4">
+                        <Calendar size={16} />
+                    </div>
+                    <div>
+                        <div className="num text-[26px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight leading-none">
                             {holidays.filter(h => {
                                 const hDate = new Date(h.date);
                                 return hDate.getMonth() === selectedMonth.getMonth() &&
                                     hDate.getFullYear() === selectedMonth.getFullYear();
                             }).length}
-                        </h4>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase mt-1">Holidays</p>
-                    </div>
-
-                    {/* Regularization Alert (Dynamic) */}
-                    {missedPunchDate && (
-                        <div className="col-span-2 lg:col-span-4 bg-orange-50 dark:bg-orange-950/20 border border-orange-150 dark:border-orange-500/20 rounded-2xl p-4 flex items-center justify-between shadow-sm animate-pulse">
-                            <div className="flex items-center gap-3">
-                                <AlertCircle className="text-orange-600 dark:text-orange-400" size={20} />
-                                <div>
-                                    <h5 className="font-bold text-orange-800 dark:text-orange-200 text-sm">Action Needed: Missed Punch</h5>
-                                    <p className="text-xs text-orange-600 dark:text-orange-300">You have a missed check-in on <strong>{(() => {
-                                        const [y, m, d] = missedPunchDate.split('-').map(Number);
-                                        return new Date(y, m - 1, d).toLocaleDateString([], { day: 'numeric', month: 'short' });
-                                    })()}</strong>. Correct this now.</p>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => setRegularizeDate(missedPunchDate)}
-                                className="px-4 py-2 bg-orange-600 hover:bg-orange-700 dark:bg-orange-500/20 text-white dark:text-orange-200 text-xs font-bold rounded-lg shadow-sm transition-all hover:scale-105"
-                            >
-                                Fix Now
-                            </button>
                         </div>
-                    )}
+                        <p className="text-[12px] text-[#9AA3B1] mt-[2px]">Holidays</p>
+                    </div>
                 </div>
             </div>
 
             {/* Monthly Calendar View */}
-            <div className="bg-white dark:bg-brand-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-white/5">
+            <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 p-6 shadow-sm mb-6">
                 <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-lg font-bold flex items-center gap-2">
-                        <Calendar size={20} className="text-brand-500" /> Monthly Log
+                    <h3 className="flex items-center gap-[9px] text-[14.5px] font-semibold text-[#12151C] dark:text-white">
+                        <Calendar size={16} className="text-[#9AA3B1]" /> Monthly Log
                     </h3>
-                    <div className="flex items-center gap-4 bg-gray-50 dark:bg-white/5 p-1 rounded-xl">
-                        <button onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() - 1, 1))} className="p-2 hover:bg-white dark:hover:bg-white/10 rounded-lg transition-colors">
-                            <ChevronLeft size={20} />
+                    <div className="flex items-center gap-[14px] text-[13.5px] font-semibold text-[#5B6472] dark:text-gray-300">
+                        <button onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() - 1, 1))} className="p-1 text-[#5B6472] hover:bg-[#EEF1F5] rounded-[6px] transition-colors">
+                            <ChevronLeft size={16} />
                         </button>
-                        <span className="font-bold w-32 text-center select-none">
+                        <span className="font-semibold text-[13.5px] text-[#12151C] dark:text-white font-mono-numbers select-none">
                             {selectedMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                         </span>
-                        <button onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 1))} className="p-2 hover:bg-white dark:hover:bg-white/10 rounded-lg transition-colors">
-                            <ChevronRight size={20} />
+                        <button onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 1))} className="p-1 text-[#5B6472] hover:bg-[#EEF1F5] rounded-[6px] transition-colors">
+                            <ChevronRight size={16} />
                         </button>
                     </div>
                 </div>
 
                 {/* Weekday Headers */}
-                <div className="grid grid-cols-7 gap-px mb-2 text-center">
-                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                        <div key={day} className="text-xs font-bold text-gray-400 uppercase py-2">
+                <div className="grid grid-cols-7 gap-1 sm:gap-3 md:gap-4 mb-4 text-center">
+                    {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map(day => (
+                        <div key={day} className="text-center text-[10.5px] font-semibold text-[#9AA3B1] uppercase tracking-[.05em] pb-[6px] truncate">
                             {day}
                         </div>
                     ))}
                 </div>
 
                 {/* Calendar Grid */}
-                <div className="grid grid-cols-7 gap-2 relative min-h-[400px]">
+                <div className="grid grid-cols-7 gap-1 sm:gap-3 md:gap-4 relative">
                     {loading && (
-                        <div className="absolute inset-0 bg-white/50 dark:bg-brand-900/50 backdrop-blur-sm z-10 flex items-center justify-center rounded-2xl">
-                            <Loader2 className="animate-spin text-brand-500" size={40} />
+                        <div className="absolute inset-0 bg-white/50 dark:bg-black/50 backdrop-blur-sm z-10 flex items-center justify-center rounded-[6px]">
+                            <Loader2 className="animate-spin text-[#2C4FD6]" size={32} />
                         </div>
                     )}
                     {generateCalendarDays()}
+                </div>
+
+                {/* Bottom Legend Footer */}
+                <div className="flex flex-wrap items-center gap-3 sm:gap-6 mt-6 pt-4 border-t border-[#E2E6ED] dark:border-gray-800 text-xs  text-[#5B6472] dark:text-gray-300">
+                    <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#1F8A5A]"></span> Present
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#C13A3A]"></span> Absent
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#2C4FD6]"></span> Approved leave
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#9AA3B1]"></span> Weekend / no data
+                    </div>
                 </div>
             </div>
 
             {/* Attendance Regularization Modal */}
             {regularizeDate && createPortal(
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white dark:bg-brand-900 rounded-[2.5rem] p-8 max-w-md w-full border border-gray-100 dark:border-white/10 shadow-2xl animate-scale-in">
+                    <div className="bg-white dark:bg-brand-900 rounded-[6px] p-5 sm:p-8 max-w-md w-full border border-gray-100 dark:border-white/10 shadow-2xl animate-scale-in">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-xl font-bold text-gray-800 dark:text-white">Attendance Correction</h3>
-                            <button type="button" onClick={() => setRegularizeDate(null)} className="p-1 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors">
+                            <button type="button" onClick={() => setRegularizeDate(null)} className="p-1 hover:bg-gray-100 dark:hover:bg-white/5 rounded-[6px] transition-colors">
                                 <X size={20} />
                             </button>
                         </div>
@@ -700,7 +524,7 @@ export default function Attendance() {
                         <form onSubmit={submitRegularization} className="space-y-4">
                             <div>
                                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Requested Date</label>
-                                <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl font-semibold text-sm">
+                                <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-[6px] font-semibold text-sm">
                                     {(() => {
                                         const [y, m, d] = regularizeDate.split('-').map(Number);
                                         const localDate = new Date(y, m - 1, d);
@@ -715,7 +539,7 @@ export default function Attendance() {
                                     value={reason}
                                     onChange={(e) => setReason(e.target.value)}
                                     required
-                                    className="w-full p-3 bg-gray-50 dark:bg-brand-800 border border-gray-200 dark:border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-sm font-semibold text-gray-800 dark:text-white cursor-pointer"
+                                    className="w-full p-3 bg-gray-50 dark:bg-brand-800 border border-gray-200 dark:border-white/10 rounded-[6px] outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-sm font-semibold text-gray-800 dark:text-white cursor-pointer"
                                 >
                                     <option value="" disabled className="bg-white dark:bg-brand-800 text-gray-900 dark:text-white">Select a reason...</option>
                                     <option value="Forgot to Punch In" className="bg-white dark:bg-brand-800 text-gray-900 dark:text-white">Forgot to Punch In</option>
@@ -735,7 +559,7 @@ export default function Attendance() {
                                         required
                                         placeholder="Briefly describe your reason..."
                                         rows={3}
-                                        className="w-full p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-sm font-semibold"
+                                        className="w-full p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-[6px] outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-sm font-semibold"
                                     />
                                 </div>
                             )}
@@ -750,7 +574,7 @@ export default function Attendance() {
                                             value={inInputText}
                                             onChange={(e) => setInInputText(e.target.value)}
                                             placeholder="09:00 AM"
-                                            className={`w-full pl-10 pr-3 py-2.5 bg-gray-50 dark:bg-white/5 border rounded-xl outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-sm font-semibold animate-none ${inInputText && !parse12hTo24h(inInputText)
+                                            className={`w-full pl-10 pr-3 py-2.5 bg-gray-50 dark:bg-white/5 border rounded-[6px] outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-sm font-semibold animate-none ${inInputText && !parse12hTo24h(inInputText)
                                                 ? 'border-rose-500/60 focus:ring-rose-500/30'
                                                 : 'border-gray-200 dark:border-white/10'
                                                 }`}
@@ -774,7 +598,7 @@ export default function Attendance() {
                                             value={outInputText}
                                             onChange={(e) => setOutInputText(e.target.value)}
                                             placeholder="06:00 PM"
-                                            className={`w-full pl-10 pr-3 py-2.5 bg-gray-50 dark:bg-white/5 border rounded-xl outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-sm font-semibold animate-none ${outInputText && !parse12hTo24h(outInputText)
+                                            className={`w-full pl-10 pr-3 py-2.5 bg-gray-50 dark:bg-white/5 border rounded-[6px] outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-sm font-semibold animate-none ${outInputText && !parse12hTo24h(outInputText)
                                                 ? 'border-rose-500/60 focus:ring-rose-500/30'
                                                 : 'border-gray-200 dark:border-white/10'
                                                 }`}
@@ -795,14 +619,14 @@ export default function Attendance() {
                                 <button
                                     type="button"
                                     onClick={() => setRegularizeDate(null)}
-                                    className="flex-1 py-3 px-6 bg-gray-150 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 font-bold rounded-2xl transition-all text-xs tracking-wider uppercase"
+                                    className="flex-1 py-3 px-6 bg-gray-150 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 font-bold rounded-[6px] transition-all text-xs tracking-wider uppercase"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={submittingRequest}
-                                    className="flex-1 py-3 px-6 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-2xl transition-all shadow-lg shadow-brand-500/25 text-xs tracking-wider uppercase flex items-center justify-center gap-2"
+                                    className="flex-1 py-3 px-6 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-[6px] transition-all shadow-lg shadow-brand-500/25 text-xs tracking-wider uppercase flex items-center justify-center gap-2"
                                 >
                                     {submittingRequest ? <Loader2 className="w-4.5 h-4.5 animate-spin" /> : 'Submit'}
                                 </button>
@@ -816,16 +640,16 @@ export default function Attendance() {
             {/* Rejected Request Detail Modal */}
             {rejectedRequestToShow && createPortal(
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white dark:bg-brand-900 rounded-[2.5rem] p-8 max-w-md w-full border border-gray-100 dark:border-white/10 shadow-2xl animate-scale-in relative overflow-hidden">
+                    <div className="bg-white dark:bg-brand-900 rounded-[6px] p-8 max-w-md w-full border border-gray-100 dark:border-white/10 shadow-2xl animate-scale-in relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-rose-500 to-orange-500"></div>
                         <div className="flex justify-between items-center mb-6">
                             <div className="flex items-center gap-2">
-                                <span className="p-2 bg-rose-50 dark:bg-rose-500/10 text-rose-500 rounded-xl">
+                                <span className="p-2 bg-rose-50 dark:bg-rose-500/10 text-rose-500 rounded-[6px]">
                                     <AlertCircle size={20} />
                                 </span>
                                 <h3 className="text-xl font-bold text-gray-800 dark:text-white">Correction Rejected</h3>
                             </div>
-                            <button type="button" onClick={() => setRejectedRequestToShow(null)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors">
+                            <button type="button" onClick={() => setRejectedRequestToShow(null)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/5 rounded-[6px] transition-colors">
                                 <X size={20} />
                             </button>
                         </div>
@@ -833,7 +657,7 @@ export default function Attendance() {
                         <div className="space-y-4 font-sans">
                             <div>
                                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Date Requested</label>
-                                <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl font-bold text-sm text-gray-700 dark:text-gray-200">
+                                <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-[6px] font-bold text-sm text-gray-700 dark:text-gray-200">
                                     {(() => {
                                         const [y, m, d] = rejectedRequestToShow.date.split('-').map(Number);
                                         const localDate = new Date(y, m - 1, d);
@@ -845,13 +669,13 @@ export default function Attendance() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Proposed In Time</label>
-                                    <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                                    <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-[6px] text-sm font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
                                         <Clock size={14} /> {formatTime12h(rejectedRequestToShow.proposedIn || rejectedRequestToShow.inTime)}
                                     </div>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Proposed Out Time</label>
-                                    <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm font-semibold text-rose-500 dark:text-rose-400 flex items-center gap-1.5">
+                                    <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-[6px] text-sm font-semibold text-rose-500 dark:text-rose-400 flex items-center gap-1.5">
                                         <Clock size={14} /> {formatTime12h(rejectedRequestToShow.proposedOut || rejectedRequestToShow.outTime)}
                                     </div>
                                 </div>
@@ -859,7 +683,7 @@ export default function Attendance() {
 
                             <div>
                                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Your Reason</label>
-                                <div className="p-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm text-gray-600 dark:text-gray-300 italic font-semibold leading-relaxed">
+                                <div className="p-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-[6px] text-sm text-gray-600 dark:text-gray-300 italic font-semibold leading-relaxed">
                                     <div className="max-h-[120px] overflow-y-auto custom-scrollbar break-words pr-2">
                                         "{rejectedRequestToShow.reason}"
                                     </div>
@@ -870,7 +694,7 @@ export default function Attendance() {
                                 <label className="block text-xs font-bold text-rose-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
                                     Manager's Rejection Reason
                                 </label>
-                                <div className="p-4 bg-rose-50/50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/20 rounded-2xl text-sm text-rose-700 dark:text-rose-300 font-bold leading-relaxed shadow-sm">
+                                <div className="p-4 bg-rose-50/50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/20 rounded-[6px] text-sm text-rose-700 dark:text-rose-300 font-bold leading-relaxed shadow-sm">
                                     <div className="max-h-[120px] overflow-y-auto custom-scrollbar break-words pr-2">
                                         {rejectedRequestToShow.approverComment || 'No comment provided.'}
                                     </div>
@@ -881,7 +705,7 @@ export default function Attendance() {
                                 <button
                                     type="button"
                                     onClick={() => setRejectedRequestToShow(null)}
-                                    className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-rose-500/20 text-sm tracking-wider uppercase cursor-pointer"
+                                    className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-bold rounded-[6px] transition-all shadow-lg shadow-rose-500/20 text-sm tracking-wider uppercase cursor-pointer"
                                 >
                                     Close
                                 </button>
@@ -894,16 +718,16 @@ export default function Attendance() {
 
             {rejectedLeaveToShow && createPortal(
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white dark:bg-brand-900 rounded-[2.5rem] p-8 max-w-md w-full border border-gray-100 dark:border-white/10 shadow-2xl animate-scale-in relative overflow-hidden">
+                    <div className="bg-white dark:bg-brand-900 rounded-[6px] p-8 max-w-md w-full border border-gray-100 dark:border-white/10 shadow-2xl animate-scale-in relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-rose-500 to-orange-500"></div>
                         <div className="flex justify-between items-center mb-6">
                             <div className="flex items-center gap-2">
-                                <span className="p-2 bg-rose-50 dark:bg-rose-500/10 text-rose-500 rounded-xl">
+                                <span className="p-2 bg-rose-50 dark:bg-rose-500/10 text-rose-500 rounded-[6px]">
                                     <AlertCircle size={20} />
                                 </span>
                                 <h3 className="text-xl font-bold text-gray-800 dark:text-white">Leave Rejected</h3>
                             </div>
-                            <button type="button" onClick={() => setRejectedLeaveToShow(null)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors">
+                            <button type="button" onClick={() => setRejectedLeaveToShow(null)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/5 rounded-[6px] transition-colors">
                                 <X size={20} />
                             </button>
                         </div>
@@ -912,13 +736,13 @@ export default function Attendance() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Leave Type</label>
-                                    <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl font-bold text-sm text-gray-700 dark:text-gray-200">
+                                    <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-[6px] font-bold text-sm text-gray-700 dark:text-gray-200">
                                         {rejectedLeaveToShow.leaveType?.name || rejectedLeaveToShow.leaveType?.code || 'Leave'}
                                     </div>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Dates</label>
-                                    <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl font-bold text-xs text-gray-700 dark:text-gray-200 leading-tight">
+                                    <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-[6px] font-bold text-xs text-gray-700 dark:text-gray-200 leading-tight">
                                         {new Date(rejectedLeaveToShow.startDate).toLocaleDateString()} - {new Date(rejectedLeaveToShow.endDate).toLocaleDateString()}
                                     </div>
                                 </div>
@@ -926,7 +750,7 @@ export default function Attendance() {
 
                             <div>
                                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Your Reason</label>
-                                <div className="p-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm text-gray-600 dark:text-gray-300 italic font-semibold leading-relaxed">
+                                <div className="p-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-[6px] text-sm text-gray-600 dark:text-gray-300 italic font-semibold leading-relaxed">
                                     <div className="max-h-[120px] overflow-y-auto custom-scrollbar break-words pr-2">
                                         "{rejectedLeaveToShow.reason}"
                                     </div>
@@ -937,7 +761,7 @@ export default function Attendance() {
                                 <label className="block text-xs font-bold text-rose-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
                                     Manager's Rejection Reason
                                 </label>
-                                <div className="p-4 bg-rose-50/50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/20 rounded-2xl text-sm text-rose-700 dark:text-rose-300 font-bold leading-relaxed shadow-sm">
+                                <div className="p-4 bg-rose-50/50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/20 rounded-[6px] text-sm text-rose-700 dark:text-rose-300 font-bold leading-relaxed shadow-sm">
                                     <div className="max-h-[120px] overflow-y-auto custom-scrollbar break-words pr-2">
                                         {rejectedLeaveToShow.rejectionReason || 'No comment provided.'}
                                     </div>
@@ -948,7 +772,7 @@ export default function Attendance() {
                                 <button
                                     type="button"
                                     onClick={() => setRejectedLeaveToShow(null)}
-                                    className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-rose-500/20 text-sm tracking-wider uppercase cursor-pointer"
+                                    className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-bold rounded-[6px] transition-all shadow-lg shadow-rose-500/20 text-sm tracking-wider uppercase cursor-pointer"
                                 >
                                     Close
                                 </button>

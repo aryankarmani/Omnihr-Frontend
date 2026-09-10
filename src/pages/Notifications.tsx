@@ -110,10 +110,10 @@ export default function Notifications() {
                             <span>Delete ({selectedIds.length})</span>
                         </button>
                     )}
-                    <button 
-                        onClick={markAllRead}
-                        className="flex items-center gap-2 px-4 py-2 bg-brand-500/10 hover:bg-brand-500 text-brand-600 dark:text-brand-400 hover:text-white rounded-xl font-bold transition-all border border-brand-500/20 shadow-sm"
-                    >
+                        <button 
+                            onClick={markAllRead}
+                            className="flex items-center gap-2 px-4 py-2 bg-brand-500/10 hover:bg-brand-500 text-brand-600 dark:text-brand-400 hover:text-white rounded-xl font-bold transition-all border border-brand-500/20"
+                        >
                         <Check size={16} />
                         <span>Mark all read</span>
                     </button>
@@ -121,104 +121,106 @@ export default function Notifications() {
             </div>
 
             {/* Filters & Search */}
-            <div className="bg-white dark:bg-brand-900 p-3 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 mb-6 flex flex-col md:flex-row gap-4 items-center">
+            <div className="bg-white dark:bg-[#12151C] p-3.5 rounded-[11px] border border-[#E2E6ED] dark:border-gray-800 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
                 <div className="flex items-center gap-4 w-full md:w-auto">
-                    <div className="flex items-center gap-2 px-3">
+                    <div className="flex items-center gap-2 px-2">
                         <input 
                             type="checkbox" 
                             checked={selectedIds.length > 0 && selectedIds.length === filteredNotifications.length}
                             onChange={toggleSelectAll}
-                            className="w-5 h-5 rounded-lg border-gray-300 text-brand-500 focus:ring-brand-500 cursor-pointer"
+                            className="w-4 h-4 rounded border-gray-300 text-[#2C4FD6] focus:ring-[#2C4FD6] cursor-pointer"
                         />
-                        <span className="text-sm font-bold text-gray-500 dark:text-gray-400">Select All</span>
+                        <span className="text-xs font-semibold text-[#5B6472] dark:text-gray-400">Select All</span>
                     </div>
-                    <div className="h-6 w-px bg-gray-100 dark:bg-white/10 hidden md:block"></div>
-                    <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-xl">
+                    <div className="h-5 w-px bg-[#E2E6ED] dark:bg-gray-800 hidden md:block"></div>
+                    <div className="flex bg-[#F7F8FA] dark:bg-white/5 p-1 rounded-[8px] border border-[#E2E6ED] dark:border-gray-800">
                         <button 
                             onClick={() => setActiveTab('all')}
-                            className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'all' ? 'bg-white dark:bg-brand-500 text-brand-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                            className={`px-3 py-1 rounded-[6px] text-xs font-semibold transition-all cursor-pointer ${activeTab === 'all' ? 'bg-white dark:bg-[#12151C] text-[#2C4FD6] dark:text-white' : 'text-[#717E95] hover:text-[#12151C]'}`}
                         >
                             All
                         </button>
                         <button 
                             onClick={() => setActiveTab('unread')}
-                            className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'unread' ? 'bg-white dark:bg-brand-500 text-brand-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                            className={`px-3 py-1 rounded-[6px] text-xs font-semibold transition-all cursor-pointer ${activeTab === 'unread' ? 'bg-white dark:bg-[#12151C] text-[#2C4FD6] dark:text-white' : 'text-[#717E95] hover:text-[#12151C]'}`}
                         >
                             Unread
                         </button>
                     </div>
                 </div>
-                <div className="relative flex-1 w-full">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <input 
-                        type="text" 
-                        placeholder="Search through alerts..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-12 pr-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-gray-800 dark:text-white font-medium"
-                    />
+                <div className="relative w-full max-w-[340px] group">
+                    <div className="relative flex items-center search">
+                        <Search size={15} className="absolute left-3 text-[#9AA3B1] group-focus-within:text-[#2C4FD6] transition-colors" />
+                        <input 
+                            type="text" 
+                            placeholder="Search through alerts..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-9 pr-3 py-[9px] h-[36px] bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[7px] outline-none focus:border-[#2C4FD6] transition-all text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
+                        />
+                    </div>
                 </div>
             </div>
 
             {/* Notifications List */}
             {loading ? (
-                <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-brand-900 rounded-3xl border border-gray-100 dark:border-white/5">
-                    <Loader2 className="w-10 h-10 text-brand-500 animate-spin mb-4" />
-                    <p className="text-gray-500 dark:text-gray-400 font-bold">Syncing notifications...</p>
+                <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-[#12151C] rounded-[11px] border border-[#E2E6ED] dark:border-gray-800">
+                    <Loader2 className="w-8 h-8 text-[#2C4FD6] animate-spin mb-3" />
+                    <p className="text-[#5B6472] dark:text-gray-400 text-xs font-semibold">Syncing notifications...</p>
                 </div>
             ) : filteredNotifications.length === 0 ? (
-                <div className="text-center py-24 bg-white dark:bg-brand-900 rounded-3xl border border-gray-100 dark:border-white/5 shadow-sm">
-                    <div className="w-20 h-20 bg-gray-50 dark:bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-6 text-gray-300">
-                        <Bell size={40} />
+                <div className="text-center py-20 bg-white dark:bg-[#12151C] rounded-[11px] border border-[#E2E6ED] dark:border-gray-800">
+                    <div className="w-14 h-14 bg-[#F7F8FA] dark:bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 text-[#9AA3B1]">
+                        <Bell size={28} />
                     </div>
-                    <h3 className="text-2xl font-black text-gray-800 dark:text-white">All Clear!</h3>
-                    <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium">You don't have any notifications right now.</p>
+                    <h3 className="text-base font-bold text-[#12151C] dark:text-white">All Clear!</h3>
+                    <p className="text-[#717E95] dark:text-gray-400 mt-1 font-normal text-xs">You don't have any notifications right now.</p>
                 </div>
             ) : (
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                     {filteredNotifications.map((n) => (
                        <div 
-    key={n.id}
-    onClick={() => {
-        if (n.unread) {
-            markAsRead(n.id);
-        }
-    }}
-                            className={`group relative p-4 rounded-2xl border transition-all hover:border-brand-500/30 ${
+                            key={n.id}
+                            onClick={() => {
+                                if (n.unread) {
+                                    markAsRead(n.id);
+                                }
+                            }}
+                            className={`group relative p-3.5 rounded-[8px] border transition-all ${
                                n.unread 
-? 'bg-white dark:bg-brand-900 border-gray-100 dark:border-white/5'
-: 'bg-brand-50/50 dark:bg-brand-500/5 border-brand-100 dark:border-brand-500/20'
-                            } ${selectedIds.includes(n.id) ? 'ring-2 ring-brand-500 ring-offset-2 dark:ring-offset-brand-950' : ''}`}
+                                ? 'bg-white dark:bg-[#12151C] border-[#E2E6ED] dark:border-gray-800'
+                                : 'bg-[#F7F8FA] dark:bg-gray-800/40 border-[#E2E6ED] dark:border-gray-800'
+                            } ${selectedIds.includes(n.id) ? 'ring-2 ring-[#2C4FD6]' : ''}`}
                         >
-                            <div className="flex gap-5 items-center">
+                            <div className="flex gap-3.5 items-center">
                                 <input 
                                     type="checkbox" 
                                     checked={selectedIds.includes(n.id)}
                                     onChange={() => toggleSelect(n.id)}
-                                    className="w-5 h-5 rounded border-gray-300 text-brand-500 focus:ring-brand-500 cursor-pointer"
+                                    className="w-4 h-4 rounded border-gray-300 text-[#2C4FD6] focus:ring-[#2C4FD6] cursor-pointer"
                                 />
-                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${
-                                    n.type === 'leave' ? 'bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400' :
-                                    n.type === 'attendance' ? 'bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400' :
-                                    'bg-brand-100 text-brand-600 dark:bg-brand-500/20 dark:text-brand-400'
+                                <div className={`w-9 h-9 rounded-[7px] flex items-center justify-center shrink-0 ${
+                                    n.type === 'leave' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' :
+                                    n.type === 'attendance' ? 'bg-rose-500/10 text-[#DE350B]' :
+                                    'bg-[#E8ECFC] text-[#2C4FD6] dark:bg-blue-500/20 dark:text-blue-400'
                                 }`}>
-                                    {n.type === 'leave' ? <FileText size={24} /> :
-                                     n.type === 'attendance' ? <Calendar size={24} /> :
-                                     <Info size={24} />}
+                                    {n.type === 'leave' ? <FileText size={18} /> :
+                                     n.type === 'attendance' ? <Calendar size={18} /> :
+                                     <Info size={18} />}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <div className="flex items-center justify-between mb-1">
-                                        <div className="flex items-center gap-3">
-                                            <h3 className={`text-base font-black tracking-tight ${n.unread ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-300'}`}>
+                                    <div className="flex items-center justify-between mb-0.5">
+                                        <div className="flex items-center gap-2">
+                                            <h3 className={`text-[13.5px] font-semibold ${n.unread ? 'text-[#12151C] dark:text-white' : 'text-[#5B6472] dark:text-gray-300'}`}>
                                                 {n.title}
                                             </h3>
                                             {n.unread && (
-                                                <span className="px-2 py-0.5 bg-brand-500 text-white text-[9px] font-black rounded-full uppercase">NEW</span>
+                                                <span className="px-[6px] py-[1.5px] bg-[#2C4FD6] text-white text-[9px] font-bold rounded-full uppercase tracking-wider">NEW</span>
                                             )}
                                         </div>
-                                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{n.time}</span>
+                                        <span className="text-[11px] text-[#9AA3B1] font-mono-numbers">{n.time}</span>
                                     </div>
-                                    <p className={`text-sm leading-relaxed break-all ${n.unread ? 'text-gray-700 dark:text-gray-200' : 'text-gray-500 dark:text-gray-400'}`}>
+                                    <p className={`text-xs font-normal leading-relaxed break-all ${n.unread ? 'text-[#12151C] dark:text-gray-200' : 'text-[#717E95] dark:text-gray-400'}`}>
                                         {n.message}
                                     </p>
                                 </div>
@@ -231,25 +233,25 @@ export default function Notifications() {
 
             {/* Deletion Modal */}
             {showDeleteModal && createPortal(
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white dark:bg-brand-900 rounded-[2.5rem] p-8 max-w-md w-full border border-gray-100 dark:border-white/10 shadow-2xl animate-scale-in">
-                        <div className="w-16 h-16 bg-rose-100 dark:bg-rose-500/20 rounded-2xl flex items-center justify-center mb-6 text-rose-500 mx-auto">
-                            <Trash2 size={32} />
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/20 dark:bg-black/60 backdrop-blur-md animate-fade-in">
+                    <div className="bg-white dark:bg-[#12151C] rounded-[11px] p-6 max-w-sm w-full border border-[#E2E6ED] dark:border-gray-800 animate-scale-in text-center">
+                        <div className="w-12 h-12 bg-[#FBE7E7] dark:bg-rose-500/20 rounded-full flex items-center justify-center mb-3 text-[#DE350B] mx-auto">
+                            <Trash2 size={24} />
                         </div>
-                        <h3 className="text-2xl font-black text-gray-900 dark:text-white text-center mb-2">Delete Notifications?</h3>
-                        <p className="text-gray-500 dark:text-gray-400 text-center mb-8 font-medium">
+                        <h3 className="text-base font-bold text-[#12151C] dark:text-white mb-1">Delete Notifications?</h3>
+                        <p className="text-xs text-[#5B6472] dark:text-gray-400 mb-5 font-normal">
                             Are you sure you want to delete {selectedIds.length} notification{selectedIds.length > 1 ? 's' : ''}? This action cannot be undone.
                         </p>
-                        <div className="flex gap-4">
+                        <div className="flex gap-3">
                             <button 
                                 onClick={() => setShowDeleteModal(false)}
-                                className="flex-1 py-3 px-6 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 font-black rounded-2xl transition-all uppercase tracking-widest text-xs"
+                                className="flex-1 py-2.5 rounded-[8px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#5B6472] dark:text-gray-300 font-semibold text-[13.5px] hover:bg-gray-50 transition-all cursor-pointer"
                             >
                                 Cancel
                             </button>
                             <button 
                                 onClick={deleteNotifications}
-                                className="flex-1 py-3 px-6 bg-rose-500 hover:bg-rose-600 text-white font-black rounded-2xl transition-all shadow-lg shadow-rose-500/25 uppercase tracking-widest text-xs"
+                                className="flex-1 py-2.5 rounded-[8px] bg-[#DE350B] hover:bg-[#b02a08] text-white font-semibold text-[13.5px] transition-all cursor-pointer"
                             >
                                 Delete
                             </button>

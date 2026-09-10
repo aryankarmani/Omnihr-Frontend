@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Calendar, Mail, Loader2, ArrowLeft, UserCheck, Filter, LayoutGrid, List } from 'lucide-react';
+import { Search, Calendar, Mail, Loader2, ArrowLeft, UserCheck, Filter, LayoutGrid, List, Eye, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
@@ -10,7 +10,7 @@ export default function NewJoiners() {
     const [loading, setLoading] = useState(true);
     const [newJoiners, setNewJoiners] = useState<any[]>([]);
     const [showFilterDrawer, setShowFilterDrawer] = useState(false);
-    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
     // Filter states
     const [filters, setFilters] = useState({
@@ -87,62 +87,42 @@ export default function NewJoiners() {
 
     return (
         <div className="animate-fade-in-up">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-                <div className="flex items-center gap-4">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
+                <div className="flex items-center gap-3">
                     <button
                         onClick={() => navigate(-1)}
-                        className="p-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors"
+                        className="p-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-[#5B6472] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
                     >
-                        <ArrowLeft size={20} />
+                        <ArrowLeft size={18} />
                     </button>
                     <div>
-                        <h2 className="text-2xl font-bold text-gray-800 dark:text-white">New Joiners</h2>
-                        <p className="text-gray-500 dark:text-gray-400">Employees who joined this month</p>
+                        <h2 className="text-2xl font-bold text-[#12151C] dark:text-white mb-0.5">New Joiners</h2>
+                        <p className="text-[13.5px] text-[#5B6472] dark:text-gray-400">Employees who joined this month</p>
                     </div>
                 </div>
-                <div className="flex gap-3 w-full md:w-auto">
-                    <div className="px-4 py-2 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 rounded-xl text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-2">
-                        <UserCheck size={18} />
+
+                <div className="flex flex-wrap items-center gap-2.5 justify-start lg:justify-end w-full lg:w-auto">
+                    <div className="px-3.5 py-1.5 h-[36px] bg-[#E4F5EC] dark:bg-emerald-500/10 border border-[#BBE5D0] dark:border-emerald-500/20 rounded-[6px] text-[#1F8A5A] dark:text-emerald-400 font-semibold text-xs flex items-center gap-2 shrink-0">
+                        <UserCheck size={16} />
                         {newJoiners.length} New Joiners
                     </div>
-                </div>
-            </div>
 
-            {/* Filters & Search - Matching EmployeeList EXACTLY */}
-            <div className="bg-white dark:bg-brand-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 mb-6 flex flex-col md:flex-row gap-4 items-center">
-                <div className="relative flex-1 w-full">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                    <input
-                        type="text"
-                        placeholder="Search by name, email or role..."
-                        value={filters.name}
-                        onChange={(e) => {
-                            const val = e.target.value;
-                            setFilters({ ...filters, name: val });
-                            setAppliedFilters({ ...appliedFilters, name: val });
-                        }}
-                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-gray-800 dark:text-white"
-                    />
-                </div>
-                <div className="flex gap-3 w-full md:w-auto">
-                    {/* View Toggle */}
-                    <div className="flex bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-1">
-                        <button
-                            onClick={() => setViewMode('grid')}
-                            className={`p-2 rounded-xl transition-all ${viewMode === 'grid' 
-                                ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20' 
-                                : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}
-                        >
-                            <LayoutGrid size={20} />
-                        </button>
-                        <button
-                            onClick={() => setViewMode('list')}
-                            className={`p-2 rounded-xl transition-all ${viewMode === 'list' 
-                                ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20' 
-                                : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}
-                        >
-                            <List size={20} />
-                        </button>
+                    {/* Search Input */}
+                    <div className="relative w-full sm:w-[240px] md:w-[280px] group">
+                        <div className="relative flex items-center search">
+                            <Search size={15} className="absolute left-3 text-[#9AA3B1] group-focus-within:text-[#2C4FD6] transition-colors" />
+                            <input
+                                type="text"
+                                placeholder="Search by name, email or role..."
+                                value={filters.name}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setFilters({ ...filters, name: val });
+                                    setAppliedFilters({ ...appliedFilters, name: val });
+                                }}
+                                className="w-full pl-9 pr-3 py-[9px] h-[36px] bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] transition-all text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
+                            />
+                        </div>
                     </div>
 
                     {/* Status Dropdown */}
@@ -154,151 +134,159 @@ export default function NewJoiners() {
                                 setFilters({ ...filters, status: val });
                                 setAppliedFilters({ ...appliedFilters, status: val });
                             }}
-                            className="appearance-none px-5 py-2.5 bg-brand-600 dark:bg-brand-600/20 border-2 border-brand-500/50 rounded-2xl text-white font-bold cursor-pointer transition-all hover:bg-brand-700 hover:border-brand-400 shadow-lg shadow-brand-500/20 focus:ring-4 focus:ring-brand-500/20 outline-none w-52 pr-10 font-bold"
+                            className="appearance-none flex items-center gap-2 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] px-3 py-[9px] h-[36px] text-[13px] font-semibold text-[#5B6472] dark:text-gray-300 bg-white dark:bg-[#12151C] cursor-pointer transition-all hover:border-[#2C4FD6] focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none pr-8"
                         >
-                            <option value="All" className="bg-white dark:bg-brand-900 text-gray-900 dark:text-white font-bold">All Status</option>
-                            <option value="Active" className="bg-white dark:bg-brand-900 text-gray-900 dark:text-white font-bold">Active</option>
-                            <option value="Inactive" className="bg-white dark:bg-brand-900 text-gray-900 dark:text-white font-bold">Inactive</option>
+                            <option value="All">All Status</option>
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
                         </select>
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white transition-transform group-hover/dropdown:scale-110">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
+                        <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[#5B6472] dark:text-gray-400">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                         </div>
                     </div>
 
+                    {/* Filter Icon Button */}
                     <button
                         onClick={() => setShowFilterDrawer(true)}
-                        className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-gray-600 dark:text-gray-300 hover:bg-brand-500 hover:text-white hover:scale-105 transition-all duration-200 shadow-sm flex items-center justify-center"
+                        className="flex items-center justify-center border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] px-3 py-[9px] h-[36px] text-[13px] font-semibold text-[#5B6472] dark:text-gray-300 bg-white dark:bg-[#12151C] hover:bg-gray-50 dark:hover:bg-white/5 transition-all cursor-pointer shrink-0"
                     >
-                        <Filter size={20} />
+                        <Filter size={15} className="text-[#5B6472] dark:text-gray-300" />
                     </button>
                 </div>
             </div>
 
             {/* Content Section */}
             {loading ? (
-                <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-brand-900 rounded-3xl border border-gray-100 dark:border-white/5">
-                    <Loader2 className="w-12 h-12 text-brand-500 animate-spin mb-4" />
-                    <p className="text-gray-500 dark:text-gray-400 font-medium tracking-wide">Fetching data...</p>
+                <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800">
+                    <Loader2 className="w-8 h-8 text-[#2C4FD6] animate-spin mb-3" />
+                    <p className="text-[#5B6472] dark:text-gray-400 text-xs font-semibold tracking-wide">Loading new joiners...</p>
                 </div>
             ) : filteredJoiners.length === 0 ? (
-                <div className="text-center py-20 bg-white dark:bg-brand-900 rounded-3xl border border-gray-100 dark:border-white/5 shadow-inner">
-                    <Calendar size={48} className="mx-auto text-gray-300 mb-4 opacity-50" />
-                    <h3 className="text-xl font-bold text-gray-800 dark:text-white">No Employees Found</h3>
-                    <p className="text-gray-500 dark:text-gray-400 mt-2">Try adjusting your filters or search term.</p>
+                <div className="text-center py-20 bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800">
+                    <Calendar size={40} className="mx-auto text-[#9AA3B1] mb-3 opacity-60" />
+                    <h3 className="text-base font-bold text-[#12151C] dark:text-white">No Employees Found</h3>
+                    <p className="text-[#5B6472] dark:text-gray-400 text-xs mt-1">Try adjusting your filters or search term.</p>
                 </div>
             ) : (
                 viewMode === 'grid' ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {filteredJoiners.map((emp, index) => {
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {filteredJoiners.map((emp) => {
                             const profile = emp.employeeProfile || {};
-                            const colors = ['bg-blue-500', 'bg-purple-500', 'bg-orange-500', 'bg-pink-500', 'bg-teal-500'];
-                            const avatarColor = colors[index % colors.length];
+                            const initials = emp.name ? emp.name.trim().split(/\s+/).slice(0, 2).map((n: string) => n[0]).join('').toUpperCase() : '?';
+                            const status = profile.status || 'Active';
 
                             return (
                                 <div 
                                     key={emp.id} 
                                     onClick={() => navigate(`/employee/${emp.id}`)}
-                                    className="bg-white dark:bg-brand-900 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-2xl hover:shadow-brand-500/10 transition-all duration-300 group relative overflow-hidden cursor-pointer hover:-translate-y-1.5 hover:border-brand-500/30"
+                                    className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 p-5 hover:border-[#2C4FD6]/40 transition-all cursor-pointer flex flex-col justify-between"
                                 >
-                                    <div className={`absolute top-0 left-0 w-1 h-full ${(profile.status || 'Active') === 'Active' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                                    <div className="flex flex-col justify-between h-full p-6">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div className="flex gap-4">
-                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg ${avatarColor}`}>
-                                                    {emp.name ? emp.name.split(' ').map((n: string) => n[0]).join('') : '?'}
-                                                </div>
-                                                <div>
-                                                    <h3 className="font-bold text-gray-800 dark:text-white text-lg">{emp.name}</h3>
-                                                    <p className="text-gray-500 dark:text-gray-400 text-sm">{profile.title || 'Employee'}</p>
-                                                </div>
+                                    <div>
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <div className="w-10 h-10 rounded-full bg-[#EEF1F5] dark:bg-gray-700 text-[#5B6472] dark:text-white font-mono-numbers font-bold text-xs flex items-center justify-center shrink-0 uppercase">
+                                                {initials}
+                                            </div>
+                                            <div>
+                                                <h3 className="font-semibold text-[#12151C] dark:text-white text-[13.5px]">{emp.name}</h3>
+                                                <p className="text-[#717E95] dark:text-gray-400 text-[11.5px]">{profile.title || 'Employee'}</p>
                                             </div>
                                         </div>
 
-                                        <div className="space-y-3 mb-6">
-                                            <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
-                                                <Calendar size={16} className="text-gray-400" />
+                                        <div className="space-y-2 mb-4 text-xs text-[#5B6472] dark:text-gray-400">
+                                            <div className="flex items-center gap-2">
+                                                <Calendar size={14} className="text-[#9AA3B1]" />
                                                 Joined: {profile.joiningDate ? new Date(profile.joiningDate).toLocaleDateString() : 'N/A'}
                                             </div>
-                                            <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
-                                                <Mail size={16} className="text-gray-400" />
-                                                {emp.email}
+                                            <div className="flex items-center gap-2 truncate">
+                                                <Mail size={14} className="text-[#9AA3B1] shrink-0" />
+                                                <span className="truncate">{emp.email}</span>
                                             </div>
                                         </div>
+                                    </div>
 
-                                        <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-white/5">
-                                            <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider shadow-sm transition-all hover:scale-105 ${(profile.status || 'Active').toLowerCase() === 'active'
-                                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                                                : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
-                                                }`}>
-                                                {profile.status || 'Active'}
-                                            </span>
-                                             <button 
-                                                onClick={() => (emp.id || emp._id) && navigate(`/employee/${emp.id || emp._id}`)}
-                                                className="text-sm font-medium text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
-                                            >
-                                                View Profile
-                                            </button>
-                                        </div>
+                                    <div className="flex items-center justify-between pt-3 border-t border-[#E2E6ED] dark:border-gray-800">
+                                        <span className={`px-[10px] py-[3px] rounded-[3px] text-[11.5px] font-semibold tracking-wide ${
+                                            status.toLowerCase() === 'active'
+                                                ? 'bg-[#E4F5EC] text-[#1F8A5A]'
+                                                : 'bg-[#F1F3F7] text-[#5B6472]'
+                                        }`}>
+                                            {status}
+                                        </span>
+                                        <button 
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                (emp.id || emp._id) && navigate(`/employee/${emp.id || emp._id}`);
+                                            }}
+                                            className="inline-flex items-center gap-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#5B6472] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-all text-[12px] font-semibold rounded-[3px] px-[10px] py-[5px] cursor-pointer"
+                                        >
+                                            <Eye size={13} className="text-[#5B6472] dark:text-gray-300" /> View
+                                        </button>
                                     </div>
                                 </div>
                             );
                         })}
                     </div>
                 ) : (
-                    <div className="bg-white dark:bg-brand-900 rounded-3xl border border-gray-100 dark:border-white/5 shadow-sm overflow-hidden animate-fade-in">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
-                                <thead className="bg-gray-50 dark:bg-white/5 border-b border-gray-100 dark:border-white/5">
-                                    <tr>
-                                        <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Employee</th>
-                                        <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Email Address</th>
-                                        <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Joining Date</th>
-                                        <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Status</th>
-                                        <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest text-right">Action</th>
+                    <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden animate-fade-in-up">
+                        <div className="overflow-x-auto custom-scrollbar">
+                            <table className="w-full text-left border-collapse min-w-[800px]">
+                                <thead>
+                                    <tr className="bg-[#EEF1F5] dark:bg-gray-800/60 text-[#9AA3B1] dark:text-gray-400 text-[11px] font-semibold uppercase tracking-[.05em]">
+                                        <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 w-[30%]">EMPLOYEE</th>
+                                        <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 w-[25%]">ROLE / DESIGNATION</th>
+                                        <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 w-[20%]">JOINING DATE</th>
+                                        <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 w-[15%]">STATUS</th>
+                                        <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 text-right w-[10%]">ACTION</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                                    {filteredJoiners.map((emp, index) => {
+                                <tbody className="divide-y divide-[#E2E6ED] dark:divide-gray-800 text-xs">
+                                    {filteredJoiners.map((emp) => {
                                         const profile = emp.employeeProfile || {};
-                                        const colors = ['bg-blue-500', 'bg-purple-500', 'bg-orange-500', 'bg-pink-500', 'bg-teal-500'];
-                                        const avatarColor = colors[index % colors.length];
+                                        const initials = emp.name ? emp.name.trim().split(/\s+/).slice(0, 2).map((n: string) => n[0]).join('').toUpperCase() : '?';
+                                        const status = profile.status || 'Active';
 
                                         return (
                                             <tr 
                                                 key={emp.id} 
-                                                className="hover:bg-gray-50/80 dark:hover:bg-brand-500/5 transition-all group cursor-pointer"
+                                                onClick={() => navigate(`/employee/${emp.id}`)}
+                                                className="hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-colors group cursor-pointer"
                                             >
-                                                <td className="px-6 py-5">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md ${avatarColor}`}>
-                                                            {emp.name ? emp.name.split(' ').map((n: string) => n[0]).join('') : '?'}
+                                                <td className="py-[13px] px-[22px]">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-full bg-[#EEF1F5] dark:bg-gray-700 text-[#5B6472] dark:text-white font-mono-numbers font-bold text-xs flex items-center justify-center shrink-0 uppercase">
+                                                            {initials}
                                                         </div>
                                                         <div>
-                                                            <div className="font-bold text-gray-800 dark:text-white">{emp.name}</div>
-                                                            <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{profile.title || 'Employee'}</div>
+                                                            <div className="font-semibold text-[#12151C] dark:text-white text-[13.5px] hover:text-[#2C4FD6] transition-colors">{emp.name}</div>
+                                                            <div className="text-[11.5px] text-[#717E95] dark:text-gray-400">{emp.email}</div>
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-5 text-sm text-gray-600 dark:text-gray-300 font-medium">
-                                                    {emp.email}
+                                                <td className="py-[13px] px-[22px]">
+                                                    <div className="text-[13.5px] text-[#12151C] dark:text-white capitalize">{profile.title || 'Employee'}</div>
+                                                    <div className="text-[11.5px] text-[#717E95] dark:text-gray-400 capitalize">{profile.department || 'General'}</div>
                                                 </td>
-                                                <td className="px-6 py-5 text-sm text-gray-600 dark:text-gray-300">
+                                                <td className="py-[13px] px-[22px] text-xs text-[#5B6472] dark:text-gray-300 font-mono-numbers">
                                                     {profile.joiningDate ? new Date(profile.joiningDate).toLocaleDateString() : 'N/A'}
                                                 </td>
-                                                <td className="px-6 py-5">
-                                                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${(profile.status || 'Active').toLowerCase() === 'active'
-                                                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                                                        : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
-                                                        }`}>
-                                                        {profile.status || 'Active'}
+                                                <td className="py-[13px] px-[22px]">
+                                                    <span className={`px-[10px] py-[3px] rounded-[3px] text-[11.5px] font-semibold tracking-wide ${
+                                                        status.toLowerCase() === 'active'
+                                                            ? 'bg-[#E4F5EC] text-[#1F8A5A]'
+                                                            : 'bg-[#F1F3F7] text-[#5B6472]'
+                                                    }`}>
+                                                        {status}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-5 text-right">
-                                                     <button 
-                                                        onClick={() => (emp.id || emp._id) && navigate(`/employee/${emp.id || emp._id}`)}
-                                                        className="text-sm font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
+                                                <td className="py-[13px] px-[22px] text-right">
+                                                    <button 
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            (emp.id || emp._id) && navigate(`/employee/${emp.id || emp._id}`);
+                                                        }}
+                                                        className="view-btn inline-flex items-center gap-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#5B6472] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-all text-[12px] font-semibold rounded-[3px] px-[10px] py-[5px] cursor-pointer"
                                                     >
-                                                        View
+                                                        <Eye size={13} className="text-[#5B6472] dark:text-gray-300" /> View
                                                     </button>
                                                 </td>
                                             </tr>
@@ -315,68 +303,77 @@ export default function NewJoiners() {
             {showFilterDrawer && createPortal(
                 <div className="fixed inset-0 z-[999999]">
                     <div 
-                        className="absolute inset-0 bg-black/40 backdrop-blur-md"
+                        className="absolute inset-0 bg-slate-900/20 dark:bg-black/60 backdrop-blur-md"
                         onClick={() => setShowFilterDrawer(false)}
                     />
-                    <div className="absolute right-0 top-0 w-full max-w-md h-full bg-white dark:bg-brand-900 shadow-2xl animate-slide-in-right">
+                    <div className="absolute right-0 top-0 w-full max-w-md h-full bg-white dark:bg-[#12151C] animate-slide-in-right border-l border-[#E2E6ED] dark:border-gray-800">
                         <div className="flex flex-col justify-between h-full p-6">
                             <div>
-                                <h2 className="text-xl font-bold mb-6 text-gray-800 dark:text-white">Advanced Search</h2>
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-xl font-bold text-[#12151C] dark:text-white">Advanced Search</h2>
+                                    <button
+                                        onClick={() => setShowFilterDrawer(false)}
+                                        className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer"
+                                        title="Close"
+                                    >
+                                        <XCircle size={18} />
+                                    </button>
+                                </div>
                                 <div className="space-y-4">
                                     <input 
                                         type="text"
                                         placeholder="Search name..."
                                         value={filters.name}
                                         onChange={(e) => setFilters({...filters, name: e.target.value})}
-                                        className="w-full px-4 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10"
+                                        className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
                                     />
                                     <input 
                                         type="text"
                                         placeholder="Search email..."
                                         value={filters.email}
                                         onChange={(e) => setFilters({...filters, email: e.target.value})}
-                                        className="w-full px-4 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10"
+                                        className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
                                     />
                                     <input 
                                         type="text"
                                         placeholder="Filter by role..."
                                         value={filters.role}
                                         onChange={(e) => setFilters({...filters, role: e.target.value})}
-                                        className="w-full px-4 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10"
+                                        className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
                                     />
                                     <input 
                                         type="text"
                                         placeholder="Filter by location..."
                                         value={filters.location}
                                         onChange={(e) => setFilters({...filters, location: e.target.value})}
-                                        className="w-full px-4 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10"
+                                        className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
                                     />
                                     <div className="relative group/dropdown">
                                         <select
                                             value={filters.status}
                                             onChange={(e) => setFilters({...filters, status: e.target.value})}
-                                            className="appearance-none w-full px-4 py-2.5 bg-brand-600 dark:bg-brand-600/20 border-2 border-brand-500/50 rounded-xl text-white font-bold cursor-pointer focus:ring-4 focus:ring-brand-500/20 outline-none pr-10 transition-all"
+                                            className="appearance-none flex items-center gap-2 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] px-3 py-[9px] text-[13px] font-semibold text-[#5B6472] dark:text-gray-300 bg-white dark:bg-[#12151C] cursor-pointer transition-all hover:border-[#2C4FD6] focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none pr-8 w-full"
                                         >
-                                            <option value="All" className="bg-white dark:bg-brand-900 text-gray-900 dark:text-white">All Status</option>
-                                            <option value="Active" className="bg-white dark:bg-brand-900 text-gray-900 dark:text-white">Active</option>
-                                            <option value="Inactive" className="bg-white dark:bg-brand-900 text-gray-900 dark:text-white">Inactive</option>
+                                            <option value="All">All Status</option>
+                                            <option value="Active">Active</option>
+                                            <option value="Inactive">Inactive</option>
                                         </select>
-                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white">
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
+                                        <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[#5B6472] dark:text-gray-400">
+                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex gap-3 pt-6">
+                            <div className="flex gap-3 pt-6 border-t border-[#E2E6ED] dark:border-gray-800">
                                 <button 
                                     onClick={clearFilters}
-                                    className="flex-1 py-2 rounded-xl bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-white/20 cursor-pointer"
+                                    className="flex-1 py-2.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#5B6472] dark:text-gray-300 font-semibold text-[13.5px] hover:bg-gray-50 dark:hover:bg-white/5 transition-all cursor-pointer"
                                 >
                                     Clear
                                 </button>
                                 <button 
                                     onClick={applyFilters}
-                                    className="flex-1 py-2 rounded-xl bg-gradient-to-r from-brand-500 to-brand-700 text-white cursor-pointer hover:from-brand-600 hover:to-brand-800 transition-all duration-200"
+                                    className="flex-1 py-2.5 rounded-[6px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold text-[13.5px] transition-all cursor-pointer"
                                 >
                                     Apply Filters
                                 </button>
@@ -389,3 +386,4 @@ export default function NewJoiners() {
         </div>
     );
 }
+

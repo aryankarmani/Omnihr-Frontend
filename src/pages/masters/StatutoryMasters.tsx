@@ -157,80 +157,48 @@ export default function StatutoryMasters() {
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 ${activeTab === tab.id
-                            ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400 ring-1 ring-brand-200 dark:ring-brand-800'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5'
+                        className={`px-3.5 py-1.5 rounded-[8px] text-[13px] transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer ${activeTab === tab.id
+                                ? 'bg-[#F0F4FA] dark:bg-gray-800 text-[#12151C] dark:text-white font-semibold'
+                                : 'text-[#5B6472] dark:text-gray-400 hover:text-[#12151C] dark:hover:text-white font-medium bg-transparent'
                             }`}
                     >
-                        <tab.icon size={16} /> {tab.label}
+                        <tab.icon size={15} className={activeTab === tab.id ? 'text-[#2C4FD6]' : 'text-[#9AA3B1]'} /> {tab.label}
                     </button>
                 ))}
             </div>
 
-            <div className="min-h-[400px]">
+            <div className="bg-white dark:bg-[#12151C] rounded-[11px] border border-[#E2E6ED] dark:border-gray-800 p-6 sm:p-8 min-h-[400px]">
 
                 {/* 1. SALARY COMPONENTS */}
                 {activeTab === 'components' && (
                     <div className="space-y-6 animate-fade-in">
                         <div className="flex justify-between items-center">
-                            <h3 className="text-lg font-semibold dark:text-white">Earnings & Deductions</h3>
-                            <button
-                                onClick={() => {
-                                    setEditingComponentId(null);
-                                    setNewComp({
-                                        name: '', type: 'EARNING', taxability: 'TAXABLE', isWageCodeComponent: false, isPartOfWages: false,
-                                        isFBP: false, calculationType: 'FLAT', value: 0, prorationMethod: 'CALENDAR_DAYS'
-                                    });
-                                    setShowCompModal(true);
-                                }}
-                                className="flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm cursor-pointer"
-                            >
+                            <h3 className="text-[15.5px] font-semibold text-[#12151C] dark:text-white">Earnings & Deductions</h3>
+                            <button onClick={() => setShowCompModal(true)} className="inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white text-[13.5px] font-semibold rounded-[8px] px-[15px] py-[9px] transition-all cursor-pointer">
                                 <Plus size={16} /> Add Component
                             </button>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {components.map(comp => (
-                                <div key={comp.id} className="group p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:shadow-md transition-all relative">
+                                <div key={comp.id} className="group p-4 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[11px] transition-all relative">
                                     <div className="flex justify-between items-start mb-2 gap-2">
-                                        <h4 className="font-bold text-gray-900 dark:text-white flex-1">{comp.name}</h4>
-                                        <div className="flex items-center gap-1 shrink-0">
-                                            <span className={`text-[10px] px-2 py-1 rounded-full font-bold ${comp.type === 'EARNING' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>{comp.type}</span>
-                                            <button
-                                                onClick={() => {
-                                                    setEditingComponentId(comp.id);
-                                                    setNewComp({
-                                                        name: comp.name,
-                                                        type: comp.type,
-                                                        taxability: comp.taxability,
-                                                        isWageCodeComponent: comp.isWageCodeComponent || false,
-                                                        isPartOfWages: comp.isPartOfWages || false,
-                                                        isFBP: comp.isFBP || false,
-                                                        calculationType: comp.calculationType,
-                                                        value: comp.value || 0,
-                                                        prorationMethod: comp.prorationMethod || 'CALENDAR_DAYS'
-                                                    });
-                                                    setShowCompModal(true);
-                                                }}
-                                                className="p-1.5 text-gray-400 hover:text-brand-500 dark:hover:text-brand-400 transition-colors cursor-pointer"
-                                                title="Edit component"
-                                            >
-                                                <Edit size={14} />
-                                            </button>
+                                        <h4 className="font-semibold text-[#12151C] dark:text-white flex-1 text-[13.5px]">{comp.name}</h4>
+                                        <div className="flex items-center gap-2">
+                                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${comp.type === 'EARNING' ? 'bg-[#E4F5EC] text-[#1F8A5A] dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-[#FBE7E7] text-[#DE350B] dark:bg-rose-900/30 dark:text-rose-400'}`}>{comp.type}</span>
                                             <button
                                                 onClick={() => setItemToDelete({ id: comp.id, name: comp.name, type: 'salary-component' })}
-                                                className="p-1.5 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
-                                                title="Delete component"
+                                                className="p-1 text-[#9AA3B1] hover:text-[#DE350B] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                                             >
                                                 <Trash2 size={14} />
                                             </button>
                                         </div>
                                     </div>
-                                    <div className="space-y-1 text-xs text-gray-500 dark:text-gray-400">
-                                        <div className="flex justify-between"><span>Taxability:</span> <span className="font-medium text-gray-700 dark:text-gray-300">{comp.taxability === 'FULLY_EXEMPT' ? 'Exempt' : comp.taxability === 'PARTIAL' ? 'Partial' : 'Taxable'}</span></div>
-                                        {comp.isWageCodeComponent && <div className="text-brand-600 dark:text-brand-400 font-bold">★ Basic Pay Component</div>}
-                                        <div className="flex justify-between"><span>Part of PF Wages:</span> <span className="text-gray-700 dark:text-gray-300">{comp.isPartOfWages ? 'Yes' : 'No'}</span></div>
-                                        <div className="flex justify-between"><span>Calculation:</span> <span className="text-gray-700 dark:text-gray-300">{comp.calculationType === 'FLAT' ? `₹${comp.value}` : `${comp.value}% of Basic`}</span></div>
+                                    <div className="space-y-1 text-xs text-[#5B6472] dark:text-gray-400">
+                                        <div className="flex justify-between"><span>Taxability:</span> <span className="font-medium text-[#12151C] dark:text-gray-300">{comp.taxability === 'FULLY_EXEMPT' ? 'Exempt' : comp.taxability === 'PARTIAL' ? 'Partial' : 'Taxable'}</span></div>
+                                        {comp.isWageCodeComponent && <div className="text-[#2C4FD6] dark:text-blue-400 font-bold">★ Basic Pay Component</div>}
+                                        <div className="flex justify-between"><span>Part of PF Wages:</span> <span className="text-[#12151C] dark:text-gray-300">{comp.isPartOfWages ? 'Yes' : 'No'}</span></div>
+                                        <div className="flex justify-between"><span>Calculation:</span> <span className="text-[#12151C] dark:text-gray-300">{comp.calculationType === 'FLAT' ? `₹${comp.value}` : `${comp.value}% of Basic`}</span></div>
                                     </div>
                                 </div>
                             ))}
@@ -242,47 +210,47 @@ export default function StatutoryMasters() {
                 {activeTab === 'compliance' && (
                     <div className="space-y-6 animate-fade-in max-w-3xl">
                         <div className="flex justify-between items-center">
-                            <h3 className="text-lg font-semibold dark:text-white">Statutory Configuration</h3>
-                            <button onClick={saveSettings} disabled={loading} className="flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm">
+                            <h3 className="text-[15.5px] font-semibold text-[#12151C] dark:text-white">Statutory Configuration</h3>
+                            <button onClick={saveSettings} disabled={loading} className="inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white text-[13.5px] font-semibold rounded-[8px] px-[15px] py-[9px] transition-all cursor-pointer">
                                 {loading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                                 Save Settings
                             </button>
                         </div>
 
                         {/* EPF */}
-                        <div className="p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl space-y-4 shadow-sm hover:border-brand-500/30 transition-all">
+                        <div className="p-6 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[11px] space-y-4 hover:border-[#2C4FD6]/30 transition-all">
                             <div className="flex items-center justify-between">
-                                <h4 className="font-bold text-gray-900 dark:text-white flex items-center gap-2"><div className="w-2 h-2 bg-blue-500 rounded-full"></div> EPF Settings</h4>
+                                <h4 className="font-semibold text-[#12151C] dark:text-white flex items-center gap-2 text-sm"><div className="w-2 h-2 bg-[#2C4FD6] rounded-full"></div> EPF Settings</h4>
                                 <label className="relative inline-flex items-center cursor-pointer">
                                     <input type="checkbox" className="sr-only peer" checked={settings.epfEnabled || false} onChange={e => setSettings({ ...settings, epfEnabled: e.target.checked })} />
-                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand-300 dark:peer-focus:ring-brand-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-brand-600"></div>
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-[#2C4FD6]"></div>
                                 </label>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div><label className="block text-xs font-medium text-gray-500 mb-1">EPF Number</label><input type="text" className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded text-xs dark:bg-gray-900 dark:text-white" value={settings.epfNumber || ''} onChange={e => setSettings({ ...settings, epfNumber: e.target.value })} /></div>
-                                <div><label className="block text-xs font-medium text-gray-500 mb-1">Wage Ceiling (₹15,000)</label>
-                                    <select className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded text-xs dark:bg-gray-900 dark:text-white" value={settings.epfWageCeiling ? 'yes' : 'no'} onChange={e => setSettings({ ...settings, epfWageCeiling: e.target.value === 'yes' })}>
+                                <div><label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">EPF Number</label><input type="text" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[7px] text-[13.5px] bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={settings.epfNumber || ''} onChange={e => setSettings({ ...settings, epfNumber: e.target.value })} /></div>
+                                <div><label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Wage Ceiling (₹15,000)</label>
+                                    <select className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[7px] text-[13.5px] bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={settings.epfWageCeiling ? 'yes' : 'no'} onChange={e => setSettings({ ...settings, epfWageCeiling: e.target.value === 'yes' })}>
                                         <option value="yes">Cap at ₹15,000</option>
                                         <option value="no">No Ceiling (Actual Basic)</option>
                                     </select>
                                 </div>
-                                <div><label className="block text-xs font-medium text-gray-500 mb-1">Employee Rate (%)</label><input type="number" className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded text-xs dark:bg-gray-900 dark:text-white" value={settings.epfEmployeeRate || 12} onChange={e => setSettings({ ...settings, epfEmployeeRate: parseFloat(e.target.value) })} /></div>
-                                <div><label className="block text-xs font-medium text-gray-500 mb-1">Employer EPF (%)</label><input type="number" className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded text-xs dark:bg-gray-900 dark:text-white" value={settings.epfEmployerRate || 3.67} onChange={e => setSettings({ ...settings, epfEmployerRate: parseFloat(e.target.value) })} /></div>
+                                <div><label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Employee Rate (%)</label><input type="number" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[7px] text-[13.5px] bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={settings.epfEmployeeRate || 12} onChange={e => setSettings({ ...settings, epfEmployeeRate: parseFloat(e.target.value) })} /></div>
+                                <div><label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Employer EPF (%)</label><input type="number" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[7px] text-[13.5px] bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={settings.epfEmployerRate || 3.67} onChange={e => setSettings({ ...settings, epfEmployerRate: parseFloat(e.target.value) })} /></div>
                             </div>
                         </div>
 
                         {/* ESIC */}
-                        <div className="p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl space-y-4 shadow-sm hover:border-brand-500/30 transition-all">
+                        <div className="p-6 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[11px] space-y-4 hover:border-[#2C4FD6]/30 transition-all">
                             <div className="flex items-center justify-between">
-                                <h4 className="font-bold text-gray-900 dark:text-white flex items-center gap-2"><div className="w-2 h-2 bg-pink-500 rounded-full"></div> ESIC Settings</h4>
+                                <h4 className="font-semibold text-[#12151C] dark:text-white flex items-center gap-2 text-sm"><div className="w-2 h-2 bg-pink-500 rounded-full"></div> ESIC Settings</h4>
                                 <label className="relative inline-flex items-center cursor-pointer">
                                     <input type="checkbox" className="sr-only peer" checked={settings.esicEnabled || false} onChange={e => setSettings({ ...settings, esicEnabled: e.target.checked })} />
-                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand-300 dark:peer-focus:ring-brand-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-brand-600"></div>
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-[#2C4FD6]"></div>
                                 </label>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div><label className="block text-xs font-medium text-gray-500 mb-1">ESIC Number</label><input type="text" className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded text-xs dark:bg-gray-900 dark:text-white" value={settings.esicNumber || ''} onChange={e => setSettings({ ...settings, esicNumber: e.target.value })} /></div>
-                                <div><label className="block text-xs font-medium text-gray-500 mb-1">Wage Limit</label><input type="number" className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded text-xs dark:bg-gray-900 dark:text-white" value={settings.esicWageLimit || 21000} onChange={e => setSettings({ ...settings, esicWageLimit: parseFloat(e.target.value) })} /></div>
+                                <div><label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">ESIC Number</label><input type="text" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[7px] text-[13.5px] bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={settings.esicNumber || ''} onChange={e => setSettings({ ...settings, esicNumber: e.target.value })} /></div>
+                                <div><label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Wage Limit</label><input type="number" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[7px] text-[13.5px] bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={settings.esicWageLimit || 21000} onChange={e => setSettings({ ...settings, esicWageLimit: parseFloat(e.target.value) })} /></div>
                             </div>
                         </div>
                     </div>
@@ -292,33 +260,33 @@ export default function StatutoryMasters() {
                 {activeTab === 'pt' && (
                     <div className="space-y-6 animate-fade-in">
                         <div className="flex justify-between items-center">
-                            <h3 className="text-lg font-semibold dark:text-white">Professional Tax Slabs</h3>
-                            <button onClick={() => setShowPtModal(true)} className="flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm">
+                            <h3 className="text-[15.5px] font-semibold text-[#12151C] dark:text-white">Professional Tax Slabs</h3>
+                            <button onClick={() => setShowPtModal(true)} className="inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white text-[13.5px] font-semibold rounded-[8px] px-[15px] py-[9px] transition-all cursor-pointer">
                                 <Plus size={16} /> Add Slab
                             </button>
                         </div>
-                        <div className="overflow-hidden bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-                            <table className="w-full text-left text-sm text-gray-600 dark:text-gray-300">
-                                <thead className="bg-gray-50 dark:bg-gray-700/50 text-xs uppercase font-medium text-gray-500 dark:text-gray-400">
+                        <div className="overflow-hidden bg-white dark:bg-[#12151C] rounded-[11px] border border-[#E2E6ED] dark:border-gray-800">
+                            <table className="w-full text-left border-collapse">
+                                <thead className="bg-[#EEF1F5] dark:bg-gray-800/60 border-b border-[#E2E6ED] dark:border-gray-800">
                                     <tr>
-                                        <th className="px-6 py-4">State</th>
-                                        <th className="px-6 py-4">Salary Range</th>
-                                        <th className="px-6 py-4">Tax Amount</th>
-                                        <th className="px-6 py-4 text-center">Action</th>
+                                        <th className="py-[9px] px-[22px] text-[11px] font-semibold text-[#9AA3B1] dark:text-gray-400 uppercase tracking-[.05em]">State</th>
+                                        <th className="py-[9px] px-[22px] text-[11px] font-semibold text-[#9AA3B1] dark:text-gray-400 uppercase tracking-[.05em]">Salary Range</th>
+                                        <th className="py-[9px] px-[22px] text-[11px] font-semibold text-[#9AA3B1] dark:text-gray-400 uppercase tracking-[.05em]">Tax Amount</th>
+                                        <th className="py-[9px] px-[22px] text-[11px] font-semibold text-[#9AA3B1] dark:text-gray-400 uppercase tracking-[.05em] text-center">Action</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                                <tbody className="divide-y divide-[#E2E6ED] dark:divide-gray-800/60">
                                     {ptSlabs.map(slab => {
                                         const stateName = states.find(s => s.id === slab.stateId)?.name || 'Unknown State';
                                         return (
                                             <tr key={slab.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
-                                                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{stateName}</td>
-                                                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{slab.minSalary} - {slab.maxSalary || 'Above'}</td>
-                                                <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">₹{slab.taxAmount}</td>
-                                                <td className="px-6 py-4 text-center">
+                                                <td className="py-[13px] px-[22px] text-[13.5px] font-semibold text-[#12151C] dark:text-white">{stateName}</td>
+                                                <td className="py-[13px] px-[22px] text-[13.5px] font-normal text-[#717E95] dark:text-gray-400">{slab.minSalary} - {slab.maxSalary || 'Above'}</td>
+                                                <td className="py-[13px] px-[22px] text-[13.5px] font-semibold text-[#12151C] dark:text-white">₹{slab.taxAmount}</td>
+                                                <td className="py-[13px] px-[22px] text-center">
                                                     <button
                                                         onClick={() => setItemToDelete({ id: slab.id, name: `${stateName} Slab`, type: 'professional-tax-slab' })}
-                                                        className="text-gray-400 hover:text-red-500 transition-colors"
+                                                        className="text-[#9AA3B1] hover:text-[#DE350B] transition-colors cursor-pointer"
                                                     >
                                                         <Trash2 size={16} />
                                                     </button>
@@ -335,30 +303,30 @@ export default function StatutoryMasters() {
 
             {/* MODALS */}
             {showCompModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md p-6 animate-fade-in-up">
-                        <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-lg font-bold dark:text-white">{editingComponentId ? 'Edit Salary Component' : 'Add Salary Component'}</h3>
-                                <button onClick={() => { setShowCompModal(false); setEditingComponentId(null); }} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
-                            </div>
-                        <div className="space-y-4">
+                <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-slate-900/20 dark:bg-black/60 backdrop-blur-md">
+                    <div className="bg-white dark:bg-[#12151C] rounded-[11px] border border-[#E2E6ED] dark:border-gray-800 w-full max-w-md overflow-hidden animate-scale-in">
+                        <div className="p-5 border-b border-[#E2E6ED] dark:border-gray-800 flex justify-between items-center bg-[#F7F8FA] dark:bg-white/5">
+                            <h3 className="text-base font-bold text-[#12151C] dark:text-white">Add Salary Component</h3>
+                            <button onClick={() => setShowCompModal(false)} className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer"><X size={18} /></button>
+                        </div>
+                        <div className="p-6 space-y-4">
                             <div>
-                                <label className="block text-sm font-medium mb-1 dark:text-gray-300">Component Name</label>
-                                <input type="text" placeholder="e.g. Basic Pay" className="w-full p-2.5 border border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-900 dark:text-white" value={newComp.name} onChange={e => setNewComp({ ...newComp, name: e.target.value })} />
+                                <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Component Name</label>
+                                <input type="text" placeholder="e.g. Basic Pay" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[7px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newComp.name} onChange={e => setNewComp({ ...newComp, name: e.target.value })} />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium mb-1 dark:text-gray-300">Type</label>
-                                    <select className="w-full p-2.5 border border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-900 dark:text-white" value={newComp.type} onChange={e => setNewComp({ ...newComp, type: e.target.value })}>
+                                    <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Type</label>
+                                    <select className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[7px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newComp.type} onChange={e => setNewComp({ ...newComp, type: e.target.value })}>
                                         <option value="EARNING">Earning</option>
                                         <option value="DEDUCTION">Deduction</option>
                                         <option value="REIMBURSEMENT">Reimbursement</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium mb-1 dark:text-gray-300">Taxability</label>
-                                    <select className="w-full p-2.5 border border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-900 dark:text-white" value={newComp.taxability} onChange={e => setNewComp({ ...newComp, taxability: e.target.value })}>
+                                    <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Taxability</label>
+                                    <select className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newComp.taxability} onChange={e => setNewComp({ ...newComp, taxability: e.target.value })}>
                                         <option value="TAXABLE">Taxable</option>
                                         <option value="PARTIAL">Partially Exempt</option>
                                         <option value="FULLY_EXEMPT">Fully Exempt</option>
@@ -368,62 +336,62 @@ export default function StatutoryMasters() {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium mb-1 dark:text-gray-300">Calculation</label>
-                                    <select className="w-full p-2.5 border border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-900 dark:text-white" value={newComp.calculationType} onChange={e => setNewComp({ ...newComp, calculationType: e.target.value })}>
+                                    <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Calculation</label>
+                                    <select className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newComp.calculationType} onChange={e => setNewComp({ ...newComp, calculationType: e.target.value })}>
                                         <option value="FLAT">Flat Amount</option>
                                         <option value="%_BASIC">% of Basic</option>
                                         <option value="%_GROSS">% of Gross</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium mb-1 dark:text-gray-300">Value</label>
-                                    <input type="number" placeholder="0" className="w-full p-2.5 border border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-900 dark:text-white" value={newComp.value} onChange={e => setNewComp({ ...newComp, value: parseFloat(e.target.value) })} />
+                                    <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Value</label>
+                                    <input type="number" placeholder="0" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newComp.value} onChange={e => setNewComp({ ...newComp, value: parseFloat(e.target.value) })} />
                                 </div>
                             </div>
 
                             <div className="space-y-2 py-2">
-                                <label className="flex items-center gap-3 text-sm dark:text-gray-300 cursor-pointer"><input type="checkbox" className="w-4 h-4 rounded text-brand-600" checked={newComp.isWageCodeComponent} onChange={e => setNewComp({ ...newComp, isWageCodeComponent: e.target.checked })} /> Is Basic Pay (Wage Code)</label>
-                                <label className="flex items-center gap-3 text-sm dark:text-gray-300 cursor-pointer"><input type="checkbox" className="w-4 h-4 rounded text-brand-600" checked={newComp.isPartOfWages} onChange={e => setNewComp({ ...newComp, isPartOfWages: e.target.checked })} /> Part of PF Wages</label>
-                                <label className="flex items-center gap-3 text-sm dark:text-gray-300 cursor-pointer"><input type="checkbox" className="w-4 h-4 rounded text-brand-600" checked={newComp.isFBP} onChange={e => setNewComp({ ...newComp, isFBP: e.target.checked })} /> FBP Eligible</label>
+                                <label className="flex items-center gap-3 text-xs text-[#5B6472] dark:text-gray-300 cursor-pointer"><input type="checkbox" className="w-4 h-4 rounded accent-[#2C4FD6]" checked={newComp.isWageCodeComponent} onChange={e => setNewComp({ ...newComp, isWageCodeComponent: e.target.checked })} /> Is Basic Pay (Wage Code)</label>
+                                <label className="flex items-center gap-3 text-xs text-[#5B6472] dark:text-gray-300 cursor-pointer"><input type="checkbox" className="w-4 h-4 rounded accent-[#2C4FD6]" checked={newComp.isPartOfWages} onChange={e => setNewComp({ ...newComp, isPartOfWages: e.target.checked })} /> Part of PF Wages</label>
+                                <label className="flex items-center gap-3 text-xs text-[#5B6472] dark:text-gray-300 cursor-pointer"><input type="checkbox" className="w-4 h-4 rounded accent-[#2C4FD6]" checked={newComp.isFBP} onChange={e => setNewComp({ ...newComp, isFBP: e.target.checked })} /> FBP Eligible</label>
                             </div>
 
-                            <button onClick={saveComponent} className="w-full py-3 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 transition-colors shadow-lg shadow-brand-500/20">{editingComponentId ? 'Update Component' : 'Save Component'}</button>
+                            <button onClick={saveComponent} className="w-full py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold text-[13.5px] rounded-[6px] transition-all cursor-pointer">Save Component</button>
                         </div>
                     </div>
                 </div>
             )}
 
             {showPtModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md p-6 animate-fade-in-up">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-lg font-bold dark:text-white">Add PT Slab</h3>
-                            <button onClick={() => setShowPtModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+                <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-slate-900/20 dark:bg-black/60 backdrop-blur-md">
+                    <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 w-full max-w-md overflow-hidden animate-scale-in">
+                        <div className="p-5 border-b border-[#E2E6ED] dark:border-gray-800 flex justify-between items-center bg-[#F7F8FA] dark:bg-white/5">
+                            <h3 className="text-base font-bold text-[#12151C] dark:text-white">Add PT Slab</h3>
+                            <button onClick={() => setShowPtModal(false)} className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer"><X size={18} /></button>
                         </div>
-                        <div className="space-y-4">
+                        <div className="p-6 space-y-4">
                             <div>
-                                <label className="block text-sm font-medium mb-1 dark:text-gray-300">State</label>
-                                <select className="w-full p-2.5 border border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-900 dark:text-white" value={newPt.stateId} onChange={e => setNewPt({ ...newPt, stateId: e.target.value })}>
+                                <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">State</label>
+                                <select className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newPt.stateId} onChange={e => setNewPt({ ...newPt, stateId: e.target.value })}>
                                     <option value="">Select State</option>
                                     {states.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                 </select>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium mb-1 dark:text-gray-400">Min Salary</label>
-                                    <input type="number" placeholder="0" className="w-full p-2.5 border border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-900 dark:text-white" value={newPt.minSalary} onChange={e => setNewPt({ ...newPt, minSalary: parseFloat(e.target.value) })} />
+                                    <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Min Salary</label>
+                                    <input type="number" placeholder="0" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newPt.minSalary} onChange={e => setNewPt({ ...newPt, minSalary: parseFloat(e.target.value) })} />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium mb-1 dark:text-gray-400">Max Salary</label>
-                                    <input type="number" placeholder="0" className="w-full p-2.5 border border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-900 dark:text-white" value={newPt.maxSalary} onChange={e => setNewPt({ ...newPt, maxSalary: parseFloat(e.target.value) })} />
+                                    <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Max Salary</label>
+                                    <input type="number" placeholder="0" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newPt.maxSalary} onChange={e => setNewPt({ ...newPt, maxSalary: parseFloat(e.target.value) })} />
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium mb-1 dark:text-gray-400">Tax Amount</label>
-                                <input type="number" placeholder="200" className="w-full p-2.5 border border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-900 dark:text-white" value={newPt.taxAmount} onChange={e => setNewPt({ ...newPt, taxAmount: parseFloat(e.target.value) })} />
+                                <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Tax Amount</label>
+                                <input type="number" placeholder="200" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newPt.taxAmount} onChange={e => setNewPt({ ...newPt, taxAmount: parseFloat(e.target.value) })} />
                             </div>
 
-                            <button onClick={savePtSlab} className="w-full py-3 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 transition-colors shadow-lg shadow-brand-500/20 mt-2">Save Slab</button>
+                            <button onClick={savePtSlab} className="w-full py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold text-[13.5px] rounded-[6px] transition-all cursor-pointer mt-2">Save Slab</button>
                         </div>
                     </div>
                 </div>
@@ -432,7 +400,7 @@ export default function StatutoryMasters() {
             {/* Delete Confirmation Modal (MATCHING THEME) */}
             {itemToDelete && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-[2px] p-4 animate-fade-in">
-                    <div className="bg-[#0f1016] rounded-2xl shadow-2xl w-full max-w-[360px] border-t-4 border-red-600 text-center relative overflow-hidden pb-8 px-6">
+                    <div className="bg-[#0f1016] rounded-[6px] w-full max-w-[calc(100vw-2rem)] sm:max-w-[360px] border-t-4 border-red-600 text-center relative overflow-hidden pb-8 px-5 sm:px-6">
                         <div className="w-20 h-20 bg-[#1c1d26] rounded-full flex items-center justify-center mx-auto mb-6 mt-8">
                             <Trash2 size={32} className="text-red-600" />
                         </div>
@@ -444,14 +412,14 @@ export default function StatutoryMasters() {
                         <div className="flex gap-4 px-2">
                             <button
                                 onClick={() => setItemToDelete(null)}
-                                className="flex-1 py-3.5 px-4 bg-[#1c1d26] text-white font-bold rounded-xl hover:bg-[#252631] transition-all active:scale-95"
+                                className="flex-1 py-3.5 px-4 bg-[#1c1d26] text-white font-bold rounded-[6px] hover:bg-[#252631] transition-all active:scale-95"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleDelete}
                                 disabled={loading}
-                                className="flex-1 py-3.5 px-4 bg-[#ff3b3b] text-white font-bold rounded-xl hover:bg-[#ff4d4d] transition-all shadow-lg shadow-red-500/20 active:scale-95 flex items-center justify-center gap-2"
+                                className="flex-1 py-3.5 px-4 bg-[#ff3b3b] text-white font-bold rounded-[6px] hover:bg-[#ff4d4d] transition-all active:scale-95 flex items-center justify-center gap-2"
                             >
                                 {loading ? <Loader2 size={18} className="animate-spin" /> : "Yes, Delete"}
                             </button>

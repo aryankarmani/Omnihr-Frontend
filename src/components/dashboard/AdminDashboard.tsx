@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { AlertCircle } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import HeadcountStats from './HeadcountStats';
 import LiveAttendance from './LiveAttendance';
 
@@ -20,225 +19,214 @@ export default function AdminDashboard({
     pendingRegularizations = [],
     employees
 }: AdminDashboardProps) {
-    const [activeTab, setActiveTab] = useState<'leaves' | 'regularizations'>('leaves');
     const getInitials = (name?: string) => {
-    if (!name) return '?';
-
-    const nameParts = name.trim().split(/\s+/);
-
-    // For a single name, show only its first letter
-    if (nameParts.length === 1) {
-        return nameParts[0][0].toUpperCase();
-    }
-
-    // First letter of first name + first letter of last name
-    return (
-        nameParts[0][0] +
-        nameParts[nameParts.length - 1][0]
-    ).toUpperCase();
-};
+        if (!name) return '??';
+        const nameParts = name.trim().split(/\s+/);
+        if (nameParts.length === 1) {
+            return nameParts[0].substring(0, 2).toUpperCase();
+        }
+        return (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase();
+    };
 
     return (
-        <div className="text-gray-800 dark:text-white animate-fade-in-up">
-            <header className="mb-10 lg:flex lg:justify-between lg:items-end">
-                <div>
-                    <h2 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 mb-2">Admin Dashboard</h2>
-                    <p className="text-gray-500 dark:text-gray-400 font-medium tracking-wide">WelcomeHR Admin, here's the organizational overview.</p>
-                </div>
+        <div className="text-[#12151C] dark:text-white">
+            <header className="mb-5">
+                <h2 className="text-2xl font-bold tracking-tight text-[#12151C] dark:text-white mb-1">Admin Dashboard</h2>
+                <p className="text-sm text-[#5B6472] dark:text-gray-400">Welcome back — here's the organizational overview.</p>
             </header>
 
-            {pendingRegularizations.length > 0 && (
-                <div className="mb-8 relative overflow-hidden bg-gradient-to-r from-orange-50 to-orange-100/50 dark:from-orange-950/40 dark:to-orange-900/10 border border-orange-200/60 dark:border-orange-500/20 rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="absolute -right-10 -top-10 w-40 h-40 bg-orange-500/10 rounded-full blur-2xl pointer-events-none"></div>
-                    <div className="flex items-start sm:items-center gap-4 relative z-10">
-                        <div className="p-3 bg-white dark:bg-orange-500/20 rounded-2xl shadow-sm">
-                            <AlertCircle className="text-orange-600 dark:text-orange-400" size={24} strokeWidth={2.5} />
-                        </div>
-                        <div>
-                            <h5 className="font-bold text-orange-900 dark:text-orange-200 text-base mb-1">Action Required</h5>
-                            <p className="text-sm text-orange-700 dark:text-orange-300 font-medium">
-                                There are <strong>{pendingRegularizations.length}</strong> pending attendance regularization requests waiting for your review.
-                            </p>
-                        </div>
-                    </div>
-                    <button
-                        onClick={() => {
-                            setActiveTab('regularizations');
-                            setTimeout(() => {
-                                document.getElementById('approval-center')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            }, 50);
-                        }}
-                        className="relative z-10 px-5 py-2.5 bg-orange-600 hover:bg-orange-750 dark:bg-orange-500/20 text-white dark:text-orange-200 text-sm font-bold rounded-xl shadow-lg transition-all hover:scale-105 active:scale-95"
-                    >
-                        Review Regularizations
-                    </button>
-                </div>
-            )}
-
+            {/* Top 4 KPI Cards */}
             <HeadcountStats {...stats} navigate={navigate} />
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2">
+            {/* Middle Section: Live Attendance (3/5) & Approval Center (2/5) */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-5">
+                <div className="lg:col-span-3">
                     <LiveAttendance data={attendanceData} />
                 </div>
 
-                <div id="approval-center" className="lg:col-span-1 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-6 md:p-8 rounded-3xl border border-gray-100/50 dark:border-gray-700/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300 h-[28rem] flex flex-col pt-7">
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-black text-gray-800 dark:text-white">Approval Center</h3>
-                        <div className="flex items-center gap-2">
-                            <span className="bg-brand-100 dark:bg-brand-500/20 text-brand-700 dark:text-brand-400 text-xs font-black px-2.5 py-1 rounded-full">
-                                {activeTab === 'leaves' ? pendingApprovals.length : pendingRegularizations.length}
+                <div id="approval-center" className="lg:col-span-2 bg-white dark:bg-[#12151C] p-4 sm:p-6 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 h-[300px] max-h-[300px] flex flex-col justify-between">
+                    <div>
+                        <div className="flex justify-between items-start mb-3">
+                            <div>
+                                <span className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white block">Approval Center</span>
+                                <p className="text-[12.5px] text-[#9AA3B1] dark:text-gray-400 mt-0.5">
+                                    Pending leave requests
+                                </p>
+                            </div>
+                            <span className="w-5 h-5 rounded-full bg-[#E8ECFC] text-[#2C4FD6] text-[11px] font-bold font-mono-numbers flex items-center justify-center">
+                                {pendingApprovals.length + pendingRegularizations.length}
                             </span>
                         </div>
+                        <div className="border-b border-[#E2E6ED] dark:border-gray-800 mb-3"></div>
                     </div>
 
-                    <div className="flex gap-2 border-b border-gray-100 dark:border-white/10 mb-4 pb-2">
-                        <button
-                            onClick={() => setActiveTab('leaves')}
-                            className={`flex-1 pb-2 text-xs font-black tracking-wider uppercase text-center border-b-2 transition-all ${activeTab === 'leaves'
-                                    ? 'border-brand-500 text-brand-600 dark:text-brand-400'
-                                    : 'border-transparent text-gray-400 hover:text-gray-600'
-                                }`}
-                        >
-                            Leaves ({pendingApprovals.length})
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('regularizations')}
-                            className={`flex-1 pb-2 text-xs font-black tracking-wider uppercase text-center border-b-2 transition-all ${activeTab === 'regularizations'
-                                    ? 'border-brand-500 text-brand-600 dark:text-brand-400'
-                                    : 'border-transparent text-gray-400 hover:text-gray-600'
-                                }`}
-                        >
-                            REGULARIZATIONS ({pendingRegularizations.length})
-                        </button>
-                    </div>
-
-                    <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-1 min-h-0 max-h-[220px]">
-                        {activeTab === 'leaves' ? (
-                            pendingApprovals.length === 0 ? (
-                                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-10 font-semibold">No pending leaves.</p>
-                            ) : (
-                                pendingApprovals.map((approval) => (
+                    <div className="space-y-3 overflow-y-auto pr-1 custom-scrollbar flex-1 min-h-0">
+                        {pendingApprovals.length === 0 && pendingRegularizations.length === 0 ? (
+                            <div className="h-full flex items-center justify-center">
+                                <p className="text-xs text-[#9AA3B1] text-center">No pending leave requests.</p>
+                            </div>
+                        ) : (
+                            <>
+                                {pendingApprovals.map((approval) => (
                                     <div 
                                         key={approval.id} 
                                         onClick={() => navigate('/leave', { state: { activeTab: 'APPROVALS' } })}
-                                        className="group flex items-center gap-4 p-4 hover:bg-white dark:hover:bg-gray-700/50 rounded-2xl border border-transparent hover:border-gray-100 dark:hover:border-gray-600 hover:shadow-sm transition-all duration-205 cursor-pointer"
+                                        className="flex items-center justify-between p-1.5 rounded-[6px] hover:bg-[#F7F8FA] dark:hover:bg-gray-800 transition-all cursor-pointer border border-transparent hover:border-[#E2E6ED]"
                                     >
-                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-500/20 dark:to-blue-400/10 flex items-center justify-center text-blue-600 dark:text-blue-400 font-black text-xs shadow-inner group-hover:scale-105 transition-transform overflow-hidden shrink-0">
-                                          {getInitials(approval.userName)}
+                                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                                            <div className="w-8 h-8 rounded-full bg-[#EEF1F5] dark:bg-gray-700 flex items-center justify-center text-[#5B6472] dark:text-white font-mono-numbers font-bold text-xs shrink-0">
+                                                {getInitials(approval.userName)}
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <h4 className="text-[14px] font-semibold text-[#12151C] dark:text-white truncate">{approval.userName}</h4>
+                                                <p className="text-[12.5px] text-[#5B6472] dark:text-gray-400 truncate">
+                                                    {approval.type} · <span className="font-mono-numbers">{approval.duration} days</span>
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">{approval.userName}</h4>
-                                            <p className="text-[10px] font-medium text-gray-500 mt-0.5 truncate">{approval.type} • <span className="text-brand-600 dark:text-brand-400 font-semibold">{approval.duration} days</span></p>
+                                        <div className="flex items-center gap-1.5 ml-2 shrink-0">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    navigate('/leave', { state: { activeTab: 'APPROVALS' } });
+                                                }}
+                                                className="w-6 h-6 rounded-[6px] border border-[#E2E6ED] text-[#1F8A5A] hover:bg-[#E4F5EC] flex items-center justify-center transition-colors"
+                                                title="Approve"
+                                            >
+                                                <Check size={13} />
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    navigate('/leave', { state: { activeTab: 'APPROVALS' } });
+                                                }}
+                                                className="w-6 h-6 rounded-[6px] border border-[#E2E6ED] text-[#C13A3A] hover:bg-[#FBE7E7] flex items-center justify-center transition-colors"
+                                                title="Reject"
+                                            >
+                                                <X size={13} />
+                                            </button>
                                         </div>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                navigate('/leave', { state: { activeTab: 'APPROVALS' } });
-                                            }}
-                                            className="text-[10px] font-bold text-brand-600 dark:text-brand-400 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 dark:bg-brand-500/10 dark:hover:bg-brand-500/20 px-3 py-1.5 rounded-xl transition-colors whitespace-nowrap"
-                                        >
-                                            Review
-                                        </button>
                                     </div>
-                                ))
-                            )
-                        ) : (
-                            pendingRegularizations.length === 0 ? (
-                                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-10 font-semibold">No pending regularizations.</p>
-                            ) : (
-                                pendingRegularizations.map((request) => {
+                                ))}
+
+                                {pendingRegularizations.map((request) => {
                                     const name = request.user?.name || `Employee #${request.userId}`;
                                     return (
                                         <div 
                                             key={request.id} 
                                             onClick={() => navigate('/regularizations')}
-                                            className="group flex items-center gap-4 p-4 hover:bg-white dark:hover:bg-gray-700/50 rounded-2xl border border-transparent hover:border-gray-100 dark:hover:border-gray-600 hover:shadow-sm transition-all duration-205 cursor-pointer"
+                                            className="flex items-center justify-between p-1.5 rounded-[6px] hover:bg-[#F7F8FA] dark:hover:bg-gray-800 transition-all cursor-pointer border border-transparent hover:border-[#E2E6ED]"
                                         >
-                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-500/20 dark:to-orange-400/10 flex items-center justify-center text-orange-600 dark:text-orange-400 font-black text-xs shadow-inner group-hover:scale-105 transition-transform overflow-hidden shrink-0">
-                                             
+                                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                <div className="w-8 h-8 rounded-full bg-[#EEF1F5] dark:bg-gray-700 flex items-center justify-center text-[#5B6472] dark:text-white font-mono-numbers font-bold text-xs shrink-0">
+                                                    {getInitials(name)}
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <h4 className="text-[14px] font-semibold text-[#12151C] dark:text-white truncate">{name}</h4>
+                                                    <p className="text-[12.5px] text-[#5B6472] dark:text-gray-400 truncate">
+                                                        {request.reason || 'Regularization'} · <span className="font-mono-numbers">{request.date}</span>
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <div className="flex-1 min-w-0">
-                                                <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">{name}</h4>
-                                                <p className="text-[10px] font-medium text-gray-500 mt-0.5 truncate">
-                                                    {request.reason || 'Regularization'} • <span className="text-brand-600 dark:text-brand-400 font-semibold">{request.date}</span>
-                                                </p>
+                                            <div className="flex items-center gap-1.5 ml-2 shrink-0">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        navigate('/regularizations');
+                                                    }}
+                                                    className="w-6 h-6 rounded-[6px] border border-[#E2E6ED] text-[#1F8A5A] hover:bg-[#E4F5EC] flex items-center justify-center transition-colors"
+                                                    title="Review"
+                                                >
+                                                    <Check size={13} />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        navigate('/regularizations');
+                                                    }}
+                                                    className="w-6 h-6 rounded-[6px] border border-[#E2E6ED] text-[#C13A3A] hover:bg-[#FBE7E7] flex items-center justify-center transition-colors"
+                                                    title="Reject"
+                                                >
+                                                    <X size={13} />
+                                                </button>
                                             </div>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    navigate('/regularizations');
-                                                }}
-                                                className="text-[10px] font-bold text-brand-600 dark:text-brand-400 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 dark:bg-brand-500/10 dark:hover:bg-brand-500/20 px-3 py-1.5 rounded-xl transition-colors whitespace-nowrap"
-                                            >
-                                                Review
-                                            </button>
                                         </div>
                                     );
-                                })
-                            )
+                                })}
+                            </>
                         )}
                     </div>
                 </div>
             </div>
 
-            <div className="mt-8 mb-8 pb-4">
-                <div className="flex justify-between items-center mb-6 px-1">
-                    <h3 className="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-gray-900 to-gray-600 dark:from-white dark:to-gray-300">Employee Overview</h3>
+            {/* Bottom Section: Employee Overview Table */}
+            <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 shadow-sm overflow-hidden">
+                <div className="p-5 flex justify-between items-center border-b border-[#E2E6ED] dark:border-gray-800">
+                    <span className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white block">Employee Overview</span>
                     <button
                         onClick={() => navigate('/employee')}
-                        className="text-sm font-bold text-brand-600 dark:text-brand-400 hover:text-brand-700 hover:underline underline-offset-4 decoration-2"
+                        className="text-[13px] font-semibold text-[#2C4FD6] hover:underline"
                     >
-                        View All
+                        View all →
                     </button>
                 </div>
-                <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-3xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100/50 dark:border-gray-700/50">
-                    <div className="p-0 overflow-x-auto">
-                        <table className="w-full text-left border-collapse whitespace-nowrap">
-                            <thead>
-                                <tr className="bg-gray-50/80 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider font-bold border-b border-gray-100/80 dark:border-gray-700/80">
-                                    <th className="py-5 px-8 font-bold">Name</th>
-                                    <th className="py-5 px-8 font-bold">Role</th>
-                                    <th className="py-5 px-8 font-bold">Status</th>
-                                    <th className="py-5 px-8 font-bold text-right">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody className="text-sm divide-y divide-gray-50/80 dark:divide-gray-700/50">
-                                {employees
-                                    .filter((emp) => emp.status !== 'Inactive' && emp.status?.toLowerCase() !== 'inactive')
-                                    .map((emp) => (
-                                    <tr key={emp.id} onClick={() => navigate(`/employee/${emp.id}`)} className="group hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors cursor-pointer">
-                                        <td className="py-4 px-8 flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 flex-shrink-0 flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300 shadow-inner group-hover:scale-105 transition-transform">
-                                                {emp.name.split(' ').map((n: string) => n[0]).join('')}
-                                            </div>
-                                            <span className="font-bold text-gray-800 dark:text-gray-200 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">{emp.name}</span>
-                                        </td>
-                                        <td className="py-4 px-8 text-gray-500 dark:text-gray-400 font-medium">{emp.role}</td>
-                                        <td className="py-4 px-8">
-                                            <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm ${emp.status === 'Inactive'
-                                                ? 'bg-rose-500/10 text-rose-600 border border-rose-500/20 dark:text-rose-400'
-                                                : 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 dark:text-emerald-400'
-                                                }`}>
-                                                {emp.status}
-                                            </span>
-                                        </td>
-                                        <td className="py-4 px-8 text-right">
-                                            <button
-                                                className="text-sm font-bold text-gray-400 dark:text-gray-500 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors hover:underline underline-offset-4 decoration-2"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    navigate(`/employee/${emp.id}`);
-                                                }}
-                                            >
-                                                View Profile
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse whitespace-nowrap">
+                        <thead>
+                            <tr className="bg-[#EEF1F5] dark:bg-gray-800/60 text-[#9AA3B1] dark:text-gray-400 text-[11px] uppercase tracking-[.05em] font-semibold">
+                                <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 w-[35%]">EMPLOYEE</th>
+                                <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 w-[30%]">ROLE</th>
+                                <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 w-[20%]">STATUS</th>
+                                <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 text-right w-[20%]">ATTENDANCE</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#E2E6ED] dark:divide-gray-800 text-xs">
+                            {employees
+                                .filter((emp) => emp.status !== 'Inactive' && emp.status?.toLowerCase() !== 'inactive')
+                                .slice(0, 8)
+                                .map((emp) => {
+                                    const attendancePct = emp.attendancePercentage !== undefined ? emp.attendancePercentage : null;
+                                    const roleTitle = emp.role ? emp.role.replace('_', ' ') : 'Staff';
+                                    const roleSub = emp.department || emp.designation || 'Team Member';
+                                    
+                                    return (
+                                        <tr 
+                                            key={emp.id} 
+                                            onClick={() => navigate(`/employee/${emp.id}`)} 
+                                            className="hover:bg-[#F7F8FA] dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
+                                        >
+                                            <td className="py-[13px] px-[22px]">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-[#EEF1F5] dark:bg-gray-700 flex items-center justify-center text-[#12151C] dark:text-white font-mono-numbers font-semibold text-xs shrink-0">
+                                                        {getInitials(emp.name)}
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-[13.5px] font-semibold text-[#12151C] dark:text-white block">{emp.name}</span>
+                                                        <span className="text-[11px] text-[#5B6472] dark:text-gray-400 block">{emp.email || '—'}</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="py-[13px] px-[22px]">
+                                                <div>
+                                                    <span className="font-semibold text-[13.5px] text-[#12151C] dark:text-white capitalize block">{roleTitle}</span>
+                                                    <span className="text-[11px] text-[#5B6472] dark:text-gray-400 block">{roleSub}</span>
+                                                </div>
+                                            </td>
+                                            <td className="py-[13px] px-[22px]">
+                                                <span className="px-[10px] py-[3px] rounded-[3px] text-[11.5px] font-semibold bg-[#E4F5EC] text-[#1F8A5A] dark:bg-green-950/50 dark:text-green-400 inline-block tracking-wide">
+                                                    {emp.status || 'Active'}
+                                                </span>
+                                            </td>
+                                            <td className="py-[13px] px-[22px] text-right">
+                                                <span className="font-semibold font-mono-numbers text-[13.5px] text-[#12151C] dark:text-white">
+                                                    {attendancePct !== null ? `${attendancePct}%` : '100%'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
