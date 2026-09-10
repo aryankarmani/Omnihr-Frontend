@@ -200,14 +200,14 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
                     {/* Right: Theme Toggle, Notification Bell & User Profile */}
                     <div className="flex items-center gap-2 sm:gap-3">
-                        <button
+                        {/* <button
                             type="button"
                             onClick={toggleTheme}
                             title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
                             className="p-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] hover:bg-[#F7F8FA] dark:hover:bg-white/5 cursor-pointer text-[#5B6472] dark:text-gray-300 transition-all flex items-center justify-center"
                         >
                             {theme === 'dark' ? <Sun size={17} className="text-amber-400" /> : <Moon size={17} />}
-                        </button>
+                        </button> */}
 
                         <div
                             onClick={() => {
@@ -298,14 +298,14 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                             }}
 
                                             className={`group relative p-4 rounded-[6px] border transition-all cursor-pointer ${n.unread
-                                                    ? 'bg-brand-50/50 dark:bg-brand-500/10 border-brand-100 dark:border-brand-500/20'
-                                                    : 'bg-white dark:bg-white/5 border-gray-100 dark:border-white/5 hover:border-brand-200 dark:hover:border-brand-500/20'
+                                                ? 'bg-brand-50/50 dark:bg-brand-500/10 border-brand-100 dark:border-brand-500/20'
+                                                : 'bg-white dark:bg-white/5 border-gray-100 dark:border-white/5 hover:border-brand-200 dark:hover:border-brand-500/20'
                                                 }`}
                                         >
                                             <div className="flex gap-4">
                                                 <div className={`w-10 h-10 rounded-[6px] flex items-center justify-center shrink-0 ${n.type === 'leave' ? 'bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400' :
-                                                        n.type === 'attendance' ? 'bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400' :
-                                                            'bg-brand-100 text-brand-600 dark:bg-brand-500/20 dark:text-brand-400'
+                                                    n.type === 'attendance' ? 'bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400' :
+                                                        'bg-brand-100 text-brand-600 dark:bg-brand-500/20 dark:text-brand-400'
                                                     }`}>
                                                     {n.type === 'leave' ? <FileText size={20} /> :
                                                         n.type === 'attendance' ? <Calendar size={20} /> :
