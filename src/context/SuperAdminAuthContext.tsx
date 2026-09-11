@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { superAdminApi } from "../utils/superAdminApi";
 
 interface SuperAdminUser {
@@ -24,48 +24,74 @@ const SuperAdminAuthContext = createContext<SuperAdminAuthContextType | undefine
 
 export const SuperAdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [admin, setAdmin] = useState<SuperAdminUser | null>(() => {
-    const saved = sessionStorage.getItem("superadmin_user");
+    const saved = sessionStorage.getItem("superadmin_user") || sessionStorage.getItem("encalm_user");
     try {
       return saved ? JSON.parse(saved) : null;
     } catch {
       return null;
     }
   });
-  const [token, setToken] = useState<string | null>(() => sessionStorage.getItem("superadmin_token"));
+  const [token, setToken] = useState<string | null>(
+    () => sessionStorage.getItem("superadmin_token") || sessionStorage.getItem("token")
+  );
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
+    const currentToken = sessionStorage.getItem("superadmin_token") || sessionStorage.getItem("token");
+    if (!currentToken) {
+      setIsLoading(false);
+      return;
+    }
     try {
       const response = await superAdminApi.get("/auth/profile");
-      setAdmin(response.data.superAdmin);
+      if (response.data?.superAdmin) {
+        setAdmin(response.data.superAdmin);
+        sessionStorage.setItem("superadmin_user", JSON.stringify(response.data.superAdmin));
+      }
     } catch (error) {
-      sessionStorage.removeItem("superadmin_token");
-      sessionStorage.removeItem("superadmin_user");
-      setToken(null);
-      setAdmin(null);
+      console.warn("Could not fetch superadmin profile:", error);
+      // If profile fails, check if we still have a valid superadmin session
+      const savedUser = sessionStorage.getItem("superadmin_user") || sessionStorage.getItem("encalm_user");
+      if (savedUser) {
+        try {
+          const parsed = JSON.parse(savedUser);
+          if (parsed?.role === "SUPER_ADMIN") {
+            setAdmin(parsed);
+          } else {
+            setAdmin(null);
+            setToken(null);
+          }
+        } catch {
+          setAdmin(null);
+          setToken(null);
+        }
+      }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const syncSession = () => {
-    const savedToken = sessionStorage.getItem("superadmin_token");
-    const savedUser = sessionStorage.getItem("superadmin_user");
+  const syncSession = useCallback(() => {
+    const savedToken = sessionStorage.getItem("superadmin_token") || sessionStorage.getItem("token");
+    const savedUser = sessionStorage.getItem("superadmin_user") || sessionStorage.getItem("encalm_user");
     if (savedToken) {
       setToken(savedToken);
       if (savedUser) {
         try {
-          setAdmin(JSON.parse(savedUser));
+          const parsed = JSON.parse(savedUser);
+          if (parsed?.role === "SUPER_ADMIN") {
+            setAdmin(parsed);
+          }
         } catch {}
       }
       fetchProfile();
     } else {
       setIsLoading(false);
     }
-  };
+  }, [fetchProfile]);
 
   useEffect(() => {
-    const savedToken = sessionStorage.getItem("superadmin_token");
+    const savedToken = sessionStorage.getItem("superadmin_token") || sessionStorage.getItem("token");
     if (savedToken) {
       setToken(savedToken);
       fetchProfile();
@@ -79,7 +105,7 @@ export const SuperAdminAuthProvider: React.FC<{ children: React.ReactNode }> = (
 
     window.addEventListener("superadmin-login", handleLoginEvent);
     return () => window.removeEventListener("superadmin-login", handleLoginEvent);
-  }, []);
+  }, [fetchProfile, syncSession]);
 
   const login = async (email: string, password: string) => {
     const response = await superAdminApi.post("/auth/login", { email, password });
@@ -107,7 +133,7 @@ export const SuperAdminAuthProvider: React.FC<{ children: React.ReactNode }> = (
       value={{
         admin,
         token,
-        isAuthenticated: !!token && !!admin,
+        isAuthenticated: !!token && !!admin && (admin.role === "SUPER_ADMIN" || admin.role === "super_admin"),
         isLoading,
         login,
         logout,
