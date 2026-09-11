@@ -275,28 +275,6 @@ export default function EmployeeProfile() {
         }
     }, [employee]);
 
-    const getSalaryStorageKey = () => {
-        return `employee_salary_components_${employee?.id || id}`;
-    };
-
-    const saveSalaryComponentsLocally = (components: any[]) => {
-        if (!employee?.id && !id) return;
-
-        localStorage.setItem(
-            getSalaryStorageKey(),
-            JSON.stringify(components)
-        );
-    };
-
-    const getLocalSalaryComponents = () => {
-        try {
-            const saved = localStorage.getItem(`employee_salary_components_${employee?.id || id}`);
-            return saved ? JSON.parse(saved) : [];
-        } catch {
-            return [];
-        }
-    };
-
     const handleCancel = () => {
         fetchEmployee();
         fetchCustomFields();
@@ -351,32 +329,31 @@ export default function EmployeeProfile() {
         if (!pd.departmentId) newErrors.departmentId = "Department is required";
         if (!pd.shiftId) newErrors.shiftId = "Select a shift";
 
-        if (!p.pan) newErrors.pan = "PAN is required";
-        else if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(p.pan.trim().toUpperCase())) {
+        if (p.pan && p.pan !== 'Not Provided' && !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(p.pan.trim().toUpperCase())) {
             newErrors.pan = "Invalid PAN format";
         }
 
-        if (!p.aadhaar) newErrors.aadhaar = "Aadhaar is required";
-        else if (!/^\d{12}$/.test(p.aadhaar)) newErrors.aadhaar = "Aadhaar must be 12 digits";
+        if (p.aadhaar && p.aadhaar !== 'Not Provided' && !/^\d{12}$/.test(p.aadhaar.replace(/\s+/g, ''))) {
+            newErrors.aadhaar = "Aadhaar must be 12 digits";
+        }
 
-        if (!p.uan) newErrors.uan = "UAN is required";
-        else if (!/^\d{12}$/.test(p.uan)) newErrors.uan = "UAN must be 12 digits";
+        if (p.uan && p.uan !== 'Not Provided' && !/^\d{12}$/.test(p.uan)) {
+            newErrors.uan = "UAN must be 12 digits";
+        }
 
-        if (!p.esic) newErrors.esic = "ESIC is required";
-        else if (!/^\d{10}$/.test(p.esic)) newErrors.esic = "ESIC must be 10 digits";
+        if (p.esic && p.esic !== 'Not Provided' && !/^\d{10}$/.test(p.esic)) {
+            newErrors.esic = "ESIC must be 10 digits";
+        }
 
-        if (!b.bankName?.trim()) newErrors.bankName = "Bank Name is required";
-        else if (!/^[A-Za-z\s]{2,50}$/.test(b.bankName.trim())) {
+        if (b.bankName && b.bankName !== 'Not Provided' && !/^[A-Za-z\s]{2,50}$/.test(b.bankName.trim())) {
             newErrors.bankName = "Bank Name must contain only letters";
         }
 
-        if (!b.ifsc) newErrors.ifsc = "IFSC is required";
-        else if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(b.ifsc.trim().toUpperCase())) {
+        if (b.ifsc && b.ifsc !== 'Not Provided' && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(b.ifsc.trim().toUpperCase())) {
             newErrors.ifsc = "Invalid IFSC format";
         }
 
-        if (!b.accountNumber) newErrors.accountNumber = "Account Number is required";
-        else if (!/^\d{9,18}$/.test(b.accountNumber)) {
+        if (b.accountNumber && b.accountNumber !== 'Not Provided' && !/^\d{9,18}$/.test(b.accountNumber)) {
             newErrors.accountNumber = "Account Number must be 9–18 digits";
         }
 
@@ -473,10 +450,10 @@ export default function EmployeeProfile() {
         }
         try {
             const currentSelectedComponents =
-                employee.employeeProfile?.selectedSalaryComponents ||
-                getLocalSalaryComponents();
+                employee.employeeProfile?.selectedSalaryComponents !== undefined
+                    ? employee.employeeProfile.selectedSalaryComponents
+                    : (employee.employeeProfile?.salaryComponents?.map((item: any) => item.component || item) || []);
 
-            saveSalaryComponentsLocally(currentSelectedComponents);
             const rawPhone = employee.employeeProfile?.phone || '';
             const phoneNum = rawPhone.includes(' ') ? rawPhone.split(' ')[1] : rawPhone;
             const combinedPhone = `${countryCode} ${phoneNum}`.trim();
@@ -495,8 +472,9 @@ export default function EmployeeProfile() {
                 status: employee.employeeProfile?.status || 'Active',
                 shiftId: employee.employeeProfile?.shiftId,
                 salary: employee.employeeProfile?.salary,
-                selectedSalaryComponents: employee.employeeProfile?.selectedSalaryComponents || [],
-                salaryComponents: employee.employeeProfile?.selectedSalaryComponents || [],                // Statutory
+                selectedSalaryComponents: currentSelectedComponents,
+                salaryComponents: currentSelectedComponents,
+                // Statutory
                 uan: employee.employeeProfile?.statutory?.uan,
                 pfNumber: employee.employeeProfile?.statutory?.pfNumber,
                 esic: employee.employeeProfile?.statutory?.esic,
@@ -510,7 +488,7 @@ export default function EmployeeProfile() {
                 name: employee.name,
                 email: employee.email,
                 roleId: employee.roleId || employee.role?.id,
-                role: employee.role?.name || employee.role?.title || employee.role
+                role: employee.role?.name || employee.role?.title || (typeof employee.role === 'string' ? employee.role : undefined)
             };
 
             const endpoint = id ? `/employee/${id}` : '/employee/me';
@@ -618,19 +596,21 @@ export default function EmployeeProfile() {
     const toggleSalaryComponent = (component: any) => {
         setEmployee((prev: any) => {
             const oldComponents =
-                prev.employeeProfile?.selectedSalaryComponents ||
-                getLocalSalaryComponents();
+                prev?.employeeProfile?.selectedSalaryComponents !== undefined
+                    ? prev.employeeProfile.selectedSalaryComponents
+                    : (prev?.employeeProfile?.salaryComponents?.map((item: any) => item.component || item) || []);
 
             const alreadySelected = oldComponents.some(
-                (item: any) => String(item.id) === String(component.id)
+                (item: any) => String(item.id || item.componentId) === String(component.id)
             );
 
             const updatedComponents = alreadySelected
-                ? oldComponents.filter((item: any) => String(item.id) !== String(component.id))
+                ? oldComponents.filter((item: any) => String(item.id || item.componentId) !== String(component.id))
                 : [
                     ...oldComponents,
                     {
                         id: component.id,
+                        componentId: component.id,
                         name: component.name,
                         type: component.type,
                         calculationType: component.calculationType,
@@ -638,34 +618,31 @@ export default function EmployeeProfile() {
                     },
                 ];
 
-            saveSalaryComponentsLocally(updatedComponents);
-
             return {
                 ...prev,
                 employeeProfile: {
-                    ...prev.employeeProfile,
+                    ...(prev?.employeeProfile || {}),
                     selectedSalaryComponents: updatedComponents,
                 },
             };
         });
     };
 
-    const removeSalaryComponent = (componentId: number) => {
+    const removeSalaryComponent = (componentId: any) => {
         setEmployee((prev: any) => {
             const oldComponents =
-                prev.employeeProfile?.selectedSalaryComponents ||
-                getLocalSalaryComponents();
+                prev?.employeeProfile?.selectedSalaryComponents !== undefined
+                    ? prev.employeeProfile.selectedSalaryComponents
+                    : (prev?.employeeProfile?.salaryComponents?.map((item: any) => item.component || item) || []);
 
             const updatedComponents = oldComponents.filter(
-                (component: any) => String(component.id) !== String(componentId)
+                (component: any) => String(component.id || component.componentId) !== String(componentId)
             );
-
-            saveSalaryComponentsLocally(updatedComponents);
 
             return {
                 ...prev,
                 employeeProfile: {
-                    ...prev.employeeProfile,
+                    ...(prev?.employeeProfile || {}),
                     selectedSalaryComponents: updatedComponents,
                 },
             };
@@ -861,23 +838,25 @@ export default function EmployeeProfile() {
         .join('')
         .toUpperCase();
     const selectedSalaryComponents = (() => {
-        const backendComponents =
-            Array.isArray(profile.selectedSalaryComponents) && profile.selectedSalaryComponents.length > 0
-                ? profile.selectedSalaryComponents
-                : Array.isArray(profile.salaryComponents) && profile.salaryComponents.length > 0
-                    ? profile.salaryComponents
-                    : Array.isArray(profile.salary?.selectedSalaryComponents) && profile.salary.selectedSalaryComponents.length > 0
-                        ? profile.salary.selectedSalaryComponents
-                        : [];
+        if (Array.isArray(profile.selectedSalaryComponents)) {
+            return profile.selectedSalaryComponents.map((item: any) =>
+                item.component ? item.component : item
+            );
+        }
 
-        const localComponents = getLocalSalaryComponents();
+        if (Array.isArray(profile.salaryComponents) && profile.salaryComponents.length > 0) {
+            return profile.salaryComponents.map((item: any) =>
+                item.component ? item.component : item
+            );
+        }
 
-        const finalComponents =
-            backendComponents.length > 0 ? backendComponents : localComponents;
+        if (Array.isArray(profile.salary?.selectedSalaryComponents) && profile.salary.selectedSalaryComponents.length > 0) {
+            return profile.salary.selectedSalaryComponents.map((item: any) =>
+                item.component ? item.component : item
+            );
+        }
 
-        return finalComponents.map((item: any) =>
-            item.component ? item.component : item
-        );
+        return [];
     })();
     const getComponentAmount = (component: any) => {
         const basicSalary = Number(profile.salary?.basic || 0);
@@ -1218,14 +1197,14 @@ export default function EmployeeProfile() {
                             <h1 className="text-xl font-bold text-[#12151C] dark:text-white leading-snug">{employee.name}</h1>
                         )}
                         <p className="profile-role text-[13.5px] font-semibold text-[#2C4FD6] dark:text-blue-400 my-0.5">
-                            {employee.role?.name || employee.role?.title || employee.role || 'HR_ADMIN'} · Employee
+                            {employee.role?.name || employee.role?.title || (typeof employee.role === 'string' ? employee.role : '') || 'EMPLOYEE'} · Employee
                         </p>
                         <div className="flex items-center gap-2 mt-1">
                             <span className="text-[11px] text-[#9AA3B1] bg-[#F7F8FA] dark:bg-gray-800 px-2 py-0.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 font-mono-numbers">
                                 ID: {employee.id}
                             </span>
                             <span className="text-[11px] text-[#9AA3B1] bg-[#F7F8FA] dark:bg-gray-800 px-2 py-0.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800">
-                                {profile.location || 'Delhi Office'}
+                                {profile.location || profile.locationRef?.name || 'N/A'}
                             </span>
                         </div>
                     </div>
@@ -1288,20 +1267,36 @@ export default function EmployeeProfile() {
                                 <h3 className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white flex items-center gap-2 mb-[20px]">
                                     <FileText size={16} className="text-[#2C4FD6]" /> Statutory Details
                                 </h3>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                     <div>
                                         <label className="text-[11px] font-medium text-[#9AA3B1] uppercase tracking-wider block mb-[6px]">UAN (PROVIDENT FUND)</label>
                                         {isEditing ? (
                                             <input
                                                 type="text"
                                                 placeholder="12-digit UAN"
-                                                value={(statutory as any).uan || ''}
+                                                value={(statutory as any).uan && (statutory as any).uan !== 'Not Provided' ? (statutory as any).uan : ''}
                                                 onChange={(e) => handleStatutoryChange('uan', e.target.value.replace(/\D/g, '').slice(0, 12))}
                                                 className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-xs font-semibold text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
                                             />
                                         ) : (
                                             <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
-                                                {(statutory as any).uan || '1212115184846'}
+                                                {(statutory as any).uan && (statutory as any).uan !== 'Not Provided' ? (statutory as any).uan : 'Not Provided'}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <label className="text-[11px] font-medium text-[#9AA3B1] uppercase tracking-wider block mb-[6px]">PF NUMBER</label>
+                                        {isEditing ? (
+                                            <input
+                                                type="text"
+                                                placeholder="e.g. DL/CPM/12345/678"
+                                                value={(statutory as any).pfNumber && (statutory as any).pfNumber !== 'Not Provided' ? (statutory as any).pfNumber : ''}
+                                                onChange={(e) => handleStatutoryChange('pfNumber', e.target.value)}
+                                                className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-xs font-semibold text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
+                                            />
+                                        ) : (
+                                            <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
+                                                {(statutory as any).pfNumber && (statutory as any).pfNumber !== 'Not Provided' ? (statutory as any).pfNumber : 'Not Provided'}
                                             </div>
                                         )}
                                     </div>
@@ -1311,13 +1306,13 @@ export default function EmployeeProfile() {
                                             <input
                                                 type="text"
                                                 placeholder="10-digit ESIC Number"
-                                                value={(statutory as any).esic || ''}
+                                                value={(statutory as any).esic && (statutory as any).esic !== 'Not Provided' ? (statutory as any).esic : ''}
                                                 onChange={(e) => handleStatutoryChange('esic', e.target.value.replace(/\D/g, '').slice(0, 10))}
                                                 className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-xs font-semibold text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
                                             />
                                         ) : (
                                             <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
-                                                {(statutory as any).esic || '458768647769'}
+                                                {(statutory as any).esic && (statutory as any).esic !== 'Not Provided' ? (statutory as any).esic : 'Not Provided'}
                                             </div>
                                         )}
                                     </div>
@@ -1327,13 +1322,13 @@ export default function EmployeeProfile() {
                                             <input
                                                 type="text"
                                                 placeholder="e.g. ABCDE1234F"
-                                                value={(statutory as any).pan || ''}
+                                                value={(statutory as any).pan && (statutory as any).pan !== 'Not Provided' ? (statutory as any).pan : ''}
                                                 onChange={(e) => handleStatutoryChange('pan', e.target.value.toUpperCase())}
                                                 className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-xs font-semibold text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
                                             />
                                         ) : (
                                             <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
-                                                {(statutory as any).pan || 'ABCDE1234F'}
+                                                {(statutory as any).pan && (statutory as any).pan !== 'Not Provided' ? (statutory as any).pan : 'Not Provided'}
                                             </div>
                                         )}
                                     </div>
@@ -1343,13 +1338,17 @@ export default function EmployeeProfile() {
                                             <input
                                                 type="text"
                                                 placeholder="12-digit Aadhaar Number"
-                                                value={(statutory as any).aadhaar || ''}
+                                                value={(statutory as any).aadhaar && (statutory as any).aadhaar !== 'Not Provided' ? (statutory as any).aadhaar : ''}
                                                 onChange={(e) => handleStatutoryChange('aadhaar', e.target.value.replace(/\D/g, '').slice(0, 12))}
                                                 className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-xs font-semibold text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
                                             />
                                         ) : (
                                             <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
-                                                {(statutory as any).aadhaar || '1111 1111 1111'}
+                                                {(statutory as any).aadhaar && (statutory as any).aadhaar !== 'Not Provided'
+                                                    ? ((statutory as any).aadhaar.length === 12
+                                                        ? (statutory as any).aadhaar.replace(/(\d{4})(\d{4})(\d{4})/, '$1 $2 $3')
+                                                        : (statutory as any).aadhaar)
+                                                    : 'Not Provided'}
                                             </div>
                                         )}
                                     </div>
@@ -1361,20 +1360,20 @@ export default function EmployeeProfile() {
                                 <h3 className="section-label text-[13.5px] font-bold text-[#12151C] dark:text-white flex items-center gap-2 mt-[26px] mb-[14px]">
                                     <CreditCard size={16} className="text-[#2C4FD6]" /> Bank Account
                                 </h3>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                     <div>
                                         <label className="text-[11px] font-medium text-[#9AA3B1] uppercase tracking-wider block mb-[6px]">BANK NAME</label>
                                         {isEditing ? (
                                             <input
                                                 type="text"
                                                 placeholder="e.g. HDFC Bank"
-                                                value={bank.bankName || ''}
+                                                value={bank.bankName && bank.bankName !== 'Not Provided' ? bank.bankName : ''}
                                                 onChange={(e) => handleBankChange('bankName', e.target.value)}
                                                 className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-xs font-semibold text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
                                             />
                                         ) : (
                                             <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
-                                                {bank.bankName || 'HDFC Bank'}
+                                                {bank.bankName && bank.bankName !== 'Not Provided' ? bank.bankName : 'Not Provided'}
                                             </div>
                                         )}
                                     </div>
@@ -1384,13 +1383,13 @@ export default function EmployeeProfile() {
                                             <input
                                                 type="text"
                                                 placeholder="e.g. HDFC0001234"
-                                                value={bank.ifsc || ''}
+                                                value={bank.ifsc && bank.ifsc !== 'Not Provided' ? bank.ifsc : ''}
                                                 onChange={(e) => handleBankChange('ifsc', e.target.value.toUpperCase())}
                                                 className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-xs font-semibold text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
                                             />
                                         ) : (
                                             <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
-                                                {bank.ifsc || 'HDFC0001234'}
+                                                {bank.ifsc && bank.ifsc !== 'Not Provided' ? bank.ifsc : 'Not Provided'}
                                             </div>
                                         )}
                                     </div>
@@ -1400,28 +1399,15 @@ export default function EmployeeProfile() {
                                             <input
                                                 type="text"
                                                 placeholder="9 to 18 digits"
-                                                value={bank.accountNumber || ''}
+                                                value={bank.accountNumber && bank.accountNumber !== 'Not Provided' ? bank.accountNumber : ''}
                                                 onChange={(e) => handleBankChange('accountNumber', e.target.value.replace(/\D/g, '').slice(0, 18))}
                                                 className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-xs font-semibold text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
                                             />
                                         ) : (
                                             <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
-                                                {bank.accountNumber ? `XXXX${bank.accountNumber.slice(-4)}` : 'XXXX2104'}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div>
-                                        <label className="text-[11px] font-medium text-[#9AA3B1] uppercase tracking-wider block mb-[6px]">UAN (PF)</label>
-                                        {isEditing ? (
-                                            <input
-                                                type="text"
-                                                value={(statutory as any).uan || ''}
-                                                onChange={(e) => handleStatutoryChange('uan', e.target.value.replace(/\D/g, ''))}
-                                                className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-xs font-semibold text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
-                                            />
-                                        ) : (
-                                            <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
-                                                {(statutory as any).uan || '1212115184846'}
+                                                {bank.accountNumber && bank.accountNumber !== 'Not Provided'
+                                                    ? (bank.accountNumber.length > 4 ? `XXXX${bank.accountNumber.slice(-4)}` : bank.accountNumber)
+                                                    : 'Not Provided'}
                                             </div>
                                         )}
                                     </div>
@@ -2731,8 +2717,65 @@ export default function EmployeeProfile() {
                     )}
                 </div>
 
-                {/* Sidebar / Quick Actions & Profile Completion */}
+                {/* Sidebar / Profile Completion & Quick Actions */}
                 <div className="space-y-6">
+                    {/* Profile Completion Card */}
+                    {(() => {
+                        const completion = calculateProfileCompletion(employee);
+                        const isComplete = completion.percentage === 100;
+                        return (
+                            <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-6 shadow-sm border border-[#E2E6ED] dark:border-gray-800 animate-fade-in-up">
+                                <div className="flex items-center justify-between text-xs font-bold mb-2">
+                                    <span className="text-[13.5px] font-bold text-[#12151C] dark:text-white">
+                                        Profile completion
+                                    </span>
+                                    <span className={`text-[13.5px] font-bold ${isComplete ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                        {completion.percentage}%
+                                    </span>
+                                </div>
+                                <div className="w-full bg-[#EEF1F5] dark:bg-gray-800 h-2 rounded-full overflow-hidden mb-3">
+                                    <div
+                                        className={`h-full rounded-full transition-all duration-300 ${
+                                            isComplete ? 'bg-emerald-500' : 'bg-amber-400'
+                                        }`}
+                                        style={{ width: `${completion.percentage}%` }}
+                                    />
+                                </div>
+                                {completion.missingItems && completion.missingItems.length > 0 ? (
+                                    <div className="mt-3">
+                                        <p className="text-[10px] font-black uppercase tracking-wider text-amber-500 dark:text-amber-400 mb-2">
+                                            MISSING
+                                        </p>
+                                        <ul className="space-y-1.5">
+                                            {completion.missingItems.map((item, idx) => (
+                                                <li
+                                                    key={idx}
+                                                    onClick={() => setActiveTab(item.tabKey)}
+                                                    className="text-xs text-[#5B6472] dark:text-gray-400 flex items-center justify-between group cursor-pointer hover:text-[#2C4FD6] dark:hover:text-blue-400 transition-colors py-0.5"
+                                                    title={`Go to ${item.tabKey} tab`}
+                                                >
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                                                        <span className="truncate">{item.label}</span>
+                                                    </div>
+                                                    <span className="text-[10px] text-[#9AA3B1] group-hover:text-[#2C4FD6] dark:group-hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap ml-1 font-medium">
+                                                        Fill →
+                                                    </span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                ) : (
+                                    <div className="mt-2 text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
+                                        <span>✓</span>
+                                        <span>Profile 100% complete</span>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })()}
+
+                    {/* Quick Actions Card */}
                     <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-6 shadow-sm border border-[#E2E6ED] dark:border-gray-800">
                         <h3 className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white mb-[20px]">Quick Actions</h3>
                         <div className="space-y-3">

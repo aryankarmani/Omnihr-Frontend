@@ -1,12 +1,45 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus, XCircle, Loader2, CheckCircle, XIcon, Search, Filter, Eye } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus, XCircle, Loader2, CheckCircle, XIcon, Search, Filter, Eye, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { createPortal } from 'react-dom';
 // import { getTeams } from '../utils/teamApi';
+
+export const formatTime12h = (timeStr?: string) => {
+    if (!timeStr) return '';
+    const [h, m] = timeStr.split(':').map(Number);
+    if (isNaN(h) || isNaN(m)) return timeStr;
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const hour12 = h % 12 || 12;
+    return `${String(hour12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
+};
+
+export const calculateDuration = (fromTime?: string, toTime?: string) => {
+    if (!fromTime || !toTime) return null;
+    const [h1, m1] = fromTime.split(':').map(Number);
+    const [h2, m2] = toTime.split(':').map(Number);
+    if (isNaN(h1) || isNaN(m1) || isNaN(h2) || isNaN(m2)) return null;
+
+    const totalMinutes = (h2 * 60 + m2) - (h1 * 60 + m1);
+    if (totalMinutes <= 0) return { isValid: false, text: 'End time must be after start time', hours: 0, minutes: 0, totalMinutes };
+
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    
+    let text = '';
+    if (hours > 0 && minutes > 0) {
+        text = `${hours} hr${hours > 1 ? 's' : ''} ${minutes} min${minutes > 1 ? 's' : ''}`;
+    } else if (hours > 0) {
+        text = `${hours} hr${hours > 1 ? 's' : ''}`;
+    } else {
+        text = `${minutes} min${minutes > 1 ? 's' : ''}`;
+    }
+
+    return { isValid: true, text, hours, minutes, totalMinutes };
+};
 
 export default function Leave() {
     const { user } = useAuth();
@@ -172,6 +205,36 @@ export default function Leave() {
         fetchData();
     }, [canSeeApprovals]);
 
+    const handleLeaveTypeChange = (type: string) => {
+        setLeaveType(type);
+        if (type === 'HD') {
+            if (!fromTime || !toTime) {
+                setFromTime('09:30');
+                setToTime('13:30');
+            }
+            if (fromDate) {
+                setToDate(fromDate);
+            }
+        } else if (type === 'SHL') {
+            if (!fromTime || !toTime) {
+                setFromTime('10:00');
+                setToTime('12:00');
+            }
+            if (fromDate) {
+                setToDate(fromDate);
+            }
+        }
+    };
+
+    const handleFromDateChange = (val: string) => {
+        setFromDate(val);
+        if (['HD', 'SHL'].includes(leaveType)) {
+            setToDate(val);
+        } else if (toDate && toDate < val) {
+            setToDate(val);
+        }
+    };
+
     const handleApplyLeave = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -180,9 +243,16 @@ export default function Leave() {
             return;
         }
 
-        if (['HD', 'SHL'].includes(leaveType) && (!fromTime || !toTime)) {
-            toast.error('Please select both start and end time');
-            return;
+        if (['HD', 'SHL'].includes(leaveType)) {
+            if (!fromTime || !toTime) {
+                toast.error('Please select both start and end time');
+                return;
+            }
+            const duration = calculateDuration(fromTime, toTime);
+            if (!duration || !duration.isValid) {
+                toast.error('End time must be later than start time');
+                return;
+            }
         }
 
         // Weekend validation (timezone-safe local parsing)
@@ -548,8 +618,23 @@ export default function Leave() {
                                                 <div className="hist-title text-[13px] font-semibold text-[#12151C] dark:text-white">
                                                     {leave.leaveType?.code || 'CL'} — {leave.reason || 'Personal work'}
                                                 </div>
-                                                <div className="hist-meta text-[11.5px]  text-[#9AA3B1] mt-[2px]">
-                                                    {new Date(leave.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {new Date(leave.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                <div className="hist-meta text-[11.5px] text-[#9AA3B1] mt-[2px] flex items-center gap-1.5 flex-wrap">
+                                                    <span>
+                                                        {new Date(leave.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                        {new Date(leave.startDate).toDateString() !== new Date(leave.endDate).toDateString() && (
+                                                            ` – ${new Date(leave.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+                                                        )}
+                                                    </span>
+                                                    {leave.fromTime && leave.toTime && (
+                                                        <span className="inline-flex items-center gap-1 font-semibold text-[10.5px] text-[#2C4FD6] dark:text-blue-400 bg-[#EEF2FF] dark:bg-blue-950/40 px-1.5 py-0.5 rounded-[4px]">
+                                                            <Clock size={10.5} />
+                                                            {formatTime12h(leave.fromTime)} - {formatTime12h(leave.toTime)}
+                                                            {(() => {
+                                                                const dur = calculateDuration(leave.fromTime, leave.toTime);
+                                                                return dur?.isValid ? ` (${dur.text})` : '';
+                                                            })()}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -680,8 +765,27 @@ export default function Leave() {
                                                     {l.leaveType?.code || 'LV'}
                                                 </span>
                                             </td>
-                                            <td className="py-[13px] px-[22px] text-xs text-[#5B6472] dark:text-gray-300 font-mono-numbers">
-                                                {new Date(l.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {new Date(l.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                            <td className="py-[13px] px-[22px] text-xs text-[#5B6472] dark:text-gray-300">
+                                                <div className="font-mono-numbers font-medium text-[#12151C] dark:text-gray-200">
+                                                    {new Date(l.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                    {new Date(l.startDate).toDateString() !== new Date(l.endDate).toDateString() && (
+                                                        ` – ${new Date(l.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+                                                    )}
+                                                </div>
+                                                {l.fromTime && l.toTime && (
+                                                    <div className="mt-1 flex items-center gap-1.5 text-[11px] font-semibold text-[#2C4FD6] dark:text-blue-400">
+                                                        <Clock size={11} className="shrink-0" />
+                                                        <span>{formatTime12h(l.fromTime)} – {formatTime12h(l.toTime)}</span>
+                                                        {(() => {
+                                                            const dur = calculateDuration(l.fromTime, l.toTime);
+                                                            return dur?.isValid ? (
+                                                                <span className="bg-[#EEF2FF] dark:bg-blue-950/50 text-[#2C4FD6] dark:text-blue-400 text-[10px] px-1.5 py-0.5 rounded font-mono">
+                                                                    {dur.text}
+                                                                </span>
+                                                            ) : null;
+                                                        })()}
+                                                    </div>
+                                                )}
                                             </td>
                                             <td
                                                 onClick={() => setSelectedLeaveForReason(l)}
@@ -826,8 +930,8 @@ export default function Leave() {
                                     <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">Leave Type</label>
                                     <select
                                         value={leaveType}
-                                        onChange={(e) => setLeaveType(e.target.value)}
-                                        className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white transition-all cursor-pointer"
+                                        onChange={(e) => handleLeaveTypeChange(e.target.value)}
+                                        className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white transition-all cursor-pointer font-medium"
                                         required
                                     >
                                         <option value="CL">Casual Leave (CL)</option>
@@ -851,30 +955,100 @@ export default function Leave() {
                                 </div>
                             </div>
 
+                            {/* Date Row */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">From Date</label>
+                                    <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">
+                                        {['HD', 'SHL'].includes(leaveType) ? 'Leave Date' : 'From Date'}
+                                    </label>
                                     <input
                                         type="date"
                                         min={new Date().toISOString().split('T')[0]}
                                         value={fromDate}
-                                        onChange={(e) => setFromDate(e.target.value)}
+                                        onChange={(e) => handleFromDateChange(e.target.value)}
                                         className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white"
                                         required
                                     />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">To Date</label>
-                                    <input
-                                        type="date"
-                                        min={fromDate || new Date().toISOString().split('T')[0]}
-                                        value={toDate}
-                                        onChange={(e) => setToDate(e.target.value)}
-                                        className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white"
-                                        required
-                                    />
+                                    <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">
+                                        {['HD', 'SHL'].includes(leaveType) ? 'Leave Duration Type' : 'To Date'}
+                                    </label>
+                                    {['HD', 'SHL'].includes(leaveType) ? (
+                                        <div className="px-3 py-2 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-[13px] font-semibold text-[#2C4FD6] dark:text-blue-400 flex items-center justify-between h-[39px]">
+                                            <span>{leaveType === 'HD' ? 'Half Day (Single Day)' : 'Short Leave (Single Day)'}</span>
+                                            <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-[#E8ECFC] dark:bg-blue-950/40 text-[#2C4FD6] dark:text-blue-300">1 Day</span>
+                                        </div>
+                                    ) : (
+                                        <input
+                                            type="date"
+                                            min={fromDate || new Date().toISOString().split('T')[0]}
+                                            value={toDate}
+                                            onChange={(e) => setToDate(e.target.value)}
+                                            className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white"
+                                            required
+                                        />
+                                    )}
                                 </div>
                             </div>
+
+                            {/* Timing Section for Half Day & Short Leave */}
+                            {['HD', 'SHL'].includes(leaveType) && (
+                                <div className="bg-[#F7F9FC] dark:bg-white/[0.03] border border-[#D9E2FC] dark:border-gray-800 rounded-[8px] p-3.5 space-y-3 animate-fade-in">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-xs font-bold text-[#12151C] dark:text-white flex items-center gap-1.5">
+                                            <Clock size={14} className="text-[#2C4FD6]" />
+                                            {leaveType === 'HD' ? 'Half Day Time Slot' : 'Short Leave Timing'}
+                                        </label>
+                                        {fromTime && toTime && (() => {
+                                            const dur = calculateDuration(fromTime, toTime);
+                                            if (dur?.isValid) {
+                                                return (
+                                                    <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#E4F5EC] text-[#1F8A5A] dark:bg-green-950/40 dark:text-green-400 font-mono">
+                                                        ⏱️ {dur.text} {leaveType === 'HD' ? '(0.5 Day)' : ''}
+                                                    </span>
+                                                );
+                                            } else {
+                                                return (
+                                                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#FBE7E7] text-[#DE350B] dark:bg-red-950/40 dark:text-red-400">
+                                                        Invalid Time Range
+                                                    </span>
+                                                );
+                                            }
+                                        })()}
+                                    </div>
+
+                                    {/* Manual Time Input Row */}
+                                    <div className="grid grid-cols-2 gap-3 pt-1">
+                                        <div className="space-y-1">
+                                            <label className="text-[11px] font-semibold text-[#5B6472] dark:text-gray-300">From Time</label>
+                                            <input
+                                                type="time"
+                                                value={fromTime}
+                                                onChange={(e) => setFromTime(e.target.value)}
+                                                className="w-full px-3 py-1.5 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13px] text-[#12151C] dark:text-white"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[11px] font-semibold text-[#5B6472] dark:text-gray-300">To Time</label>
+                                            <input
+                                                type="time"
+                                                value={toTime}
+                                                onChange={(e) => setToTime(e.target.value)}
+                                                className="w-full px-3 py-1.5 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13px] text-[#12151C] dark:text-white"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {fromTime && toTime && !calculateDuration(fromTime, toTime)?.isValid && (
+                                        <p className="text-[11.5px] text-[#DE350B] font-medium">
+                                            ⚠️ "To Time" must be later than "From Time".
+                                        </p>
+                                    )}
+                                </div>
+                            )}
 
                             <div className="pt-2 flex gap-3">
                                 <button
@@ -1059,9 +1233,32 @@ export default function Leave() {
                             <div>
                                 <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-400 mb-1">Leave Duration</label>
                                 <div className="p-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] font-semibold text-xs text-[#12151C] dark:text-white font-mono-numbers">
-                                    {new Date(selectedLeaveForReason.startDate).toLocaleDateString()} - {new Date(selectedLeaveForReason.endDate).toLocaleDateString()}
+                                    {new Date(selectedLeaveForReason.startDate).toLocaleDateString()}
+                                    {new Date(selectedLeaveForReason.startDate).toDateString() !== new Date(selectedLeaveForReason.endDate).toDateString() && (
+                                        ` - ${new Date(selectedLeaveForReason.endDate).toLocaleDateString()}`
+                                    )}
                                 </div>
                             </div>
+
+                            {selectedLeaveForReason.fromTime && selectedLeaveForReason.toTime && (
+                                <div>
+                                    <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-400 mb-1">Time Slot & Duration</label>
+                                    <div className="p-2.5 bg-[#EEF2FF] dark:bg-blue-950/30 border border-[#D9E2FC] dark:border-blue-900/40 rounded-[6px] font-semibold text-xs text-[#2C4FD6] dark:text-blue-300 flex items-center justify-between">
+                                        <div className="flex items-center gap-1.5">
+                                            <Clock size={14} className="shrink-0" />
+                                            <span>{formatTime12h(selectedLeaveForReason.fromTime)} – {formatTime12h(selectedLeaveForReason.toTime)}</span>
+                                        </div>
+                                        {(() => {
+                                            const dur = calculateDuration(selectedLeaveForReason.fromTime, selectedLeaveForReason.toTime);
+                                            return dur?.isValid ? (
+                                                <span className="bg-[#2C4FD6] text-white text-[11px] px-2 py-0.5 rounded font-mono">
+                                                    {dur.text}
+                                                </span>
+                                            ) : null;
+                                        })()}
+                                    </div>
+                                </div>
+                            )}
 
                             <div>
                                 <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-400 mb-1">Reason for Leave</label>

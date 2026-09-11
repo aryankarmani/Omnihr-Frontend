@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Search, Filter, Calendar, Mail, Loader2, ArrowLeft, UserMinus, LayoutGrid, List, Eye, XCircle } from 'lucide-react';
+import { Search, Filter, Calendar, Mail, Loader2, ArrowLeft, UserMinus, LayoutGrid, List, Eye, XCircle, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
+import { formatTime12h } from './Leave';
 
 export default function LeaveToday() {
     const navigate = useNavigate();
@@ -236,8 +237,19 @@ export default function LeaveToday() {
                                                 </span>
                                             </td>
 
-                                            <td className="py-[13px] px-[22px] text-center text-xs text-[#5B6472] dark:text-gray-300 font-mono-numbers">
-                                                {new Date(leave.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {new Date(leave.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                            <td className="py-[13px] px-[22px] text-center text-xs text-[#5B6472] dark:text-gray-300">
+                                                <div className="font-mono-numbers">
+                                                    {new Date(leave.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                    {new Date(leave.startDate).toDateString() !== new Date(leave.endDate).toDateString() && (
+                                                        ` – ${new Date(leave.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+                                                    )}
+                                                </div>
+                                                {leave.fromTime && leave.toTime && (
+                                                    <div className="mt-1 flex items-center justify-center gap-1 text-[11px] font-semibold text-[#2C4FD6] dark:text-blue-400">
+                                                        <Clock size={11} />
+                                                        <span>{formatTime12h(leave.fromTime)} - {formatTime12h(leave.toTime)}</span>
+                                                    </div>
+                                                )}
                                             </td>
 
                                             <td className="py-[13px] px-[22px] text-right">

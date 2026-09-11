@@ -20,6 +20,8 @@ interface AuthContextType {
     isLoading: boolean;
     login: (email: string, password: string) => Promise<void>;
     logout: () => void;
+    refreshUser: () => Promise<void>;
+    updateUser: (updatedUser: Partial<User>) => void;
     error: string | null;
 }
 
@@ -29,6 +31,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    const refreshUser = async () => {
+        try {
+            const token = sessionStorage.getItem('token');
+            if (!token) return;
+            const res = await api.get('/auth/me');
+            if (res.data?.user) {
+                const userData = res.data.user;
+                if (userData && typeof userData.role === 'string') {
+                    userData.role = userData.role.toUpperCase();
+                }
+                setUser(userData);
+                sessionStorage.setItem('encalm_user', JSON.stringify(userData));
+            }
+        } catch (e) {
+            console.error('Failed to refresh user profile:', e);
+        }
+    };
+
+    const updateUser = (updated: Partial<User>) => {
+        setUser(prev => {
+            if (!prev) return null;
+            const merged = { ...prev, ...updated };
+            sessionStorage.setItem('encalm_user', JSON.stringify(merged));
+            return merged;
+        });
+    };
 
     // Initialize from session storage to persist login across refreshes
     useEffect(() => {
@@ -40,8 +69,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
             setUser(parsedUser);
             listenToForegroundMessages();
+            // Also refresh latest from server in background
+            refreshUser();
         }
         setIsLoading(false);
+
+        const handleAuthUpdate = () => {
+            refreshUser();
+        };
+        window.addEventListener('auth_user_updated', handleAuthUpdate);
+        return () => window.removeEventListener('auth_user_updated', handleAuthUpdate);
     }, []);
 
     const login = async (email: string, password: string) => {
@@ -109,6 +146,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             isLoading,
             login,
             logout,
+            refreshUser,
+            updateUser,
             error
         }}>
             {children}

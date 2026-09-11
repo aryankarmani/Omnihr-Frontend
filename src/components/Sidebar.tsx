@@ -125,22 +125,22 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
     ];
 
 
-    if (user?.role === 'HR_ADMIN') {
-        userModules = userModules.length > 0
-            ? Array.from(new Set([...adminDefaultModules, ...userModules]))
-            : adminDefaultModules;
-    } else {
-        const baseModules = [...employeeDefaultModules];
-        // ✅ ADDED: if employee is team manager, add only allowed team modules
-        if (managerAccess.isTeamManager) {
-            if (managerAccess.access.list) baseModules.push('EMPLOYEE');
-            if (managerAccess.access.attendance || managerAccess.access.regularization) {
-                baseModules.push('EMPLOYEE_ATTENDANCE');
-            }
-            if (managerAccess.access.leaveApproval) baseModules.push('EMPLOYEE');
+    if (userModules.length === 0) {
+        if (user?.role === 'HR_ADMIN' || user?.role === 'SYSTEM_ADMIN') {
+            userModules = adminDefaultModules;
+        } else {
+            userModules = employeeDefaultModules;
         }
+    }
 
-        userModules = Array.from(new Set([...baseModules, ...userModules]));
+    if (managerAccess.isTeamManager) {
+        const extraModules: string[] = [];
+        if (managerAccess.access.list) extraModules.push('EMPLOYEE');
+        if (managerAccess.access.attendance || managerAccess.access.regularization) {
+            extraModules.push('EMPLOYEE_ATTENDANCE');
+        }
+        if (managerAccess.access.leaveApproval) extraModules.push('EMPLOYEE');
+        userModules = Array.from(new Set([...userModules, ...extraModules]));
     }
 
     const toggleMenu = (label: string) => {

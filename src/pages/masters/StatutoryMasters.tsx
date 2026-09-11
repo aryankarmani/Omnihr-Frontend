@@ -43,7 +43,7 @@ export default function StatutoryMasters() {
     const [loading, setLoading] = useState(false);
 
     // Shared Delete State
-    const [itemToDelete, setItemToDelete] = useState<{ id: number, name: string, type: 'salary-component' | 'professional-tax-slab' } | null>(null);
+    const [itemToDelete, setItemToDelete] = useState<{ id: any, name: string, type: 'salary-component' | 'professional-tax-slab' } | null>(null);
 
     // Component Form State
     const [showCompModal, setShowCompModal] = useState(false);
@@ -93,7 +93,7 @@ export default function StatutoryMasters() {
                 isFBP: false, calculationType: 'FLAT', value: 0, prorationMethod: 'CALENDAR_DAYS'
             });
             setEditingComponentId(null);
-        } catch (e) { toast.error("Failed to save"); }
+        } catch (e) { toast.error("Failed to save component"); }
         finally { setLoading(false); }
     };
 
@@ -128,17 +128,18 @@ export default function StatutoryMasters() {
         if (!itemToDelete) return;
         try {
             setLoading(true);
-            // Frontend is ready for the API call
             await api.delete(`/masters/${itemToDelete.type}s/${itemToDelete.id}`);
             toast.success(`${itemToDelete.name} deleted!`);
-        } catch (error) {
-            // Graceful fallback for UI demo
-            console.warn("Backend delete not available yet.");
-            toast.success(`${itemToDelete.name} removed from UI.`);
+            if (itemToDelete.type === 'salary-component') {
+                setComponents(prev => prev.filter(c => String(c.id) !== String(itemToDelete.id)));
+            }
+            if (itemToDelete.type === 'professional-tax-slab') {
+                setPtSlabs(prev => prev.filter(s => String(s.id) !== String(itemToDelete.id)));
+            }
+        } catch (error: any) {
+            console.error("Delete error:", error);
+            toast.error(error?.response?.data?.error || `Failed to delete ${itemToDelete.name}`);
         } finally {
-            if (itemToDelete.type === 'salary-component') setComponents(components.filter(c => c.id !== itemToDelete.id));
-            if (itemToDelete.type === 'professional-tax-slab') setPtSlabs(ptSlabs.filter(s => s.id !== itemToDelete.id));
-
             setItemToDelete(null);
             setLoading(false);
         }
@@ -174,21 +175,55 @@ export default function StatutoryMasters() {
                     <div className="space-y-6 animate-fade-in">
                         <div className="flex justify-between items-center">
                             <h3 className="text-[15.5px] font-semibold text-[#12151C] dark:text-white">Earnings & Deductions</h3>
-                            <button onClick={() => setShowCompModal(true)} className="inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white text-[13.5px] font-semibold rounded-[8px] px-[15px] py-[9px] transition-all cursor-pointer">
+                            <button
+                                onClick={() => {
+                                    setEditingComponentId(null);
+                                    setNewComp({
+                                        name: '', type: 'EARNING', taxability: 'TAXABLE', isWageCodeComponent: false, isPartOfWages: false,
+                                        isFBP: false, calculationType: 'FLAT', value: 0, prorationMethod: 'CALENDAR_DAYS'
+                                    });
+                                    setShowCompModal(true);
+                                }}
+                                className="inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white text-[13.5px] font-semibold rounded-[8px] px-[15px] py-[9px] transition-all cursor-pointer"
+                            >
                                 <Plus size={16} /> Add Component
                             </button>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {components.map(comp => (
-                                <div key={comp.id} className="group p-4 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[11px] transition-all relative">
+                                <div key={comp.id} className="group p-4 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[11px] transition-all relative hover:border-[#2C4FD6]/40 shadow-xs">
                                     <div className="flex justify-between items-start mb-2 gap-2">
                                         <h4 className="font-semibold text-[#12151C] dark:text-white flex-1 text-[13.5px]">{comp.name}</h4>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-1.5 shrink-0">
                                             <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${comp.type === 'EARNING' ? 'bg-[#E4F5EC] text-[#1F8A5A] dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-[#FBE7E7] text-[#DE350B] dark:bg-rose-900/30 dark:text-rose-400'}`}>{comp.type}</span>
                                             <button
+                                                type="button"
+                                                title="Edit component"
+                                                onClick={() => {
+                                                    setEditingComponentId(comp.id);
+                                                    setNewComp({
+                                                        name: comp.name || '',
+                                                        type: comp.type || 'EARNING',
+                                                        taxability: comp.taxability || 'TAXABLE',
+                                                        isWageCodeComponent: Boolean(comp.isWageCodeComponent),
+                                                        isPartOfWages: Boolean(comp.isPartOfWages),
+                                                        isFBP: Boolean(comp.isFBP),
+                                                        calculationType: comp.calculationType || 'FLAT',
+                                                        value: comp.value !== undefined && comp.value !== null ? comp.value : 0,
+                                                        prorationMethod: comp.prorationMethod || 'CALENDAR_DAYS'
+                                                    });
+                                                    setShowCompModal(true);
+                                                }}
+                                                className="p-1 text-[#5B6472] dark:text-gray-400 hover:text-[#2C4FD6] dark:hover:text-blue-400 hover:bg-[#EEF2FD] dark:hover:bg-blue-950/40 rounded transition-colors cursor-pointer"
+                                            >
+                                                <Edit size={14} />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                title="Delete component"
                                                 onClick={() => setItemToDelete({ id: comp.id, name: comp.name, type: 'salary-component' })}
-                                                className="p-1 text-[#9AA3B1] hover:text-[#DE350B] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                                className="p-1 text-[#5B6472] dark:text-gray-400 hover:text-[#DE350B] dark:hover:text-rose-400 hover:bg-[#FBE7E7] dark:hover:bg-rose-950/40 rounded transition-colors cursor-pointer"
                                             >
                                                 <Trash2 size={14} />
                                             </button>
@@ -306,8 +341,18 @@ export default function StatutoryMasters() {
                 <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-slate-900/20 dark:bg-black/60 backdrop-blur-md">
                     <div className="bg-white dark:bg-[#12151C] rounded-[11px] border border-[#E2E6ED] dark:border-gray-800 w-full max-w-md overflow-hidden animate-scale-in">
                         <div className="p-5 border-b border-[#E2E6ED] dark:border-gray-800 flex justify-between items-center bg-[#F7F8FA] dark:bg-white/5">
-                            <h3 className="text-base font-bold text-[#12151C] dark:text-white">Add Salary Component</h3>
-                            <button onClick={() => setShowCompModal(false)} className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer"><X size={18} /></button>
+                            <h3 className="text-base font-bold text-[#12151C] dark:text-white">
+                                {editingComponentId ? 'Edit Salary Component' : 'Add Salary Component'}
+                            </h3>
+                            <button
+                                onClick={() => {
+                                    setShowCompModal(false);
+                                    setEditingComponentId(null);
+                                }}
+                                className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer"
+                            >
+                                <X size={18} />
+                            </button>
                         </div>
                         <div className="p-6 space-y-4">
                             <div>
@@ -345,7 +390,7 @@ export default function StatutoryMasters() {
                                 </div>
                                 <div>
                                     <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Value</label>
-                                    <input type="number" placeholder="0" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newComp.value} onChange={e => setNewComp({ ...newComp, value: parseFloat(e.target.value) })} />
+                                    <input type="number" placeholder="0" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newComp.value} onChange={e => setNewComp({ ...newComp, value: parseFloat(e.target.value) || 0 })} />
                                 </div>
                             </div>
 
@@ -355,7 +400,14 @@ export default function StatutoryMasters() {
                                 <label className="flex items-center gap-3 text-xs text-[#5B6472] dark:text-gray-300 cursor-pointer"><input type="checkbox" className="w-4 h-4 rounded accent-[#2C4FD6]" checked={newComp.isFBP} onChange={e => setNewComp({ ...newComp, isFBP: e.target.checked })} /> FBP Eligible</label>
                             </div>
 
-                            <button onClick={saveComponent} className="w-full py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold text-[13.5px] rounded-[6px] transition-all cursor-pointer">Save Component</button>
+                            <button
+                                onClick={saveComponent}
+                                disabled={loading}
+                                className="w-full py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold text-[13.5px] rounded-[6px] transition-all cursor-pointer flex items-center justify-center gap-2"
+                            >
+                                {loading && <Loader2 size={16} className="animate-spin" />}
+                                {editingComponentId ? 'Update Component' : 'Save Component'}
+                            </button>
                         </div>
                     </div>
                 </div>
