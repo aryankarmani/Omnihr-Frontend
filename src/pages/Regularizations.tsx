@@ -361,13 +361,12 @@ export default function Regularizations() {
                         <span className="line-clamp-2">"{req.reason}"</span>
                       </td>
                       <td className="py-[13px] px-[22px]">
-                        <span className={`px-[10px] py-[3px] rounded-[3px] text-[11.5px] font-semibold inline-block capitalize ${
-                          isApproved
-                            ? 'bg-[#E4F5EC] text-[#1F8A5A] dark:bg-green-950/50 dark:text-green-400'
-                            : isRejected
+                        <span className={`px-[10px] py-[3px] rounded-[3px] text-[11.5px] font-semibold inline-block capitalize ${isApproved
+                          ? 'bg-[#E4F5EC] text-[#1F8A5A] dark:bg-green-950/50 dark:text-green-400'
+                          : isRejected
                             ? 'bg-[#FBE7E7] text-[#C13A3A] dark:bg-red-950/50 dark:text-red-400'
                             : 'bg-[#FFF7ED] text-[#EA580C] dark:bg-amber-950/50 dark:text-amber-400'
-                        }`}>
+                          }`}>
                           {req.status?.toLowerCase() || 'pending'}
                         </span>
                       </td>
@@ -523,7 +522,7 @@ export default function Regularizations() {
         createPortal(
           <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-slate-900/20 dark:bg-black/60 backdrop-blur-md" onClick={() => setRejectingId(null)} />
-            <div className="relative bg-white dark:bg-[#12151C] w-full max-w-md rounded-[11px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden p-6 animate-scale-in shadow-xl">
+            <div className="relative bg-white dark:bg-[#12151C] w-full max-w-md rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden p-6 animate-scale-in shadow-xl">
               <h3 className="text-base font-bold text-[#12151C] dark:text-white mb-1">Reject Request</h3>
               <p className="text-xs text-[#5B6472] dark:text-gray-400 mb-4">Please provide a reason for rejecting this regularization request.</p>
               <form onSubmit={handleRejectSubmit}>
@@ -533,20 +532,20 @@ export default function Regularizations() {
                   placeholder="Enter rejection reason..."
                   required
                   autoFocus
-                  className="w-full px-3 py-2 rounded-[7px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white text-xs outline-none focus:border-[#2C4FD6] min-h-[90px] mb-4 placeholder-[#9AA3B1] resize-none"
+                  className="w-full px-3 py-2 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white text-xs outline-none focus:border-[#2C4FD6] min-h-[90px] mb-4 placeholder-[#9AA3B1] resize-none"
                 />
                 <div className="flex gap-3">
                   <button
                     type="button"
                     onClick={() => setRejectingId(null)}
-                    className="flex-1 py-2.5 px-4 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 text-[#5B6472] dark:text-gray-300 font-semibold rounded-[8px] hover:bg-gray-50 dark:hover:bg-white/5 transition-colors text-xs cursor-pointer"
+                    className="flex-1 py-2.5 px-4 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 text-[#5B6472] dark:text-gray-300 font-semibold rounded-[6px] hover:bg-gray-50 dark:hover:bg-white/5 transition-colors text-xs cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={submittingReject}
-                    className="flex-1 py-2.5 px-4 bg-[#DE350B] text-white font-semibold rounded-[8px] hover:bg-[#b02a08] transition-colors flex items-center justify-center gap-2 text-xs cursor-pointer disabled:opacity-60"
+                    className="flex-1 py-2.5 px-4 bg-[#DE350B] text-white font-semibold rounded-[6px] hover:bg-[#b02a08] transition-colors flex items-center justify-center gap-2 text-xs cursor-pointer disabled:opacity-60"
                   >
                     {submittingReject ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Reject'}
                   </button>
@@ -561,7 +560,7 @@ export default function Regularizations() {
       {selectedRequestForReason &&
         createPortal(
           <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/20 dark:bg-black/60 backdrop-blur-md animate-fade-in">
-            <div className="relative bg-white dark:bg-[#12151C] w-full max-w-md rounded-[11px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden p-6 shadow-xl">
+            <div className="relative bg-white dark:bg-[#12151C] w-full max-w-md rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden p-6 shadow-xl">
               <div className="flex justify-between items-center mb-4 border-b border-[#E2E6ED] dark:border-gray-800 pb-3">
                 <h3 className="text-base font-bold text-[#12151C] dark:text-white">Regularization Details</h3>
                 <button
@@ -576,7 +575,7 @@ export default function Regularizations() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-400 mb-1">Employee Name</label>
-                  <div className="p-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-800 rounded-[7px] font-semibold text-xs text-[#12151C] dark:text-white">
+                  <div className="p-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] font-semibold text-xs text-[#12151C] dark:text-white">
                     {selectedRequestForReason.user?.name || `Employee #${selectedRequestForReason.userId}`}
                   </div>
                 </div>
@@ -584,13 +583,13 @@ export default function Regularizations() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-400 mb-1">Date</label>
-                    <div className="p-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-800 rounded-[7px] font-semibold text-xs text-[#12151C] dark:text-white font-mono-numbers">
+                    <div className="p-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] font-semibold text-xs text-[#12151C] dark:text-white font-mono-numbers">
                       {selectedRequestForReason.date}
                     </div>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-400 mb-1">Status</label>
-                    <div className="p-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-800 rounded-[7px] font-semibold text-xs text-[#12151C] dark:text-white capitalize">
+                    <div className="p-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] font-semibold text-xs text-[#12151C] dark:text-white capitalize">
                       {selectedRequestForReason.status?.toLowerCase() || 'pending'}
                     </div>
                   </div>
@@ -600,13 +599,13 @@ export default function Regularizations() {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-400 mb-1">Proposed In</label>
-                      <div className="p-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-800 rounded-[7px] font-semibold text-xs text-emerald-700 dark:text-emerald-400 font-mono-numbers">
+                      <div className="p-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] font-semibold text-xs text-emerald-700 dark:text-emerald-400 font-mono-numbers">
                         {formatTime12h(selectedRequestForReason.proposedIn || selectedRequestForReason.inTime)}
                       </div>
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-400 mb-1">Proposed Out</label>
-                      <div className="p-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-800 rounded-[7px] font-semibold text-xs text-rose-600 dark:text-rose-400 font-mono-numbers">
+                      <div className="p-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] font-semibold text-xs text-rose-600 dark:text-rose-400 font-mono-numbers">
                         {formatTime12h(selectedRequestForReason.proposedOut || selectedRequestForReason.outTime)}
                       </div>
                     </div>
@@ -615,7 +614,7 @@ export default function Regularizations() {
 
                 <div>
                   <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-400 mb-1">Reason</label>
-                  <div className="p-3 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-800 rounded-[7px] text-xs text-[#12151C] dark:text-gray-300 leading-relaxed">
+                  <div className="p-3 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-xs text-[#12151C] dark:text-gray-300 leading-relaxed">
                     <div className="max-h-[120px] overflow-y-auto custom-scrollbar break-words">
                       {selectedRequestForReason.reason}
                     </div>
@@ -625,7 +624,7 @@ export default function Regularizations() {
                 {selectedRequestForReason.approverComment && (
                   <div>
                     <label className="block text-xs font-semibold text-[#DE350B] mb-1">Rejection Reason</label>
-                    <div className="p-3 bg-[#FBE7E7]/50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-[7px] text-xs text-[#DE350B] leading-relaxed">
+                    <div className="p-3 bg-[#FBE7E7]/50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-[6px] text-xs text-[#DE350B] leading-relaxed">
                       {selectedRequestForReason.approverComment}
                     </div>
                   </div>
@@ -635,7 +634,7 @@ export default function Regularizations() {
                   <button
                     type="button"
                     onClick={() => setSelectedRequestForReason(null)}
-                    className="w-full py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold rounded-[8px] transition-colors text-xs cursor-pointer"
+                    className="w-full py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold rounded-[6px] transition-colors text-xs cursor-pointer"
                   >
                     Close
                   </button>

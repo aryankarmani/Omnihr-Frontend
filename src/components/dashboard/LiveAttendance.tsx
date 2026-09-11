@@ -8,16 +8,19 @@ interface LiveAttendanceProps {
 export default function LiveAttendance({ data }: LiveAttendanceProps) {
     const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
-    const chartData = (data && data.length > 0) ? data : [
-        { name: '10:00', visitors: 0 },
-        { name: '11:00', visitors: 0 },
-        { name: '13:00', visitors: 0 },
-        { name: '15:00', visitors: 0 },
-        { name: '17:00', visitors: 0 },
-        { name: '19:00', visitors: 0 },
-        { name: '21:00', visitors: 0 },
-        { name: '23:00', visitors: 0 },
+    const timeSlots = [
+        '09:00', '10:00', '11:00', '12:00', '13:00', '14:00',
+        '15:00', '16:00', '17:00', '18:00', '19:00', '20:00',
+        '21:00', '22:00', '23:00'
     ];
+
+    const chartData = timeSlots.map(slot => {
+        const found = data?.find(d => d.name === slot || d.name === slot.replace(/^0/, ''));
+        return {
+            name: slot,
+            visitors: found ? found.visitors : 0
+        };
+    });
 
     const maxVal = Math.max(...chartData.map(d => d.visitors), 1);
 
