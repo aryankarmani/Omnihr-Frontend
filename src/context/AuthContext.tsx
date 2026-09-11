@@ -2,23 +2,24 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../utils/api';
 import { requestFcmToken, listenToForegroundMessages } from "../firebase";
 
-export type UserRole = "HR_ADMIN" | "EMPLOYEE" | "SYSTEM_ADMIN" | "MANAGER";
+export type UserRole = "HR_ADMIN" | "EMPLOYEE" | "SYSTEM_ADMIN" | "MANAGER" | "SUPER_ADMIN";
 
 interface User {
-    id: number;
+    id: number | string;
     name: string;
     email: string;
     role: UserRole;
-    tenantId: string;
+    tenantId?: string;
     token?: string;
     accessibleModules?: string[];
+    forcePasswordChange?: boolean;
 }
 
 interface AuthContextType {
     user: User | null;
     isAuthenticated: boolean;
     isLoading: boolean;
-    login: (email: string, password: string) => Promise<void>;
+    login: (email: string, password: string) => Promise<User>;
     logout: () => void;
     error: string | null;
 }
@@ -61,25 +62,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(userData);
             sessionStorage.setItem('encalm_user', JSON.stringify(userData));
             sessionStorage.setItem('token', token);
-            if (refreshToken) {
-                sessionStorage.setItem('refreshToken', refreshToken);
-            }
-            if (userData?.tenantId) {
-                sessionStorage.setItem('tenantId', userData.tenantId);
+
+            if (userData?.role === 'SUPER_ADMIN') {
+                sessionStorage.setItem('superadmin_token', token);
+                sessionStorage.setItem('superadmin_user', JSON.stringify(userData));
+                window.dispatchEvent(new Event('superadmin-login'));
+            } else {
+                if (refreshToken) {
+                    sessionStorage.setItem('refreshToken', refreshToken);
+                }
+                if (userData?.tenantId) {
+                    sessionStorage.setItem('tenantId', userData.tenantId);
+                }
+
+                // ✅ Get FCM token from browser
+                try {
+                    const fcmToken = await requestFcmToken();
+                    if (fcmToken) {
+                        await api.post("/push-notification/save-token", {
+                            fcmToken,
+                        });
+                    }
+                    listenToForegroundMessages();
+                } catch (fcmErr) {
+                    console.log("FCM registration skipped or failed:", fcmErr);
+                }
             }
 
-            // ✅ Get FCM token from browser
-            const fcmToken = await requestFcmToken();
-
-            // ✅ Send FCM token to backend
-            if (fcmToken) {
-                await api.post("/push-notification/save-token", {
-                    fcmToken,
-                });
-            }
-
-            // ✅ Listen notification when app is open
-            listenToForegroundMessages();
+            return userData;
         } catch (err: any) {
             setError(err.response?.data?.message || err.message || "Login failed");
             throw err;
@@ -90,16 +100,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const logout = async () => {
         try {
-      // ✅ Remove FCM token from backend before clearing token
-      await api.delete("/push-notification/remove-token");
-    } catch (error) {
-      console.log("Failed to remove FCM token:", error);
-    }
+            // ✅ Remove FCM token from backend before clearing token
+            await api.delete("/push-notification/remove-token");
+        } catch (error) {
+            console.log("Failed to remove FCM token:", error);
+        }
         setUser(null);
         sessionStorage.removeItem('encalm_user');
         sessionStorage.removeItem('token');
         sessionStorage.removeItem('refreshToken');
         sessionStorage.removeItem('tenantId');
+        sessionStorage.removeItem('superadmin_token');
+        sessionStorage.removeItem('superadmin_user');
     };
 
     return (

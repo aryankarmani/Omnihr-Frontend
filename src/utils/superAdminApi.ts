@@ -28,8 +28,8 @@ superAdminApi.interceptors.response.use(
     if (error.response && error.response.status === 401) {
       sessionStorage.removeItem("superadmin_token");
       sessionStorage.removeItem("superadmin_user");
-      if (window.location.pathname.startsWith("/superadmin") && window.location.pathname !== "/superadmin/login") {
-        window.location.href = "/superadmin/login";
+      if (window.location.pathname.startsWith("/superadmin")) {
+        window.location.href = "/signin";
       }
     }
     return Promise.reject(error);

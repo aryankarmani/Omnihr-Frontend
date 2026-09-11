@@ -50,7 +50,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AppContent() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const [showSplash, setShowSplash] = useState(true);
 
   return (
@@ -70,12 +70,25 @@ function AppContent() {
             <BrowserRouter>
               <Routes>
                 <Route path="/" element={<Navigate to="/signin" replace />} />
-                <Route path="/signin" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <SignIn />} />
+                <Route
+                  path="/signin"
+                  element={
+                    isAuthenticated ? (
+                      user?.role === 'SUPER_ADMIN' ? (
+                        <Navigate to="/superadmin/dashboard" replace />
+                      ) : (
+                        <Navigate to="/dashboard" replace />
+                      )
+                    ) : (
+                      <SignIn />
+                    )
+                  }
+                />
                 <Route path="/signup" element={<Navigate to="/signin" replace />} />
                 <Route path="/forgot-password" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <ForgotPassword />} />
 
-                {/* Super Admin Routes (Isolated Platform Console) */}
-                <Route path="/superadmin/login" element={<SuperAdminLogin />} />
+                {/* Super Admin Routes (Unified Login, redirects old login to /signin) */}
+                <Route path="/superadmin/login" element={<Navigate to="/signin" replace />} />
                 <Route path="/superadmin/dashboard" element={<SuperAdminProtectedRoute><SuperAdminDashboard /></SuperAdminProtectedRoute>} />
                 <Route path="/superadmin/companies" element={<SuperAdminProtectedRoute><Companies /></SuperAdminProtectedRoute>} />
                 <Route path="/superadmin/companies/:id" element={<SuperAdminProtectedRoute><CompanyDetails /></SuperAdminProtectedRoute>} />

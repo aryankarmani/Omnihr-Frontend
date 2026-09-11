@@ -4,9 +4,16 @@ import { useSuperAdminAuth } from "../../context/SuperAdminAuthContext";
 import { SuperAdminLayout } from "./SuperAdminLayout";
 
 export const SuperAdminProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useSuperAdminAuth();
+  const { isAuthenticated, isLoading, syncSession } = useSuperAdminAuth();
+  const tokenInStorage = sessionStorage.getItem("superadmin_token");
 
-  if (isLoading) {
+  React.useEffect(() => {
+    if (!isAuthenticated && tokenInStorage) {
+      syncSession();
+    }
+  }, [isAuthenticated, tokenInStorage, syncSession]);
+
+  if (isLoading || (!isAuthenticated && tokenInStorage)) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-[#0B0D13]">
         <div className="flex flex-col items-center gap-3">
@@ -17,8 +24,8 @@ export const SuperAdminProtectedRoute: React.FC<{ children: React.ReactNode }> =
     );
   }
 
-  if (!isAuthenticated) {
-    return <Navigate to="/superadmin/login" replace />;
+  if (!isAuthenticated && !tokenInStorage) {
+    return <Navigate to="/signin" replace />;
   }
 
   return <SuperAdminLayout>{children}</SuperAdminLayout>;
