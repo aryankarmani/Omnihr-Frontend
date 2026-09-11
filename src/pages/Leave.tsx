@@ -28,7 +28,7 @@ export const calculateDuration = (fromTime?: string, toTime?: string) => {
 
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
-    
+
     let text = '';
     if (hours > 0 && minutes > 0) {
         text = `${hours} hr${hours > 1 ? 's' : ''} ${minutes} min${minutes > 1 ? 's' : ''}`;

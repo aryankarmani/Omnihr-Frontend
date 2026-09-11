@@ -326,7 +326,7 @@ export default function Team() {
                                                     );
 
                                                     navigate(`/employee/${emp.id}`);
-                                                }} 
+                                                }}
                                                 className="font-semibold text-[#12151C] dark:text-white text-[13.5px] hover:text-[#2C4FD6] hover:underline cursor-pointer"
                                             >
                                                 {emp.name}
@@ -519,8 +519,8 @@ export default function Team() {
                 </div>,
                 document.body
             )}
-{selectedTeam && !showAddMemberModal && createPortal(
-                    <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-slate-900/20 dark:bg-black/60 backdrop-blur-md">
+            {selectedTeam && !showAddMemberModal && createPortal(
+                <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-slate-900/20 dark:bg-black/60 backdrop-blur-md">
                     <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 w-full max-w-lg overflow-hidden animate-scale-in">
                         <div className="p-5 border-b border-[#E2E6ED] dark:border-gray-800 flex justify-between items-center bg-[#F7F8FA] dark:bg-white/5">
                             <div>

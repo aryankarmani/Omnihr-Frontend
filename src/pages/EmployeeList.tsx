@@ -214,7 +214,7 @@ export default function EmployeeList() {
         a.click();
 
         window.URL.revokeObjectURL(url);
-    };    return (
+    }; return (
         <div className="animate-fade-in-up">
             {/* Header Actions */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
@@ -347,13 +347,12 @@ export default function EmployeeList() {
                                                 <div className="text-[11.5px] text-[#717E95] dark:text-gray-400 capitalize">{profile.department || 'General'}</div>
                                             </td>
                                             <td className="py-[13px] px-[22px]">
-                                                <span className={`pill inline-block px-[10px] py-[3px] rounded-[3px] text-[11.5px] font-semibold tracking-wide ${
-                                                    status.toLowerCase() === 'active'
+                                                <span className={`pill inline-block px-[10px] py-[3px] rounded-[3px] text-[11.5px] font-semibold tracking-wide ${status.toLowerCase() === 'active'
                                                         ? 'bg-[#E4F5EC] text-[#1F8A5A]'
                                                         : status.toLowerCase() === 'on leave'
                                                             ? 'bg-[#F1F3F7] text-[#5B6472]'
                                                             : 'bg-[#FBE7E7] text-[#DE350B]'
-                                                }`}>
+                                                    }`}>
                                                     {status}
                                                 </span>
                                             </td>
@@ -883,9 +882,8 @@ export default function EmployeeList() {
                                                 </div>
                                                 <div className="w-full bg-gray-100 dark:bg-white/10 h-2 rounded-full overflow-hidden mb-2">
                                                     <div
-                                                        className={`h-full rounded-full transition-all duration-300 ${
-                                                            comp.percentage === 100 ? 'bg-emerald-500' : 'bg-amber-400'
-                                                        }`}
+                                                        className={`h-full rounded-full transition-all duration-300 ${comp.percentage === 100 ? 'bg-emerald-500' : 'bg-amber-400'
+                                                            }`}
                                                         style={{ width: `${comp.percentage}%` }}
                                                     />
                                                 </div>

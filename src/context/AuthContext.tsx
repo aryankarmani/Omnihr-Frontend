@@ -127,11 +127,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const logout = async () => {
         try {
-      // ✅ Remove FCM token from backend before clearing token
-      await api.delete("/push-notification/remove-token");
-    } catch (error) {
-      console.log("Failed to remove FCM token:", error);
-    }
+            // ✅ Remove FCM token from backend before clearing token
+            await api.delete("/push-notification/remove-token");
+        } catch (error) {
+            console.log("Failed to remove FCM token:", error);
+        }
         setUser(null);
         sessionStorage.removeItem('encalm_user');
         sessionStorage.removeItem('token');
