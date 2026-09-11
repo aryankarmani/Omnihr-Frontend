@@ -259,7 +259,9 @@ export default function Attendance() {
                 date: regularizeDate,
                 reason: finalReason,
                 inTime: inTimeStr,
-                outTime: outTimeStr
+                outTime: outTimeStr,
+                proposedIn: inTimeStr,
+                proposedOut: outTimeStr
             });
 
             toast.success('Regularization request submitted to your manager');
@@ -275,7 +277,21 @@ export default function Attendance() {
         }
     };
 
-
+    const handleOpenRegularize = (dateStr: string, log?: DailyLog) => {
+        setRegularizeDate(dateStr);
+        setReason('');
+        setCustomReason('');
+        if (log?.inTime) {
+            setInInputText(formatTime12h(log.inTime));
+        } else {
+            setInInputText('09:00 AM');
+        }
+        if (log?.outTime) {
+            setOutInputText(formatTime12h(log.outTime));
+        } else {
+            setOutInputText('06:00 PM');
+        }
+    };
 
     // Calendar Generation Logic
     const generateCalendarDays = () => {
@@ -294,7 +310,7 @@ export default function Attendance() {
         }
 
         const todayMidnight = new Date();
-        todayMidnight.setHours(23, 59, 59, 999);
+        todayMidnight.setHours(0, 0, 0, 0);
 
         // Days of current month
         for (let day = 1; day <= daysInMonth; day++) {
@@ -303,7 +319,7 @@ export default function Attendance() {
             const holiday = holidays.find(h => h.date.split('T')[0] === dateStr);
 
             const currentLoopDate = new Date(year, month, day);
-            const isBeforeJoining = joiningDate && currentLoopDate < joiningDate;
+            const isBeforeJoining = !log && joiningDate && currentLoopDate < joiningDate;
 
             // Find matching leave (APPROVED or PENDING)
             const leave = leaveHistory.find(l => {
@@ -317,23 +333,56 @@ export default function Attendance() {
             const hasPendingRequest = request && request.status === 'PENDING';
             const hasRejectedRequest = request && request.status === 'REJECTED';
 
+            const targetDate = new Date(year, month, day);
+            targetDate.setHours(0, 0, 0, 0);
+            const diffDays = Math.round((todayMidnight.getTime() - targetDate.getTime()) / (1000 * 60 * 60 * 24));
+            const lookbackDays = attendancePolicy?.regularizationDays ?? 3;
 
+            // Past date within policy (e.g. 1 to 3 days ago, strictly past and not today/future)
+            const isPastEligible = diffDays >= 1 && diffDays <= lookbackDays;
 
-            // Color rules matching Reference Image 2 100%:
-            // Present: soft green tile #E4F5EC, green Mono day number #1F8A5A
-            // Absent: soft red tile #FBE7E7, red Mono day number #C13A3A
-            // Approved Leave: soft blue tile #E8ECFC, blue Mono day number #2C4FD6
-            // Weekend / Off / No data: transparent/white cell, gray Mono day number #9AA3B1
+            // Only need regularization if there is an actual issue:
+            // - Absent or no log on a past working day
+            // - Marked Late
+            // - Marked Half Day
+            // - Missed punch (punched in but missing punch out)
+            const isCleanPresent = log && log.status === 'Present' && log.inTime && log.outTime;
+            const needsRegularization = !isCleanPresent;
+
+            const isEligibleForRegularize = isPastEligible &&
+                !isBeforeJoining &&
+                !holiday &&
+                (!leave || leave.status !== 'APPROVED') &&
+                !hasPendingRequest &&
+                needsRegularization;
+
+            // Check if day has any activity
+            const hasActivity = log || holiday || (leave && leave.status === 'APPROVED') || hasPendingRequest || hasRejectedRequest || isEligibleForRegularize;
+
+            // Empty day with no data - keep original clean minimal look with no border or box
+            if (!hasActivity) {
+                days.push(
+                    <div
+                        key={day}
+                        className="cal-day aspect-square rounded-[6px] bg-transparent flex items-center justify-center text-center transition-all"
+                    >
+                        <span className="font-mono font-bold text-[12.5px] text-[#9AA3B1]">{day}</span>
+                    </div>
+                );
+                continue;
+            }
+
+            // Color rules matching employee calendar design
             let containerBg = 'bg-transparent';
             let textColor = 'text-[#9AA3B1]';
 
             if (holiday) {
                 containerBg = 'bg-purple-50 dark:bg-purple-900/20';
                 textColor = 'text-purple-700';
-            } else if (!isBeforeJoining && log && (log.status === 'Present' || log.status === 'Late' || log.status === 'Half Day')) {
+            } else if (log && (log.status === 'Present' || log.status === 'Late' || log.status === 'Half Day')) {
                 containerBg = 'bg-[#E4F5EC] dark:bg-green-950/30';
                 textColor = 'text-[#1F8A5A] dark:text-green-400';
-            } else if (!isBeforeJoining && log && log.status === 'Absent') {
+            } else if (log && log.status === 'Absent') {
                 containerBg = 'bg-[#FBE7E7] dark:bg-red-950/30';
                 textColor = 'text-[#C13A3A] dark:text-red-400';
             } else if (!isBeforeJoining && leave && leave.status === 'APPROVED') {
@@ -342,6 +391,10 @@ export default function Attendance() {
             } else if (!isBeforeJoining && hasPendingRequest) {
                 containerBg = 'bg-amber-50/50 dark:bg-amber-950/20';
                 textColor = 'text-amber-700';
+            } else if (isEligibleForRegularize) {
+                // If past day with no punch/absent eligible for regularization
+                containerBg = 'bg-[#FBE7E7] dark:bg-red-950/30';
+                textColor = 'text-[#C13A3A] dark:text-red-400';
             }
 
             days.push(
@@ -352,11 +405,74 @@ export default function Attendance() {
                             setRejectedRequestToShow(request);
                         } else if (leave && leave.status === 'REJECTED') {
                             setRejectedLeaveToShow(leave);
+                        } else if (isEligibleForRegularize) {
+                            handleOpenRegularize(dateStr, log);
                         }
                     }}
-                    className={`cal-day present aspect-square rounded-[6px] ${containerBg} flex items-center justify-center text-center transition-all relative group cursor-pointer`}
+                    className={`cal-day aspect-square rounded-[6px] ${containerBg} p-1.5 sm:p-2 flex flex-col justify-between transition-all relative cursor-pointer hover:opacity-95`}
                 >
-                    <span className={`font-mono font-bold text-[12.5px] ${textColor}`}>{day}</span>
+                    {/* Top row: Day number and status badge (fixed height + items-start for consistent baseline) */}
+                    <div className="flex items-start justify-between h-5 sm:h-6 shrink-0">
+                        <span className={`font-mono font-bold text-[12.5px] sm:text-[13.5px] leading-none pt-0.5 ${textColor}`}>
+                            {day}
+                        </span>
+                        <div className="flex items-start">
+                            {hasPendingRequest ? (
+                                <span className="px-1.5 py-0.5 rounded-[3px] text-[8.5px] sm:text-[9.5px] font-medium bg-amber-100 text-amber-800 border border-amber-200 leading-none inline-block">
+                                    Pending
+                                </span>
+                            ) : hasRejectedRequest ? (
+                                <span className="px-1.5 py-0.5 rounded-[3px] text-[8.5px] sm:text-[9.5px] font-medium bg-[#FBE7E7] text-[#C13A3A] border border-red-200 leading-none inline-block">
+                                    Rejected
+                                </span>
+                            ) : holiday ? (
+                                <span className="px-1.5 py-0.5 rounded-[3px] text-[8.5px] sm:text-[9.5px] font-medium bg-purple-100 text-purple-700 border border-purple-200 leading-none inline-block">
+                                    Holiday
+                                </span>
+                            ) : leave && leave.status === 'APPROVED' ? (
+                                <span className="px-1.5 py-0.5 rounded-[3px] text-[8.5px] sm:text-[9.5px] font-medium bg-blue-100 text-blue-700 border border-blue-200 leading-none inline-block">
+                                    Leave
+                                </span>
+                            ) : null}
+                        </div>
+                    </div>
+
+                    {/* Middle row: Punch In & Out times centered consistently across all cards */}
+                    <div className="space-y-0.5 text-left flex-1 flex flex-col justify-center my-auto">
+                        {log?.inTime ? (
+                            <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-medium text-[#16A34A] dark:text-green-400 font-mono-numbers leading-tight truncate">
+                                <Clock size={10} className="text-[#16A34A] shrink-0" />
+                                <span>{formatTime12h(log.inTime).toLowerCase()}</span>
+                            </div>
+                        ) : null}
+                        {log?.outTime ? (
+                            <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-medium text-[#DC2626] dark:text-red-400 font-mono-numbers leading-tight truncate">
+                                <Clock size={10} className="text-[#DC2626] shrink-0" />
+                                <span>{formatTime12h(log.outTime).toLowerCase()}</span>
+                            </div>
+                        ) : log?.inTime ? (
+                            <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-medium text-[#DC2626] dark:text-red-400 font-mono-numbers leading-tight truncate">
+                                <Clock size={10} className="text-[#DC2626] shrink-0" />
+                                <span>--:--</span>
+                            </div>
+                        ) : null}
+                    </div>
+
+                    {/* Bottom: Regularize button directly in card (Web UI blue, NOT purple) - fixed height container */}
+                    <div className="flex justify-end items-center h-5 shrink-0">
+                        {isEligibleForRegularize ? (
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOpenRegularize(dateStr, log);
+                                }}
+                                className="px-1.5 sm:px-2 py-0.5 bg-[#E8ECFC] hover:bg-[#2C4FD6] text-[#2C4FD6] hover:text-white border border-[#2C4FD6]/30 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-700/50 rounded-[4px] text-[9px] sm:text-[9.5px] font-semibold transition-colors cursor-pointer leading-tight"
+                            >
+                                Regularize
+                            </button>
+                        ) : null}
+                    </div>
                 </div>
             );
         }
@@ -388,18 +504,14 @@ export default function Attendance() {
                     <button
                         onClick={handlePunch}
                         disabled={punchMutation.isPending}
-                        className={`w-36 h-36 rounded-full border-2 flex flex-col items-center justify-center transition-all transform active:scale-95 shadow-sm ${
-                            isPunchedIn
-                                ? 'border-[#C13A3A] bg-[#FBE7E7] text-[#C13A3A]'
-                                : 'border-[#1F8A5A] bg-[#E4F5EC] text-[#1F8A5A]'
-                        }`}
+                        className={`w-36 h-36 rounded-full border-2 flex flex-col items-center justify-center transition-all transform active:scale-95 shadow-sm ${isPunchedIn
+                            ? 'border-[#C13A3A] bg-[#FBE7E7] text-[#C13A3A]'
+                            : 'border-[#1F8A5A] bg-[#E4F5EC] text-[#1F8A5A]'
+                            }`}
                     >
                         <MapPin size={22} className="mb-1.5" />
                         <span className="lbl text-[13px] font-extrabold uppercase tracking-wider leading-none">
                             {isPunchedIn ? 'PUNCH OUT' : 'PUNCH IN'}
-                        </span>
-                        <span className="loc text-[10.5px] text-[#5B6472] dark:text-gray-400">
-                            Delhi Office (GPS)
                         </span>
                     </button>
                 </div>
@@ -615,20 +727,20 @@ export default function Attendance() {
                                 </div>
                             </div>
 
-                            <div className="flex gap-4 pt-4">
+                            <div className="flex items-center justify-between gap-4 pt-4 mt-2">
                                 <button
                                     type="button"
                                     onClick={() => setRegularizeDate(null)}
-                                    className="flex-1 py-3 px-6 bg-gray-150 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 font-bold rounded-[6px] transition-all text-xs tracking-wider uppercase"
+                                    className="px-6 py-2.5 text-[#5B6472] dark:text-gray-300 font-bold hover:bg-gray-100 dark:hover:bg-gray-800 rounded-[6px] transition-all text-xs tracking-wider uppercase cursor-pointer"
                                 >
-                                    Cancel
+                                    CANCEL
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={submittingRequest}
-                                    className="flex-1 py-3 px-6 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-[6px] transition-all shadow-lg shadow-brand-500/25 text-xs tracking-wider uppercase flex items-center justify-center gap-2"
+                                    className="px-8 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold rounded-[6px] transition-all shadow-md text-xs tracking-wider uppercase flex items-center justify-center gap-2 cursor-pointer"
                                 >
-                                    {submittingRequest ? <Loader2 className="w-4.5 h-4.5 animate-spin" /> : 'Submit'}
+                                    {submittingRequest ? <Loader2 className="w-4 h-4 animate-spin" /> : 'SUBMIT'}
                                 </button>
                             </div>
                         </form>

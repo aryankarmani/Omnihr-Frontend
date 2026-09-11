@@ -47,13 +47,13 @@ export default function LiveAttendance({ data }: LiveAttendanceProps) {
                         <YAxis domain={[0, 100]} hide />
                         <Tooltip
                             cursor={{ fill: 'rgba(238, 241, 245, 0.4)' }}
-                            contentStyle={{ 
-                                borderRadius: '6px', 
-                                border: '1px solid #E2E6ED', 
-                                backgroundColor: '#FFFFFF', 
+                            contentStyle={{
+                                borderRadius: '6px',
+                                border: '1px solid #E2E6ED',
+                                backgroundColor: '#FFFFFF',
                                 fontSize: '12px',
                                 fontFamily: 'Instrument Sans, sans-serif',
-                                color: '#12151C' 
+                                color: '#12151C'
                             }}
                         />
                         <Bar dataKey="visitors" radius={[6, 6, 0, 0]} barSize={64}>
@@ -77,3 +77,4 @@ export default function LiveAttendance({ data }: LiveAttendanceProps) {
         </div>
     );
 }
+

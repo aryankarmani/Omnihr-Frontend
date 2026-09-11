@@ -1,6 +1,6 @@
  
 import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { FileText, TrendingUp, Users, Calendar, ChevronDown, Clock } from 'lucide-react';
+import { FileText, TrendingUp, Users, Calendar, ChevronDown, Clock, DollarSign } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
@@ -33,9 +33,9 @@ export default function Reports() {
         endpoint: string,
         filename: string
     ) => {
+        const toastId = toast.loading(`Generating ${filename}...`);
         try {
-            const tenantId =
-                sessionStorage.getItem('tenantId');
+            const tenantId = sessionStorage.getItem('tenantId');
 
             const response = await api.get(endpoint, {
                 responseType: 'blob',
@@ -44,6 +44,11 @@ export default function Reports() {
                     period
                 }
             });
+
+            if (!response.data || response.data.size === 0) {
+                toast.error('No data available to export for this period', { id: toastId });
+                return;
+            }
 
             const blob = new Blob([response.data]);
             const url = window.URL.createObjectURL(blob);
@@ -54,9 +59,10 @@ export default function Reports() {
             a.click();
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
+            toast.success(`${filename} downloaded successfully!`, { id: toastId });
         } catch (err) {
             console.error('Download failed:', err);
-            toast.error('Download failed');
+            toast.error('Download failed', { id: toastId });
         }
     };
 
@@ -287,9 +293,92 @@ export default function Reports() {
                 </div>
             </div>
 
-            {/* Hidden Export Triggers */}
-            <div className="hidden">
-                <button onClick={() => downloadFile('/reports/export/attendance', 'attendance.csv')}>Export Attendance</button>
+            {/* Generate Reports Panel matching Web App Theme */}
+            <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 p-6 shadow-sm mt-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-5">
+                    <div>
+                        <span className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white block">
+                            Generate Reports
+                        </span>
+                        <p className="panel-sub text-[12.5px] text-[#9AA3B1] dark:text-gray-400 mt-1">
+                            Quick-download employee records for the selected period ({period}).
+                        </p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Card 1: Attendance */}
+                    <div
+                        onClick={() => downloadFile('/reports/export/attendance', `${period.replace(/\s+/g, '_')}_attendance.csv`)}
+                        className="p-5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-[#F7F8FA] dark:bg-gray-800/40 hover:bg-[#EEF1F5] dark:hover:bg-gray-800/80 hover:border-[#2C4FD6]/40 transition-all cursor-pointer group flex flex-col justify-between"
+                    >
+                        <div>
+                            <div className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-center text-[#5B6472] dark:text-gray-300 group-hover:text-[#2C4FD6] group-hover:border-[#2C4FD6]/30 mb-3.5 transition-colors">
+                                <FileText size={16} />
+                            </div>
+                            <h4 className="text-[14px] font-semibold text-[#12151C] dark:text-white group-hover:text-[#2C4FD6] transition-colors leading-tight">
+                                {period === 'this month' ? 'Monthly' : period.charAt(0).toUpperCase() + period.slice(1)} Attendance
+                            </h4>
+                            <p className="text-[12px] text-[#9AA3B1] dark:text-gray-400 mt-1">
+                                All active employee attendance logs
+                            </p>
+                        </div>
+                        <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#E2E6ED] dark:border-gray-700/60">
+                            <span className="text-[11.5px] text-[#5B6472] dark:text-gray-300 font-medium">Download CSV</span>
+                            <span className="text-[10px] font-semibold font-mono-numbers px-1.5 py-0.5 rounded-[4px] bg-[#E8ECFC] text-[#2C4FD6] dark:bg-blue-950/50 dark:text-blue-300">
+                                CSV
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Card 2: Salary Register */}
+                    <div
+                        onClick={() => downloadFile('/reports/export/salary', `${period.replace(/\s+/g, '_')}_salary.csv`)}
+                        className="p-5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-[#F7F8FA] dark:bg-gray-800/40 hover:bg-[#EEF1F5] dark:hover:bg-gray-800/80 hover:border-[#2C4FD6]/40 transition-all cursor-pointer group flex flex-col justify-between"
+                    >
+                        <div>
+                            <div className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-center text-[#5B6472] dark:text-gray-300 group-hover:text-[#2C4FD6] group-hover:border-[#2C4FD6]/30 mb-3.5 transition-colors">
+                                <DollarSign size={16} />
+                            </div>
+                            <h4 className="text-[14px] font-semibold text-[#12151C] dark:text-white group-hover:text-[#2C4FD6] transition-colors leading-tight">
+                                {period === 'this month' ? 'Monthly' : period.charAt(0).toUpperCase() + period.slice(1)} Salary Register
+                            </h4>
+                            <p className="text-[12px] text-[#9AA3B1] dark:text-gray-400 mt-1">
+                                Salary structure & period adjustments
+                            </p>
+                        </div>
+                        <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#E2E6ED] dark:border-gray-700/60">
+                            <span className="text-[11.5px] text-[#5B6472] dark:text-gray-300 font-medium">Download CSV</span>
+                            <span className="text-[10px] font-semibold font-mono-numbers px-1.5 py-0.5 rounded-[4px] bg-[#E8ECFC] text-[#2C4FD6] dark:bg-blue-950/50 dark:text-blue-300">
+                                CSV
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Card 3: Leave Balance */}
+                    <div
+                        onClick={() => downloadFile('/reports/export/leave', `${period.replace(/\s+/g, '_')}_leave.xlsx`)}
+                        className="p-5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-[#F7F8FA] dark:bg-gray-800/40 hover:bg-[#EEF1F5] dark:hover:bg-gray-800/80 hover:border-[#2C4FD6]/40 transition-all cursor-pointer group flex flex-col justify-between"
+                    >
+                        <div>
+                            <div className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-center text-[#5B6472] dark:text-gray-300 group-hover:text-[#2C4FD6] group-hover:border-[#2C4FD6]/30 mb-3.5 transition-colors">
+                                <Calendar size={16} />
+                            </div>
+                            <h4 className="text-[14px] font-semibold text-[#12151C] dark:text-white group-hover:text-[#2C4FD6] transition-colors leading-tight">
+                                {period === 'this month' ? 'Monthly' : period.charAt(0).toUpperCase() + period.slice(1)} Leave Balance
+                            </h4>
+                            <p className="text-[12px] text-[#9AA3B1] dark:text-gray-400 mt-1">
+                                Leave records & status history
+                            </p>
+                        </div>
+                        <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#E2E6ED] dark:border-gray-700/60">
+                            <span className="text-[11.5px] text-[#5B6472] dark:text-gray-300 font-medium">Download Excel</span>
+                            <span className="text-[10px] font-semibold font-mono-numbers px-1.5 py-0.5 rounded-[4px] bg-[#E4F5EC] text-[#1F8A5A] dark:bg-green-950/50 dark:text-green-300">
+                                XLSX
+                            </span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );

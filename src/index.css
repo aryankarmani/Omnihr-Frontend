@@ -254,4 +254,4 @@ select:-webkit-autofill:focus {
 }
 .dark .login-input:-webkit-autofill {
     box-shadow: 0 0 0 1000px #12151C inset !important;
-}
+}
