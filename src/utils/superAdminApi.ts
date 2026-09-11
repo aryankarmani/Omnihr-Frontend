@@ -1,8 +1,8 @@
 import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL 
-  ? `${import.meta.env.VITE_API_URL}/api/superadmin` 
-  : "http://localhost:3001/api/superadmin";
+const API_BASE_URL = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api/superadmin`
+  : "https://omnihr-backend-19fx.onrender.com/api/superadmin";
 
 export const superAdminApi = axios.create({
   baseURL: API_BASE_URL,
