@@ -18,9 +18,13 @@ export default function SignIn() {
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await login(email, password);
+            const loggedInUser = await login(email, password);
             setTheme('light');
-            navigate('/dashboard');
+            if (loggedInUser?.role === 'SUPER_ADMIN') {
+                navigate('/superadmin/dashboard');
+            } else {
+                navigate('/dashboard');
+            }
         } catch (err) {
             console.error("Login failed", err);
         }

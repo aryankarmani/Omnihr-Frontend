@@ -17,13 +17,21 @@ interface SuperAdminAuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   updateProfile: () => Promise<void>;
+  syncSession: () => void;
 }
 
 const SuperAdminAuthContext = createContext<SuperAdminAuthContextType | undefined>(undefined);
 
 export const SuperAdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [admin, setAdmin] = useState<SuperAdminUser | null>(null);
-  const [token, setToken] = useState<string | null>(sessionStorage.getItem("superadmin_token"));
+  const [admin, setAdmin] = useState<SuperAdminUser | null>(() => {
+    const saved = sessionStorage.getItem("superadmin_user");
+    try {
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [token, setToken] = useState<string | null>(() => sessionStorage.getItem("superadmin_token"));
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const fetchProfile = async () => {
@@ -40,6 +48,22 @@ export const SuperAdminAuthProvider: React.FC<{ children: React.ReactNode }> = (
     }
   };
 
+  const syncSession = () => {
+    const savedToken = sessionStorage.getItem("superadmin_token");
+    const savedUser = sessionStorage.getItem("superadmin_user");
+    if (savedToken) {
+      setToken(savedToken);
+      if (savedUser) {
+        try {
+          setAdmin(JSON.parse(savedUser));
+        } catch {}
+      }
+      fetchProfile();
+    } else {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     const savedToken = sessionStorage.getItem("superadmin_token");
     if (savedToken) {
@@ -48,6 +72,13 @@ export const SuperAdminAuthProvider: React.FC<{ children: React.ReactNode }> = (
     } else {
       setIsLoading(false);
     }
+
+    const handleLoginEvent = () => {
+      syncSession();
+    };
+
+    window.addEventListener("superadmin-login", handleLoginEvent);
+    return () => window.removeEventListener("superadmin-login", handleLoginEvent);
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -64,9 +95,11 @@ export const SuperAdminAuthProvider: React.FC<{ children: React.ReactNode }> = (
   const logout = () => {
     sessionStorage.removeItem("superadmin_token");
     sessionStorage.removeItem("superadmin_user");
+    sessionStorage.removeItem("encalm_user");
+    sessionStorage.removeItem("token");
     setToken(null);
     setAdmin(null);
-    window.location.href = "/superadmin/login";
+    window.location.href = "/signin";
   };
 
   return (
@@ -79,6 +112,7 @@ export const SuperAdminAuthProvider: React.FC<{ children: React.ReactNode }> = (
         login,
         logout,
         updateProfile: fetchProfile,
+        syncSession,
       }}
     >
       {children}
