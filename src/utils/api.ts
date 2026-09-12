@@ -1,7 +1,14 @@
 import axios from 'axios';
 
+const getBaseURL = () => {
+    if (import.meta.env.VITE_API_BASE_URL !== undefined) {
+        return `${import.meta.env.VITE_API_BASE_URL}/api`;
+    }
+    return import.meta.env.DEV ? 'http://localhost:3001/api' : '/api';
+};
+
 const api = axios.create({
-    baseURL: `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}/api`,
+    baseURL: getBaseURL(),
 });
 let isRefreshing = false;
 
@@ -49,7 +56,7 @@ api.interceptors.response.use(
                 }
 
                 const res = await axios.post(
-                    `${api.defaults.baseURL || 'http://localhost:3001/api'}/auth/refresh-token`,
+                    `${api.defaults.baseURL || '/api'}/auth/refresh-token`,
                     { refreshToken }
                 );
 
