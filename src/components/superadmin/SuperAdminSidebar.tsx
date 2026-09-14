@@ -33,7 +33,7 @@ export const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
 
   const menuItems = [
     { label: "Dashboard", path: "/superadmin/dashboard", icon: LayoutDashboard },
-    { label: "Companies", path: "/superadmin/companies", icon: Building2 },
+    { label: "Customers", path: "/superadmin/companies", icon: Building2 },
     { label: "Subscriptions", path: "/superadmin/subscriptions", icon: CalendarCheck },
     { label: "Payments", path: "/superadmin/payments", icon: CreditCard },
     { label: "Plans", path: "/superadmin/plans", icon: Layers },

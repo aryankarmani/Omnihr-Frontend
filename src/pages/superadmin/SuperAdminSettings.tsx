@@ -91,12 +91,12 @@ export default function SuperAdminSettings() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#9AA3B1] uppercase tracking-wider mb-1">
+              {/* <label className="block text-xs font-semibold text-[#9AA3B1] uppercase tracking-wider mb-1">
                 Session Isolation
               </label>
               <span className="font-mono text-xs text-[#5B6472] dark:text-gray-400">
                 superadmin_token in sessionStorage (Zero conflict with tenant session)
-              </span>
+              </span> */}
             </div>
           </div>
         </div>

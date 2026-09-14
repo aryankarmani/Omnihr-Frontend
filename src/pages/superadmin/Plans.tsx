@@ -3,6 +3,7 @@ import {
   Plus,
   Check,
   Edit2,
+  Trash2,
   Users,
   ToggleLeft,
   ToggleRight,
@@ -26,6 +27,7 @@ export default function Plans() {
   const [featuresString, setFeaturesString] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
 
   const fetchPlans = async () => {
     try {
@@ -121,6 +123,23 @@ export default function Plans() {
     }
   };
 
+  const handleDeletePlan = async (plan: any) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${plan.name}" plan? This action cannot be undone.`
+    );
+    if (!confirmed) return;
+    try {
+      setDeletingPlanId(plan.id);
+      await superAdminApi.delete(`/plans/${plan.id}`);
+      toast.success(`"${plan.name}" plan deleted successfully.`);
+      fetchPlans();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to delete plan.");
+    } finally {
+      setDeletingPlanId(null);
+    }
+  };
+
   return (
     <div className="w-full text-[#12151C] dark:text-white animate-fade-in font-sans">
       {/* Header */}
@@ -156,11 +175,10 @@ export default function Plans() {
             return (
               <div
                 key={p.id}
-                className={`bg-white dark:bg-[#12151C] rounded-[6px] border ${
-                  p.isActive
-                    ? "border-[#E2E6ED] dark:border-gray-800"
-                    : "border-gray-200/60 dark:border-gray-800/40 opacity-70"
-                } p-6 flex flex-col justify-between relative shadow-xs`}
+                className={`bg-white dark:bg-[#12151C] rounded-[6px] border ${p.isActive
+                  ? "border-[#E2E6ED] dark:border-gray-800"
+                  : "border-gray-200/60 dark:border-gray-800/40 opacity-70"
+                  } p-6 flex flex-col justify-between relative shadow-xs`}
               >
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -224,15 +242,26 @@ export default function Plans() {
 
                 <div className="pt-4 border-t border-[#E2E6ED] dark:border-gray-800 flex items-center justify-between">
                   <span className="text-[12px] text-[#9AA3B1] font-medium">
-                    {p.subscribersCount || 0} active companies
+                    {p.subscribersCount || 0} active {(p.subscribersCount || 0) === 1 ? "customer" : "customers"}
                   </span>
-                  <button
-                    onClick={() => openEditModal(p)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#EEF1F5] hover:bg-[#E8ECFC] hover:text-[#2C4FD6] dark:bg-white/5 dark:hover:bg-white/10 text-[#12151C] dark:text-gray-200 rounded-[6px] text-[12px] font-semibold transition-colors cursor-pointer"
-                  >
-                    <Edit2 size={13} />
-                    <span>Edit Tier</span>
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => handleDeletePlan(p)}
+                      disabled={deletingPlanId === p.id}
+                      title="Delete Plan"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-500 hover:text-rose-600 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 dark:text-rose-400 rounded-[6px] text-[12px] font-semibold transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      <Trash2 size={13} />
+                      <span>{deletingPlanId === p.id ? "..." : "Delete"}</span>
+                    </button>
+                    <button
+                      onClick={() => openEditModal(p)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#EEF1F5] hover:bg-[#E8ECFC] hover:text-[#2C4FD6] dark:bg-white/5 dark:hover:bg-white/10 text-[#12151C] dark:text-gray-200 rounded-[6px] text-[12px] font-semibold transition-colors cursor-pointer"
+                    >
+                      <Edit2 size={13} />
+                      <span>Edit Tier</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             );

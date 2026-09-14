@@ -6,6 +6,11 @@ import {
   AlertTriangle,
   XCircle,
   ShieldAlert,
+  Send,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { superAdminApi } from "../../utils/superAdminApi";
@@ -15,12 +20,15 @@ export default function Subscriptions() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [perPage, setPerPage] = useState<number>(10);
 
   // Modals state
   const [showExtendModal, setShowExtendModal] = useState(false);
   const [selectedSub, setSelectedSub] = useState<any>(null);
   const [extendDays, setExtendDays] = useState("30");
   const [submitting, setSubmitting] = useState(false);
+  const [sendingReminderId, setSendingReminderId] = useState<string | null>(null);
 
   const fetchSubscriptions = async () => {
     try {
@@ -75,6 +83,19 @@ export default function Subscriptions() {
     }
   };
 
+  const handleSendReminder = async (sub: any) => {
+    try {
+      setSendingReminderId(sub.id);
+      await superAdminApi.post("/notifications/send", { subscriptionId: sub.id });
+      toast.success(`Notification reminder dispatched to ${sub.companyName}!`);
+      fetchSubscriptions();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to send reminder.");
+    } finally {
+      setSendingReminderId(null);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "ACTIVE":
@@ -114,6 +135,11 @@ export default function Subscriptions() {
     }
   };
 
+  const totalPages = Math.ceil(subscriptions.length / perPage) || 1;
+  const startIndex = (currentPage - 1) * perPage;
+  const endIndex = Math.min(startIndex + perPage, subscriptions.length);
+  const paginatedSubscriptions = subscriptions.slice(startIndex, endIndex);
+
   return (
     <div className="w-full text-[#12151C] dark:text-white animate-fade-in font-sans">
       {/* Header */}
@@ -133,7 +159,10 @@ export default function Subscriptions() {
           <input
             type="text"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
             onKeyDown={(e) => e.key === "Enter" && fetchSubscriptions()}
             placeholder="Search company or domain..."
             className="w-full pl-9 pr-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1] outline-none focus:border-[#2C4FD6] transition-all"
@@ -143,7 +172,10 @@ export default function Subscriptions() {
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full sm:w-auto px-3.5 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[13px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6] cursor-pointer"
           >
             <option value="">All Statuses</option>
@@ -156,31 +188,31 @@ export default function Subscriptions() {
       </div>
 
       {/* Subscriptions Table */}
-      <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden shadow-2xs">
+        <div className="overflow-x-auto max-h-[460px] overflow-y-auto table-scrollbar border-b border-[#E2E6ED] dark:border-gray-800">
           {loading ? (
             <div className="py-16 flex flex-col items-center justify-center gap-2">
               <div className="w-8 h-8 border-3 border-[#2C4FD6] border-t-transparent rounded-full animate-spin" />
               <span className="text-[#5B6472] dark:text-gray-400 text-sm">Loading subscriptions...</span>
             </div>
           ) : subscriptions.length > 0 ? (
-            <table className="w-full text-left">
-              <thead>
-                <tr className="bg-[#F4F6FB] dark:bg-[#1A1F2C] border-b border-[#E2E6ED] dark:border-gray-800 text-[12px] text-[#5B6472] dark:text-gray-400 font-semibold">
-                  <th className="py-3 px-4">Company</th>
-                  <th className="py-3 px-4">Plan</th>
-                  <th className="py-3 px-4">Billing Cycle</th>
-                  <th className="py-3 px-4">Start Date</th>
-                  <th className="py-3 px-4">Expiry Date</th>
-                  <th className="py-3 px-4">Remaining</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+            <table className="w-full text-center min-w-[950px]">
+              <thead className="sticky top-0 z-10 bg-[#F4F6FB] dark:bg-[#1A1F2C]">
+                <tr className="border-b border-[#E2E6ED] dark:border-gray-800 text-[12px] text-[#5B6472] dark:text-gray-400 font-semibold shadow-2xs">
+                  <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Company</th>
+                  <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Plan</th>
+                  <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Billing Cycle</th>
+                  <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Start Date</th>
+                  <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Expiry Date</th>
+                  <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Remaining</th>
+                  <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Status</th>
+                  <th className="py-3 px-4 text-center bg-[#F4F6FB] dark:bg-[#1A1F2C]">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E2E6ED] dark:divide-gray-800/60 text-[13.5px]">
-                {subscriptions.map((s) => (
+                {paginatedSubscriptions.map((s) => (
                   <tr key={s.id} className="hover:bg-[#F9FAFD] dark:hover:bg-white/5 transition-colors">
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 text-left whitespace-nowrap">
                       <span className="font-bold text-[#12151C] dark:text-white block">
                         {s.companyName}
                       </span>
@@ -189,19 +221,19 @@ export default function Subscriptions() {
                       </span>
                     </td>
 
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 whitespace-nowrap">
                       <span className="px-2.5 py-0.5 rounded-[3px] font-semibold text-[11px] bg-[#E8ECFC] text-[#2C4FD6]">
                         {s.planName}
                       </span>
                     </td>
 
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 whitespace-nowrap">
                       <span className="text-[#5B6472] dark:text-gray-300 capitalize">
                         {s.billingCycle?.toLowerCase()}
                       </span>
                     </td>
 
-                    <td className="py-3.5 px-4 text-[#5B6472] dark:text-gray-400">
+                    <td className="py-3.5 px-4 text-[#5B6472] dark:text-gray-400 whitespace-nowrap">
                       {new Date(s.startDate).toLocaleDateString("en-IN", {
                         day: "numeric",
                         month: "short",
@@ -209,7 +241,7 @@ export default function Subscriptions() {
                       })}
                     </td>
 
-                    <td className="py-3.5 px-4 font-semibold text-[#12151C] dark:text-white">
+                    <td className="py-3.5 px-4 font-semibold text-[#12151C] dark:text-white whitespace-nowrap">
                       {new Date(s.endDate).toLocaleDateString("en-IN", {
                         day: "numeric",
                         month: "short",
@@ -217,7 +249,7 @@ export default function Subscriptions() {
                       })}
                     </td>
 
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 whitespace-nowrap">
                       <span className="text-[#12151C] dark:text-white font-medium">
                         {s.daysRemaining > 0
                           ? `${s.daysRemaining} days`
@@ -225,10 +257,10 @@ export default function Subscriptions() {
                       </span>
                     </td>
 
-                    <td className="py-3.5 px-4">{getStatusBadge(s.status)}</td>
+                    <td className="py-3.5 px-4 whitespace-nowrap">{getStatusBadge(s.status)}</td>
 
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                    <td className="py-3.5 px-4 whitespace-nowrap">
+                      <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => {
                             setSelectedSub(s);
@@ -248,6 +280,14 @@ export default function Subscriptions() {
                         >
                           {s.status === "SUSPENDED" ? "Reactivate" : "Suspend"}
                         </button>
+                        <button
+                          onClick={() => handleSendReminder(s)}
+                          disabled={sendingReminderId === s.id}
+                          className="px-3.5 py-1.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[12px] font-semibold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors shadow-xs"
+                        >
+                          <Send size={13} />
+                          <span>{sendingReminderId === s.id ? "Sending..." : "Send Reminder Now"}</span>
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -261,6 +301,81 @@ export default function Subscriptions() {
             </div>
           )}
         </div>
+
+        {/* Table Footer with Pagination */}
+        {subscriptions.length > 0 && (
+          <div className="p-3.5 sm:px-5 sm:py-3.5 border-t border-[#E2E6ED] dark:border-gray-800 bg-[#F9FAFD] dark:bg-[#12151C] flex flex-col sm:flex-row items-center justify-between gap-3 text-[12.5px]">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-[#5B6472] dark:text-gray-400 font-medium">
+                Showing <span className="font-semibold text-[#12151C] dark:text-white">{startIndex + 1}</span> to{" "}
+                <span className="font-semibold text-[#12151C] dark:text-white">{endIndex}</span> of{" "}
+                <span className="font-semibold text-[#12151C] dark:text-white">{subscriptions.length}</span> entries
+              </span>
+
+              <div className="flex items-center gap-2 pl-3 border-l border-gray-300 dark:border-gray-700">
+                <span className="text-xs font-semibold text-[#9AA3B1] dark:text-gray-400 uppercase tracking-wider">
+                  Rows:
+                </span>
+                <select
+                  value={perPage}
+                  onChange={(e) => {
+                    setPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="px-2 py-1 bg-white dark:bg-[#1A1F2C] border border-[#E2E6ED] dark:border-gray-700 rounded-[5px] text-[#12151C] dark:text-white font-semibold cursor-pointer outline-none focus:border-[#2C4FD6] text-xs shadow-2xs"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-[#5B6472] dark:text-gray-400 mr-1">
+                Page <span className="font-semibold text-[#12151C] dark:text-white">{currentPage}</span> of{" "}
+                <span className="font-semibold text-[#12151C] dark:text-white">{totalPages}</span>
+              </span>
+
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                  title="First Page"
+                >
+                  <ChevronsLeft size={14} />
+                </button>
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                  title="Previous Page"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                  title="Next Page"
+                >
+                  <ChevronRight size={14} />
+                </button>
+                <button
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                  title="Last Page"
+                >
+                  <ChevronsRight size={14} />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Extend Modal */}

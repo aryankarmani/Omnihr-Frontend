@@ -8,6 +8,8 @@ import {
   BellRing,
   ArrowLeft,
   Users,
+  Bell,
+  Send,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { superAdminApi } from "../../utils/superAdminApi";
@@ -16,6 +18,12 @@ export default function CompanyDetails() {
   const { id } = useParams<{ id: string }>();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  // Subscription action states
+  const [showExtendModal, setShowExtendModal] = useState(false);
+  const [extendDays, setExtendDays] = useState("30");
+  const [submitting, setSubmitting] = useState(false);
+  const [sendingReminder, setSendingReminder] = useState(false);
 
   const fetchDetails = async () => {
     try {
@@ -32,6 +40,53 @@ export default function CompanyDetails() {
   useEffect(() => {
     if (id) fetchDetails();
   }, [id]);
+
+  const handleExtend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sub) return;
+
+    try {
+      setSubmitting(true);
+      await superAdminApi.put(`/subscriptions/${sub.id}`, {
+        extendDays: Number(extendDays),
+      });
+      toast.success(`Subscription extended by ${extendDays} days!`);
+      setShowExtendModal(false);
+      fetchDetails();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to extend subscription.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleToggleSuspend = async () => {
+    if (!sub) return;
+    const newStatus = sub.status === "SUSPENDED" ? "ACTIVE" : "SUSPENDED";
+    try {
+      await superAdminApi.put(`/subscriptions/${sub.id}`, {
+        status: newStatus,
+      });
+      toast.success(`Subscription ${newStatus.toLowerCase()} successfully.`);
+      fetchDetails();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to update subscription status.");
+    }
+  };
+
+  const handleSendReminder = async () => {
+    if (!sub) return;
+    try {
+      setSendingReminder(true);
+      await superAdminApi.post("/notifications/send", { subscriptionId: sub.id });
+      toast.success(`Notification reminder dispatched to ${data?.name || "company"}!`);
+      fetchDetails();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to send reminder.");
+    } finally {
+      setSendingReminder(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -89,7 +144,35 @@ export default function CompanyDetails() {
               </p>
             </div>
           </div>
-          <div>
+          <div className="flex flex-wrap items-center gap-2">
+            {sub && (
+              <>
+                {/* <button
+                  onClick={() => setShowExtendModal(true)}
+                  className="px-3 py-1.5 bg-[#E8ECFC] hover:bg-[#D9E1FA] text-[#2C4FD6] rounded-[6px] text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  Extend
+                </button> */}
+                {/* <button
+                  onClick={handleToggleSuspend}
+                  className={`px-3 py-1.5 rounded-[6px] text-xs font-semibold transition-colors cursor-pointer ${
+                    sub.status === "SUSPENDED"
+                      ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400"
+                      : "bg-rose-50 text-rose-700 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-400"
+                  }`}
+                >
+                  {sub.status === "SUSPENDED" ? "Reactivate" : "Suspend"}
+                </button> */}
+                {/* <button
+                  onClick={handleSendReminder}
+                  disabled={sendingReminder}
+                  className="px-3.5 py-1.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[12px] font-semibold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors shadow-xs"
+                >
+                  <Send size={13} />
+                  <span>{sendingReminder ? "Sending..." : "Send Reminder Now"}</span>
+                </button> */}
+              </>
+            )}
             <span
               className={`px-3 py-1 rounded-[3px] text-xs font-semibold ${
                 data.isActive
@@ -127,39 +210,85 @@ export default function CompanyDetails() {
         </div>
 
         {/* Card 2: Current Subscription */}
-        <div className="bg-white dark:bg-[#12151C] p-5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800">
-          <div className="flex items-center gap-2 mb-3 text-[#2C4FD6] font-semibold text-[13px]">
-            <Calendar size={16} />
-            <span>Active Subscription Tier</span>
-          </div>
-          {sub ? (
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-base text-[#12151C] dark:text-white">
-                  {sub.planName}
-                </span>
-                <span className="px-2 py-0.5 rounded-[3px] text-[11px] font-semibold bg-[#E8ECFC] text-[#2C4FD6] uppercase">
-                  {sub.billingCycle}
-                </span>
+        <div className="bg-white dark:bg-[#12151C] p-5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-3 text-[#2C4FD6] font-semibold text-[13px]">
+              <div className="flex items-center gap-2">
+                <Calendar size={16} />
+                <span>Active Subscription Tier</span>
               </div>
-              <p className="text-sm text-[#5B6472] dark:text-gray-300">
-                Expires on:{" "}
-                <span className="font-semibold text-[#12151C] dark:text-white">
-                  {new Date(sub.endDate).toLocaleDateString("en-IN", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })}
+              {sub?.status && (
+                <span
+                  className={`px-2 py-0.5 rounded-[3px] text-[10px] font-bold ${
+                    sub.status === "ACTIVE"
+                      ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
+                      : sub.status === "SUSPENDED"
+                      ? "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400"
+                      : "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400"
+                  }`}
+                >
+                  {sub.status}
                 </span>
-              </p>
-              <p className="text-[12px] text-[#9AA3B1] pt-1">
-                {sub.daysRemaining > 0
-                  ? `${sub.daysRemaining} days remaining`
-                  : `Expired ${Math.abs(sub.daysRemaining)} days ago`}
-              </p>
+              )}
             </div>
-          ) : (
-            <p className="text-[#9AA3B1] text-sm">No active subscription plan.</p>
+            {sub ? (
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-base text-[#12151C] dark:text-white">
+                    {sub.planName}
+                  </span>
+                  <span className="px-2 py-0.5 rounded-[3px] text-[11px] font-semibold bg-[#E8ECFC] text-[#2C4FD6] uppercase">
+                    {sub.billingCycle}
+                  </span>
+                </div>
+                <p className="text-sm text-[#5B6472] dark:text-gray-300">
+                  Expires on:{" "}
+                  <span className="font-semibold text-[#12151C] dark:text-white">
+                    {new Date(sub.endDate).toLocaleDateString("en-IN", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </span>
+                </p>
+                <p className="text-[12px] text-[#9AA3B1] pt-1">
+                  {sub.daysRemaining > 0
+                    ? `${sub.daysRemaining} days remaining`
+                    : `Expired ${Math.abs(sub.daysRemaining)} days ago`}
+                </p>
+              </div>
+            ) : (
+              <p className="text-[#9AA3B1] text-sm">No active subscription plan.</p>
+            )}
+          </div>
+
+          {sub && (
+            <div className="pt-3 mt-3 border-t border-[#E2E6ED] dark:border-gray-800 flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => setShowExtendModal(true)}
+                className="px-2.5 py-1.5 bg-[#E8ECFC] hover:bg-[#D9E1FA] text-[#2C4FD6] rounded-[6px] text-[12px] font-semibold transition-colors cursor-pointer"
+              >
+                Extend
+              </button>
+              <button
+                onClick={handleToggleSuspend}
+                className={`px-2.5 py-1.5 rounded-[6px] text-[12px] font-semibold transition-colors cursor-pointer ${
+                  sub.status === "SUSPENDED"
+                    ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400"
+                    : "bg-rose-50 text-rose-700 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-400"
+                }`}
+              >
+                {sub.status === "SUSPENDED" ? "Reactivate" : "Suspend"}
+              </button>
+              <button
+                onClick={handleSendReminder}
+                disabled={sendingReminder}
+                className="px-3.5 py-1.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[12px] font-semibold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors shadow-xs"
+              >
+                <Send size={13} />
+                <span>{sendingReminder ? "Sending..." : "Send Reminder Now"}</span>
+              </button>
+            </div>
           )}
         </div>
 
@@ -297,6 +426,61 @@ export default function CompanyDetails() {
           )}
         </div>
       </div>
+
+      {/* Extend Modal */}
+      {showExtendModal && sub && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 p-6 max-w-md w-full shadow-xl animate-fade-in space-y-4">
+            <div>
+              <h3 className="text-lg font-bold text-[#12151C] dark:text-white">
+                Extend Subscription Validity
+              </h3>
+              <p className="text-[13px] text-[#5B6472] dark:text-gray-400 mt-0.5">
+                {data.name} • Currently expires on{" "}
+                {new Date(sub.endDate).toLocaleDateString("en-IN")}
+              </p>
+            </div>
+
+            <form onSubmit={handleExtend} className="space-y-4">
+              <div>
+                <label className="block text-[13px] font-semibold text-[#12151C] dark:text-gray-300 mb-1.5">
+                  Extension Duration (Days)
+                </label>
+                <select
+                  value={extendDays}
+                  onChange={(e) => setExtendDays(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
+                >
+                  <option value="15">15 Days</option>
+                  <option value="30">30 Days (1 Month)</option>
+                  <option value="60">60 Days (2 Months)</option>
+                  <option value="90">90 Days (3 Months)</option>
+                  <option value="180">180 Days (6 Months)</option>
+                  <option value="365">365 Days (1 Year)</option>
+                </select>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E2E6ED] dark:border-gray-800">
+                <button
+                  type="button"
+                  onClick={() => setShowExtendModal(false)}
+                  className="px-4 py-2 text-[13px] font-semibold text-[#5B6472] dark:text-gray-300 hover:bg-[#EEF1F5] dark:hover:bg-white/5 rounded-[6px] transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-5 py-2 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[13px] font-semibold shadow-sm cursor-pointer disabled:opacity-50 transition-colors"
+                >
+                  {submitting ? "Extending..." : "Confirm Extension"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

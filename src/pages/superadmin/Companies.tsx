@@ -7,8 +7,11 @@ import {
   XCircle,
   AlertTriangle,
   ExternalLink,
-  Power,
   Users,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { superAdminApi } from "../../utils/superAdminApi";
@@ -19,6 +22,8 @@ export default function Companies() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [perPage, setPerPage] = useState<number>(10);
 
   const fetchCompanies = async () => {
     try {
@@ -90,12 +95,17 @@ export default function Companies() {
     }
   };
 
+  const totalPages = Math.ceil(companies.length / perPage) || 1;
+  const startIndex = (currentPage - 1) * perPage;
+  const endIndex = Math.min(startIndex + perPage, companies.length);
+  const paginatedCompanies = companies.slice(startIndex, endIndex);
+
   return (
     <div className="w-full text-[#12151C] dark:text-white animate-fade-in font-sans">
       {/* Header */}
       <header className="mb-5">
         <h2 className="text-2xl font-bold tracking-tight text-[#12151C] dark:text-white mb-1">
-          Companies Directory
+          Companies & Customers
         </h2>
         <p className="text-sm text-[#5B6472] dark:text-gray-400">
           All registered customer tenants, their assigned HR Admins and subscription plans.
@@ -109,7 +119,10 @@ export default function Companies() {
           <input
             type="text"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
             placeholder="Search company, domain or email..."
             className="w-full pl-9 pr-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1] outline-none focus:border-[#2C4FD6] transition-all"
           />
@@ -118,7 +131,10 @@ export default function Companies() {
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full sm:w-auto px-3.5 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[13px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6] cursor-pointer"
           >
             <option value="">All Subscription Statuses</option>
@@ -130,33 +146,33 @@ export default function Companies() {
       </div>
 
       {/* Companies Table */}
-      <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden shadow-2xs">
+        <div className="overflow-x-auto max-h-[460px] overflow-y-auto table-scrollbar border-b border-[#E2E6ED] dark:border-gray-800">
           {loading ? (
             <div className="py-16 flex flex-col items-center justify-center gap-2">
               <div className="w-8 h-8 border-3 border-[#2C4FD6] border-t-transparent rounded-full animate-spin" />
               <span className="text-[#5B6472] dark:text-gray-400 text-sm">Loading companies...</span>
             </div>
           ) : companies.length > 0 ? (
-            <table className="w-full text-left">
-              <thead>
-                <tr className="bg-[#F4F6FB] dark:bg-[#1A1F2C] border-b border-[#E2E6ED] dark:border-gray-800 text-[12px] text-[#5B6472] dark:text-gray-400 font-semibold">
-                  <th className="py-3 px-4">Company Name</th>
-                  <th className="py-3 px-4">HR Admin</th>
-                  <th className="py-3 px-4">Plan & Cycle</th>
-                  <th className="py-3 px-4">Subscription Status</th>
-                  <th className="py-3 px-4">Expiry Date</th>
-                  <th className="py-3 px-4">Employees</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+            <table className="w-full text-left min-w-[950px]">
+              <thead className="sticky top-0 z-10 bg-[#F4F6FB] dark:bg-[#1A1F2C]">
+                <tr className="border-b border-[#E2E6ED] dark:border-gray-800 text-[12px] text-[#5B6472] dark:text-gray-400 font-semibold shadow-2xs">
+                  <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Company Name</th>
+                  <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">HR Admin</th>
+                  <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Plan & Cycle</th>
+                  <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Subscription Status</th>
+                  <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Expiry Date</th>
+                  <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Employees</th>
+                  <th className="py-3 px-4 text-center bg-[#F4F6FB] dark:bg-[#1A1F2C]">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E2E6ED] dark:divide-gray-800/60 text-[13.5px]">
-                {companies.map((c) => (
+                {paginatedCompanies.map((c) => (
                   <tr
                     key={c.id}
                     className="hover:bg-[#F9FAFD] dark:hover:bg-white/5 transition-colors"
                   >
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-[6px] bg-[#E8ECFC] text-[#2C4FD6] font-bold text-sm flex items-center justify-center shrink-0">
                           {c.name.charAt(0).toUpperCase()}
@@ -175,7 +191,7 @@ export default function Companies() {
                       </div>
                     </td>
 
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 whitespace-nowrap">
                       <div className="min-w-0">
                         <span className="font-semibold text-[#12151C] dark:text-white block">
                           {c.hrAdminName}
@@ -186,7 +202,7 @@ export default function Companies() {
                       </div>
                     </td>
 
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 whitespace-nowrap">
                       <div className="flex items-center gap-1.5">
                         <span className="px-2 py-0.5 rounded-[3px] font-semibold text-[11px] bg-[#E8ECFC] text-[#2C4FD6]">
                           {c.planName}
@@ -197,9 +213,9 @@ export default function Companies() {
                       </div>
                     </td>
 
-                    <td className="py-3.5 px-4">{getStatusBadge(c.subscriptionStatus)}</td>
+                    <td className="py-3.5 px-4 whitespace-nowrap">{getStatusBadge(c.subscriptionStatus)}</td>
 
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 whitespace-nowrap">
                       {c.expiryDate ? (
                         <div className="min-w-0">
                           <span className="text-[#12151C] dark:text-white font-medium block">
@@ -220,7 +236,7 @@ export default function Companies() {
                       )}
                     </td>
 
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 whitespace-nowrap">
                       <div className="flex items-center gap-1.5 text-[#5B6472] dark:text-gray-300 font-medium">
                         <Users size={15} className="text-[#9AA3B1]" />
                         <span>
@@ -229,26 +245,14 @@ export default function Companies() {
                       </div>
                     </td>
 
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleToggleStatus(c.id, c.isActive)}
-                          disabled={updatingId === c.id}
-                          title={c.isActive ? "Deactivate Company" : "Activate Company"}
-                          className={`p-1.5 rounded-[6px] transition-colors cursor-pointer ${
-                            c.isActive
-                              ? "text-[#5B6472] hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
-                              : "text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
-                          }`}
-                        >
-                          <Power size={16} />
-                        </button>
+                    <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                      <div className="flex items-center justify-center gap-2">
                         <Link
                           to={`/superadmin/companies/${c.id}`}
                           className="p-1.5 text-[#2C4FD6] hover:bg-[#E8ECFC] rounded-[6px] transition-colors inline-flex items-center gap-1 text-[12px] font-semibold"
                           title="View Company Details"
                         >
-                          <span>View</span>
+                          <span>View Details</span>
                           <ExternalLink size={13} />
                         </Link>
                       </div>
@@ -264,6 +268,81 @@ export default function Companies() {
             </div>
           )}
         </div>
+
+        {/* Table Footer with Pagination */}
+        {companies.length > 0 && (
+          <div className="p-3.5 sm:px-5 sm:py-3.5 border-t border-[#E2E6ED] dark:border-gray-800 bg-[#F9FAFD] dark:bg-[#12151C] flex flex-col sm:flex-row items-center justify-between gap-3 text-[12.5px]">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-[#5B6472] dark:text-gray-400 font-medium">
+                Showing <span className="font-semibold text-[#12151C] dark:text-white">{startIndex + 1}</span> to{" "}
+                <span className="font-semibold text-[#12151C] dark:text-white">{endIndex}</span> of{" "}
+                <span className="font-semibold text-[#12151C] dark:text-white">{companies.length}</span> entries
+              </span>
+
+              <div className="flex items-center gap-2 pl-3 border-l border-gray-300 dark:border-gray-700">
+                <span className="text-xs font-semibold text-[#9AA3B1] dark:text-gray-400 uppercase tracking-wider">
+                  Rows:
+                </span>
+                <select
+                  value={perPage}
+                  onChange={(e) => {
+                    setPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="px-2 py-1 bg-white dark:bg-[#1A1F2C] border border-[#E2E6ED] dark:border-gray-700 rounded-[5px] text-[#12151C] dark:text-white font-semibold cursor-pointer outline-none focus:border-[#2C4FD6] text-xs shadow-2xs"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-[#5B6472] dark:text-gray-400 mr-1">
+                Page <span className="font-semibold text-[#12151C] dark:text-white">{currentPage}</span> of{" "}
+                <span className="font-semibold text-[#12151C] dark:text-white">{totalPages}</span>
+              </span>
+
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                  title="First Page"
+                >
+                  <ChevronsLeft size={14} />
+                </button>
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                  title="Previous Page"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                  title="Next Page"
+                >
+                  <ChevronRight size={14} />
+                </button>
+                <button
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                  title="Last Page"
+                >
+                  <ChevronsRight size={14} />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -3,6 +3,10 @@ import {
   CreditCard,
   Search,
   Plus,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { superAdminApi } from "../../utils/superAdminApi";
@@ -13,6 +17,8 @@ export default function Payments() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [perPage, setPerPage] = useState<number>(10);
 
   // Modal
   const [showModal, setShowModal] = useState(false);
@@ -76,26 +82,31 @@ export default function Payments() {
     }
   };
 
+  const totalPages = Math.ceil(payments.length / perPage) || 1;
+  const startIndex = (currentPage - 1) * perPage;
+  const endIndex = Math.min(startIndex + perPage, payments.length);
+  const paginatedPayments = payments.slice(startIndex, endIndex);
+
   return (
     <div className="w-full text-[#12151C] dark:text-white animate-fade-in font-sans">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-[#12151C] dark:text-white mb-1">
-            Payments & Billing Ledger
+            Subscription Payments
           </h2>
           <p className="text-sm text-[#5B6472] dark:text-gray-400">
-            Real-time feed of all subscription payments processed across the platform.
+            Audit history of all incoming SaaS subscription payments, manual wires and gateway charges.
           </p>
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[13px] font-semibold shadow-sm transition-all cursor-pointer self-start sm:self-auto"
+          className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[13px] font-semibold shadow-xs transition-colors cursor-pointer self-start sm:self-auto"
         >
-          <Plus size={16} />
-          <span>Record Manual Payment</span>
+          <Plus size={15} />
+          <span>Record Offline Payment</span>
         </button>
-      </div>
+      </header>
 
       {/* Filters */}
       <div className="bg-white dark:bg-[#12151C] p-4 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-3 mb-5">
@@ -104,7 +115,10 @@ export default function Payments() {
           <input
             type="text"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
             onKeyDown={(e) => e.key === "Enter" && fetchPayments()}
             placeholder="Search by Txn ID or company..."
             className="w-full pl-9 pr-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1] outline-none focus:border-[#2C4FD6] transition-all"
@@ -114,7 +128,10 @@ export default function Payments() {
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full sm:w-auto px-3.5 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[13px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6] cursor-pointer"
           >
             <option value="">All Payment Statuses</option>
@@ -127,58 +144,58 @@ export default function Payments() {
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden shadow-2xs">
+        <div className="overflow-x-auto max-h-[460px] overflow-y-auto table-scrollbar border-b border-[#E2E6ED] dark:border-gray-800">
           {loading ? (
             <div className="py-16 flex flex-col items-center justify-center gap-2">
               <div className="w-8 h-8 border-3 border-[#2C4FD6] border-t-transparent rounded-full animate-spin" />
               <span className="text-[#5B6472] dark:text-gray-400 text-sm">Loading transactions...</span>
             </div>
           ) : payments.length > 0 ? (
-            <table className="w-full text-left">
-              <thead>
-                <tr className="bg-[#F4F6FB] dark:bg-[#1A1F2C] border-b border-[#E2E6ED] dark:border-gray-800 text-[12px] text-[#5B6472] dark:text-gray-400 font-semibold">
-                  <th className="py-3 px-4">Transaction ID</th>
-                  <th className="py-3 px-4">Company</th>
-                  <th className="py-3 px-4">Plan</th>
-                  <th className="py-3 px-4">Amount</th>
-                  <th className="py-3 px-4">Payment Method</th>
-                  <th className="py-3 px-4">Gateway</th>
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4 text-right">Status</th>
+            <table className="w-full text-left min-w-[850px]">
+              <thead className="sticky top-0 z-10 bg-[#F4F6FB] dark:bg-[#1A1F2C]">
+                <tr className="border-b border-[#E2E6ED] dark:border-gray-800 text-[12px] text-[#5B6472] dark:text-gray-400 font-semibold shadow-2xs">
+                  <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Transaction ID</th>
+                  <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Company</th>
+                  <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Plan</th>
+                  <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Amount</th>
+                  <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Payment Method</th>
+                  <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Gateway</th>
+                  <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Date</th>
+                  <th className="py-3 px-4 text-right bg-[#F4F6FB] dark:bg-[#1A1F2C]">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E2E6ED] dark:divide-gray-800/60 text-[13.5px]">
-                {payments.map((p) => (
+                {paginatedPayments.map((p) => (
                   <tr key={p.id} className="hover:bg-[#F9FAFD] dark:hover:bg-white/5 transition-colors">
-                    <td className="py-3.5 px-4 font-mono text-[12px] text-[#5B6472] dark:text-gray-400">
+                    <td className="py-3.5 px-4 font-mono text-[12px] text-[#5B6472] dark:text-gray-400 whitespace-nowrap">
                       {p.transactionId}
                     </td>
-                    <td className="py-3.5 px-4 font-bold text-[#12151C] dark:text-white">
+                    <td className="py-3.5 px-4 font-bold text-[#12151C] dark:text-white whitespace-nowrap">
                       {p.companyName}
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 whitespace-nowrap">
                       <span className="px-2.5 py-0.5 rounded-[3px] font-semibold text-[11px] bg-[#E8ECFC] text-[#2C4FD6]">
                         {p.planName}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 font-bold text-[#12151C] dark:text-white font-mono-numbers">
+                    <td className="py-3.5 px-4 font-bold text-[#12151C] dark:text-white font-mono-numbers whitespace-nowrap">
                       ₹{Number(p.amount).toLocaleString("en-IN")}
                     </td>
-                    <td className="py-3.5 px-4 text-[#5B6472] dark:text-gray-300">
+                    <td className="py-3.5 px-4 text-[#5B6472] dark:text-gray-300 whitespace-nowrap">
                       {p.paymentMethod}
                     </td>
-                    <td className="py-3.5 px-4 font-mono text-[11px] text-[#9AA3B1]">
+                    <td className="py-3.5 px-4 font-mono text-[11px] text-[#9AA3B1] whitespace-nowrap">
                       {p.gateway}
                     </td>
-                    <td className="py-3.5 px-4 text-[#5B6472] dark:text-gray-400">
+                    <td className="py-3.5 px-4 text-[#5B6472] dark:text-gray-400 whitespace-nowrap">
                       {new Date(p.paidAt).toLocaleDateString("en-IN", {
                         day: "numeric",
                         month: "short",
                         year: "numeric",
                       })}
                     </td>
-                    <td className="py-3.5 px-4 text-right">
+                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
                       <span className="px-2.5 py-0.5 rounded-[3px] text-[11px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
                         {p.status}
                       </span>
@@ -194,6 +211,81 @@ export default function Payments() {
             </div>
           )}
         </div>
+
+        {/* Table Footer with Pagination */}
+        {payments.length > 0 && (
+          <div className="p-3.5 sm:px-5 sm:py-3.5 border-t border-[#E2E6ED] dark:border-gray-800 bg-[#F9FAFD] dark:bg-[#12151C] flex flex-col sm:flex-row items-center justify-between gap-3 text-[12.5px]">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-[#5B6472] dark:text-gray-400 font-medium">
+                Showing <span className="font-semibold text-[#12151C] dark:text-white">{startIndex + 1}</span> to{" "}
+                <span className="font-semibold text-[#12151C] dark:text-white">{endIndex}</span> of{" "}
+                <span className="font-semibold text-[#12151C] dark:text-white">{payments.length}</span> entries
+              </span>
+
+              <div className="flex items-center gap-2 pl-3 border-l border-gray-300 dark:border-gray-700">
+                <span className="text-xs font-semibold text-[#9AA3B1] dark:text-gray-400 uppercase tracking-wider">
+                  Rows:
+                </span>
+                <select
+                  value={perPage}
+                  onChange={(e) => {
+                    setPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="px-2 py-1 bg-white dark:bg-[#1A1F2C] border border-[#E2E6ED] dark:border-gray-700 rounded-[5px] text-[#12151C] dark:text-white font-semibold cursor-pointer outline-none focus:border-[#2C4FD6] text-xs shadow-2xs"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-[#5B6472] dark:text-gray-400 mr-1">
+                Page <span className="font-semibold text-[#12151C] dark:text-white">{currentPage}</span> of{" "}
+                <span className="font-semibold text-[#12151C] dark:text-white">{totalPages}</span>
+              </span>
+
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                  title="First Page"
+                >
+                  <ChevronsLeft size={14} />
+                </button>
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                  title="Previous Page"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                  title="Next Page"
+                >
+                  <ChevronRight size={14} />
+                </button>
+                <button
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                  title="Last Page"
+                >
+                  <ChevronsRight size={14} />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Record Payment Modal */}

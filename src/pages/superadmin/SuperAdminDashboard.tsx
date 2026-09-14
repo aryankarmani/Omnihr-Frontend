@@ -78,14 +78,14 @@ export default function SuperAdminDashboard() {
 
   const kpis = [
     {
-      label: "TOTAL COMPANIES",
+      label: "TOTAL CUSTOMERS",
       value: cards.totalCompanies,
       icon: Building2,
       subtext: "Active corporate tenants",
       path: "/superadmin/companies",
     },
     {
-      label: "ACTIVE SUBSCRIPTIONS",
+      label: "ACTIVE CUSTOMERS",
       value: cards.activeSubscriptions,
       icon: CalendarCheck,
       subtext: "Currently paid & valid",
@@ -99,7 +99,7 @@ export default function SuperAdminDashboard() {
       path: "/superadmin/subscriptions?status=EXPIRING_SOON",
     },
     {
-      label: "EXPIRED PLANS",
+      label: "EXPIRED SUBSCRIPTION",
       value: cards.expired,
       icon: XCircle,
       subtext: "Requires renewal",
@@ -250,15 +250,15 @@ export default function SuperAdminDashboard() {
             </Link>
           </div>
 
-          <div className="overflow-x-auto flex-1">
+          <div className="overflow-x-auto overflow-y-auto max-h-[280px] table-scrollbar flex-1">
             {data?.expiringSubscriptions && data.expiringSubscriptions.length > 0 ? (
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="bg-[#F4F6FB] dark:bg-[#1A1F2C] border-b border-[#E2E6ED] dark:border-gray-800 text-[12px] text-[#5B6472] dark:text-gray-400 font-semibold">
-                    <th className="py-2.5 px-4">Company</th>
-                    <th className="py-2.5 px-4">Plan</th>
-                    <th className="py-2.5 px-4">Remaining</th>
-                    <th className="py-2.5 px-4 text-right">Action</th>
+              <table className="w-full text-left min-w-[450px]">
+                <thead className="sticky top-0 z-10 bg-[#F4F6FB] dark:bg-[#1A1F2C]">
+                  <tr className="border-b border-[#E2E6ED] dark:border-gray-800 text-[12px] text-[#5B6472] dark:text-gray-400 font-semibold shadow-2xs">
+                    <th className="py-2.5 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Company</th>
+                    <th className="py-2.5 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Plan</th>
+                    <th className="py-2.5 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Remaining</th>
+                    <th className="py-2.5 px-4 text-right bg-[#F4F6FB] dark:bg-[#1A1F2C]">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E2E6ED] dark:divide-gray-800/60">
@@ -315,15 +315,15 @@ export default function SuperAdminDashboard() {
             </Link>
           </div>
 
-          <div className="overflow-x-auto flex-1">
+          <div className="overflow-x-auto overflow-y-auto max-h-[280px] table-scrollbar flex-1">
             {data?.recentPayments && data.recentPayments.length > 0 ? (
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="bg-[#F4F6FB] dark:bg-[#1A1F2C] border-b border-[#E2E6ED] dark:border-gray-800 text-[12px] text-[#5B6472] dark:text-gray-400 font-semibold">
-                    <th className="py-2.5 px-4">Company</th>
-                    <th className="py-2.5 px-4">Plan</th>
-                    <th className="py-2.5 px-4">Amount</th>
-                    <th className="py-2.5 px-4 text-right">Status</th>
+              <table className="w-full text-left min-w-[450px]">
+                <thead className="sticky top-0 z-10 bg-[#F4F6FB] dark:bg-[#1A1F2C]">
+                  <tr className="border-b border-[#E2E6ED] dark:border-gray-800 text-[12px] text-[#5B6472] dark:text-gray-400 font-semibold shadow-2xs">
+                    <th className="py-2.5 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Company</th>
+                    <th className="py-2.5 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Plan</th>
+                    <th className="py-2.5 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Amount</th>
+                    <th className="py-2.5 px-4 text-right bg-[#F4F6FB] dark:bg-[#1A1F2C]">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E2E6ED] dark:divide-gray-800/60">
@@ -374,16 +374,16 @@ export default function SuperAdminDashboard() {
           </Link>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overflow-y-auto max-h-[320px] table-scrollbar">
           {data?.recentCompanies && data.recentCompanies.length > 0 ? (
-            <table className="w-full text-left">
-              <thead>
-                <tr className="bg-[#F4F6FB] dark:bg-[#1A1F2C] border-b border-[#E2E6ED] dark:border-gray-800 text-[12px] text-[#5B6472] dark:text-gray-400 font-semibold">
-                  <th className="py-3 px-4">Company Name</th>
-                  <th className="py-3 px-4">Tenant Domain</th>
-                  <th className="py-3 px-4">Current Plan</th>
-                  <th className="py-3 px-4">Employees</th>
-                  <th className="py-3 px-4 text-right">Action</th>
+            <table className="w-full text-left min-w-[700px]">
+              <thead className="sticky top-0 z-10 bg-[#F4F6FB] dark:bg-[#1A1F2C]">
+                <tr className="border-b border-[#E2E6ED] dark:border-gray-800 text-[12px] text-[#5B6472] dark:text-gray-400 font-semibold shadow-2xs">
+                  <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Company Name</th>
+                  <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Tenant Domain</th>
+                  <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Current Plan</th>
+                  <th className="py-3 px-2 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Employees</th>
+                  <th className="py-3 px-4 text-center bg-[#F4F6FB] dark:bg-[#1A1F2C]">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E2E6ED] dark:divide-gray-800/60">
@@ -403,12 +403,12 @@ export default function SuperAdminDashboard() {
                     <td className="py-3.5 px-4 text-[#5B6472] dark:text-gray-300">
                       {c.employeeCount} active
                     </td>
-                    <td className="py-3.5 px-4 text-right">
+                    <td className="py-3.5 text-center">
                       <Link
                         to={`/superadmin/companies/${c.id}`}
                         className="text-[#2C4FD6] hover:underline inline-flex items-center gap-1 text-[12px] font-semibold"
                       >
-                        <span>Details</span>
+                        <span>View Details</span>
                         <ExternalLink size={13} />
                       </Link>
                     </td>
@@ -417,7 +417,9 @@ export default function SuperAdminDashboard() {
               </tbody>
             </table>
           ) : (
-            <div className="p-8 text-center text-[#9AA3B1] text-[13px]">No companies found.</div>
+            <div className="p-8 text-center text-[#9AA3B1] text-[13px]">
+              No newly registered companies.
+            </div>
           )}
         </div>
       </div>
