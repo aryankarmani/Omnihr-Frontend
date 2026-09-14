@@ -82,6 +82,18 @@ api.interceptors.response.use(
             }
         }
 
+        if (
+            error.response?.status === 403 &&
+            (error.response?.data?.code === 'SUBSCRIPTION_SUSPENDED' ||
+             error.response?.data?.code === 'COMPANY_DEACTIVATED')
+        ) {
+            window.dispatchEvent(
+                new CustomEvent('subscription-suspended', {
+                    detail: error.response.data,
+                })
+            );
+        }
+
         return Promise.reject(error);
     }
 );
