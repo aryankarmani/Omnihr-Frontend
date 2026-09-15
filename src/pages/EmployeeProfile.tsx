@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useRBAC } from '../hooks/useRBAC';
-import { ArrowLeft, User, FileText, CreditCard, Download, Briefcase, Save, X, Printer, Loader2, Eye, Trash2, Upload, TrendingUp, TrendingDown, Coins } from 'lucide-react';
+import { ArrowLeft, User, FileText, CreditCard, Download, Briefcase, Save, X, Printer, Loader2, Eye, Trash2, Upload, TrendingUp, TrendingDown, Coins, ExternalLink, Image as ImageIcon } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import toast from 'react-hot-toast';
@@ -52,6 +52,22 @@ export default function EmployeeProfile() {
     const [companySignature, setCompanySignature] = useState<string | null>(null);
     const [salaryComponents, setSalaryComponents] = useState<any[]>([]);
     const [componentPickerType, setComponentPickerType] = useState<'EARNING' | 'DEDUCTION' | null>(null);
+    const [previewDoc, setPreviewDoc] = useState<{
+        title: string;
+        url: string;
+        fileName?: string;
+        fileType?: string;
+    } | null>(null);
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && previewDoc) {
+                setPreviewDoc(null);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [previewDoc]);
     // Employee State
     const [employee, setEmployee] = useState<any>(null);
     const [shifts, setShifts] = useState<any[]>([]);
@@ -728,8 +744,7 @@ export default function EmployeeProfile() {
         const otherDocs = employee?.employeeProfile?.documents?.filter((d: any) => d.name !== docName) || [];
         try {
             for (const doc of otherDocs) {
-                const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
-                const fullUrl = doc.url.startsWith('http') ? doc.url : (doc.url.startsWith('/uploads/') ? `${baseUrl}${doc.url}` : `${baseUrl}/uploads/${doc.url}`);
+                const fullUrl = getMediaUrl(doc.url);
                 const res = await api.head(fullUrl);
                 const existingSize = parseInt((res.headers as any)['content-length'] || '0', 10);
                 if (existingSize === file.size) {
@@ -789,8 +804,6 @@ export default function EmployeeProfile() {
     const profile = employee.employeeProfile || {};
     const statutory = profile.statutory || {};
     const bank = profile.bank || {};
-    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
-
     const buildProfilePictureUrl = (value?: string | null) => {
         if (!value || typeof value !== 'string') {
             return null;
@@ -801,22 +814,7 @@ export default function EmployeeProfile() {
             return null;
         }
 
-        // Already a complete URL
-        if (/^https?:\/\//i.test(value)) {
-            return value;
-        }
-
-        const normalizedPath = value
-            .replace(/\\/g, '/')
-            .replace(/^\/+/, '');
-
-        // Example: uploads/profile-pictures/photo.jpg
-        if (normalizedPath.startsWith('uploads/')) {
-            return `${API_BASE_URL}/${normalizedPath}`;
-        }
-
-        // Example: profile-pictures/photo.jpg or photo.jpg
-        return `${API_BASE_URL}/uploads/${normalizedPath}`;
+        return getMediaUrl(value);
     };
 
     const rawProfilePicture =
@@ -1477,15 +1475,20 @@ export default function EmployeeProfile() {
                                                         e.preventDefault();
                                                         e.stopPropagation();
                                                         if (savedDoc?.url) {
-                                                            const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
-                                                            const fullUrl = savedDoc.url.startsWith('http') ? savedDoc.url : (savedDoc.url.startsWith('/uploads/') ? `${baseUrl}${savedDoc.url}` : `${baseUrl}/uploads/${savedDoc.url}`);
-                                                            window.open(fullUrl, '_blank');
+                                                            const fullUrl = getMediaUrl(savedDoc.url);
+                                                            setPreviewDoc({
+                                                                title: doc.name,
+                                                                url: fullUrl,
+                                                                fileName: savedDoc.originalName || savedDoc.url,
+                                                                fileType: savedDoc.type || (savedDoc.url.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image')
+                                                            });
                                                         }
                                                     }}
                                                     className={`w-8 h-8 rounded-[6px] flex items-center justify-center transition-all ${savedDoc
                                                         ? 'bg-[#2C4FD6]/10 text-[#2C4FD6] hover:bg-[#2C4FD6] hover:text-white cursor-pointer'
                                                         : 'bg-gray-100 dark:bg-white/5 text-gray-300 dark:text-gray-600 cursor-not-allowed'
                                                         }`}
+                                                    title={`View ${doc.name}`}
                                                 >
                                                     <Eye size={16} />
                                                 </button>
@@ -1585,12 +1588,16 @@ export default function EmployeeProfile() {
                                         <button
                                             type="button"
                                             disabled={!displayedProfilePictureUrl}
-                                            onClick={() => {
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
                                                 if (displayedProfilePictureUrl) {
-                                                    window.open(
-                                                        displayedProfilePictureUrl,
-                                                        '_blank'
-                                                    );
+                                                    setPreviewDoc({
+                                                        title: 'Profile Picture',
+                                                        url: displayedProfilePictureUrl,
+                                                        fileName: newProfilePicture?.name || `${employee.name || 'employee'}-profile-picture`,
+                                                        fileType: 'image'
+                                                    });
                                                 }
                                             }}
                                             className={`w-8 h-8 rounded-[6px] flex items-center justify-center transition-all ${displayedProfilePictureUrl
@@ -1667,15 +1674,20 @@ export default function EmployeeProfile() {
                                                         e.preventDefault();
                                                         e.stopPropagation();
                                                         if (cf.documentUrl) {
-                                                            const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
-                                                            const fullUrl = cf.documentUrl.startsWith('http') ? cf.documentUrl : `/uploads/${cf.documentUrl}`;
-                                                            window.open(fullUrl.startsWith('http') ? fullUrl : `${baseUrl}${fullUrl}`, '_blank');
+                                                            const fullUrl = getMediaUrl(cf.documentUrl);
+                                                            setPreviewDoc({
+                                                                title: cf.field?.name || 'Document',
+                                                                url: fullUrl,
+                                                                fileName: cf.documentName || cf.documentUrl,
+                                                                fileType: cf.field?.type || (cf.documentUrl.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image')
+                                                            });
                                                         }
                                                     }}
                                                     className={`w-10 h-10 rounded-[6px] flex items-center justify-center transition-all ${hasFile
                                                         ? 'bg-brand-500/10 text-brand-500 hover:bg-brand-500 hover:text-white cursor-pointer'
                                                         : 'bg-gray-100 dark:bg-white/5 text-gray-300 dark:text-gray-600 cursor-not-allowed'
                                                         }`}
+                                                    title={`View ${cf.field?.name || 'Document'}`}
                                                 >
                                                     <Eye size={18} />
                                                 </button>
@@ -2152,12 +2164,17 @@ export default function EmployeeProfile() {
                                                                             onClick={(e) => {
                                                                                 e.preventDefault();
                                                                                 if (cf.documentUrl) {
-                                                                                    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
-                                                                                    const fullUrl = cf.documentUrl.startsWith('http') ? cf.documentUrl : `/uploads/${cf.documentUrl}`;
-                                                                                    window.open(fullUrl.startsWith('http') ? fullUrl : `${baseUrl}${fullUrl}`, '_blank');
+                                                                                    const fullUrl = getMediaUrl(cf.documentUrl);
+                                                                                    setPreviewDoc({
+                                                                                        title: cf.field?.name || 'Document',
+                                                                                        url: fullUrl,
+                                                                                        fileName: cf.documentName || cf.documentUrl,
+                                                                                        fileType: cf.field?.type || (cf.documentUrl.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image')
+                                                                                    });
                                                                                 }
                                                                             }}
                                                                             className="w-8 h-8 rounded-lg flex items-center justify-center bg-brand-500/10 text-brand-500 hover:bg-brand-500 hover:text-white cursor-pointer"
+                                                                            title={`View ${cf.field?.name || 'Document'}`}
                                                                         >
                                                                             <Eye size={14} />
                                                                         </button>
@@ -2234,12 +2251,17 @@ export default function EmployeeProfile() {
                                                                 onClick={(e) => {
                                                                     e.preventDefault();
                                                                     if (cf.documentUrl) {
-                                                                        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
-                                                                        const fullUrl = cf.documentUrl.startsWith('http') ? cf.documentUrl : `/uploads/${cf.documentUrl}`;
-                                                                        window.open(fullUrl.startsWith('http') ? fullUrl : `${baseUrl}${fullUrl}`, '_blank');
+                                                                        const fullUrl = getMediaUrl(cf.documentUrl);
+                                                                        setPreviewDoc({
+                                                                            title: cf.field?.name || 'Document',
+                                                                            url: fullUrl,
+                                                                            fileName: cf.documentName || cf.documentUrl,
+                                                                            fileType: cf.field?.type || (cf.documentUrl.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image')
+                                                                        });
                                                                     }
                                                                 }}
                                                                 className="w-8 h-8 rounded-lg flex items-center justify-center bg-brand-500/10 text-brand-500 hover:bg-brand-500 hover:text-white cursor-pointer"
+                                                                title={`View ${cf.field?.name || 'Document'}`}
                                                             >
                                                                 <Eye size={14} />
                                                             </button>
@@ -3454,6 +3476,155 @@ export default function EmployeeProfile() {
                                         Cancel
                                     </button>
                                 </div>
+                            </div>
+                        </div>
+                    </div>,
+                    document.body
+                )}
+            {/* Document Preview Modal */}
+            {previewDoc &&
+                createPortal(
+                    <div
+                        className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-sm animate-fade-in"
+                        onClick={() => setPreviewDoc(null)}
+                    >
+                        <div
+                            className="relative bg-white dark:bg-[#12151C] w-full max-w-4xl max-h-[92vh] rounded-2xl shadow-2xl border border-[#E2E6ED] dark:border-gray-800 flex flex-col overflow-hidden animate-scale-in"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Modal Header */}
+                            <div className="flex items-center justify-between px-5 py-4 border-b border-[#E2E6ED] dark:border-gray-800 bg-[#F7F8FA] dark:bg-white/5">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <div className="w-10 h-10 rounded-lg bg-[#2C4FD6]/10 text-[#2C4FD6] flex items-center justify-center shrink-0">
+                                        {previewDoc.fileType === 'image' || previewDoc.fileType === 'IMAGE' || (previewDoc.url && /\.(jpe?g|png|webp|gif|svg)(\?.*)?$/i.test(previewDoc.url)) ? (
+                                            <ImageIcon size={20} />
+                                        ) : (
+                                            <FileText size={20} />
+                                        )}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <h3 className="font-bold text-[16px] text-[#12151C] dark:text-white truncate">
+                                            {previewDoc.title}
+                                        </h3>
+                                        {previewDoc.fileName && (
+                                            <p className="text-xs text-[#5B6472] dark:text-gray-400 truncate max-w-md">
+                                                {previewDoc.fileName}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <a
+                                        href={previewDoc.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="p-2 text-gray-500 hover:text-[#2C4FD6] hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+                                        title="Open in new window"
+                                    >
+                                        <ExternalLink size={18} />
+                                    </a>
+                                    <a
+                                        href={previewDoc.url}
+                                        download={previewDoc.fileName || 'document'}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="p-2 text-gray-500 hover:text-[#2C4FD6] hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+                                        title="Download document"
+                                    >
+                                        <Download size={18} />
+                                    </a>
+                                    <button
+                                        type="button"
+                                        onClick={() => setPreviewDoc(null)}
+                                        className="p-2 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer ml-1"
+                                        title="Close preview"
+                                    >
+                                        <X size={20} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Modal Body / Viewer */}
+                            <div className="p-4 flex-1 overflow-auto bg-gray-100/50 dark:bg-black/20 flex items-center justify-center min-h-[350px] max-h-[75vh]">
+                                {(() => {
+                                    const isImg = previewDoc.fileType === 'image' ||
+                                        previewDoc.fileType === 'IMAGE' ||
+                                        previewDoc.fileType?.startsWith('image/') ||
+                                        /\.(jpe?g|png|webp|gif|svg)(\?.*)?$/i.test(previewDoc.url) ||
+                                        previewDoc.url.startsWith('blob:') ||
+                                        previewDoc.url.startsWith('data:image/');
+
+                                    const isPdf = previewDoc.fileType === 'PDF' ||
+                                        previewDoc.fileType === 'application/pdf' ||
+                                        /\.pdf(\?.*)?$/i.test(previewDoc.url);
+
+                                    if (isImg) {
+                                        return (
+                                            <div className="flex flex-col items-center justify-center p-2 max-w-full">
+                                                <img
+                                                    src={previewDoc.url}
+                                                    alt={previewDoc.title}
+                                                    className="max-h-[68vh] max-w-full object-contain rounded-lg shadow-md"
+                                                    onError={(e) => {
+                                                        (e.currentTarget as HTMLElement).style.display = 'none';
+                                                        const fallback = document.getElementById('preview-img-fallback');
+                                                        if (fallback) fallback.style.display = 'flex';
+                                                    }}
+                                                />
+                                                <div id="preview-img-fallback" className="hidden flex-col items-center justify-center text-center p-8">
+                                                    <FileText size={48} className="text-gray-400 mb-3" />
+                                                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Unable to display image preview directly</p>
+                                                    <a
+                                                        href={previewDoc.url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="inline-flex items-center gap-2 px-4 py-2 bg-[#2C4FD6] text-white text-sm font-semibold rounded-lg hover:bg-[#203FB4]"
+                                                    >
+                                                        <ExternalLink size={16} /> Open Document
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+
+                                    if (isPdf) {
+                                        return (
+                                            <div className="w-full h-full flex flex-col min-h-[550px]">
+                                                <iframe
+                                                    src={`${previewDoc.url}#toolbar=1&navpanes=0`}
+                                                    className="w-full h-full min-h-[550px] rounded-lg border border-gray-200 dark:border-gray-800 bg-white"
+                                                    title={previewDoc.title}
+                                                />
+                                            </div>
+                                        );
+                                    }
+
+                                    return (
+                                        <div className="w-full h-full min-h-[400px] flex flex-col items-center justify-center text-center p-8 bg-white dark:bg-white/5 rounded-lg border border-dashed border-gray-300 dark:border-gray-700">
+                                            <FileText size={56} className="text-[#2C4FD6] mb-4" />
+                                            <h4 className="text-lg font-bold text-[#12151C] dark:text-white mb-1">{previewDoc.title}</h4>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-md">{previewDoc.fileName || 'Preview is not available for this file type directly.'}</p>
+                                            <div className="flex items-center gap-3">
+                                                <a
+                                                    href={previewDoc.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#2C4FD6] text-white text-sm font-semibold rounded-lg hover:bg-[#203FB4] shadow-sm transition-all"
+                                                >
+                                                    <ExternalLink size={16} /> Open in New Tab
+                                                </a>
+                                                <a
+                                                    href={previewDoc.url}
+                                                    download={previewDoc.fileName || 'document'}
+                                                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-200 text-sm font-semibold rounded-lg hover:bg-gray-200 dark:hover:bg-white/20 transition-all"
+                                                >
+                                                    <Download size={16} /> Download
+                                                </a>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
                             </div>
                         </div>
                     </div>,

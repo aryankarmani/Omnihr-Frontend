@@ -9,7 +9,7 @@ const getBaseURL = () => {
 };
 
 export const getMediaUrl = (path?: string | null): string => {
-    if (!path) return '';
+    if (!path || typeof path !== 'string') return '';
     if (
         path.startsWith('http://') ||
         path.startsWith('https://') ||
@@ -18,10 +18,12 @@ export const getMediaUrl = (path?: string | null): string => {
     ) {
         return path;
     }
-    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    const normalized = path.replace(/\\/g, '/').replace(/^\/+/, '');
+    const cleanPath = normalized.startsWith('uploads/') ? `/${normalized}` : `/uploads/${normalized}`;
+
     const envUrl = import.meta.env.VITE_API_BASE_URL;
     if (envUrl && !envUrl.includes('localhost')) {
-        return `${envUrl}${cleanPath}`;
+        return `${envUrl.replace(/\/+$/, '')}${cleanPath}`;
     }
     if (import.meta.env.DEV) {
         return `http://localhost:3001${cleanPath}`;

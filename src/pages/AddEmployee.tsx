@@ -2,7 +2,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, ChevronRight, ChevronDown, Upload, FileText, User, CreditCard, Loader2, Trash2 } from 'lucide-react'; import toast from 'react-hot-toast';
+import { ArrowLeft, Check, ChevronRight, ChevronDown, Upload, FileText, User, CreditCard, Loader2, Trash2, Eye, ExternalLink, Image as ImageIcon, X, Download } from 'lucide-react';
+import toast from 'react-hot-toast';
 import api from '../utils/api';
 
 const parseRadioOptions = (optionsString: string | null | undefined): string[] => {
@@ -28,6 +29,22 @@ export default function AddEmployee() {
     const [loading, setLoading] = useState(false);
     const [salaryComponents, setSalaryComponents] = useState<any[]>([]);
     const [showComponentDropdown, setShowComponentDropdown] = useState(false);
+    const [previewDoc, setPreviewDoc] = useState<{
+        title: string;
+        url: string;
+        fileName?: string;
+        fileType?: string;
+    } | null>(null);
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && previewDoc) {
+                setPreviewDoc(null);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [previewDoc]);
     const salaryDropdownRef = useRef<HTMLDivElement | null>(null);
     const [masters, setMasters] = useState({
         departments: [] as any[],
@@ -1272,17 +1289,40 @@ export default function AddEmployee() {
                                                     </div>
                                                 </div>
 
-                                                <div className="flex items-center gap-3">
+                                                <div className="flex items-center gap-1.5">
                                                     {hasFile ? (
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setConfirmDeleteDoc(doc.key);
-                                                            }}
-                                                            className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
-                                                        >
-                                                            <Trash2 size={18} />
-                                                        </button>
+                                                        <>
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    if (fileObj) {
+                                                                        const blobUrl = URL.createObjectURL(fileObj);
+                                                                        setPreviewDoc({
+                                                                            title: doc.name,
+                                                                            url: blobUrl,
+                                                                            fileName: fileObj.name,
+                                                                            fileType: fileObj.type
+                                                                        });
+                                                                    }
+                                                                }}
+                                                                className="p-2 text-[#2C4FD6] hover:bg-[#2C4FD6]/10 rounded-lg transition-colors cursor-pointer"
+                                                                title={`View ${doc.name}`}
+                                                            >
+                                                                <Eye size={18} />
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setConfirmDeleteDoc(doc.key);
+                                                                }}
+                                                                className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
+                                                                title="Remove document"
+                                                            >
+                                                                <Trash2 size={18} />
+                                                            </button>
+                                                        </>
                                                     ) : (
                                                         <div className="w-7 h-7 rounded-full bg-[#E8ECFC] text-[#2C4FD6] dark:bg-white/10 dark:text-white flex items-center justify-center hover:scale-110 transition-transform">
                                                             <Upload size={14} />
@@ -1519,6 +1559,150 @@ export default function AddEmployee() {
                 </div>,
                 document.body
             )}
+            {/* Document Preview Modal */}
+            {previewDoc &&
+                createPortal(
+                    <div
+                        className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-sm animate-fade-in"
+                        onClick={() => setPreviewDoc(null)}
+                    >
+                        <div
+                            className="relative bg-white dark:bg-[#12151C] w-full max-w-4xl max-h-[92vh] rounded-2xl shadow-2xl border border-[#E2E6ED] dark:border-gray-800 flex flex-col overflow-hidden animate-scale-in"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Modal Header */}
+                            <div className="flex items-center justify-between px-5 py-4 border-b border-[#E2E6ED] dark:border-gray-800 bg-[#F7F8FA] dark:bg-white/5">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <div className="w-10 h-10 rounded-lg bg-[#2C4FD6]/10 text-[#2C4FD6] flex items-center justify-center shrink-0">
+                                        {previewDoc.fileType?.startsWith('image/') || (previewDoc.url && /\.(jpe?g|png|webp|gif|svg)(\?.*)?$/i.test(previewDoc.url)) ? (
+                                            <ImageIcon size={20} />
+                                        ) : (
+                                            <FileText size={20} />
+                                        )}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <h3 className="font-bold text-[16px] text-[#12151C] dark:text-white truncate">
+                                            {previewDoc.title}
+                                        </h3>
+                                        {previewDoc.fileName && (
+                                            <p className="text-xs text-[#5B6472] dark:text-gray-400 truncate max-w-md">
+                                                {previewDoc.fileName}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <a
+                                        href={previewDoc.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="p-2 text-gray-500 hover:text-[#2C4FD6] hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+                                        title="Open in new window"
+                                    >
+                                        <ExternalLink size={18} />
+                                    </a>
+                                    <a
+                                        href={previewDoc.url}
+                                        download={previewDoc.fileName || 'document'}
+                                        className="p-2 text-gray-500 hover:text-[#2C4FD6] hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+                                        title="Download document"
+                                    >
+                                        <Download size={18} />
+                                    </a>
+                                    <button
+                                        type="button"
+                                        onClick={() => setPreviewDoc(null)}
+                                        className="p-2 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer ml-1"
+                                        title="Close preview"
+                                    >
+                                        <X size={20} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Modal Body / Viewer */}
+                            <div className="p-4 flex-1 overflow-auto bg-gray-100/50 dark:bg-black/20 flex items-center justify-center min-h-[350px] max-h-[75vh]">
+                                {(() => {
+                                    const isImg = previewDoc.fileType?.startsWith('image/') ||
+                                        /\.(jpe?g|png|webp|gif|svg)(\?.*)?$/i.test(previewDoc.url) ||
+                                        previewDoc.url.startsWith('blob:') ||
+                                        previewDoc.url.startsWith('data:image/');
+
+                                    const isPdf = previewDoc.fileType === 'application/pdf' ||
+                                        /\.pdf(\?.*)?$/i.test(previewDoc.url);
+
+                                    if (isImg) {
+                                        return (
+                                            <div className="flex flex-col items-center justify-center p-2 max-w-full">
+                                                <img
+                                                    src={previewDoc.url}
+                                                    alt={previewDoc.title}
+                                                    className="max-h-[68vh] max-w-full object-contain rounded-lg shadow-md"
+                                                    onError={(e) => {
+                                                        (e.currentTarget as HTMLElement).style.display = 'none';
+                                                        const fallback = document.getElementById('add-preview-img-fallback');
+                                                        if (fallback) fallback.style.display = 'flex';
+                                                    }}
+                                                />
+                                                <div id="add-preview-img-fallback" className="hidden flex-col items-center justify-center text-center p-8">
+                                                    <FileText size={48} className="text-gray-400 mb-3" />
+                                                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Unable to display image preview directly</p>
+                                                    <a
+                                                        href={previewDoc.url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="inline-flex items-center gap-2 px-4 py-2 bg-[#2C4FD6] text-white text-sm font-semibold rounded-lg hover:bg-[#203FB4]"
+                                                    >
+                                                        <ExternalLink size={16} /> Open Document
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+
+                                    if (isPdf) {
+                                        return (
+                                            <div className="w-full h-full flex flex-col min-h-[550px]">
+                                                <iframe
+                                                    src={`${previewDoc.url}#toolbar=1&navpanes=0`}
+                                                    className="w-full h-full min-h-[550px] rounded-lg border border-gray-200 dark:border-gray-800 bg-white"
+                                                    title={previewDoc.title}
+                                                />
+                                            </div>
+                                        );
+                                    }
+
+                                    return (
+                                        <div className="w-full h-full min-h-[400px] flex flex-col items-center justify-center text-center p-8 bg-white dark:bg-white/5 rounded-lg border border-dashed border-gray-300 dark:border-gray-700">
+                                            <FileText size={56} className="text-[#2C4FD6] mb-4" />
+                                            <h4 className="text-lg font-bold text-[#12151C] dark:text-white mb-1">{previewDoc.title}</h4>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-md">{previewDoc.fileName || 'Preview is not available for this file type directly.'}</p>
+                                            <div className="flex items-center gap-3">
+                                                <a
+                                                    href={previewDoc.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#2C4FD6] text-white text-sm font-semibold rounded-lg hover:bg-[#203FB4] shadow-sm transition-all"
+                                                >
+                                                    <ExternalLink size={16} /> Open in New Tab
+                                                </a>
+                                                <a
+                                                    href={previewDoc.url}
+                                                    download={previewDoc.fileName || 'document'}
+                                                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-200 text-sm font-semibold rounded-lg hover:bg-gray-200 dark:hover:bg-white/20 transition-all"
+                                                >
+                                                    <Download size={16} /> Download
+                                                </a>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+                        </div>
+                    </div>,
+                    document.body
+                )}
         </div>
     );
 }
