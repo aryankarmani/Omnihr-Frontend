@@ -767,6 +767,7 @@ export default function OrgMasters() {
                                                         : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}${signature.startsWith('/') ? '' : '/'}${signature}`
                                                 }
                                                 alt="Signature Preview"
+                                                onError={() => setSignature(null)}
                                                 className="max-h-full max-w-full object-contain p-4"
                                             />
                                         ) : (
