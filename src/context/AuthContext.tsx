@@ -38,6 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const parsedUser = JSON.parse(storedUser);
             if (parsedUser && typeof parsedUser.role === 'string') {
                 parsedUser.role = parsedUser.role.toUpperCase();
+                if (parsedUser.role === 'ADMIN') parsedUser.role = 'HR_ADMIN';
             }
             setUser(parsedUser);
             listenToForegroundMessages();
@@ -57,6 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             if (userData && typeof userData.role === 'string') {
                 userData.role = userData.role.toUpperCase();
+                if (userData.role === 'ADMIN') userData.role = 'HR_ADMIN';
             }
 
             setUser(userData);
