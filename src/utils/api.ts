@@ -1,10 +1,32 @@
 import axios from 'axios';
 
 const getBaseURL = () => {
-    if (import.meta.env.VITE_API_BASE_URL !== undefined) {
-        return `${import.meta.env.VITE_API_BASE_URL}/api`;
+    const envUrl = import.meta.env.VITE_API_BASE_URL;
+    if (envUrl && !envUrl.includes('localhost')) {
+        return `${envUrl}/api`;
     }
     return import.meta.env.DEV ? 'http://localhost:3001/api' : '/api';
+};
+
+export const getMediaUrl = (path?: string | null): string => {
+    if (!path) return '';
+    if (
+        path.startsWith('http://') ||
+        path.startsWith('https://') ||
+        path.startsWith('blob:') ||
+        path.startsWith('data:')
+    ) {
+        return path;
+    }
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    const envUrl = import.meta.env.VITE_API_BASE_URL;
+    if (envUrl && !envUrl.includes('localhost')) {
+        return `${envUrl}${cleanPath}`;
+    }
+    if (import.meta.env.DEV) {
+        return `http://localhost:3001${cleanPath}`;
+    }
+    return cleanPath;
 };
 
 const api = axios.create({

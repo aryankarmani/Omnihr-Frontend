@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Building2, Plus, Save, MapPin, Trash2, Users, Briefcase, X, Edit, Loader2, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
-import api from '../../utils/api';
+import api, { getMediaUrl } from '../../utils/api';
 
 export default function OrgMasters() {
     const [activeTab, setActiveTab] = useState('company');
@@ -759,15 +759,8 @@ export default function OrgMasters() {
                                     <div className="flex-1 min-h-[350px] rounded-[8px] bg-white border border-[#E2E6ED] flex items-center justify-center overflow-hidden">
                                         {signature ? (
                                             <img
-                                                src={
-                                                    signature.startsWith('http') ||
-                                                        signature.startsWith('blob:') ||
-                                                        signature.startsWith('data:')
-                                                        ? signature
-                                                        : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}${signature.startsWith('/') ? '' : '/'}${signature}`
-                                                }
+                                                src={getMediaUrl(signature)}
                                                 alt="Signature Preview"
-                                                onError={() => setSignature(null)}
                                                 className="max-h-full max-w-full object-contain p-4"
                                             />
                                         ) : (

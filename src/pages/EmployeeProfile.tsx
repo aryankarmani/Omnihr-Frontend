@@ -7,7 +7,7 @@ import { ArrowLeft, User, FileText, CreditCard, Download, Briefcase, Save, X, Pr
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import toast from 'react-hot-toast';
-import api from '../utils/api';
+import api, { getMediaUrl } from '../utils/api';
 import { calculateProfileCompletion } from '../utils/profileCompletion';
 
 const parseRadioOptions = (optionsString: string | null | undefined): string[] => {
@@ -894,11 +894,7 @@ export default function EmployeeProfile() {
     const salaryOverviewDeductions = totalDeductionComponents;
     const salaryOverviewNet = Math.max(0, salaryOverviewEarnings - salaryOverviewDeductions);
 
-    const adminSignatureUrl = companySignature
-        ? companySignature.startsWith('http')
-            ? companySignature
-            : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}${companySignature}`
-        : null;
+    const adminSignatureUrl = companySignature ? getMediaUrl(companySignature) : null;
     // Dynamic salary calculations for payslip preview using selected salary components
     const basic = Number(profile.salary?.basic || 0);
 
