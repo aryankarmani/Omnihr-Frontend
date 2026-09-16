@@ -7,6 +7,10 @@
     {
       "source": "/uploads/:path*",
       "destination": "https://omnihr-backend-19fx.onrender.com/uploads/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }

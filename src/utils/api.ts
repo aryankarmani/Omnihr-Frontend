@@ -1,11 +1,11 @@
 import axios from 'axios';
 
 const getBaseURL = () => {
-    const envUrl = import.meta.env.VITE_API_BASE_URL;
+    const envUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL;
     if (envUrl && !envUrl.includes('localhost')) {
-        return `${envUrl}/api`;
+        return `${envUrl.replace(/\/+$/, '')}/api`;
     }
-    return import.meta.env.DEV ? 'http://localhost:3001/api' : '/api';
+    return import.meta.env.DEV ? 'http://localhost:3001/api' : 'https://omnihr-backend-19fx.onrender.com/api';
 };
 
 export const getMediaUrl = (path?: string | null): string => {
@@ -21,14 +21,14 @@ export const getMediaUrl = (path?: string | null): string => {
     const normalized = path.replace(/\\/g, '/').replace(/^\/+/, '');
     const cleanPath = normalized.startsWith('uploads/') ? `/${normalized}` : `/uploads/${normalized}`;
 
-    const envUrl = import.meta.env.VITE_API_BASE_URL;
+    const envUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL;
     if (envUrl && !envUrl.includes('localhost')) {
         return `${envUrl.replace(/\/+$/, '')}${cleanPath}`;
     }
     if (import.meta.env.DEV) {
         return `http://localhost:3001${cleanPath}`;
     }
-    return cleanPath;
+    return `https://omnihr-backend-19fx.onrender.com${cleanPath}`;
 };
 
 const api = axios.create({
