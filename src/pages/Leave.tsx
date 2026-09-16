@@ -36,7 +36,7 @@ export default function Leave() {
         if (tab === 'MY_LEAVE' || tab === 'APPROVALS') {
             setActiveTab(tab);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [location.key]);
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -369,7 +369,7 @@ export default function Leave() {
 
         days.push(<div key="days" className="grid grid-cols-7 gap-2">{dayCells}</div>);
         return days;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentMonth, selectedDate, getDateStatus]);
 
     if (loading && leaveBalances.length === 0) {
@@ -456,334 +456,336 @@ export default function Leave() {
 
             {/* Balances Cards Strip — always mounted, hidden when not on MY_LEAVE */}
             <div className={activeTab === 'MY_LEAVE' ? 'tab-panel-active grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-6' : 'tab-panel-hidden'}>
-                    {leaveBalances.map((bal) => {
-                        const percent = Math.min(100, Math.round((bal.balance / (bal.total || 1)) * 100));
+                {leaveBalances.map((bal) => {
+                    const percent = Math.min(100, Math.round((bal.balance / (bal.total || 1)) * 100));
 
-                        return (
-                            <div key={bal.code} onClick={() => { setLeaveType(bal.code); setShowApplyModal(true); }} className="bg-white dark:bg-[#12151C] p-5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 h-[130px] flex flex-col justify-between group cursor-pointer hover:border-[#2C4FD6]/40 transition-all">
-                                <div className="flex justify-between items-start">
-                                    <span className="bal-label text-[12.5px] font-semibold text-[#5B6472] dark:text-gray-400">{bal.name}</span>
-                                    <div className="w-7 h-7 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 flex items-center justify-center text-[#9AA3B1]">
-                                        <CalendarIcon size={15} />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <div className="bal-num flex items-baseline gap-1 mb-2">
-                                        <span className="text-[26px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight leading-none">{bal.balance}</span>
-                                        <span className="text-[14px] font-semibold text-[#9AA3B1] dark:text-gray-400 font-mono">/ {bal.total}</span>
-                                    </div>
-
-                                    <div className="h-1.5 w-full bg-[#EEF1F5] dark:bg-gray-800 rounded-full overflow-hidden">
-                                        <div className="h-full rounded-full bg-[#2C4FD6]" style={{ width: `${percent}%` }}></div>
-                                    </div>
+                    return (
+                        <div key={bal.code} onClick={() => { setLeaveType(bal.code); setShowApplyModal(true); }} className="bg-white dark:bg-[#12151C] p-5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 h-[130px] flex flex-col justify-between group cursor-pointer hover:border-[#2C4FD6]/40 transition-all">
+                            <div className="flex justify-between items-start">
+                                <span className="bal-label text-[12.5px] font-semibold text-[#5B6472] dark:text-gray-400">{bal.name}</span>
+                                <div className="w-7 h-7 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 flex items-center justify-center text-[#9AA3B1]">
+                                    <CalendarIcon size={15} />
                                 </div>
                             </div>
-                        );
-                    })}
+
+                            <div>
+                                <div className="bal-num flex items-baseline gap-1 mb-2">
+                                    <span className="text-[26px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight leading-none">{bal.balance}</span>
+                                    <span className="text-[14px] font-semibold text-[#9AA3B1] dark:text-gray-400 font-mono">/ {bal.total}</span>
+                                </div>
+
+                                <div className="h-1.5 w-full bg-[#EEF1F5] dark:bg-gray-800 rounded-full overflow-hidden">
+                                    <div className="h-full rounded-full bg-[#2C4FD6]" style={{ width: `${percent}%` }}></div>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
 
             {/* MY_LEAVE main content — always mounted */}
             <div className={activeTab === 'MY_LEAVE' ? 'tab-panel-active grid grid-cols-1 lg:grid-cols-12 gap-6' : 'tab-panel-hidden'}>
-                    {/* Leave Calendar Section */}
-                    <div className="lg:col-span-7 bg-white dark:bg-[#12151C] rounded-[6px] p-6 border border-[#E2E6ED] dark:border-gray-800">
-                        <div className="flex justify-between items-center mb-4">
-                            <span className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white flex items-center gap-2">
-                                <CalendarIcon size={16} className="text-[#2C4FD6]" /> Leave Calendar
-                            </span>
-                            <div className="flex items-center gap-[14px] text-[13.5px] font-semibold text-[#5B6472] dark:text-gray-300">
-                                <button onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() - 1)))} className="p-1 hover:bg-[#EEF1F5] dark:hover:bg-white/10 rounded transition-colors text-[#5B6472]">
-                                    <ChevronLeft size={16} />
-                                </button>
-                                <button onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() + 1)))} className="p-1 hover:bg-[#EEF1F5] dark:hover:bg-white/10 rounded transition-colors text-[#5B6472]">
-                                    <ChevronRight size={16} />
-                                </button>
-                            </div>
+                {/* Leave Calendar Section */}
+                <div className="lg:col-span-7 bg-white dark:bg-[#12151C] rounded-[6px] p-6 border border-[#E2E6ED] dark:border-gray-800">
+                    <div className="flex justify-between items-center mb-4">
+                        <span className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white flex items-center gap-2">
+                            <CalendarIcon size={16} className="text-[#2C4FD6]" /> Leave Calendar
+                        </span>
+                        <div className="flex items-center gap-[14px] text-[13.5px] font-semibold text-[#5B6472] dark:text-gray-300">
+                            <button onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() - 1)))} className="p-1 hover:bg-[#EEF1F5] dark:hover:bg-white/10 rounded transition-colors text-[#5B6472]">
+                                <ChevronLeft size={16} />
+                            </button>
+                            <button onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() + 1)))} className="p-1 hover:bg-[#EEF1F5] dark:hover:bg-white/10 rounded transition-colors text-[#5B6472]">
+                                <ChevronRight size={16} />
+                            </button>
                         </div>
-                        <p className="panel-sub text-[12.5px]  text-[#9AA3B1] mt-[12.5px] mb-[18px]">
-                            {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                        </p>
-
-                        {calendarNodes}
                     </div>
+                    <p className="panel-sub text-[12.5px]  text-[#9AA3B1] mt-[12.5px] mb-[18px]">
+                        {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                    </p>
 
-                    {/* Right Stack: My Leave History + Upcoming Holiday */}
-                    <div className="lg:col-span-5 space-y-5">
-                        {/* My Leave History Card */}
-                        <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-5 border border-[#E2E6ED] dark:border-gray-800">
-                            <span className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white mb-4 block">My Leave History</span>
-                            <div className="divide-y divide-[#E2E6ED] dark:divide-gray-800 max-h-[300px] overflow-y-auto custom-scrollbar pr-3.5">
-                                {leaveHistory.length > 0 ? leaveHistory.map(leave => {
-                                    const leaveStatus = String(leave.status).toUpperCase();
-                                    const isApproved = leaveStatus === 'APPROVED';
-                                    const isRejected = leaveStatus === 'REJECTED';
-                                    return (
-                                        <div key={leave.id} className="flex items-center justify-between py-3">
-                                            <div className="flex items-start gap-2">
-                                                <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${isApproved ? 'bg-[#1F8A5A]' : isRejected ? 'bg-[#C13A3A]' : 'bg-amber-500'
-                                                    }`}></span>
-                                                <div>
-                                                    <div className="hist-title text-[13px] font-semibold text-[#12151C] dark:text-white">
-                                                        {leave.leaveType?.code || 'CL'} — {leave.reason || 'Personal work'}
-                                                    </div>
-                                                    <div className="hist-meta text-[11.5px]  text-[#9AA3B1] mt-[2px]">
-                                                        {new Date(leave.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {new Date(leave.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                                    </div>
+                    {calendarNodes}
+                </div>
+
+                {/* Right Stack: My Leave History + Upcoming Holiday */}
+                <div className="lg:col-span-5 space-y-5">
+                    {/* My Leave History Card */}
+                    <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-5 border border-[#E2E6ED] dark:border-gray-800">
+                        <span className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white mb-4 block">My Leave History</span>
+                        <div className="divide-y divide-[#E2E6ED] dark:divide-gray-800 max-h-[300px] overflow-y-auto custom-scrollbar pr-3.5">
+                            {leaveHistory.length > 0 ? leaveHistory.map(leave => {
+                                const leaveStatus = String(leave.status).toUpperCase();
+                                const isApproved = leaveStatus === 'APPROVED';
+                                const isRejected = leaveStatus === 'REJECTED';
+                                return (
+                                    <div key={leave.id} className="flex items-center justify-between py-3">
+                                        <div className="flex items-start gap-2">
+                                            <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${isApproved ? 'bg-[#1F8A5A]' : isRejected ? 'bg-[#C13A3A]' : 'bg-amber-500'
+                                                }`}></span>
+                                            <div>
+                                                <div className="hist-title text-[13px] font-semibold text-[#12151C] dark:text-white">
+                                                    {leave.leaveType?.code || 'CL'} — {leave.reason || 'Personal work'}
+                                                </div>
+                                                <div className="hist-meta text-[11.5px]  text-[#9AA3B1] mt-[2px]">
+                                                    {new Date(leave.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {new Date(leave.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                                 </div>
                                             </div>
-
-                                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-[4px] uppercase tracking-wider ${isApproved ? 'bg-[#E4F5EC] text-[#1F8A5A]' : isRejected ? 'bg-[#FBE7E7] text-[#C13A3A]' : 'bg-amber-100 text-amber-700'
-                                                }`}>
-                                                {leave.status}
-                                            </span>
                                         </div>
-                                    );
-                                }) : (
-                                    <p className="text-xs text-[#9AA3B1] text-center py-4 font-medium">No leave records found.</p>
-                                )}
-                            </div>
-                        </div>
 
-                        {/* Upcoming Holiday Card */}
-                        <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-5 border border-[#E2E6ED] dark:border-gray-800">
-                            <span className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white mb-4 block">Upcoming Holiday</span>
-                            {(() => {
-                                const today = new Date();
-                                today.setHours(0, 0, 0, 0);
-
-                                const defaultHolidays = [
-                                    { name: 'Gandhi Jayanti', date: '2026-10-02' },
-                                    { name: 'Dussehra', date: '2026-10-20' },
-                                    { name: 'Diwali', date: '2026-11-08' },
-                                    { name: 'Guru Nanak Jayanti', date: '2026-11-24' },
-                                    { name: 'Christmas Day', date: '2026-12-25' },
-                                    { name: 'New Year Day', date: '2027-01-01' },
-                                    { name: 'Republic Day', date: '2027-01-26' },
-                                    { name: 'Maha Shivratri', date: '2027-03-06' },
-                                    { name: 'Holi', date: '2027-03-22' },
-                                    { name: 'Good Friday', date: '2027-03-26' },
-                                    { name: 'Independence Day', date: '2027-08-15' }
-                                ];
-
-                                const combinedHolidays = [...(holidays || []), ...defaultHolidays];
-
-                                const nextHoliday = combinedHolidays
-                                    .filter(h => {
-                                        const d = new Date(h.date);
-                                        return !isNaN(d.getTime()) && d >= today;
-                                    })
-                                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0] || {
-                                    date: '2026-10-02',
-                                    name: 'Gandhi Jayanti'
-                                };
-
-                                const hDate = new Date(nextHoliday.date);
-                                return (
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-[6px] bg-[#F7F8FA] dark:bg-gray-800 border border-[#E2E6ED] dark:border-gray-700 flex flex-col items-center justify-center shrink-0">
-                                            <span className="text-xs font-bold text-[#12151C] dark:text-white font-mono-numbers leading-none">
-                                                {hDate.getDate()}
-                                            </span>
-                                            <span className="text-[8px] font-bold text-[#9AA3B1] uppercase leading-none mt-0.5">
-                                                {hDate.toLocaleDateString('en-US', { month: 'short' })}
-                                            </span>
-                                        </div>
-                                        <div>
-                                            <div className="holiday-name text-[13px] font-bold text-[#12151C] dark:text-white">
-                                                {nextHoliday.name}
-                                            </div>
-                                            <div className="holiday-sub text-[11.5px] text-[#9AA3B1] dark:text-gray-400 mt-[2px]">
-                                                Public holiday · all offices
-                                            </div>
-                                        </div>
+                                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-[4px] uppercase tracking-wider ${isApproved ? 'bg-[#E4F5EC] text-[#1F8A5A]' : isRejected ? 'bg-[#FBE7E7] text-[#C13A3A]' : 'bg-amber-100 text-amber-700'
+                                            }`}>
+                                            {leave.status}
+                                        </span>
                                     </div>
                                 );
-                            })()}
+                            }) : (
+                                <p className="text-xs text-[#9AA3B1] text-center py-4 font-medium">No leave records found.</p>
+                            )}
                         </div>
                     </div>
+
+                    {/* Upcoming Holiday Card */}
+                    <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-5 border border-[#E2E6ED] dark:border-gray-800">
+                        <span className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white mb-4 block">Upcoming Holiday</span>
+                        {(() => {
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+
+                            const defaultHolidays = [
+                                { name: 'Gandhi Jayanti', date: '2026-10-02' },
+                                { name: 'Dussehra', date: '2026-10-20' },
+                                { name: 'Diwali', date: '2026-11-08' },
+                                { name: 'Guru Nanak Jayanti', date: '2026-11-24' },
+                                { name: 'Christmas Day', date: '2026-12-25' },
+                                { name: 'New Year Day', date: '2027-01-01' },
+                                { name: 'Republic Day', date: '2027-01-26' },
+                                { name: 'Maha Shivratri', date: '2027-03-06' },
+                                { name: 'Holi', date: '2027-03-22' },
+                                { name: 'Good Friday', date: '2027-03-26' },
+                                { name: 'Independence Day', date: '2027-08-15' }
+                            ];
+
+                            const combinedHolidays = [...(holidays || []), ...defaultHolidays];
+
+                            const nextHoliday = combinedHolidays
+                                .filter(h => {
+                                    const d = new Date(h.date);
+                                    return !isNaN(d.getTime()) && d >= today;
+                                })
+                                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0] || {
+                                date: '2026-10-02',
+                                name: 'Gandhi Jayanti'
+                            };
+
+                            const hDate = new Date(nextHoliday.date);
+                            return (
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-[6px] bg-[#F7F8FA] dark:bg-gray-800 border border-[#E2E6ED] dark:border-gray-700 flex flex-col items-center justify-center shrink-0">
+                                        <span className="text-xs font-bold text-[#12151C] dark:text-white font-mono-numbers leading-none">
+                                            {hDate.getDate()}
+                                        </span>
+                                        <span className="text-[8px] font-bold text-[#9AA3B1] uppercase leading-none mt-0.5">
+                                            {hDate.toLocaleDateString('en-US', { month: 'short' })}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <div className="holiday-name text-[13px] font-bold text-[#12151C] dark:text-white">
+                                            {nextHoliday.name}
+                                        </div>
+                                        <div className="holiday-sub text-[11.5px] text-[#9AA3B1] dark:text-gray-400 mt-[2px]">
+                                            Public holiday · all offices
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })()}
+                    </div>
+                </div>
             </div>
 
             {/* APPROVALS tab content — always mounted */}
             <div className={activeTab === 'APPROVALS' ? 'tab-panel-active space-y-6' : 'tab-panel-hidden'}>
 
-                    <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden">
-                        <div className="overflow-x-auto custom-scrollbar">
-                            <table className="w-full min-w-[850px] text-left border-collapse">
-                                <thead>
-                                    <tr className="bg-[#EEF1F5] dark:bg-gray-800/60 text-[#9AA3B1] dark:text-gray-400 text-[11px] font-semibold uppercase tracking-[.05em]">
-                                        <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 w-1/6 text-left">
-                                            EMPLOYEE
-                                        </th>
-                                        <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 w-1/6 text-left">
-                                            TYPE
-                                        </th>
-                                        <th className="py-[9px] px-[50px] border-b border-[#E2E6ED] dark:border-gray-800 w-1/6 text-left">
-                                            DATES
-                                        </th>
-                                        <th className="py-[9px] px-[12px] border-b border-[#E2E6ED] dark:border-gray-800 w-1/6 text-left">
-                                            REASON
-                                        </th>
-                                        <th className="py-[9px] px-[30px] border-b border-[#E2E6ED] dark:border-gray-800 w-1/6 text-left">
-                                            STATUS
-                                        </th>
-                                        <th className="py-[9px] px-[100px] border-b border-[#E2E6ED] dark:border-gray-800 w-1/6 text-right">
-                                            ACTIONS
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-[#E2E6ED] dark:divide-gray-800 text-xs">
-                                    {filteredLeaves.length > 0 ? (
-                                        paginatedLeaves.map(l => (
-                                            <tr key={l.id} className="hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-colors">
-                                                <td className="py-[13px] px-[22px]">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-8 h-8 rounded-full bg-[#EEF1F5] dark:bg-gray-700 text-[#5B6472] dark:text-white font-mono-numbers font-bold text-xs flex items-center justify-center shrink-0 uppercase">
-                                                            {getInitials(l.user?.name)}
-                                                        </div>
-                                                        <div>
-                                                            <button
-                                                                onClick={() => navigate(`/employee/${l.user?.id}`)}
-                                                                className="font-semibold text-[#12151C] dark:text-white text-[13.5px] hover:text-[#2C4FD6] dark:hover:text-blue-400 transition-colors block text-left"
-                                                            >
-                                                                {l.user?.name}
-                                                            </button>
-                                                            {l.user?.employeeProfile?.employeeId && (
-                                                                <p className="text-[11.5px] text-[#717E95] font-mono-numbers">{l.user.employeeProfile.employeeId}</p>
-                                                            )}
-                                                        </div>
+                <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden">
+                    <div className="overflow-x-auto custom-scrollbar">
+                        <table className="w-full min-w-[850px] text-left border-collapse">
+                            <thead>
+                                <tr className="bg-[#EEF1F5] dark:bg-gray-800/60 text-[#9AA3B1] dark:text-gray-400 text-[11px] font-semibold uppercase tracking-[.05em]">
+                                    <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 w-1/6 text-left">
+                                        EMPLOYEE
+                                    </th>
+                                    <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 w-1/6 text-left">
+                                        TYPE
+                                    </th>
+                                    <th className="py-[9px] px-[50px] border-b border-[#E2E6ED] dark:border-gray-800 w-1/6 text-left">
+                                        DATES
+                                    </th>
+                                    <th className="py-[9px] px-[12px] border-b border-[#E2E6ED] dark:border-gray-800 w-1/6 text-left">
+                                        REASON
+                                    </th>
+                                    <th className="py-[9px] px-[30px] border-b border-[#E2E6ED] dark:border-gray-800 w-1/6 text-left">
+                                        STATUS
+                                    </th>
+                                    <th className="py-[9px] px-[100px] border-b border-[#E2E6ED] dark:border-gray-800 w-1/6 text-right">
+                                        ACTIONS
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#E2E6ED] dark:divide-gray-800 text-xs">
+                                {filteredLeaves.length > 0 ? (
+                                    paginatedLeaves.map(l => (
+                                        <tr key={l.id} className="hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-colors">
+                                            <td className="py-[13px] px-[22px]">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-[#EEF1F5] dark:bg-gray-700 text-[#5B6472] dark:text-white font-mono-numbers font-bold text-xs flex items-center justify-center shrink-0 uppercase">
+                                                        {getInitials(l.user?.name)}
                                                     </div>
-                                                </td>
-                                                <td className="py-[13px] px-[22px]">
-                                                    <span className="px-2.5 py-1 rounded-[3px] text-[11px] font-bold bg-[#F1F3F7] dark:bg-gray-800 text-[#5B6472] dark:text-gray-300">
-                                                        {l.leaveType?.code || 'LV'}
-                                                    </span>
-                                                </td>
-                                                <td className="py-[13px] px-[22px] text-xs text-[#5B6472] dark:text-gray-300 font-mono-numbers">
-                                                    {new Date(l.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {new Date(l.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                                </td>
-                                                <td
-                                                    onClick={() => setSelectedLeaveForReason(l)}
-                                                    className="py-[13px] px-[22px] text-xs text-[#5B6472] dark:text-gray-300 max-w-xs truncate italic cursor-pointer hover:text-[#2C4FD6] dark:hover:text-blue-400 transition-all"
-                                                    title="Click to view full reason"
-                                                >
-                                                    "{l.reason}"
-                                                </td>
-                                                <td className="py-[13px] px-[22px]">
-                                                    <span className={`pill inline-block px-[10px] py-[3px] rounded-[3px] text-[11.5px] font-semibold tracking-wide ${l.status === 'APPROVED'
-                                                            ? 'bg-[#E4F5EC] text-[#1F8A5A]'
-                                                            : l.status === 'REJECTED'
-                                                                ? 'bg-[#FBE7E7] text-[#DE350B]'
-                                                                : 'bg-[#FBF0E1] text-[#D97706]'
-                                                        }`}>
-                                                        {l.status === 'APPROVED' ? 'Approved' : l.status === 'REJECTED' ? 'Rejected' : 'Pending'}
-                                                    </span>
-                                                </td>
-                                                <td className="py-[13px] px-[22px] text-right">
-                                                    {l.status === 'PENDING' ? (
-                                                        <div className="flex items-center justify-end gap-2">
-                                                            <button
-                                                                onClick={() => handleUpdateStatus(l.id, 'APPROVED')}
-                                                                className="px-3.5 py-1.5 rounded-[3px] bg-[#E4F5EC] text-[#00875A] hover:bg-[#d5f0e1] text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer"
-                                                            >
-                                                                <CheckCircle size={14} /> Approve
-                                                            </button>
-                                                            <button
-                                                                onClick={() => {
-                                                                    setRejectingLeaveId(l.id);
-                                                                    setLeaveRejectComment('');
-                                                                }}
-                                                                className="px-3.5 py-1.5 rounded-[3px] bg-[#FBE7E7] text-[#DE350B] hover:bg-[#f7d6d6] text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer"
-                                                            >
-                                                                <XIcon size={14} /> Reject
-                                                            </button>
-                                                        </div>
-                                                    ) : (
+                                                    <div>
+                                                        <button
+                                                            onClick={() => navigate(`/employee/${l.user?.id}`)}
+                                                            className="font-semibold text-[#12151C] dark:text-white text-[13.5px] hover:text-[#2C4FD6] dark:hover:text-blue-400 transition-colors block text-left"
+                                                        >
+                                                            {l.user?.name}
+                                                        </button>
+                                                        {l.user?.employeeProfile?.employeeId && (
+                                                            <p className="text-[11.5px] text-[#717E95] font-mono-numbers">{l.user.employeeProfile.employeeId}</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="py-[13px] px-[22px]">
+                                                <span className="px-2.5 py-1 rounded-[3px] text-[11px] font-bold bg-[#F1F3F7] dark:bg-gray-800 text-[#5B6472] dark:text-gray-300">
+                                                    {l.leaveType?.code || 'LV'}
+                                                </span>
+                                            </td>
+                                            <td className="py-[13px] px-[22px] text-xs text-[#5B6472] dark:text-gray-300 font-mono-numbers">
+                                                {new Date(l.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {new Date(l.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                            </td>
+                                            <td
+                                                onClick={() => setSelectedLeaveForReason(l)}
+                                                className="py-[13px] px-[22px] text-xs text-[#5B6472] dark:text-gray-300 max-w-xs truncate italic cursor-pointer hover:text-[#2C4FD6] dark:hover:text-blue-400 transition-all"
+                                                title="Click to view full reason"
+                                            >
+                                                "{l.reason}"
+                                            </td>
+                                            <td className="py-[13px] px-[22px]">
+                                                <span className={`pill inline-block px-[10px] py-[3px] rounded-[3px] text-[11.5px] font-semibold tracking-wide ${l.status === 'APPROVED'
+                                                    ? 'bg-[#E4F5EC] text-[#1F8A5A]'
+                                                    : l.status === 'REJECTED'
+                                                        ? 'bg-[#FBE7E7] text-[#DE350B]'
+                                                        : 'bg-[#FBF0E1] text-[#D97706]'
+                                                    }`}>
+                                                    {l.status === 'APPROVED' ? 'Approved' : l.status === 'REJECTED' ? 'Rejected' : 'Pending'}
+                                                </span>
+                                            </td>
+                                            <td className="py-[13px] px-[22px] text-right">
+                                                {l.status === 'PENDING' ? (
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <button
+                                                            onClick={() => handleUpdateStatus(l.id, 'APPROVED')}
+                                                            className="px-3.5 py-1.5 rounded-[3px] bg-[#E4F5EC] text-[#00875A] hover:bg-[#d5f0e1] text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer"
+                                                        >
+                                                            <CheckCircle size={14} /> Approve
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                setRejectingLeaveId(l.id);
+                                                                setLeaveRejectComment('');
+                                                            }}
+                                                            className="px-3.5 py-1.5 rounded-[3px] bg-[#FBE7E7] text-[#DE350B] hover:bg-[#f7d6d6] text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer"
+                                                        >
+                                                            <XIcon size={14} /> Reject
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center justify-end pr-[71px]">
                                                         <button
                                                             onClick={() => setSelectedLeaveForReason(l)}
                                                             className="inline-flex items-center gap-[6px] border border-[#E2E6ED] dark:border-gray-800 rounded-[3px] px-[10px] py-[5px] text-[12px] font-semibold text-[#5B6472] dark:text-gray-300 bg-white dark:bg-[#12151C] hover:bg-gray-50 transition-all cursor-pointer"
                                                         >
                                                             <Eye size={13} className="text-[#5B6472] dark:text-gray-300" /> View
                                                         </button>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td colSpan={6} className="py-12 text-center text-[#9AA3B1] italic font-medium">No leave requests found matching your search.</td>
+                                                    </div>
+                                                )}
+                                            </td>
                                         </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan={6} className="py-12 text-center text-[#9AA3B1] italic font-medium">No leave requests found matching your search.</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
 
-                        {totalPages > 1 && (
-                            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-6 py-4 border-t border-[#E2E6ED] dark:border-gray-800 text-xs">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-[#9AA3B1] font-semibold text-xs uppercase">Rows per page:</span>
-                                    <select
-                                        value={rowsPerPage}
-                                        onChange={(e) => {
-                                            setRowsPerPage(Number(e.target.value));
-                                            setCurrentPage(1);
-                                        }}
-                                        className="px-3 py-1 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[#12151C] dark:text-white text-xs font-semibold cursor-pointer"
+                    {totalPages > 1 && (
+                        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-6 py-4 border-t border-[#E2E6ED] dark:border-gray-800 text-xs">
+                            <div className="flex items-center gap-2">
+                                <span className="text-[#9AA3B1] font-semibold text-xs uppercase">Rows per page:</span>
+                                <select
+                                    value={rowsPerPage}
+                                    onChange={(e) => {
+                                        setRowsPerPage(Number(e.target.value));
+                                        setCurrentPage(1);
+                                    }}
+                                    className="px-3 py-1 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[#12151C] dark:text-white text-xs font-semibold cursor-pointer"
+                                >
+                                    <option value={5}>5</option>
+                                    <option value={10}>10</option>
+                                    <option value={20}>20</option>
+                                    <option value={50}>50</option>
+                                </select>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                                <span className="text-xs text-[#5B6472] dark:text-gray-400 font-semibold font-mono-numbers">
+                                    Page {currentPage} of {totalPages || 1}
+                                </span>
+
+                                <div className="flex items-center gap-1.5">
+                                    <button
+                                        onClick={() => setCurrentPage(1)}
+                                        disabled={currentPage === 1}
+                                        className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
+                                        title="First Page"
                                     >
-                                        <option value={5}>5</option>
-                                        <option value={10}>10</option>
-                                        <option value={20}>20</option>
-                                        <option value={50}>50</option>
-                                    </select>
-                                </div>
+                                        <ChevronsLeft size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
+                                    </button>
 
-                                <div className="flex items-center gap-3">
-                                    <span className="text-xs text-[#5B6472] dark:text-gray-400 font-semibold font-mono-numbers">
-                                        Page {currentPage} of {totalPages || 1}
-                                    </span>
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                        disabled={currentPage === 1}
+                                        className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
+                                        title="Previous Page"
+                                    >
+                                        <ChevronLeft size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
+                                    </button>
 
-                                    <div className="flex items-center gap-1.5">
-                                        <button
-                                            onClick={() => setCurrentPage(1)}
-                                            disabled={currentPage === 1}
-                                            className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
-                                            title="First Page"
-                                        >
-                                            <ChevronsLeft size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
-                                        </button>
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                        disabled={currentPage === totalPages || totalPages === 0}
+                                        className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
+                                        title="Next Page"
+                                    >
+                                        <ChevronRight size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
+                                    </button>
 
-                                        <button
-                                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                                            disabled={currentPage === 1}
-                                            className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
-                                            title="Previous Page"
-                                        >
-                                            <ChevronLeft size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
-                                        </button>
-
-                                        <button
-                                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                                            disabled={currentPage === totalPages || totalPages === 0}
-                                            className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
-                                            title="Next Page"
-                                        >
-                                            <ChevronRight size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
-                                        </button>
-
-                                        <button
-                                            onClick={() => setCurrentPage(totalPages)}
-                                            disabled={currentPage === totalPages || totalPages === 0}
-                                            className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
-                                            title="Last Page"
-                                        >
-                                            <ChevronsRight size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
-                                        </button>
-                                    </div>
+                                    <button
+                                        onClick={() => setCurrentPage(totalPages)}
+                                        disabled={currentPage === totalPages || totalPages === 0}
+                                        className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
+                                        title="Last Page"
+                                    >
+                                        <ChevronsRight size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
+                                    </button>
                                 </div>
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
-            
+            </div>
+
             {showApplyModal && createPortal(
                 <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/20 dark:bg-black/60 backdrop-blur-md p-4 animate-fade-in">
                     <div className="bg-white dark:bg-[#12151C] rounded-[6px] w-full max-w-lg overflow-hidden relative border border-[#E2E6ED] dark:border-gray-800">

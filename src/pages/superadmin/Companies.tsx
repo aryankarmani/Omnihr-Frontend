@@ -108,7 +108,7 @@ export default function Companies() {
           Companies & Customers
         </h2>
         <p className="text-sm text-[#5B6472] dark:text-gray-400">
-          All registered customer tenants, their assigned HR Admins and subscription plans.
+          All registered customer tenants, their assigned Admins and subscription plans.
         </p>
       </header>
 
@@ -158,7 +158,7 @@ export default function Companies() {
               <thead className="sticky top-0 z-10 bg-[#F4F6FB] dark:bg-[#1A1F2C]">
                 <tr className="border-b border-[#E2E6ED] dark:border-gray-800 text-[12px] text-[#5B6472] dark:text-gray-400 font-semibold shadow-2xs">
                   <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Company Name</th>
-                  <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">HR Admin</th>
+                  <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Admin</th>
                   <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Plan & Cycle</th>
                   <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Subscription Status</th>
                   <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Expiry Date</th>

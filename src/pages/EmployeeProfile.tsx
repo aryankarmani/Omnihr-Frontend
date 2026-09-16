@@ -1193,7 +1193,10 @@ export default function EmployeeProfile() {
                             <h1 className="text-xl font-bold text-[#12151C] dark:text-white leading-snug">{employee.name}</h1>
                         )}
                         <p className="profile-role text-[13.5px] font-semibold text-[#2C4FD6] dark:text-blue-400 my-0.5">
-                            {employee.role?.name || employee.role?.title || employee.role || 'HR_ADMIN'} · Employee
+                            {(() => {
+                                const r = employee.role?.name || employee.role?.title || employee.role || 'ADMIN';
+                                return r === 'HR_ADMIN' ? 'ADMIN' : r;
+                            })()} · Employee
                         </p>
                         <div className="flex items-center gap-2 mt-1">
                             <span className="text-[11px] text-[#9AA3B1] bg-[#F7F8FA] dark:bg-gray-800 px-2 py-0.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 font-mono-numbers">

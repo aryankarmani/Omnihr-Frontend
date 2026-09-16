@@ -122,6 +122,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
         'MASTERS',
         'TASK',
         'MY_PROFILE',
+        'EMPLOYEE_ATTENDANCE',
     ];
 
 

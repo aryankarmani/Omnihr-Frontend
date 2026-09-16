@@ -8,6 +8,7 @@ import {
   Layers,
   BellRing,
   Settings,
+  PhoneCall,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -37,6 +38,7 @@ export const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
     { label: "Subscriptions", path: "/superadmin/subscriptions", icon: CalendarCheck },
     { label: "Payments", path: "/superadmin/payments", icon: CreditCard },
     { label: "Plans", path: "/superadmin/plans", icon: Layers },
+    { label: "Demo Requests", path: "/superadmin/demo-requests", icon: PhoneCall },
     { label: "Notifications", path: "/superadmin/notifications", icon: BellRing },
     { label: "Settings", path: "/superadmin/settings", icon: Settings },
   ];

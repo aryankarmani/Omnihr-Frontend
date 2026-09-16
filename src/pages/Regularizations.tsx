@@ -120,7 +120,7 @@ export default function Regularizations() {
       setRejectComment('');
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to reject request');
-    } finally {
+    } finally { 
       setSubmittingReject(false);
     }
   };
@@ -391,12 +391,14 @@ export default function Regularizations() {
                             </button>
                           </div>
                         ) : (
-                          <button
-                            onClick={() => setSelectedRequestForReason(req)}
-                            className="inline-flex items-center gap-[6px] border border-[#E2E6ED] dark:border-gray-800 rounded-[3px] px-[10px] py-[5px] text-[12px] font-semibold text-[#5B6472] dark:text-gray-300 bg-white dark:bg-[#12151C] hover:bg-gray-50 dark:hover:bg-white/5 transition-all cursor-pointer"
-                          >
-                            <Eye size={13} className="text-[#5B6472] dark:text-gray-300" /> View
-                          </button>
+                          <div className="flex items-center justify-end pr-[53px]">
+                            <button
+                              onClick={() => setSelectedRequestForReason(req)}
+                              className="inline-flex items-center gap-[6px] border border-[#E2E6ED] dark:border-gray-800 rounded-[3px] px-[10px] py-[5px] text-[12px] font-semibold text-[#5B6472] dark:text-gray-300 bg-white dark:bg-[#12151C] hover:bg-gray-50 dark:hover:bg-white/5 transition-all cursor-pointer"
+                            >
+                              <Eye size={13} className="text-[#5B6472] dark:text-gray-300" /> View
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>

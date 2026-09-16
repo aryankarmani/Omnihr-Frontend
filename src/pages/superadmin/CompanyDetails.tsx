@@ -192,7 +192,7 @@ export default function CompanyDetails() {
         <div className="bg-white dark:bg-[#12151C] p-5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800">
           <div className="flex items-center gap-2 mb-3 text-[#2C4FD6] font-semibold text-[13px]">
             <UserCheck size={16} />
-            <span>Designated HR Administrator</span>
+            <span>Designated Administrator</span>
           </div>
           {data.hrAdmins && data.hrAdmins.length > 0 ? (
             <div className="space-y-1">
@@ -201,11 +201,11 @@ export default function CompanyDetails() {
               </p>
               <p className="text-sm text-[#5B6472] dark:text-gray-300">{data.hrAdmins[0].email}</p>
               <p className="text-[12px] text-[#9AA3B1] pt-1">
-                User ID: #{data.hrAdmins[0].id} • Role: HR_ADMIN
+                User ID: #{data.hrAdmins[0].id} • Role: ADMIN
               </p>
             </div>
           ) : (
-            <p className="text-[#9AA3B1] text-sm">No primary HR Admin linked.</p>
+            <p className="text-[#9AA3B1] text-sm">No primary Admin linked.</p>
           )}
         </div>
 

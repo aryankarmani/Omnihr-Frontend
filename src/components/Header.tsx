@@ -73,8 +73,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
 
     let userModules = user?.accessibleModules || [];
-    if (userModules.length === 0 && user?.role === 'HR_ADMIN') {
-        userModules = ['DASHBOARD', 'ATTENDANCE', 'EMPLOYEE', 'EMPLOYEE_ATTENDANCE', 'TEAM', 'LEAVE', 'REPORTS', 'MASTERS', 'TASK', 'MY_PROFILE'];
+    if (user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN') {
+        const adminModules = ['DASHBOARD', 'ATTENDANCE', 'EMPLOYEE', 'EMPLOYEE_ATTENDANCE', 'TEAM', 'LEAVE', 'REPORTS', 'MASTERS', 'TASK', 'MY_PROFILE'];
+        userModules = Array.from(new Set([...adminModules, ...userModules]));
     } else if (userModules.length === 0) {
         userModules = ['DASHBOARD', 'ATTENDANCE', 'LEAVE', 'MY_PROFILE'];
     }
@@ -221,7 +222,13 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                 </div>
                                 <div className="user-name text-left hidden md:block">
                                     <p className="text-[13.5px] font-semibold text-[#12151C] dark:text-gray-100 leading-tight">{user.name}</p>
-                                    <p className="text-[11px] text-[#9AA3B1] leading-tight capitalize">{user.role?.toLowerCase().replace('_', ' ') || 'User'}</p>
+                                    <p className="text-[11px] text-[#9AA3B1] leading-tight">
+                                        {user.role === 'HR_ADMIN' || (user.role as string) === 'ADMIN'
+                                            ? 'Admin'
+                                            : user.role === 'EMPLOYEE'
+                                                ? 'Employee'
+                                                : user.role?.toLowerCase().replace('_', ' ') || 'User'}
+                                    </p>
                                 </div>
                             </div>
                         )}
