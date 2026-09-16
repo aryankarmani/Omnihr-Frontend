@@ -55,7 +55,7 @@ const parseModuleList = (raw: string | string[] | null | undefined): string[] =>
 };
 
 export default function AccessMasters() {
-    const { refreshUser } = useAuth();
+    const auth = useAuth() as any;
     const [roles, setRoles] = useState<any[]>([]);
     const [permissions, setPermissions] = useState<any[]>([]);
     const [showModal, setShowModal] = useState(false);
@@ -81,7 +81,7 @@ export default function AccessMasters() {
 
     const handleEdit = (role: any) => {
         setEditingRole(role);
-        setRoleName(role.name);
+        setRoleName(role.name === 'HR_ADMIN' ? 'ADMIN' : role.name);
         const rolePermIds = role.permissions ? role.permissions.map((p: any) => p.id) : [];
         const roleMods = parseModuleList(role.accessibleModules);
 
@@ -189,24 +189,33 @@ export default function AccessMasters() {
             .filter(p => selectedModules.includes(normalizeModuleKey(p.module)) && selectedPermissions.includes(p.id))
             .map(p => p.id);
 
+        let finalRoleName = roleName.trim();
+        // If editing HR_ADMIN and user retained "ADMIN", preserve 'HR_ADMIN' for internal consistency
+        if (editingRole?.name === 'HR_ADMIN' && finalRoleName.toUpperCase() === 'ADMIN') {
+            finalRoleName = 'HR_ADMIN';
+        }
+
         const payload = {
-            name: roleName.trim(),
+            name: finalRoleName,
             permissionIds: validPermissionIds,
             accessibleModules: selectedModules.join(',')
         };
 
         try {
             setLoading(true);
+            const displayName = finalRoleName === 'HR_ADMIN' ? 'ADMIN' : finalRoleName;
             if (editingRole) {
                 await api.put(`/masters/roles/${editingRole.id}`, payload);
-                toast.success(`Role "${roleName}" updated successfully!`);
+                toast.success(`Role "${displayName}" updated successfully!`);
             } else {
                 await api.post('/masters/roles', payload);
-                toast.success(`Role "${roleName}" created successfully!`);
+                toast.success(`Role "${displayName}" created successfully!`);
             }
 
             // Immediately synchronize current active session and notify the system
-            await refreshUser();
+            if (typeof auth?.refreshUser === 'function') {
+                await auth.refreshUser();
+            }
             window.dispatchEvent(new Event('auth_user_updated'));
 
             setShowModal(false);
@@ -226,7 +235,9 @@ export default function AccessMasters() {
             toast.success(`${itemToDelete.name} deleted successfully!`);
 
             // Synchronize active session if current user was affected
-            await refreshUser();
+            if (typeof auth?.refreshUser === 'function') {
+                await auth.refreshUser();
+            }
             window.dispatchEvent(new Event('auth_user_updated'));
 
             fetchRoles();
@@ -264,7 +275,7 @@ export default function AccessMasters() {
                             Access Control & Role Management
                         </h2>
                         <p className="text-[12px] text-[#717E95] dark:text-gray-400">
-                            Configure module visibility and granular permissions for HR Admins, Employees, and Custom Roles
+                            Configure module visibility and granular permissions for Admins, Employees, and Custom Roles
                         </p>
                     </div>
                 </div>
@@ -297,7 +308,7 @@ export default function AccessMasters() {
                                         <Edit2 size={16} />
                                     </button>
                                     <button
-                                        onClick={() => setItemToDelete({ id: role.id, name: role.name })}
+                                        onClick={() => setItemToDelete({ id: role.id, name: role.name === 'HR_ADMIN' ? 'ADMIN' : role.name })}
                                         title="Delete Role"
                                         className="p-1.5 text-[#9AA3B1] hover:text-[#DE350B] hover:bg-red-50 dark:hover:bg-red-950/40 rounded transition-colors cursor-pointer"
                                     >
@@ -307,7 +318,7 @@ export default function AccessMasters() {
 
                                 <div className="mb-4 pr-14">
                                     <div className="flex items-center gap-2">
-                                        <h3 className="text-[14px] font-bold text-[#12151C] dark:text-white">{role.name}</h3>
+                                        <h3 className="text-[14px] font-bold text-[#12151C] dark:text-white">{role.name === 'HR_ADMIN' ? 'ADMIN' : role.name}</h3>
                                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E8ECFC] text-[#2C4FD6] dark:bg-blue-950/60 dark:text-blue-300">
                                             {roleMods.length} Modules
                                         </span>
@@ -379,7 +390,7 @@ export default function AccessMasters() {
                                 </div>
                                 <div>
                                     <h3 className="text-base font-bold text-[#12151C] dark:text-white">
-                                        {editingRole ? `Edit Role: ${editingRole.name}` : 'Create New Access Role'}
+                                        {editingRole ? `Edit Role: ${editingRole.name === 'HR_ADMIN' ? 'ADMIN' : editingRole.name}` : 'Create New Access Role'}
                                     </h3>
                                     <p className="text-[12px] text-[#717E95] dark:text-gray-400">
                                         Select modules to unlock and configure their granular permissions
@@ -406,10 +417,10 @@ export default function AccessMasters() {
                                     className="w-full px-3.5 py-2.5 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#181B24] text-[14px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6] focus:ring-1 focus:ring-[#2C4FD6] transition-all font-medium placeholder:text-gray-400"
                                     value={roleName}
                                     onChange={e => setRoleName(e.target.value)}
-                                    placeholder="e.g. HR_ADMIN, EMPLOYEE, PAYROLL_EXECUTIVE, TEAM_LEAD"
+                                    placeholder="e.g. ADMIN, EMPLOYEE, PAYROLL_EXECUTIVE, TEAM_LEAD"
                                 />
                                 <p className="text-[11.5px] text-[#717E95] dark:text-gray-400 mt-2">
-                                    Use standard names like <span className="font-semibold text-[#2C4FD6]">HR_ADMIN</span> or <span className="font-semibold text-[#2C4FD6]">EMPLOYEE</span> to update built-in system role defaults.
+                                    Use standard names like <span className="font-semibold text-[#2C4FD6]">ADMIN</span> or <span className="font-semibold text-[#2C4FD6]">EMPLOYEE</span> to update built-in system role defaults.
                                 </p>
                             </div>
 
@@ -678,7 +689,7 @@ export default function AccessMasters() {
                         <div className="p-4 sm:p-5 border-t border-[#E2E6ED] dark:border-gray-800 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 bg-white dark:bg-[#12151C] rounded-b-[8px]">
                             <div className="text-[11.5px] text-[#717E95] dark:text-gray-400 flex items-center gap-1.5">
                                 <Sparkles size={14} className="text-[#2C4FD6]" />
-                                <span>Saving will automatically update live Employee and HR Admin sessions.</span>
+                                <span>Saving will automatically update live Employee and Admin sessions.</span>
                             </div>
                             <div className="flex justify-end gap-3">
                                 <button

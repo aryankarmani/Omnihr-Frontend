@@ -618,23 +618,8 @@ export default function Leave() {
                                                 <div className="hist-title text-[13px] font-semibold text-[#12151C] dark:text-white">
                                                     {leave.leaveType?.code || 'CL'} — {leave.reason || 'Personal work'}
                                                 </div>
-                                                <div className="hist-meta text-[11.5px] text-[#9AA3B1] mt-[2px] flex items-center gap-1.5 flex-wrap">
-                                                    <span>
-                                                        {new Date(leave.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                                        {new Date(leave.startDate).toDateString() !== new Date(leave.endDate).toDateString() && (
-                                                            ` – ${new Date(leave.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
-                                                        )}
-                                                    </span>
-                                                    {leave.fromTime && leave.toTime && (
-                                                        <span className="inline-flex items-center gap-1 font-semibold text-[10.5px] text-[#2C4FD6] dark:text-blue-400 bg-[#EEF2FF] dark:bg-blue-950/40 px-1.5 py-0.5 rounded-[4px]">
-                                                            <Clock size={10.5} />
-                                                            {formatTime12h(leave.fromTime)} - {formatTime12h(leave.toTime)}
-                                                            {(() => {
-                                                                const dur = calculateDuration(leave.fromTime, leave.toTime);
-                                                                return dur?.isValid ? ` (${dur.text})` : '';
-                                                            })()}
-                                                        </span>
-                                                    )}
+                                                <div className="hist-meta text-[11.5px]  text-[#9AA3B1] mt-[2px]">
+                                                    {new Date(leave.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {new Date(leave.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                                 </div>
                                             </div>
                                         </div>
@@ -765,27 +750,8 @@ export default function Leave() {
                                                     {l.leaveType?.code || 'LV'}
                                                 </span>
                                             </td>
-                                            <td className="py-[13px] px-[22px] text-xs text-[#5B6472] dark:text-gray-300">
-                                                <div className="font-mono-numbers font-medium text-[#12151C] dark:text-gray-200">
-                                                    {new Date(l.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                                    {new Date(l.startDate).toDateString() !== new Date(l.endDate).toDateString() && (
-                                                        ` – ${new Date(l.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
-                                                    )}
-                                                </div>
-                                                {l.fromTime && l.toTime && (
-                                                    <div className="mt-1 flex items-center gap-1.5 text-[11px] font-semibold text-[#2C4FD6] dark:text-blue-400">
-                                                        <Clock size={11} className="shrink-0" />
-                                                        <span>{formatTime12h(l.fromTime)} – {formatTime12h(l.toTime)}</span>
-                                                        {(() => {
-                                                            const dur = calculateDuration(l.fromTime, l.toTime);
-                                                            return dur?.isValid ? (
-                                                                <span className="bg-[#EEF2FF] dark:bg-blue-950/50 text-[#2C4FD6] dark:text-blue-400 text-[10px] px-1.5 py-0.5 rounded font-mono">
-                                                                    {dur.text}
-                                                                </span>
-                                                            ) : null;
-                                                        })()}
-                                                    </div>
-                                                )}
+                                            <td className="py-[13px] px-[22px] text-xs text-[#5B6472] dark:text-gray-300 font-mono-numbers">
+                                                {new Date(l.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {new Date(l.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                             </td>
                                             <td
                                                 onClick={() => setSelectedLeaveForReason(l)}
@@ -824,12 +790,14 @@ export default function Leave() {
                                                         </button>
                                                     </div>
                                                 ) : (
-                                                    <button
-                                                        onClick={() => setSelectedLeaveForReason(l)}
-                                                        className="inline-flex items-center gap-[6px] border border-[#E2E6ED] dark:border-gray-800 rounded-[3px] px-[10px] py-[5px] text-[12px] font-semibold text-[#5B6472] dark:text-gray-300 bg-white dark:bg-[#12151C] hover:bg-gray-50 transition-all cursor-pointer"
-                                                    >
-                                                        <Eye size={13} className="text-[#5B6472] dark:text-gray-300" /> View
-                                                    </button>
+                                                    <div className="flex items-center justify-end pr-[71px]">
+                                                        <button
+                                                            onClick={() => setSelectedLeaveForReason(l)}
+                                                            className="inline-flex items-center gap-[6px] border border-[#E2E6ED] dark:border-gray-800 rounded-[3px] px-[10px] py-[5px] text-[12px] font-semibold text-[#5B6472] dark:text-gray-300 bg-white dark:bg-[#12151C] hover:bg-gray-50 transition-all cursor-pointer"
+                                                        >
+                                                            <Eye size={13} className="text-[#5B6472] dark:text-gray-300" /> View
+                                                        </button>
+                                                    </div>
                                                 )}
                                             </td>
                                         </tr>

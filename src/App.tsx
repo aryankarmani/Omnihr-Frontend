@@ -41,6 +41,7 @@ import Payments from './pages/superadmin/Payments';
 import Plans from './pages/superadmin/Plans';
 import SuperAdminNotifications from './pages/superadmin/Notifications';
 import SuperAdminSettings from './pages/superadmin/SuperAdminSettings';
+import DemoRequests from './pages/superadmin/DemoRequests';
 
 
 
@@ -96,6 +97,7 @@ function AppContent() {
                 <Route path="/superadmin/payments" element={<SuperAdminProtectedRoute><Payments /></SuperAdminProtectedRoute>} />
                 <Route path="/superadmin/plans" element={<SuperAdminProtectedRoute><Plans /></SuperAdminProtectedRoute>} />
                 <Route path="/superadmin/notifications" element={<SuperAdminProtectedRoute><SuperAdminNotifications /></SuperAdminProtectedRoute>} />
+                <Route path="/superadmin/demo-requests" element={<SuperAdminProtectedRoute><DemoRequests /></SuperAdminProtectedRoute>} />
                 <Route path="/superadmin/settings" element={<SuperAdminProtectedRoute><SuperAdminSettings /></SuperAdminProtectedRoute>} />
                 <Route path="/superadmin" element={<Navigate to="/superadmin/dashboard" replace />} />
 

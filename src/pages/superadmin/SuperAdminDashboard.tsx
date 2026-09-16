@@ -203,17 +203,16 @@ export default function SuperAdminDashboard() {
                 <Tooltip
                   formatter={(val: any) => [`₹${Number(val).toLocaleString("en-IN")}`, "Revenue"]}
                   contentStyle={{
-                    backgroundColor: "#12151C",
-                    borderColor: "#374151",
+                    backgroundColor: "#2C4FD6",
                     borderRadius: "6px",
                     color: "#fff",
-                    fontSize: "12px",
+                    fontSize: "14px",
                   }}
                 />
                 <Area
                   type="monotone"
                   dataKey="revenue"
-                  stroke="#2C4FD6"
+                  stroke=""
                   strokeWidth={2.5}
                   fillOpacity={1}
                   fill="url(#revGrad)"

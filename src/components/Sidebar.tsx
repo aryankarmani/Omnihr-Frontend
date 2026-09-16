@@ -122,25 +122,25 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
         'MASTERS',
         'TASK',
         'MY_PROFILE',
+        'EMPLOYEE_ATTENDANCE',
     ];
 
 
-    if (userModules.length === 0) {
-        if (user?.role === 'HR_ADMIN' || user?.role === 'SYSTEM_ADMIN') {
-            userModules = adminDefaultModules;
-        } else {
-            userModules = employeeDefaultModules;
+    if (user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN') {
+        userModules = userModules.length > 0
+            ? Array.from(new Set([...adminDefaultModules, ...userModules]))
+            : adminDefaultModules;
+    } else {
+        const baseModules = [...employeeDefaultModules];
+        // ✅ ADDED: if employee is team manager, add only allowed team modules
+        if (managerAccess.isTeamManager) {
+            if (managerAccess.access.list) baseModules.push('EMPLOYEE');
+            if (managerAccess.access.attendance || managerAccess.access.regularization) {
+                baseModules.push('EMPLOYEE_ATTENDANCE');
+            }
+            if (managerAccess.access.leaveApproval) baseModules.push('EMPLOYEE');
         }
-    }
-
-    if (managerAccess.isTeamManager) {
-        const extraModules: string[] = [];
-        if (managerAccess.access.list) extraModules.push('EMPLOYEE');
-        if (managerAccess.access.attendance || managerAccess.access.regularization) {
-            extraModules.push('EMPLOYEE_ATTENDANCE');
-        }
-        if (managerAccess.access.leaveApproval) extraModules.push('EMPLOYEE');
-        userModules = Array.from(new Set([...userModules, ...extraModules]));
+        userModules = Array.from(new Set([...userModules, ...baseModules]));
     }
 
     const toggleMenu = (label: string) => {
@@ -195,7 +195,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                 <nav className="flex-1 px-3 space-y-1 mt-2 overflow-y-auto overflow-x-hidden custom-scrollbar">
                     {menuItems.filter(item => {
                         if (item.module === 'EMPLOYEE_ATTENDANCE') {
-                            return user?.role === 'HR_ADMIN' ||
+                            return user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN' ||
                                 (managerAccess.isTeamManager &&
                                     (managerAccess.access.attendance || managerAccess.access.regularization));
                         }
@@ -239,7 +239,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                                 {hasChildren && isOpen && !isCollapsed && (
                                     <div className="space-y-1 ml-4 border-l border-[#E2E6ED] dark:border-gray-800 pl-2 animate-fade-in">
                                         {item.children?.filter(child => {
-                                            if (user?.role === 'HR_ADMIN') return true;
+                                            if (user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN') return true;
                                             if (managerAccess.isTeamManager) {
                                                 if (child.label === 'List') return !!managerAccess.access.list;
                                                 if (child.label === 'Attendance') return !!managerAccess.access.attendance;

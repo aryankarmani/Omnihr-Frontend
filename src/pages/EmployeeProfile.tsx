@@ -1191,7 +1191,10 @@ export default function EmployeeProfile() {
                             <h1 className="text-xl font-bold text-[#12151C] dark:text-white leading-snug">{employee.name}</h1>
                         )}
                         <p className="profile-role text-[13.5px] font-semibold text-[#2C4FD6] dark:text-blue-400 my-0.5">
-                            {employee.role?.name || employee.role?.title || (typeof employee.role === 'string' ? employee.role : '') || 'EMPLOYEE'} · Employee
+                            {(() => {
+                                const r = employee.role?.name || employee.role?.title || employee.role || 'ADMIN';
+                                return r === 'HR_ADMIN' ? 'ADMIN' : r;
+                            })()} · Employee
                         </p>
                         <div className="flex items-center gap-2 mt-1">
                             <span className="text-[11px] text-[#9AA3B1] bg-[#F7F8FA] dark:bg-gray-800 px-2 py-0.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 font-mono-numbers">
@@ -1230,8 +1233,8 @@ export default function EmployeeProfile() {
                         key={tab}
                         onClick={() => setActiveTab(tab as any)}
                         className={`px-[15px] py-[11px] text-[13.5px] font-semibold transition-all whitespace-nowrap cursor-pointer ${activeTab === tab
-                                ? 'tab active text-[#12151C] dark:text-white border-b-2 border-[#2C4FD6]'
-                                : 'tab text-[#5B6472] hover:text-[#12151C] dark:hover:text-gray-300'
+                            ? 'tab active text-[#12151C] dark:text-white border-b-2 border-[#2C4FD6]'
+                            : 'tab text-[#5B6472] hover:text-[#12151C] dark:hover:text-gray-300'
                             }`}
                     >
                         {tab === 'statutory'
@@ -2753,9 +2756,8 @@ export default function EmployeeProfile() {
                                 </div>
                                 <div className="w-full bg-[#EEF1F5] dark:bg-gray-800 h-2 rounded-full overflow-hidden mb-3">
                                     <div
-                                        className={`h-full rounded-full transition-all duration-300 ${
-                                            isComplete ? 'bg-emerald-500' : 'bg-amber-400'
-                                        }`}
+                                        className={`h-full rounded-full transition-all duration-300 ${isComplete ? 'bg-emerald-500' : 'bg-amber-400'
+                                            }`}
                                         style={{ width: `${completion.percentage}%` }}
                                     />
                                 </div>

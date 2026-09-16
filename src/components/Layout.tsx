@@ -43,7 +43,7 @@ export default function Layout({ children }: LayoutProps) {
                         Subscription Suspended
                     </h2>
                     <p className="text-sm text-[#5B6472] dark:text-gray-400 leading-relaxed mb-5">
-                        {suspendedMessage || "Your company's subscription to EnCalm HRMS has been suspended by the platform administrator. Access to features is temporarily unavailable."}
+                        {suspendedMessage || "Your company's subscription to OmniHR has been suspended by the platform administrator. Access to features is temporarily unavailable."}
                     </p>
                     <div className="bg-[#F4F6FB] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-800 rounded-xl p-3.5 mb-6 text-left">
                         <span className="text-[11px] text-[#9AA3B1] uppercase font-bold tracking-wider block mb-1">
