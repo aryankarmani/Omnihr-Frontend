@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
 import {
   Plus,
   Check,
@@ -11,6 +12,16 @@ import {
 import { toast } from "react-hot-toast";
 import { superAdminApi } from "../../utils/superAdminApi";
 
+interface PlanFormValues {
+  name: string;
+  description: string;
+  monthlyPrice: string;
+  yearlyPrice: string;
+  maxEmployees: string;
+  featuresString: string;
+  isActive: boolean;
+}
+
 export default function Plans() {
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -18,16 +29,26 @@ export default function Plans() {
   // Modal State
   const [showModal, setShowModal] = useState(false);
   const [editingPlan, setEditingPlan] = useState<any>(null);
-
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [monthlyPrice, setMonthlyPrice] = useState("");
-  const [yearlyPrice, setYearlyPrice] = useState("");
-  const [maxEmployees, setMaxEmployees] = useState("25");
-  const [featuresString, setFeaturesString] = useState("");
-  const [isActive, setIsActive] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    reset,
+    formState: { errors },
+  } = useForm<PlanFormValues>({
+    defaultValues: {
+      name: "",
+      description: "",
+      monthlyPrice: "",
+      yearlyPrice: "",
+      maxEmployees: "25",
+      featuresString: "EMPLOYEES, ATTENDANCE, LEAVE",
+      isActive: true,
+    },
+  });
 
   const fetchPlans = async () => {
     try {
@@ -47,31 +68,34 @@ export default function Plans() {
 
   const openCreateModal = () => {
     setEditingPlan(null);
-    setName("");
-    setDescription("");
-    setMonthlyPrice("");
-    setYearlyPrice("");
-    setMaxEmployees("25");
-    setFeaturesString("EMPLOYEES, ATTENDANCE, LEAVE");
-    setIsActive(true);
+    reset({
+      name: "",
+      description: "",
+      monthlyPrice: "",
+      yearlyPrice: "",
+      maxEmployees: "25",
+      featuresString: "EMPLOYEES, ATTENDANCE, LEAVE",
+      isActive: true,
+    });
     setShowModal(true);
   };
 
   const openEditModal = (plan: any) => {
     setEditingPlan(plan);
-    setName(plan.name);
-    setDescription(plan.description || "");
-    setMonthlyPrice(String(plan.monthlyPrice));
-    setYearlyPrice(String(plan.yearlyPrice));
-    setMaxEmployees(String(plan.maxEmployees));
-    setFeaturesString(Array.isArray(plan.features) ? plan.features.join(", ") : "");
-    setIsActive(plan.isActive);
+    reset({
+      name: plan.name,
+      description: plan.description || "",
+      monthlyPrice: String(plan.monthlyPrice),
+      yearlyPrice: String(plan.yearlyPrice),
+      maxEmployees: String(plan.maxEmployees),
+      featuresString: Array.isArray(plan.features) ? plan.features.join(", ") : "",
+      isActive: plan.isActive,
+    });
     setShowModal(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const featuresList = featuresString
+  const onPlanSubmit = async (data: PlanFormValues) => {
+    const featuresList = data.featuresString
       .split(",")
       .map((f) => f.trim())
       .filter(Boolean);
@@ -80,32 +104,32 @@ export default function Plans() {
       setSubmitting(true);
       if (editingPlan) {
         await superAdminApi.put(`/plans/${editingPlan.id}`, {
-          name,
-          description,
-          monthlyPrice: Number(monthlyPrice),
-          yearlyPrice: Number(yearlyPrice),
-          maxEmployees: Number(maxEmployees),
+          name: data.name.trim(),
+          description: data.description.trim(),
+          monthlyPrice: Number(data.monthlyPrice),
+          yearlyPrice: Number(data.yearlyPrice),
+          maxEmployees: Number(data.maxEmployees),
           features: featuresList,
-          isActive,
+          isActive: data.isActive,
         });
         toast.success("Plan updated successfully!");
       } else {
         await superAdminApi.post("/plans", {
-          name,
-          description,
-          monthlyPrice: Number(monthlyPrice),
-          yearlyPrice: Number(yearlyPrice),
-          maxEmployees: Number(maxEmployees),
+          name: data.name.trim(),
+          description: data.description.trim(),
+          monthlyPrice: Number(data.monthlyPrice),
+          yearlyPrice: Number(data.yearlyPrice),
+          maxEmployees: Number(data.maxEmployees),
           features: featuresList,
-          isActive,
+          isActive: data.isActive,
         });
-        toast.success("Plan created successfully!");
+        toast.success("New plan created successfully!");
       }
-
       setShowModal(false);
+      reset();
       fetchPlans();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to save plan.");
+      toast.error(err.response?.data?.message || "Failed to save plan tier.");
     } finally {
       setSubmitting(false);
     }
@@ -282,19 +306,27 @@ export default function Plans() {
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-3.5">
+            <form onSubmit={handleSubmit(onPlanSubmit)} className="space-y-3.5">
               <div>
                 <label className="block text-[13px] font-semibold text-[#12151C] dark:text-gray-300 mb-1">
-                  Plan Name
+                  Plan Name <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Basic, Pro, Enterprise"
-                  className="w-full px-3.5 py-2.5 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
+                  {...register("name", {
+                    required: "Plan name is required",
+                    minLength: { value: 2, message: "Plan name must be at least 2 characters" },
+                  })}
+                  className={`w-full px-3.5 py-2.5 bg-white dark:bg-[#12151C] border rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none transition-all ${
+                    errors.name
+                      ? "border-rose-500 focus:border-rose-500 ring-1 ring-rose-500/20"
+                      : "border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]"
+                  }`}
                 />
+                {errors.name && (
+                  <p className="text-xs text-rose-500 font-medium mt-1">{errors.name.message}</p>
+                )}
               </div>
 
               <div>
@@ -303,9 +335,8 @@ export default function Plans() {
                 </label>
                 <input
                   type="text"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
                   placeholder="Target audience or key value proposition"
+                  {...register("description")}
                   className="w-full px-3.5 py-2.5 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
                 />
               </div>
@@ -313,69 +344,147 @@ export default function Plans() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[13px] font-semibold text-[#12151C] dark:text-gray-300 mb-1">
-                    Monthly Price (₹)
+                    Monthly Price (₹) <span className="text-rose-500">*</span>
                   </label>
                   <input
-                    type="number"
-                    required
-                    value={monthlyPrice}
-                    onChange={(e) => setMonthlyPrice(e.target.value)}
+                    type="text"
+                    inputMode="numeric"
                     placeholder="e.g. 999"
-                    className="w-full px-3.5 py-2.5 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
+                    {...register("monthlyPrice", {
+                      required: "Monthly price is required",
+                      pattern: {
+                        value: /^[0-9]+$/,
+                        message: "Only numbers are allowed",
+                      },
+                    })}
+                    onKeyDown={(e) => {
+                      if (
+                        !/[0-9]/.test(e.key) &&
+                        !["Backspace", "Tab", "ArrowLeft", "ArrowRight", "Delete"].includes(e.key)
+                      ) {
+                        e.preventDefault();
+                      }
+                    }}
+                    className={`w-full px-3.5 py-2.5 bg-white dark:bg-[#12151C] border rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none transition-all ${
+                      errors.monthlyPrice
+                        ? "border-rose-500 focus:border-rose-500 ring-1 ring-rose-500/20"
+                        : "border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]"
+                    }`}
                   />
+                  {errors.monthlyPrice && (
+                    <p className="text-xs text-rose-500 font-medium mt-1">
+                      {errors.monthlyPrice.message}
+                    </p>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-[13px] font-semibold text-[#12151C] dark:text-gray-300 mb-1">
-                    Yearly Price (₹)
+                    Yearly Price (₹) <span className="text-rose-500">*</span>
                   </label>
                   <input
-                    type="number"
-                    required
-                    value={yearlyPrice}
-                    onChange={(e) => setYearlyPrice(e.target.value)}
+                    type="text"
+                    inputMode="numeric"
                     placeholder="e.g. 9990"
-                    className="w-full px-3.5 py-2.5 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
+                    {...register("yearlyPrice", {
+                      required: "Yearly price is required",
+                      pattern: {
+                        value: /^[0-9]+$/,
+                        message: "Only numbers are allowed",
+                      },
+                    })}
+                    onKeyDown={(e) => {
+                      if (
+                        !/[0-9]/.test(e.key) &&
+                        !["Backspace", "Tab", "ArrowLeft", "ArrowRight", "Delete"].includes(e.key)
+                      ) {
+                        e.preventDefault();
+                      }
+                    }}
+                    className={`w-full px-3.5 py-2.5 bg-white dark:bg-[#12151C] border rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none transition-all ${
+                      errors.yearlyPrice
+                        ? "border-rose-500 focus:border-rose-500 ring-1 ring-rose-500/20"
+                        : "border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]"
+                    }`}
                   />
+                  {errors.yearlyPrice && (
+                    <p className="text-xs text-rose-500 font-medium mt-1">
+                      {errors.yearlyPrice.message}
+                    </p>
+                  )}
                 </div>
               </div>
 
               <div>
                 <label className="block text-[13px] font-semibold text-[#12151C] dark:text-gray-300 mb-1">
-                  Max Allowed Employees (-1 for Unlimited)
+                  Max Allowed Employees (-1 for Unlimited) <span className="text-rose-500">*</span>
                 </label>
                 <input
-                  type="number"
-                  required
-                  value={maxEmployees}
-                  onChange={(e) => setMaxEmployees(e.target.value)}
+                  type="text"
+                  inputMode="numeric"
                   placeholder="e.g. 25, 100, or -1"
-                  className="w-full px-3.5 py-2.5 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
+                  {...register("maxEmployees", {
+                    required: "Max employees is required",
+                    pattern: {
+                      value: /^-?[0-9]+$/,
+                      message: "Enter a valid number or -1 for unlimited",
+                    },
+                  })}
+                  onKeyDown={(e) => {
+                    if (
+                      !/[0-9-]/.test(e.key) &&
+                      !["Backspace", "Tab", "ArrowLeft", "ArrowRight", "Delete"].includes(e.key)
+                    ) {
+                      e.preventDefault();
+                    }
+                  }}
+                  className={`w-full px-3.5 py-2.5 bg-white dark:bg-[#12151C] border rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none transition-all ${
+                    errors.maxEmployees
+                      ? "border-rose-500 focus:border-rose-500 ring-1 ring-rose-500/20"
+                      : "border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]"
+                  }`}
                 />
+                {errors.maxEmployees && (
+                  <p className="text-xs text-rose-500 font-medium mt-1">
+                    {errors.maxEmployees.message}
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className="block text-[13px] font-semibold text-[#12151C] dark:text-gray-300 mb-1">
-                  Included Features (Comma-separated)
+                  Included Features (Comma-separated) <span className="text-rose-500">*</span>
                 </label>
                 <textarea
                   rows={2}
-                  value={featuresString}
-                  onChange={(e) => setFeaturesString(e.target.value)}
                   placeholder="e.g. EMPLOYEES, ATTENDANCE, LEAVE, PAYROLL, REPORTS"
-                  className="w-full px-3.5 py-2.5 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6] resize-none"
+                  {...register("featuresString", {
+                    required: "Features list is required",
+                  })}
+                  className={`w-full px-3.5 py-2.5 bg-white dark:bg-[#12151C] border rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none resize-none transition-all ${
+                    errors.featuresString
+                      ? "border-rose-500 focus:border-rose-500 ring-1 ring-rose-500/20"
+                      : "border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]"
+                  }`}
                 />
+                {errors.featuresString && (
+                  <p className="text-xs text-rose-500 font-medium mt-1">
+                    {errors.featuresString.message}
+                  </p>
+                )}
               </div>
 
               <div className="flex items-center gap-2 pt-1">
                 <input
                   type="checkbox"
                   id="activeCheck"
-                  checked={isActive}
-                  onChange={(e) => setIsActive(e.target.checked)}
+                  {...register("isActive")}
                   className="rounded text-[#2C4FD6] focus:ring-[#2C4FD6]"
                 />
-                <label htmlFor="activeCheck" className="text-[13px] font-medium text-[#12151C] dark:text-gray-300 cursor-pointer">
+                <label
+                  htmlFor="activeCheck"
+                  className="text-[13px] font-medium text-[#12151C] dark:text-gray-300 cursor-pointer"
+                >
                   Plan is Active and available for purchase
                 </label>
               </div>

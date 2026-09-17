@@ -38,10 +38,8 @@ const menuItems: MenuItem[] = [
     { icon: CalendarRange, label: 'Leave', path: '/leave', module: 'LEAVE', state: { activeTab: 'MY_LEAVE' } },
     { icon: BarChart3, label: 'Reports', path: '/reports', module: 'REPORTS' },
     { icon: Settings2, label: 'Masters', path: '/masters', module: 'MASTERS' },
-    { icon: CheckSquare, label: 'Task', path: '/task', module: 'TASK' },
     { icon: FileText, label: 'Log', path: '/log-file', module: 'TASK' },
     { icon: UserCircle, label: 'My Profile', path: '/profile', module: 'MY_PROFILE' },
-
 ];
 
 interface SidebarProps {
@@ -294,7 +292,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                     {/* Backdrop */}
                     <div
-                        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
+                        className="absolute inset-0 bg-slate-900/30 dark:bg-black/60 backdrop-blur-md animate-fade-in"
                         onClick={() => setShowLogoutConfirm(false)}
                     />
 

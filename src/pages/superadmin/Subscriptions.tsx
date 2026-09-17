@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
 import {
   CalendarCheck,
   Search,
@@ -15,6 +16,10 @@ import {
 import { toast } from "react-hot-toast";
 import { superAdminApi } from "../../utils/superAdminApi";
 
+interface ExtendSubFormValues {
+  extendDays: number;
+}
+
 export default function Subscriptions() {
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,9 +31,18 @@ export default function Subscriptions() {
   // Modals state
   const [showExtendModal, setShowExtendModal] = useState(false);
   const [selectedSub, setSelectedSub] = useState<any>(null);
-  const [extendDays, setExtendDays] = useState("30");
   const [submitting, setSubmitting] = useState(false);
   const [sendingReminderId, setSendingReminderId] = useState<string | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    reset,
+    formState: { errors },
+  } = useForm<ExtendSubFormValues>({
+    defaultValues: { extendDays: 30 },
+  });
 
   const fetchSubscriptions = async () => {
     try {
@@ -46,22 +60,26 @@ export default function Subscriptions() {
     }
   };
 
+  // Debounced auto-search as user types
   useEffect(() => {
-    fetchSubscriptions();
-  }, [statusFilter]);
+    const delayDebounce = setTimeout(() => {
+      fetchSubscriptions();
+    }, 300);
+    return () => clearTimeout(delayDebounce);
+  }, [searchTerm, statusFilter]);
 
-  const handleExtend = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onExtendSubmit = async (data: ExtendSubFormValues) => {
     if (!selectedSub) return;
 
     try {
       setSubmitting(true);
       await superAdminApi.put(`/subscriptions/${selectedSub.id}`, {
-        extendDays: Number(extendDays),
+        extendDays: Number(data.extendDays),
       });
-      toast.success(`Subscription extended by ${extendDays} days!`);
+      toast.success(`Subscription extended by ${data.extendDays} days!`);
       setShowExtendModal(false);
       setSelectedSub(null);
+      reset({ extendDays: 30 });
       fetchSubscriptions();
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Failed to extend subscription.");
@@ -392,23 +410,59 @@ export default function Subscriptions() {
               </p>
             </div>
 
-            <form onSubmit={handleExtend} className="space-y-4">
+            <form onSubmit={handleSubmit(onExtendSubmit)} className="space-y-4">
               <div>
                 <label className="block text-[13px] font-semibold text-[#12151C] dark:text-gray-300 mb-1.5">
-                  Extension Duration (Days)
+                  Extension Duration (Days) <span className="text-rose-500">*</span>
                 </label>
-                <select
-                  value={extendDays}
-                  onChange={(e) => setExtendDays(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
-                >
-                  <option value="15">15 Days</option>
-                  <option value="30">30 Days (1 Month)</option>
-                  <option value="60">60 Days (2 Months)</option>
-                  <option value="90">90 Days (3 Months)</option>
-                  <option value="180">180 Days (6 Months)</option>
-                  <option value="365">365 Days (1 Year)</option>
-                </select>
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="e.g. 30"
+                    {...register("extendDays", {
+                      required: "Extension days is required",
+                      min: { value: 1, message: "Minimum extension is 1 day" },
+                      max: { value: 3650, message: "Maximum extension is 3650 days (10 years)" },
+                      pattern: {
+                        value: /^[0-9]+$/,
+                        message: "Only numbers are allowed",
+                      },
+                    })}
+                    onKeyDown={(e) => {
+                      if (
+                        !/[0-9]/.test(e.key) &&
+                        !["Backspace", "Tab", "ArrowLeft", "ArrowRight", "Delete"].includes(e.key)
+                      ) {
+                        e.preventDefault();
+                      }
+                    }}
+                    className={`w-full px-3.5 py-2.5 bg-white dark:bg-[#12151C] border rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none transition-all ${
+                      errors.extendDays
+                        ? "border-rose-500 focus:border-rose-500 ring-1 ring-rose-500/20"
+                        : "border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]"
+                    }`}
+                  />
+                  {errors.extendDays && (
+                    <p className="text-xs text-rose-500 font-medium">
+                      {errors.extendDays.message}
+                    </p>
+                  )}
+
+                  {/* Quick Preset Buttons */}
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {[15, 30, 60, 90, 180, 365].map((days) => (
+                      <button
+                        key={days}
+                        type="button"
+                        onClick={() => setValue("extendDays", days, { shouldValidate: true })}
+                        className="px-2.5 py-1 text-[11px] font-semibold rounded-[4px] bg-[#EEF1F5] dark:bg-white/5 text-[#5B6472] dark:text-gray-300 hover:bg-[#2C4FD6] hover:text-white transition-colors cursor-pointer"
+                      >
+                        +{days} Days
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E2E6ED] dark:border-gray-800">

@@ -40,7 +40,7 @@ export const Captcha: React.FC<CaptchaProps> = ({ onVerify, className = "", chil
         </button>
       </div>
       <div className="flex gap-2 items-center">
-        <div className="w-32 h-12 bg-gray-50 rounded-xl flex items-center justify-center border border-gray-300 select-none overflow-hidden shadow-sm">
+        <div className="w-32 h-11 bg-[#F8F9FA] rounded-[6px] flex items-center justify-center border border-[#E2E6ED] select-none overflow-hidden">
           <span
             className="text-xl font-black tracking-[0.2em] text-gray-800 italic whitespace-nowrap"
             style={{

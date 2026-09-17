@@ -11,8 +11,11 @@ export default function EmployeeList() {
     const navigate = useNavigate();
     const { user } = useAuth();
 
-    // ✅ ADDED: Only HR_ADMIN can see Add Employee and Actions
-    const isAdmin = user?.role === 'HR_ADMIN';
+    // ✅ Admin role check for HR_ADMIN, ADMIN, or SYSTEM_ADMIN
+    const isAdmin = user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN' || user?.role === 'SYSTEM_ADMIN';
+    const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<number[]>([]);
+    const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+    const [isBulkDeleting, setIsBulkDeleting] = useState(false);
     const [showFilterDrawer, setShowFilterDrawer] = useState(false);
     const [filters, setFilters] = useState({
         name: '',
@@ -132,6 +135,47 @@ export default function EmployeeList() {
     };
     const handleViewAttendance = (id: number) => {
         navigate(`/employee-attendance/${id}`);
+    };
+
+    const isAllSelected = paginatedEmployees.length > 0 && paginatedEmployees.every(emp => selectedEmployeeIds.includes(emp.id));
+
+    const handleToggleSelectAll = () => {
+        if (isAllSelected) {
+            const pageIds = new Set(paginatedEmployees.map(emp => emp.id));
+            setSelectedEmployeeIds(prev => prev.filter(id => !pageIds.has(id)));
+        } else {
+            const pageIds = paginatedEmployees.map(emp => emp.id);
+            setSelectedEmployeeIds(prev => Array.from(new Set([...prev, ...pageIds])));
+        }
+    };
+
+    const toggleSelectEmployee = (id: number) => {
+        setSelectedEmployeeIds(prev =>
+            prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+        );
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedEmployeeIds.length === 0) return;
+        setIsBulkDeleting(true);
+        try {
+            try {
+                await api.post('/employee/bulk-delete', { ids: selectedEmployeeIds });
+            } catch (apiErr) {
+                // Fallback to individual deletes
+                await Promise.allSettled(selectedEmployeeIds.map(id => api.delete(`/employee/${id}`)));
+            }
+            const count = selectedEmployeeIds.length;
+            setEmployees(prev => prev.filter(emp => !selectedEmployeeIds.includes(emp.id)));
+            setSelectedEmployeeIds([]);
+            setShowBulkDeleteModal(false);
+            toast.success(`${count} employee${count > 1 ? 's' : ''} deleted successfully!`);
+        } catch (err) {
+            console.error('Bulk delete error:', err);
+            toast.error('Failed to delete selected employees');
+        } finally {
+            setIsBulkDeleting(false);
+        }
     };
     const handleAddEmployee = (e: React.FormEvent) => {
         e.preventDefault();
@@ -279,6 +323,19 @@ export default function EmployeeList() {
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                         </div>
                     </div>
+
+                    {/* Delete button appears on right side of All Status with count */}
+                    {selectedEmployeeIds.length > 0 && (
+                        <button
+                            onClick={() => setShowBulkDeleteModal(true)}
+                            className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded-[6px] px-3.5 py-[9px] text-[13px] font-semibold transition-all shadow-sm cursor-pointer animate-fade-in shrink-0"
+                            title={`Delete ${selectedEmployeeIds.length} selected employee(s)`}
+                        >
+                            <Trash2 size={15} />
+                            <span>Delete ({selectedEmployeeIds.length})</span>
+                        </button>
+                    )}
+
                     <button
                         onClick={() => setShowFilterDrawer(true)}
                         className="flex items-center gap-2 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] px-3 py-[9px] text-[13px] font-semibold text-[#5B6472] dark:text-gray-300 bg-white dark:bg-[#12151C] hover:bg-gray-50 dark:hover:bg-white/5 transition-all shadow-2xs shrink-0 cursor-pointer"
@@ -303,14 +360,23 @@ export default function EmployeeList() {
             ) : (
                 <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 shadow-sm overflow-hidden animate-fade-in-up">
                     <div className="overflow-x-auto custom-scrollbar">
-                        <table className="w-full text-left border-collapse min-w-[850px]">
+                        <table className="w-full text-left border-collapse min-w-[900px]">
                             <thead>
                                 <tr className="bg-[#EEF1F5] dark:bg-gray-800/60 text-[#9AA3B1] dark:text-gray-400 text-[11px] font-semibold uppercase tracking-[.05em]">
-                                    <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 w-[30%]">EMPLOYEE</th>
-                                    <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 w-[25%]">ROLE / DESIGNATION</th>
-                                    <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 w-[20%]">STATUS</th>
-                                    <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 text-center w-[15%]">ATTENDANCE</th>
-                                    <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 text-right w-[10%]"></th>
+                                    <th className="py-[9px] px-[16px] border-b border-[#E2E6ED] dark:border-gray-800 w-[44px] text-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={isAllSelected}
+                                            onChange={handleToggleSelectAll}
+                                            className="w-4 h-4 rounded border-[#D0D5DD] text-[#2C4FD6] focus:ring-[#2C4FD6] cursor-pointer accent-[#2C4FD6] align-middle"
+                                            title={isAllSelected ? "Deselect All" : "Select All"}
+                                        />
+                                    </th>
+                                    <th className="py-[9px] px-[20px] border-b border-[#E2E6ED] dark:border-gray-800 w-[26%]">EMPLOYEE</th>
+                                    <th className="py-[9px] px-[20px] border-b border-[#E2E6ED] dark:border-gray-800 w-[22%]">ROLE / DESIGNATION</th>
+                                    <th className="py-[9px] px-[20px] border-b border-[#E2E6ED] dark:border-gray-800 w-[16%]">STATUS</th>
+                                    <th className="py-[9px] px-[20px] border-b border-[#E2E6ED] dark:border-gray-800 text-center w-[12%]">ATTENDANCE</th>
+                                    <th className="py-[9px] px-[20px] border-b border-[#E2E6ED] dark:border-gray-800 text-center w-[20%]">ACTION</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[#E2E6ED] dark:divide-gray-800 text-xs">
@@ -325,7 +391,15 @@ export default function EmployeeList() {
                                             onClick={() => handleViewProfile(emp.id)}
                                             className="hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-colors group cursor-pointer"
                                         >
-                                            <td className="py-[13px] px-[22px]">
+                                            <td className="py-[13px] px-[16px] text-center" onClick={(e) => e.stopPropagation()}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedEmployeeIds.includes(emp.id)}
+                                                    onChange={() => toggleSelectEmployee(emp.id)}
+                                                    className="w-4 h-4 rounded border-[#D0D5DD] text-[#2C4FD6] focus:ring-[#2C4FD6] cursor-pointer accent-[#2C4FD6] align-middle"
+                                                />
+                                            </td>
+                                            <td className="py-[13px] px-[20px]">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-8 h-8 rounded-full bg-[#EEF1F5] dark:bg-gray-700 text-[#5B6472] dark:text-white font-mono-numbers font-bold text-xs flex items-center justify-center shrink-0 uppercase">
                                                         {initials}
@@ -341,11 +415,11 @@ export default function EmployeeList() {
                                                 </div>
                                             </td>
 
-                                            <td className="py-[13px] px-[22px]">
+                                            <td className="py-[13px] px-[20px]">
                                                 <div className="text-[13.5px] text-[#12151C] dark:text-white capitalize">{profile.title || 'Employee'}</div>
                                                 <div className="text-[11.5px] text-[#717E95] dark:text-gray-400 capitalize">{profile.department || 'General'}</div>
                                             </td>
-                                            <td className="py-[13px] px-[22px]">
+                                            <td className="py-[13px] px-[20px]">
                                                 <span className={`pill inline-block px-[10px] py-[3px] rounded-[3px] text-[11.5px] font-semibold tracking-wide ${
                                                     status.toLowerCase() === 'active'
                                                         ? 'bg-[#E4F5EC] text-[#1F8A5A]'
@@ -356,7 +430,7 @@ export default function EmployeeList() {
                                                     {status}
                                                 </span>
                                             </td>
-                                            <td className="py-[13px] px-[22px] text-center">
+                                            <td className="py-[13px] px-[20px] text-center">
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
@@ -367,13 +441,25 @@ export default function EmployeeList() {
                                                     <Eye size={13} className="text-[#5B6472] dark:text-gray-300" /> View
                                                 </button>
                                             </td>
-                                            <td className="py-[13px] px-[22px] text-right">
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); setSelectedEmployeeForActions(emp); }}
-                                                    className="p-1.5 text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors rounded-full"
-                                                >
-                                                    <MoreVertical size={16} />
-                                                </button>
+                                            <td className="py-[13px] px-[20px] text-center" onClick={(e) => e.stopPropagation()}>
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <button
+                                                        onClick={() => navigate(`/employee/${emp.id}?edit=true`)}
+                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#2C4FD6] hover:bg-blue-50 dark:hover:bg-blue-500/10 text-[12px] font-semibold shadow-2xs transition-all cursor-pointer"
+                                                        title="Edit Profile"
+                                                    >
+                                                        <Edit size={13} />
+                                                        <span>Edit Profile</span>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setEmployeeToDelete(emp)}
+                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[6px] border border-red-200 dark:border-red-900/40 bg-white dark:bg-[#12151C] text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 text-[12px] font-semibold shadow-2xs transition-all cursor-pointer"
+                                                        title="Delete Employee"
+                                                    >
+                                                        <Trash2 size={13} />
+                                                        <span>Delete</span>
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     );
@@ -459,7 +545,7 @@ export default function EmployeeList() {
             {/* Delete Confirmation Modal */}
             {employeeToDelete && createPortal(
                 <div
-                    className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/80 backdrop-blur-xl">
+                    className="fixed inset-0 z-[999999] flex items-center justify-center bg-slate-900/30 dark:bg-black/60 backdrop-blur-md p-4 animate-fade-in">
                     <div className="bg-white dark:bg-brand-950 rounded-[6px] shadow-2xl w-full max-w-md p-8 border border-gray-100 dark:border-white/10 text-center relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-2 bg-red-500"></div>
 
@@ -500,13 +586,56 @@ export default function EmployeeList() {
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
+            )}
 
-                , document.body)}
+            {/* Bulk Delete Confirmation Modal */}
+            {showBulkDeleteModal && createPortal(
+                <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-slate-900/30 dark:bg-black/60 backdrop-blur-md p-4 animate-fade-in">
+                    <div className="bg-white dark:bg-brand-950 rounded-[6px] shadow-2xl w-full max-w-md p-8 border border-gray-100 dark:border-white/10 text-center relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-2 bg-red-500"></div>
+
+                        <div className="w-20 h-20 bg-red-100 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <Trash2 size={40} className="text-red-500" />
+                        </div>
+                        <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
+                            Delete {selectedEmployeeIds.length} Employee{selectedEmployeeIds.length > 1 ? 's' : ''}?
+                        </h3>
+                        <p className="text-gray-500 dark:text-gray-400 mb-8 text-sm">
+                            Are you sure you want to permanently delete <span className="font-bold text-gray-700 dark:text-gray-200">{selectedEmployeeIds.length}</span> selected employee{selectedEmployeeIds.length > 1 ? 's' : ''}? This action cannot be undone and will remove all associated data.
+                        </p>
+                        <div className="flex gap-4">
+                            <button
+                                disabled={isBulkDeleting}
+                                onClick={() => setShowBulkDeleteModal(false)}
+                                className="flex-1 py-3 px-4 bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 font-bold rounded-[6px] hover:bg-gray-200 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                disabled={isBulkDeleting}
+                                onClick={handleBulkDelete}
+                                className="flex-1 py-3 px-4 bg-red-500 hover:bg-red-600 text-white font-bold rounded-[6px] transition-colors shadow-lg shadow-red-500/20 flex items-center justify-center gap-2 cursor-pointer"
+                            >
+                                {isBulkDeleting ? (
+                                    <>
+                                        <Loader2 size={16} className="animate-spin" />
+                                        <span>Deleting...</span>
+                                    </>
+                                ) : (
+                                    `Yes, Delete (${selectedEmployeeIds.length})`
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
 
             {/* Add Employee Modal */}
             {showAddModal && createPortal(
-                <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-fade-in">
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/30 dark:bg-black/60 backdrop-blur-md p-4 animate-fade-in">
                     <div className="bg-white dark:bg-[#161B26] rounded-[6px] shadow-2xl w-full max-w-2xl overflow-hidden border border-gray-100 dark:border-gray-800 max-h-[90vh] flex flex-col">
                         <div className="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center bg-[#F7F8FA] dark:bg-white/5">
                             <div>
@@ -844,7 +973,7 @@ export default function EmployeeList() {
                     <div className="fixed inset-0 z-[999999]">
                         {/* Overlay */}
                         <div
-                            className="absolute inset-0 bg-black/40 backdrop-blur-md animate-fade-in"
+                            className="absolute inset-0 bg-slate-900/30 dark:bg-black/60 backdrop-blur-md animate-fade-in"
                             onClick={() => setSelectedEmployeeForActions(null)}
                         />
 

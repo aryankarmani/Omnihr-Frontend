@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -12,6 +13,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  AlertCircle,
 } from "lucide-react";
 import { useSuperAdminAuth } from "../../context/SuperAdminAuthContext";
 
@@ -29,6 +31,7 @@ export const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
   onToggleCollapse,
 }) => {
   const { logout, admin } = useSuperAdminAuth();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -141,24 +144,62 @@ export const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
               </div>
             )}
             <button
-              onClick={logout}
+              onClick={() => setShowLogoutConfirm(true)}
               title="Sign Out"
               className="p-1.5 text-[#5B6472] hover:text-rose-600 dark:text-gray-400 dark:hover:text-rose-400 rounded-[6px] transition-colors cursor-pointer"
             >
               <LogOut size={16} />
             </button>
           </div>
-
-          {/* Collapse Toggle Button for Desktop */}
-          <button
-            onClick={onToggleCollapse}
-            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className="hidden md:flex w-full items-center justify-center p-2 rounded-[6px] text-[#5B6472] dark:text-gray-400 hover:bg-white/80 dark:hover:bg-white/5 transition-colors cursor-pointer"
-          >
-            {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-          </button>
         </div>
       </aside>
+
+      {/* LOGOUT CONFIRMATION MODAL */}
+      {showLogoutConfirm &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <div
+              className="absolute inset-0 bg-slate-900/30 dark:bg-black/60 backdrop-blur-md animate-fade-in"
+              onClick={() => setShowLogoutConfirm(false)}
+            />
+
+            {/* Modal Content */}
+            <div className="relative bg-white dark:bg-[#161B26] w-full max-w-[calc(100vw-2rem)] sm:max-w-sm rounded-[6px] shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden animate-scale-in">
+              <div className="p-8 text-center">
+                <div className="w-16 h-16 bg-red-50 dark:bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <AlertCircle size={32} />
+                </div>
+
+                <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">
+                  Confirm Logout
+                </h3>
+                <p className="text-gray-500 dark:text-gray-400 text-sm mb-8 leading-relaxed">
+                  Are you sure you want to log out of Super Admin? You will need to sign in again to access the console.
+                </p>
+
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={() => {
+                      logout();
+                      navigate("/superadmin/login");
+                    }}
+                    className="w-full py-3.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-[6px] transition-all shadow-lg shadow-red-600/20 active:scale-95 cursor-pointer"
+                  >
+                    Yes, Logout
+                  </button>
+                  <button
+                    onClick={() => setShowLogoutConfirm(false)}
+                    className="w-full py-3.5 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 font-bold rounded-[6px] hover:bg-gray-200 dark:hover:bg-white/10 transition-all active:scale-95 cursor-pointer"
+                  >
+                    Keep me logged in
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </>
   );
 };

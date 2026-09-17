@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
+import { useForm } from "react-hook-form";
 import {
   CreditCard,
   Search,
@@ -7,9 +8,20 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  ChevronDown,
+  Building2,
+  Check,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { superAdminApi } from "../../utils/superAdminApi";
+
+interface PaymentFormValues {
+  companyName: string;
+  amount: string;
+  paymentMethod: string;
+  transactionId?: string;
+  notes?: string;
+}
 
 export default function Payments() {
   const [payments, setPayments] = useState<any[]>([]);
@@ -20,14 +32,47 @@ export default function Payments() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [perPage, setPerPage] = useState<number>(10);
 
-  // Modal
+  // Modal & Form State
   const [showModal, setShowModal] = useState(false);
-  const [companyId, setCompanyId] = useState("");
-  const [amount, setAmount] = useState("");
-  const [method, setMethod] = useState("BANK_TRANSFER");
-  const [txnId, setTxnId] = useState("");
-  const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [selectedCompany, setSelectedCompany] = useState<any | null>(null);
+  const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
+  const companyComboboxRef = useRef<HTMLDivElement | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    reset,
+    setError,
+    clearErrors,
+    formState: { errors },
+  } = useForm<PaymentFormValues>({
+    defaultValues: {
+      companyName: "",
+      amount: "",
+      paymentMethod: "BANK_TRANSFER",
+      transactionId: "",
+      notes: "",
+    },
+  });
+
+  const companyNameValue = watch("companyName");
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        companyComboboxRef.current &&
+        !companyComboboxRef.current.contains(event.target as Node)
+      ) {
+        setIsCompanyDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const fetchPayments = async () => {
     try {
@@ -48,32 +93,51 @@ export default function Payments() {
     }
   };
 
+  // Debounced auto-search as user types
   useEffect(() => {
-    fetchPayments();
-  }, [statusFilter]);
+    const delayDebounce = setTimeout(() => {
+      fetchPayments();
+    }, 300);
+    return () => clearTimeout(delayDebounce);
+  }, [searchTerm, statusFilter]);
 
-  const handleCreatePayment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!companyId || !amount) {
-      toast.error("Please specify company and amount.");
+  const onSubmitPayment = async (data: PaymentFormValues) => {
+    const trimmedName = data.companyName.trim();
+    if (!trimmedName) {
+      setError("companyName", {
+        type: "manual",
+        message: "Company name is required.",
+      });
       return;
+    }
+
+    // Determine tenantId from selectedCompany or matching company by typed name
+    let targetTenantId = selectedCompany?.id;
+    if (!targetTenantId) {
+      const match = companies.find(
+        (c) =>
+          c.name.toLowerCase() === trimmedName.toLowerCase() ||
+          c.domain?.toLowerCase() === trimmedName.toLowerCase()
+      );
+      if (match) {
+        targetTenantId = match.id;
+      }
     }
 
     try {
       setSubmitting(true);
       await superAdminApi.post("/payments", {
-        tenantId: companyId,
-        amount: Number(amount),
-        paymentMethod: method,
-        transactionId: txnId || undefined,
-        notes,
+        tenantId: targetTenantId || undefined,
+        companyName: trimmedName,
+        amount: Number(data.amount),
+        paymentMethod: data.paymentMethod,
+        transactionId: data.transactionId?.trim() || undefined,
+        notes: data.notes?.trim() || undefined,
       });
-      toast.success("Payment recorded successfully.");
+      toast.success(`Payment recorded for ${trimmedName} successfully.`);
       setShowModal(false);
-      setCompanyId("");
-      setAmount("");
-      setTxnId("");
-      setNotes("");
+      reset();
+      setSelectedCompany(null);
       fetchPayments();
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Failed to record payment.");
@@ -290,7 +354,7 @@ export default function Payments() {
 
       {/* Record Payment Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 p-6 max-w-md w-full shadow-xl animate-fade-in space-y-4">
             <div>
               <h3 className="text-lg font-bold text-[#12151C] dark:text-white">
@@ -301,38 +365,143 @@ export default function Payments() {
               </p>
             </div>
 
-            <form onSubmit={handleCreatePayment} className="space-y-3.5">
-              <div>
+            <form onSubmit={handleSubmit(onSubmitPayment)} className="space-y-3.5">
+              {/* Company Name Field with Dual Type/Search + Dropdown */}
+              <div className="relative" ref={companyComboboxRef}>
                 <label className="block text-[13px] font-semibold text-[#12151C] dark:text-gray-300 mb-1">
-                  Customer Company
+                  Company Name <span className="text-rose-500">*</span>
                 </label>
-                <select
-                  required
-                  value={companyId}
-                  onChange={(e) => setCompanyId(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
-                >
-                  <option value="">Select Company</option>
-                  {companies.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} ({c.domain})
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <input
+                    type="text"
+                    autoComplete="off"
+                    placeholder="Type or select company name..."
+                    {...register("companyName", {
+                      required: "Company name is required",
+                    })}
+                    onFocus={() => setIsCompanyDropdownOpen(true)}
+                    onChange={(e) => {
+                      setValue("companyName", e.target.value, { shouldValidate: true });
+                      clearErrors("companyName");
+                      setIsCompanyDropdownOpen(true);
+                      const exact = companies.find(
+                        (c) =>
+                          c.name.toLowerCase() === e.target.value.trim().toLowerCase() ||
+                          c.domain?.toLowerCase() === e.target.value.trim().toLowerCase()
+                      );
+                      setSelectedCompany(exact || null);
+                    }}
+                    className={`w-full pl-3.5 pr-10 py-2.5 bg-white dark:bg-[#12151C] border rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none transition-all ${
+                      errors.companyName
+                        ? "border-rose-500 focus:border-rose-500 ring-1 ring-rose-500/20"
+                        : "border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]"
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setIsCompanyDropdownOpen((prev) => !prev)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white p-1 cursor-pointer transition-colors"
+                  >
+                    <ChevronDown
+                      size={16}
+                      className={`transition-transform duration-200 ${
+                        isCompanyDropdownOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {errors.companyName && (
+                  <p className="text-xs text-rose-500 font-medium mt-1">
+                    {errors.companyName.message}
+                  </p>
+                )}
+
+                {/* Dropdown Menu */}
+                {isCompanyDropdownOpen && (
+                  <div className="absolute left-0 right-0 top-full mt-1 max-h-56 overflow-y-auto bg-white dark:bg-[#1A1F2C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] shadow-lg z-50 divide-y divide-gray-100 dark:divide-gray-800">
+                    {companies
+                      .filter((c) => {
+                        if (!companyNameValue) return true;
+                        const q = companyNameValue.toLowerCase();
+                        return (
+                          c.name.toLowerCase().includes(q) ||
+                          (c.domain && c.domain.toLowerCase().includes(q))
+                        );
+                      })
+                      .map((c) => {
+                        const isSelected =
+                          selectedCompany?.id === c.id || companyNameValue === c.name;
+                        return (
+                          <div
+                            key={c.id}
+                            onClick={() => {
+                              setSelectedCompany(c);
+                              setValue("companyName", c.name, { shouldValidate: true });
+                              clearErrors("companyName");
+                              setIsCompanyDropdownOpen(false);
+                            }}
+                            className={`px-3.5 py-2.5 text-xs flex items-center justify-between cursor-pointer hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-colors ${
+                              isSelected ? "bg-[#EEF1F5] dark:bg-white/10 font-semibold" : ""
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <Building2 size={14} className="text-[#2C4FD6]" />
+                              <div>
+                                <span className="text-[#12151C] dark:text-white font-medium">
+                                  {c.name}
+                                </span>
+                                {c.domain && (
+                                  <span className="text-[#9AA3B1] text-[11px] ml-1.5 font-mono">
+                                    ({c.domain})
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            {isSelected && <Check size={14} className="text-[#2C4FD6]" />}
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
               </div>
 
               <div>
                 <label className="block text-[13px] font-semibold text-[#12151C] dark:text-gray-300 mb-1">
-                  Amount (₹ INR)
+                  Amount (₹ INR) <span className="text-rose-500">*</span>
                 </label>
                 <input
-                  type="number"
-                  required
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  type="text"
+                  inputMode="numeric"
                   placeholder="e.g. 24990"
-                  className="w-full px-3.5 py-2.5 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
+                  {...register("amount", {
+                    required: "Amount is required",
+                    min: { value: 1, message: "Amount must be at least ₹1" },
+                    pattern: {
+                      value: /^[0-9]+$/,
+                      message: "Only numbers are allowed in Amount",
+                    },
+                  })}
+                  onKeyDown={(e) => {
+                    if (
+                      !/[0-9]/.test(e.key) &&
+                      !["Backspace", "Tab", "ArrowLeft", "ArrowRight", "Delete"].includes(e.key)
+                    ) {
+                      e.preventDefault();
+                    }
+                  }}
+                  className={`w-full px-3.5 py-2.5 bg-white dark:bg-[#12151C] border rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none transition-all ${
+                    errors.amount
+                      ? "border-rose-500 focus:border-rose-500 ring-1 ring-rose-500/20"
+                      : "border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]"
+                  }`}
                 />
+                {errors.amount && (
+                  <p className="text-xs text-rose-500 font-medium mt-1">
+                    {errors.amount.message}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -340,8 +509,7 @@ export default function Payments() {
                   Payment Method
                 </label>
                 <select
-                  value={method}
-                  onChange={(e) => setMethod(e.target.value)}
+                  {...register("paymentMethod")}
                   className="w-full px-3.5 py-2.5 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
                 >
                   <option value="BANK_TRANSFER">Bank Wire / NEFT / RTGS</option>
@@ -357,8 +525,7 @@ export default function Payments() {
                 </label>
                 <input
                   type="text"
-                  value={txnId}
-                  onChange={(e) => setTxnId(e.target.value)}
+                  {...register("transactionId")}
                   placeholder="e.g. UTR-982138912"
                   className="w-full px-3.5 py-2.5 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
                 />
@@ -370,8 +537,7 @@ export default function Payments() {
                 </label>
                 <textarea
                   rows={2}
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
+                  {...register("notes")}
                   placeholder="Add any remarks or reference details..."
                   className="w-full px-3.5 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6] resize-none"
                 />
@@ -380,7 +546,11 @@ export default function Payments() {
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E2E6ED] dark:border-gray-800">
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => {
+                    setShowModal(false);
+                    reset();
+                    setSelectedCompany(null);
+                  }}
                   className="px-4 py-2 text-[13px] font-semibold text-[#5B6472] dark:text-gray-300 hover:bg-[#EEF1F5] dark:hover:bg-white/5 rounded-[6px] transition-colors"
                 >
                   Cancel
@@ -390,7 +560,7 @@ export default function Payments() {
                   disabled={submitting}
                   className="px-5 py-2 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[13px] font-semibold shadow-sm cursor-pointer disabled:opacity-50 transition-colors"
                 >
-                  {submitting ? "Saving..." : "Record Payment"}
+                  {submitting ? "Recording..." : "Record Payment"}
                 </button>
               </div>
             </form>
