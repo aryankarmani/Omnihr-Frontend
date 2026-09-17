@@ -20,7 +20,7 @@ export const SuperAdminHeader: React.FC<SuperAdminHeaderProps> = ({
   return (
     <header className="h-16 bg-white dark:bg-[#12151C] border-b border-[#E2E6ED] dark:border-gray-800 flex items-center px-3 sm:px-6 py-3 shrink-0">
       <div className="w-full flex items-center justify-between gap-3">
-        {/* Left Side: Mobile Menu & Collapse Toggle & Title */}
+        {/* Left Side: Mobile Menu */}
         <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
           <button
             onClick={onMenuClick}
@@ -29,24 +29,6 @@ export const SuperAdminHeader: React.FC<SuperAdminHeaderProps> = ({
           >
             <Menu size={20} />
           </button>
-
-          <button
-            onClick={onToggleCollapse}
-            className="hidden md:flex p-2 text-[#5B6472] dark:text-gray-400 hover:bg-[#EEF1F5] dark:hover:bg-white/5 rounded-[6px] shrink-0 transition-colors"
-            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {isCollapsed ? <PanelLeftOpen size={19} /> : <PanelLeftClose size={19} />}
-          </button>
-
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-[14px] font-semibold text-[#12151C] dark:text-white truncate">
-              Super Admin Console
-            </span>
-            <span className="hidden sm:inline-block text-[#9AA3B1] text-xs">/</span>
-            <span className="hidden sm:inline-block text-xs font-medium text-[#5B6472] dark:text-gray-400">
-              SaaS Business Management
-            </span>
-          </div>
         </div>
 
         {/* Right Side: Theme Toggle & Admin Badge */}

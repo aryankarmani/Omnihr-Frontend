@@ -1,39 +1,45 @@
 import React, { useState } from "react";
+import { useForm } from "react-hook-form";
 import { Shield, KeyRound } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useSuperAdminAuth } from "../../context/SuperAdminAuthContext";
 import { superAdminApi } from "../../utils/superAdminApi";
 
+interface ChangePasswordFormValues {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
 export default function SuperAdminSettings() {
   const { admin, updateProfile } = useSuperAdminAuth();
-
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const handlePasswordChange = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newPassword !== confirmPassword) {
-      toast.error("New passwords do not match.");
-      return;
-    }
+  const {
+    register,
+    handleSubmit,
+    watch,
+    reset,
+    formState: { errors },
+  } = useForm<ChangePasswordFormValues>({
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
 
-    if (newPassword.length < 8) {
-      toast.error("New password must be at least 8 characters long.");
-      return;
-    }
+  const newPasswordValue = watch("newPassword");
 
+  const onPasswordSubmit = async (data: ChangePasswordFormValues) => {
     try {
       setSubmitting(true);
       await superAdminApi.post("/auth/change-password", {
-        currentPassword,
-        newPassword,
+        currentPassword: data.currentPassword,
+        newPassword: data.newPassword,
       });
       toast.success("Super Admin password updated successfully!");
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
+      reset();
       await updateProfile();
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Failed to update password.");
@@ -111,47 +117,80 @@ export default function SuperAdminSettings() {
             Choose a strong password with at least 8 characters combining numbers and symbols.
           </p>
 
-          <form onSubmit={handlePasswordChange} className="space-y-4">
+          <form onSubmit={handleSubmit(onPasswordSubmit)} className="space-y-4">
             <div>
               <label className="block text-[13px] font-semibold text-[#12151C] dark:text-gray-300 mb-1.5">
-                Current Password
+                Current Password <span className="text-rose-500">*</span>
               </label>
               <input
                 type="password"
-                required
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
                 placeholder="••••••••••••"
-                className="w-full px-3.5 py-2.5 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
+                {...register("currentPassword", {
+                  required: "Current password is required",
+                })}
+                className={`w-full px-3.5 py-2.5 bg-white dark:bg-[#12151C] border rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none transition-all ${
+                  errors.currentPassword
+                    ? "border-rose-500 focus:border-rose-500 ring-1 ring-rose-500/20"
+                    : "border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]"
+                }`}
               />
+              {errors.currentPassword && (
+                <p className="text-xs text-rose-500 font-medium mt-1">
+                  {errors.currentPassword.message}
+                </p>
+              )}
             </div>
 
             <div>
               <label className="block text-[13px] font-semibold text-[#12151C] dark:text-gray-300 mb-1.5">
-                New Password
+                New Password <span className="text-rose-500">*</span>
               </label>
               <input
                 type="password"
-                required
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="At least 8 characters"
-                className="w-full px-3.5 py-2.5 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
+                {...register("newPassword", {
+                  required: "New password is required",
+                  minLength: {
+                    value: 8,
+                    message: "New password must be at least 8 characters long",
+                  },
+                })}
+                className={`w-full px-3.5 py-2.5 bg-white dark:bg-[#12151C] border rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none transition-all ${
+                  errors.newPassword
+                    ? "border-rose-500 focus:border-rose-500 ring-1 ring-rose-500/20"
+                    : "border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]"
+                }`}
               />
+              {errors.newPassword && (
+                <p className="text-xs text-rose-500 font-medium mt-1">
+                  {errors.newPassword.message}
+                </p>
+              )}
             </div>
 
             <div>
               <label className="block text-[13px] font-semibold text-[#12151C] dark:text-gray-300 mb-1.5">
-                Confirm New Password
+                Confirm New Password <span className="text-rose-500">*</span>
               </label>
               <input
                 type="password"
-                required
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Re-enter new password"
-                className="w-full px-3.5 py-2.5 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
+                {...register("confirmPassword", {
+                  required: "Please confirm your new password",
+                  validate: (val) =>
+                    val === newPasswordValue || "New passwords do not match",
+                })}
+                className={`w-full px-3.5 py-2.5 bg-white dark:bg-[#12151C] border rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none transition-all ${
+                  errors.confirmPassword
+                    ? "border-rose-500 focus:border-rose-500 ring-1 ring-rose-500/20"
+                    : "border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]"
+                }`}
               />
+              {errors.confirmPassword && (
+                <p className="text-xs text-rose-500 font-medium mt-1">
+                  {errors.confirmPassword.message}
+                </p>
+              )}
             </div>
 
             <button

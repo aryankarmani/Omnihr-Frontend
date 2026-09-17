@@ -1,7 +1,5 @@
-import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import SplashScreen from './components/SplashScreen';
 import LogFile from "./pages/LogFile";
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -52,11 +50,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function AppContent() {
   const { isAuthenticated, isLoading, user } = useAuth();
-  const [showSplash, setShowSplash] = useState(true);
 
   return (
     <>
-      {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
 
       {isLoading ? (
         <div className="flex items-center justify-center min-h-screen bg-black">
