@@ -229,11 +229,12 @@ export default function EmployeeList() {
     };
     const handleExportCSV = () => {
         const csvRows = [
-            ["ID", "Name", "Email", "Phone", "Role", "Department", "Location", "Status"],
+            ["ID", "Name", "Email", "Phone", "Role", "Department", "Location", "Status", "Profile Completion"],
         ];
 
         filteredEmployees.forEach((emp) => {
             const profile = emp.employeeProfile || {};
+            const comp = emp.profileCompletion || calculateProfileCompletion(emp);
 
             csvRows.push([
                 emp.id,
@@ -244,6 +245,7 @@ export default function EmployeeList() {
                 profile.department || "",
                 profile.location || "",
                 profile.status || "Active",
+                `${comp?.percentage ?? 0}%`,
             ]);
         });
 
@@ -373,11 +375,12 @@ export default function EmployeeList() {
                                             title={isAllSelected ? "Deselect All" : "Select All"}
                                         />
                                     </th>
-                                    <th className="py-[9px] px-[20px] border-b border-[#E2E6ED] dark:border-gray-800 w-[26%]">EMPLOYEE</th>
-                                    <th className="py-[9px] px-[20px] border-b border-[#E2E6ED] dark:border-gray-800 w-[22%]">ROLE / DESIGNATION</th>
-                                    <th className="py-[9px] px-[20px] border-b border-[#E2E6ED] dark:border-gray-800 w-[16%]">STATUS</th>
+                                    <th className="py-[9px] px-[20px] border-b border-[#E2E6ED] dark:border-gray-800 w-[24%]">EMPLOYEE</th>
+                                    <th className="py-[9px] px-[20px] border-b border-[#E2E6ED] dark:border-gray-800 w-[20%]">ROLE / DESIGNATION</th>
+                                    <th className="py-[9px] px-[20px] border-b border-[#E2E6ED] dark:border-gray-800 w-[14%]">STATUS</th>
+                                    <th className="py-[9px] px-[20px] border-b border-[#E2E6ED] dark:border-gray-800 text-center w-[14%]">PROFILE COMPLETION</th>
                                     <th className="py-[9px] px-[20px] border-b border-[#E2E6ED] dark:border-gray-800 text-center w-[12%]">ATTENDANCE</th>
-                                    <th className="py-[9px] px-[20px] border-b border-[#E2E6ED] dark:border-gray-800 text-center w-[20%]">ACTION</th>
+                                    <th className="py-[9px] px-[20px] border-b border-[#E2E6ED] dark:border-gray-800 text-center w-[16%]">ACTION</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[#E2E6ED] dark:divide-gray-800 text-xs">
@@ -422,13 +425,30 @@ export default function EmployeeList() {
                                             </td>
                                             <td className="py-[13px] px-[20px]">
                                                 <span className={`pill inline-block px-[10px] py-[3px] rounded-[3px] text-[11.5px] font-semibold tracking-wide ${status.toLowerCase() === 'active'
-                                                        ? 'bg-[#E4F5EC] text-[#1F8A5A]'
-                                                        : status.toLowerCase() === 'on leave'
-                                                            ? 'bg-[#F1F3F7] text-[#5B6472]'
-                                                            : 'bg-[#FBE7E7] text-[#DE350B]'
+                                                    ? 'bg-[#E4F5EC] text-[#1F8A5A]'
+                                                    : status.toLowerCase() === 'on leave'
+                                                        ? 'bg-[#F1F3F7] text-[#5B6472]'
+                                                        : 'bg-[#FBE7E7] text-[#DE350B]'
                                                     }`}>
                                                     {status}
                                                 </span>
+                                            </td>
+                                            <td className="py-[13px] px-[20px] text-center">
+                                                {(() => {
+                                                    const comp = emp.profileCompletion || calculateProfileCompletion(emp);
+                                                    const pct = typeof comp?.percentage === 'number' ? comp.percentage : 0;
+                                                    return (
+                                                        <span className={`font-semibold font-mono-numbers text-[13px] ${
+                                                            pct === 100
+                                                                ? 'text-[#1F8A5A] dark:text-emerald-400'
+                                                                : pct >= 50
+                                                                    ? 'text-[#2C4FD6] dark:text-blue-400'
+                                                                    : 'text-[#D97706] dark:text-amber-400'
+                                                        }`}>
+                                                            {pct}%
+                                                        </span>
+                                                    );
+                                                })()}
                                             </td>
                                             <td className="py-[13px] px-[20px] text-center">
                                                 <button

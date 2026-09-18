@@ -128,11 +128,10 @@ export default function SuperAdminSettings() {
                 {...register("currentPassword", {
                   required: "Current password is required",
                 })}
-                className={`w-full px-3.5 py-2.5 bg-white dark:bg-[#12151C] border rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none transition-all ${
-                  errors.currentPassword
+                className={`w-full px-3.5 py-2.5 bg-white dark:bg-[#12151C] border rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none transition-all ${errors.currentPassword
                     ? "border-rose-500 focus:border-rose-500 ring-1 ring-rose-500/20"
                     : "border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]"
-                }`}
+                  }`}
               />
               {errors.currentPassword && (
                 <p className="text-xs text-rose-500 font-medium mt-1">
@@ -155,11 +154,10 @@ export default function SuperAdminSettings() {
                     message: "New password must be at least 8 characters long",
                   },
                 })}
-                className={`w-full px-3.5 py-2.5 bg-white dark:bg-[#12151C] border rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none transition-all ${
-                  errors.newPassword
+                className={`w-full px-3.5 py-2.5 bg-white dark:bg-[#12151C] border rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none transition-all ${errors.newPassword
                     ? "border-rose-500 focus:border-rose-500 ring-1 ring-rose-500/20"
                     : "border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]"
-                }`}
+                  }`}
               />
               {errors.newPassword && (
                 <p className="text-xs text-rose-500 font-medium mt-1">
@@ -180,11 +178,10 @@ export default function SuperAdminSettings() {
                   validate: (val) =>
                     val === newPasswordValue || "New passwords do not match",
                 })}
-                className={`w-full px-3.5 py-2.5 bg-white dark:bg-[#12151C] border rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none transition-all ${
-                  errors.confirmPassword
+                className={`w-full px-3.5 py-2.5 bg-white dark:bg-[#12151C] border rounded-[6px] text-[13.5px] text-[#12151C] dark:text-white outline-none transition-all ${errors.confirmPassword
                     ? "border-rose-500 focus:border-rose-500 ring-1 ring-rose-500/20"
                     : "border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]"
-                }`}
+                  }`}
               />
               {errors.confirmPassword && (
                 <p className="text-xs text-rose-500 font-medium mt-1">
