@@ -193,7 +193,7 @@ export default function SuperAdminSettings() {
             <button
               type="submit"
               disabled={submitting}
-              className="px-5 py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[13px] font-semibold shadow-sm transition-all cursor-pointer disabled:opacity-50 mt-2"
+              className="px-5 py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[13px] font-semibold transition-all cursor-pointer disabled:opacity-50 mt-2"
             >
               {submitting ? "Updating..." : "Update Password"}
             </button>

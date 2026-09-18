@@ -103,7 +103,7 @@
 //       </div>
 
 //       {/* Filters & Search */}
-//       <div className="bg-white dark:bg-brand-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 mb-6 flex flex-col md:flex-row gap-4 items-center animate-fade-in-up">
+//       <div className="bg-white dark:bg-brand-900 p-4 rounded-2xl border border-gray-100 dark:border-white/5 mb-6 flex flex-col md:flex-row gap-4 items-center animate-fade-in-up">
 //         <div className="relative flex-1 w-full">
 //           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
 //           <input
@@ -143,7 +143,7 @@
 //             onClick={() => setShowFilterDrawer(true)}
 //             className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-gray-600 dark:text-gray-300 
 //             hover:bg-brand-500 hover:text-white hover:scale-105 
-//             transition-all duration-200 shadow-sm flex items-center justify-center"
+//             transition-all duration-200 flex items-center justify-center"
 //           >
 //             <Filter size={20} />
 //           </button>
@@ -159,7 +159,7 @@
 //           </p>
 //         </div>
 //       ) : (
-//         <div className="bg-white dark:bg-brand-900 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm overflow-hidden animate-fade-in-up">
+//         <div className="bg-white dark:bg-brand-900 rounded-2xl border border-gray-100 dark:border-white/5 overflow-hidden animate-fade-in-up">
 //           <div className="overflow-x-auto">
 //             <table className="w-full text-left border-collapse">
 //               <thead className="bg-gray-50 dark:bg-white/5">

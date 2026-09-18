@@ -483,12 +483,16 @@ export default function ForgotPassword() {
                     {/* Top Identity */}
                     <div className="relative z-10">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-[6px] bg-[#2C4FD6] flex items-center justify-center text-white font-black text-xl shadow-md shadow-[#2C4FD6]/30">
-                                O
-                            </div>
+                            <img
+                                src="/logo.png"
+                                alt="OmniHR Logo"
+                                className="w-10 h-10 object-contain rounded-[6px] shrink-0"
+                            />
                             <div>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-2xl font-black tracking-tight text-[#12151C]">OmniHR</span>
+                                    <span className="text-2xl font-extrabold tracking-tight text-[#12151C]">
+                                        Omni<span className="text-[#2C4FD6]">HR</span>
+                                    </span>
                                     <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-[6px] bg-[#2C4FD6]/10 text-[#2C4FD6] border border-[#2C4FD6]/20">
                                         Enterprise
                                     </span>
@@ -579,11 +583,15 @@ export default function ForgotPassword() {
                     <div>
                         {/* Mobile Brand (Only shown on small screens) */}
                         <div className="flex items-center gap-2.5 mb-6 md:hidden">
-                            <div className="w-9 h-9 rounded-[6px] bg-[#2C4FD6] flex items-center justify-center text-white font-bold text-lg">
-                                O
-                            </div>
+                            <img
+                                src="/logo.png"
+                                alt="OmniHR Logo"
+                                className="w-9 h-9 object-contain rounded-[6px] shrink-0"
+                            />
                             <div>
-                                <span className="text-xl font-bold tracking-tight text-[#12151C]">OmniHR</span>
+                                <span className="text-xl font-extrabold tracking-tight text-[#12151C]">
+                                    Omni<span className="text-[#2C4FD6]">HR</span>
+                                </span>
                                 <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-[6px] bg-[#2C4FD6]/10 text-[#2C4FD6] ml-2 border border-[#2C4FD6]/20">
                                     Enterprise
                                 </span>

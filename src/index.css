@@ -38,6 +38,16 @@
   --color-brand-600: #2442B8;
   --color-brand-700: #1D3599;
   --color-brand-950: #12151C;
+  --shadow-2xs: none;
+  --shadow-xs: none;
+  --shadow-sm: none;
+}
+
+/* Ensure clean flat border design system without card drop-shadows */
+.shadow-sm,
+.shadow-xs,
+.shadow-2xs {
+  box-shadow: none !important;
 }
 
 :root {
@@ -83,6 +93,27 @@
       opacity: 1;
       transform: translateY(0);
     }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  .skeleton-shimmer {
+    background: linear-gradient(90deg, #EEF1F5 25%, #E2E6ED 37%, #EEF1F5 63%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+
+  html.dark .skeleton-shimmer {
+    background: linear-gradient(90deg, #1A1F2C 25%, #252D3D 37%, #1A1F2C 63%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
   }
 
   /* Exact Landing Page Frosted Glass & Glow Shadows */

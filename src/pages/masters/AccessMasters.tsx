@@ -281,7 +281,7 @@ export default function AccessMasters() {
                 </div>
                 <button
                     onClick={handleCreate}
-                    className="inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[13.5px] font-semibold px-[16px] py-[9px] transition-all cursor-pointer shadow-sm hover:shadow active:scale-[0.98]"
+                    className="inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[13.5px] font-semibold px-[16px] py-[9px] transition-all cursor-pointer hover:shadow active:scale-[0.98]"
                 >
                     <Plus size={16} /> Create Role
                 </button>
@@ -408,7 +408,7 @@ export default function AccessMasters() {
                         {/* Modal Body */}
                         <div className="p-6 overflow-y-auto flex-1 space-y-8 bg-gray-50/40 dark:bg-[#0E1015]">
                             {/* Role Name */}
-                            <div className="bg-white dark:bg-[#12151C] p-5 rounded-[8px] border border-[#E2E6ED] dark:border-gray-800 shadow-sm">
+                            <div className="bg-white dark:bg-[#12151C] p-5 rounded-[8px] border border-[#E2E6ED] dark:border-gray-800">
                                 <label className="block text-xs font-bold text-[#5B6472] dark:text-gray-300 mb-2 uppercase tracking-wide">
                                     Role Name <span className="text-red-500">*</span>
                                 </label>
@@ -425,7 +425,7 @@ export default function AccessMasters() {
                             </div>
 
                             {/* Section 1: Module Access */}
-                            <div className="bg-white dark:bg-[#12151C] p-5 rounded-[8px] border border-[#E2E6ED] dark:border-gray-800 shadow-sm space-y-4">
+                            <div className="bg-white dark:bg-[#12151C] p-5 rounded-[8px] border border-[#E2E6ED] dark:border-gray-800 space-y-4">
                                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 pb-3 border-b border-gray-100 dark:border-gray-800">
                                     <div>
                                         <div className="flex items-center gap-2">
@@ -470,14 +470,14 @@ export default function AccessMasters() {
                                                 key={module.key}
                                                 onClick={() => toggleModuleAccess(module.key)}
                                                 className={`group/card p-3.5 rounded-[8px] border-2 transition-all cursor-pointer flex flex-col justify-between select-none ${isSelected
-                                                    ? 'bg-[#E8ECFC]/35 border-[#2C4FD6] shadow-sm dark:bg-blue-950/30 dark:border-blue-500'
+                                                    ? 'bg-[#E8ECFC]/35 border-[#2C4FD6] dark:bg-blue-950/30 dark:border-blue-500'
                                                     : 'bg-white border-[#E2E6ED] dark:bg-[#181B24] dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 opacity-80 hover:opacity-100'
                                                     }`}
                                             >
                                                 <div className="flex items-start justify-between gap-2 mb-2">
                                                     <div className="flex items-center gap-2.5">
                                                         <div className={`p-2 rounded-[6px] transition-colors ${isSelected
-                                                            ? 'bg-[#2C4FD6] text-white shadow-sm'
+                                                            ? 'bg-[#2C4FD6] text-white'
                                                             : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 group-hover/card:text-[#2C4FD6]'
                                                             }`}>
                                                             <Icon size={18} />
@@ -526,7 +526,7 @@ export default function AccessMasters() {
                             </div>
 
                             {/* Section 2: Granular Permissions */}
-                            <div className="bg-white dark:bg-[#12151C] p-5 rounded-[8px] border border-[#E2E6ED] dark:border-gray-800 shadow-sm space-y-4">
+                            <div className="bg-white dark:bg-[#12151C] p-5 rounded-[8px] border border-[#E2E6ED] dark:border-gray-800 space-y-4">
                                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 pb-3 border-b border-gray-100 dark:border-gray-800">
                                     <div>
                                         <div className="flex items-center gap-2">
@@ -591,7 +591,7 @@ export default function AccessMasters() {
                                             return (
                                                 <div
                                                     key={modKey}
-                                                    className="bg-white dark:bg-[#12151C] rounded-[8px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden shadow-sm transition-all"
+                                                    className="bg-white dark:bg-[#12151C] rounded-[8px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden transition-all"
                                                 >
                                                     {/* Module Accordion Header */}
                                                     <div className="p-4 bg-gray-50/70 dark:bg-white/[0.02] flex items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800">
@@ -703,7 +703,7 @@ export default function AccessMasters() {
                                     type="button"
                                     onClick={handleSave}
                                     disabled={loading}
-                                    className="inline-flex items-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white text-[13px] font-semibold rounded-[6px] px-[20px] py-[9.5px] transition-all cursor-pointer shadow-sm active:scale-[0.98] disabled:opacity-50"
+                                    className="inline-flex items-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white text-[13px] font-semibold rounded-[6px] px-[20px] py-[9.5px] transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50"
                                 >
                                     {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={15} />}
                                     Save & Apply Changes

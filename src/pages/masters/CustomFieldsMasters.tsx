@@ -276,7 +276,6 @@ export default function CustomFieldsMasters() {
             {fieldToDelete && createPortal(
                 <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-[2px] p-4 animate-fade-in">
                     <div className="bg-white dark:bg-brand-950 rounded-[6px] w-full max-w-[calc(100vw-2rem)] sm:max-w-md p-5 sm:p-8 border border-gray-100 dark:border-white/10 text-center relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-2 bg-red-500"></div>
                         <div className="w-20 h-20 bg-red-100 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
                             <Trash2 size={40} className="text-red-500" />
                         </div>

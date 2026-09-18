@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 
 import api from '../utils/api';
+import { AttendanceSkeleton } from '../components/common/SkeletonLoaders';
 
 type AttendanceStatus =
   | 'Present'
@@ -243,7 +244,7 @@ export default function EmployeeAttendanceView() {
           </div>
 
           {holiday && (
-            <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-1 rounded-[6px] truncate w-full block text-center mt-1 font-bold shadow-sm">
+            <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-1 rounded-[6px] truncate w-full block text-center mt-1 font-bold">
               {holiday.name}
             </span>
           )}
@@ -278,6 +279,10 @@ export default function EmployeeAttendanceView() {
     return days;
   };
 
+  if (loading && attendanceHistory.length === 0) {
+    return <AttendanceSkeleton />;
+  }
+
   return (
     <div className="animate-fade-in-up pb-8">
       {/* Header */}
@@ -285,7 +290,7 @@ export default function EmployeeAttendanceView() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate(-1)}
-            className="p-2 bg-white dark:bg-brand-900 border border-gray-100 dark:border-white/10 rounded-[6px] hover:bg-gray-50 dark:hover:bg-white/5 transition-colors shadow-sm"
+            className="p-2 bg-white dark:bg-brand-900 border border-gray-100 dark:border-white/10 rounded-[6px] hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
           >
             <ArrowLeft size={20} className="text-gray-600 dark:text-gray-300" />
           </button>
@@ -301,63 +306,67 @@ export default function EmployeeAttendanceView() {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div className="bg-white dark:bg-[#12151C] p-6 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 shadow-sm flex flex-col justify-start h-[260px]">
-          <div className="w-9 h-9 border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 text-[#9AA3B1] rounded-[6px] flex items-center justify-center mb-6">
-            <CheckCircle size={18} />
+      {/* Stats Cards - Connected continuous strip matching Attendance page (no middle gap) */}
+      <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden mb-6 grid grid-cols-2 lg:grid-cols-4 divide-[#E2E6ED] dark:divide-gray-800">
+        {/* Card 1: Present Days */}
+        <div className="px-[18px] py-[16px] flex flex-col justify-start h-[130px] border-b sm:border-b-0 border-r border-[#E2E6ED] dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all">
+          <div className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 flex items-center justify-center text-[#5B6472] dark:text-gray-300 mb-4">
+            <CheckCircle size={16} />
           </div>
-          <h4 className="text-4xl font-black text-[#12151C] dark:text-white font-mono-numbers tracking-tight">
-            {stats.present}
-          </h4>
-          <p className="text-xs text-[#9AA3B1] font-medium mt-1.5">
-            Present Days
-          </p>
+          <div>
+            <div className="num text-[26px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight leading-none">
+              {stats.present}
+            </div>
+            <p className="text-[12px] text-[#9AA3B1] mt-[2px]">Present Days</p>
+          </div>
         </div>
 
-        <div className="bg-white dark:bg-[#12151C] p-6 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 shadow-sm flex flex-col justify-start h-[260px]">
-          <div className="w-9 h-9 border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 text-[#9AA3B1] rounded-[6px] flex items-center justify-center mb-6">
-            <AlertCircle size={18} />
+        {/* Card 2: Absents */}
+        <div className="px-[18px] py-[16px] flex flex-col justify-start h-[130px] border-b sm:border-b-0 lg:border-r border-[#E2E6ED] dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all">
+          <div className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 flex items-center justify-center text-[#5B6472] dark:text-gray-300 mb-4">
+            <AlertCircle size={16} />
           </div>
-          <h4 className="text-4xl font-black text-[#12151C] dark:text-white font-mono-numbers tracking-tight">
-            {stats.absent}
-          </h4>
-          <p className="text-xs text-[#9AA3B1] font-medium mt-1.5">
-            Absents
-          </p>
+          <div>
+            <div className="num text-[26px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight leading-none">
+              {stats.absent}
+            </div>
+            <p className="text-[12px] text-[#9AA3B1] mt-[2px]">Absents</p>
+          </div>
         </div>
 
-        <div className="bg-white dark:bg-[#12151C] p-6 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 shadow-sm flex flex-col justify-start h-[260px]">
-          <div className="w-9 h-9 border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 text-[#9AA3B1] rounded-[6px] flex items-center justify-center mb-6">
-            <Clock size={18} />
+        {/* Card 3: Late Marks */}
+        <div className="px-[18px] py-[16px] flex flex-col justify-start h-[130px] border-r border-[#E2E6ED] dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all">
+          <div className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 flex items-center justify-center text-[#5B6472] dark:text-gray-300 mb-4">
+            <Clock size={16} />
           </div>
-          <h4 className="text-4xl font-black text-[#12151C] dark:text-white font-mono-numbers tracking-tight">
-            {stats.late}
-          </h4>
-          <p className="text-xs text-[#9AA3B1] font-medium mt-1.5">
-            Late Marks
-          </p>
+          <div>
+            <div className="num text-[26px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight leading-none">
+              {stats.late}
+            </div>
+            <p className="text-[12px] text-[#9AA3B1] mt-[2px]">Late Marks</p>
+          </div>
         </div>
 
-        <div className="bg-white dark:bg-[#12151C] p-6 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 shadow-sm flex flex-col justify-start h-[260px]">
-          <div className="w-9 h-9 border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 text-[#9AA3B1] rounded-[6px] flex items-center justify-center mb-6">
-            <Coffee size={18} />
+        {/* Card 4: Holidays */}
+        <div className="px-[18px] py-[16px] flex flex-col justify-start h-[130px] hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all">
+          <div className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 flex items-center justify-center text-[#5B6472] dark:text-gray-300 mb-4">
+            <Calendar size={16} />
           </div>
-          <h4 className="text-4xl font-black text-[#12151C] dark:text-white font-mono-numbers tracking-tight">
-            {holidays.filter(h => {
-              const hDate = new Date(h.date);
-              return hDate.getMonth() === selectedMonth.getMonth() &&
-                hDate.getFullYear() === selectedMonth.getFullYear();
-            }).length}
-          </h4>
-          <p className="text-xs text-[#9AA3B1] font-medium mt-1.5">
-            Holidays
-          </p>
+          <div>
+            <div className="num text-[26px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight leading-none">
+              {holidays.filter(h => {
+                const hDate = new Date(h.date);
+                return hDate.getMonth() === selectedMonth.getMonth() &&
+                  hDate.getFullYear() === selectedMonth.getFullYear();
+              }).length}
+            </div>
+            <p className="text-[12px] text-[#9AA3B1] mt-[2px]">Holidays</p>
+          </div>
         </div>
       </div>
 
       {/* Monthly Calendar */}
-      <div className="bg-white dark:bg-brand-900 rounded-[6px] p-6 shadow-sm border border-gray-100 dark:border-white/5">
+      <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-6 border border-[#E2E6ED] dark:border-gray-800 mb-6">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
             <Calendar size={20} className="text-brand-500" /> Monthly Log

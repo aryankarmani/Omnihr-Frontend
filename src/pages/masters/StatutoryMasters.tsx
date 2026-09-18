@@ -192,7 +192,7 @@ export default function StatutoryMasters() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {components.map(comp => (
-                                <div key={comp.id} className="group p-4 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[11px] transition-all relative hover:border-[#2C4FD6]/40 shadow-xs">
+                                <div key={comp.id} className="group p-4 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[11px] transition-all relative hover:border-[#2C4FD6]/40">
                                     <div className="flex justify-between items-start mb-2 gap-2">
                                         <h4 className="font-semibold text-[#12151C] dark:text-white flex-1 text-[13.5px]">{comp.name}</h4>
                                         <div className="flex items-center gap-1.5 shrink-0">

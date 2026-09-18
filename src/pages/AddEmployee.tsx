@@ -454,7 +454,7 @@ export default function AddEmployee() {
                 <ArrowLeft size={20} /> Back to List
             </button>
 
-            <div className="bg-white dark:bg-[#161B26] rounded-[11px] shadow-sm border border-[#E2E6ED] dark:border-gray-800 overflow-hidden">
+            <div className="bg-white dark:bg-[#161B26] rounded-[11px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden">
                 <div className="bg-[#F7F8FA] dark:bg-white/5 p-8 border-b border-[#E2E6ED] dark:border-white/10 rounded-t-[11px]">
                     <h1 className="text-2xl font-bold text-[#12151C] dark:text-white mb-2">Onboard New Employee</h1>
                     <p className="text-[#5B6472] dark:text-gray-400 mb-8">Complete the following steps to add a new team member.</p>
@@ -828,7 +828,7 @@ export default function AddEmployee() {
                                                         <button
                                                             type="button"
                                                             onClick={() => document.getElementById(`cf-file-input-${cf.id}`)?.click()}
-                                                            className="px-4 py-1.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[8px] text-xs font-semibold shadow-sm transition-all cursor-pointer"
+                                                            className="px-4 py-1.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[8px] text-xs font-semibold transition-all cursor-pointer"
                                                         >
                                                             Choose File
                                                         </button>
@@ -1269,7 +1269,7 @@ export default function AddEmployee() {
                                                     ? 'border-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10'
                                                     : documentError
                                                         ? 'border-red-500 bg-red-500/5 dark:bg-red-500/10'
-                                                        : 'border-[#E2E6ED] dark:border-white/10 hover:border-[#2C4FD6] dark:hover:border-[#2C4FD6] bg-[#F7F8FA] dark:bg-white/5 hover:scale-[1.005] shadow-xs'
+                                                        : 'border-[#E2E6ED] dark:border-white/10 hover:border-[#2C4FD6] dark:hover:border-[#2C4FD6] bg-[#F7F8FA] dark:bg-white/5 hover:scale-[1.005]'
                                                     }`}
                                             >
                                                 <div className="flex items-center gap-4">
@@ -1396,7 +1396,7 @@ export default function AddEmployee() {
                                         ? 'border-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10'
                                         : errors.profilePicture
                                             ? 'border-red-500 bg-red-500/5 dark:bg-red-500/10'
-                                            : 'border-[#E2E6ED] dark:border-white/10 hover:border-[#2C4FD6] dark:hover:border-[#2C4FD6] bg-[#F7F8FA] dark:bg-white/5 hover:scale-[1.005] shadow-xs'
+                                            : 'border-[#E2E6ED] dark:border-white/10 hover:border-[#2C4FD6] dark:hover:border-[#2C4FD6] bg-[#F7F8FA] dark:bg-white/5 hover:scale-[1.005]'
                                         }`}
                                 >
                                     <div className="flex items-center gap-4">
@@ -1485,7 +1485,7 @@ export default function AddEmployee() {
                     <button
                         onClick={handleNext}
                         disabled={loading}
-                        className="flex items-center gap-2 px-7 py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[8px] shadow-sm transition-all font-semibold text-sm disabled:opacity-50 cursor-pointer"
+                        className="flex items-center gap-2 px-7 py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[8px] transition-all font-semibold text-sm disabled:opacity-50 cursor-pointer"
                     >
                         {loading ? (
                             <>
@@ -1683,7 +1683,7 @@ export default function AddEmployee() {
                                                     href={previewDoc.url}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#2C4FD6] text-white text-sm font-semibold rounded-lg hover:bg-[#203FB4] shadow-sm transition-all"
+                                                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#2C4FD6] text-white text-sm font-semibold rounded-lg hover:bg-[#203FB4] transition-all"
                                                 >
                                                     <ExternalLink size={16} /> Open in New Tab
                                                 </a>

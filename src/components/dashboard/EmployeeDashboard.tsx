@@ -4,6 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
+import { DashboardSkeleton } from '../common/SkeletonLoaders';
 
 export default function EmployeeDashboard({ user }: { user?: any }) {
     const navigate = useNavigate();
@@ -13,6 +14,7 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
     const [recentAttendance, setRecentAttendance] = useState<any[]>([]);
     const [monthlyAttendance, setMonthlyAttendance] = useState<any[]>([]);
     const [holidays, setHolidays] = useState<any[]>([]);
+    const [isPunching, setIsPunching] = useState(false);
 
     useEffect(() => {
         const fetchEmployeeData = async () => {
@@ -64,7 +66,18 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
         fetchEmployeeData();
     }, []);
 
+    // Listen to global punch-in updates from PunchInPromptModal or other tabs
+    useEffect(() => {
+        const onPunchUpdated = () => {
+            fetchEmployeeData();
+        };
+        window.addEventListener('punch-updated', onPunchUpdated);
+        return () => window.removeEventListener('punch-updated', onPunchUpdated);
+    }, []);
+
     const handlePunch = async () => {
+        if (isPunching) return;
+        setIsPunching(true);
         const now = new Date();
         const year = now.getFullYear();
         const month = now.getMonth() + 1;
@@ -79,6 +92,7 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
             } : res.data);
 
             toast.success(res.data.message || 'Action successful');
+            window.dispatchEvent(new Event('punch-updated'));
 
             // Refresh history with correct parameters
             const historyRes = await api.get(`/attendance/history?year=${year}&month=${month}`);
@@ -89,15 +103,13 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
         } catch (error: any) {
             console.error("Punch error:", error);
             toast.error(error.response?.data?.message || "Punch action failed");
+        } finally {
+            setIsPunching(false);
         }
     };
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-[400px]">
-                <Loader2 className="animate-spin text-brand-500" size={48} />
-            </div>
-        );
+        return <DashboardSkeleton />;
     }
 
     const totalLeaves = leaveBalances.reduce((acc, curr) => acc + (curr.balance ?? 0), 0);
@@ -205,29 +217,30 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
 
     return (
         <div className="space-y-6 animate-fade-in-up">
-            {/* QUICK STATS */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {/* QUICK STATS - Connected continuous card strip matching Admin Dashboard (no middle gap) */}
+            <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden mb-6 grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[#E2E6ED] dark:divide-gray-800">
                 {/* 1. ATTENDANCE & PUNCH */}
-                <div className="bg-white dark:bg-brand-900/50 p-6 rounded-[6px] border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow group flex flex-col justify-between">
+                <div className="p-5 sm:p-6 flex flex-col justify-between hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all group">
                     <div>
-                        <div className="flex justify-between items-center mb-4">
-                            {/* Compact Icon */}
-                            <div className="w-8 h-8 rounded-[6px] bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-                                <Clock size={16} />
+                        <div className="flex justify-between items-center mb-3">
+                            <span className="kpi-label text-[11px] font-semibold text-[#9AA3B1] uppercase tracking-[.06em]">
+                                Attendance
+                            </span>
+                            <div className="w-7 h-7 rounded-[6px] bg-[#EEF1F5] dark:bg-gray-800 text-[#5B6472] dark:text-gray-300 flex items-center justify-center transition-colors group-hover:text-[#2C4FD6]">
+                                <Clock size={15} />
                             </div>
-                            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Attendance</span>
                         </div>
-                        <h4 className="text-gray-500 dark:text-gray-400 text-sm font-medium">Punch Status</h4>
-                        <p className="text-2xl font-bold mt-1 text-gray-800 dark:text-white">
+                        <p className="text-[12px] text-[#9AA3B1] mb-1 font-medium">Punch Status</p>
+                        <div className="kpi-num text-[22px] sm:text-[24px] font-bold text-[#12151C] dark:text-white tracking-tight leading-none mb-1.5">
                             {punchStatus?.isPunchedIn ? 'Currently Working' : 'Not Punched In'}
-                        </p>
+                        </div>
                     </div>
 
-                    <div className="mt-4 pt-3 border-t border-gray-100 dark:border-white/5 flex items-center justify-between gap-2">
+                    <div className="mt-4 pt-3 border-t border-[#E2E6ED] dark:border-gray-800 flex items-center justify-between gap-2">
                         <button
                             onClick={handlePunch}
-                            disabled={isShiftCompleted || isHolidayToday}
-                            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[6px] text-xs font-bold transition-all shadow-sm active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer ${
+                            disabled={isPunching || isShiftCompleted || isHolidayToday}
+                            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[6px] text-xs font-bold transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer ${
                                 isHolidayToday
                                     ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
                                     : isPunchedIn
@@ -251,20 +264,23 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
                 </div>
 
                 {/* 2. LEAVE BALANCE */}
-                <div onClick={() => navigate('/leave')} className="bg-white dark:bg-brand-900/50 p-6 rounded-[6px] border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow group cursor-pointer flex flex-col justify-between">
+                <div onClick={() => navigate('/leave')} className="p-5 sm:p-6 flex flex-col justify-between hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all group cursor-pointer">
                     <div>
-                        <div className="flex justify-between items-center mb-4">
-                            {/* Compact Icon */}
-                            <div className="w-8 h-8 rounded-[6px] bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 flex items-center justify-center shrink-0">
-                                <Calendar size={16} />
+                        <div className="flex justify-between items-center mb-3">
+                            <span className="kpi-label text-[11px] font-semibold text-[#9AA3B1] uppercase tracking-[.06em]">
+                                Leaves
+                            </span>
+                            <div className="w-7 h-7 rounded-[6px] bg-[#EEF1F5] dark:bg-gray-800 text-[#5B6472] dark:text-gray-300 flex items-center justify-center transition-colors group-hover:text-[#2C4FD6]">
+                                <Calendar size={15} />
                             </div>
-                            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Leaves</span>
                         </div>
-                        <h4 className="text-gray-500 dark:text-gray-400 text-sm font-medium">Remaining Balance</h4>
-                        <p className="text-2xl font-bold mt-1 text-gray-800 dark:text-white">{totalLeaves} Days</p>
+                        <p className="text-[12px] text-[#9AA3B1] mb-1 font-medium">Remaining Balance</p>
+                        <div className="kpi-num text-[24px] sm:text-[24px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight leading-none mb-1.5">
+                            {totalLeaves} Days
+                        </div>
                     </div>
 
-                    <div className="mt-4 pt-3 border-t border-gray-100 dark:border-white/5 flex items-center justify-between">
+                    <div className="mt-4 pt-3 border-t border-[#E2E6ED] dark:border-gray-800 flex items-center justify-between">
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -280,48 +296,24 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
                     </div>
                 </div>
 
-                {/* 3. UPCOMING HOLIDAY OR MONTHLY TARGET (Fixed upcoming holiday logic) */}
-                <div className="bg-white dark:bg-brand-900/50 p-6 rounded-[6px] border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow group flex flex-col justify-between">
+                {/* 3. MONTHLY WORK HOURS */}
+                <div className="p-5 sm:p-6 flex flex-col justify-between hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all group">
                     <div>
-                        {nextHoliday ? (
-                            <>
-                                <div className="flex justify-between items-center mb-4">
-                                    {/* Compact Icon */}
-                                    <div className="w-8 h-8 rounded-[6px] bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
-                                        <History size={16} />
-                                    </div>
-                                    <span className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-widest bg-purple-50 dark:bg-purple-900/30 px-2 py-0.5 rounded-[4px]">
-                                        {isHolidayToday ? 'Today' : 'Upcoming'}
-                                    </span>
-                                </div>
-                                <h4 className="text-gray-500 dark:text-gray-400 text-sm font-medium">Next Holiday</h4>
-                                <p className="text-2xl font-bold mt-1 text-gray-800 dark:text-white truncate" title={nextHoliday.name}>
-                                    {nextHoliday.name}
-                                </p>
-                                <p className="text-xs text-purple-500 font-semibold mt-1">
-                                    {new Date(nextHoliday.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                </p>
-                            </>
-                        ) : (
-                            <>
-                                <div className="flex justify-between items-center mb-4">
-                                    {/* Compact Icon */}
-                                    <div className="w-8 h-8 rounded-[6px] bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                                        <CheckCircle2 size={16} />
-                                    </div>
-                                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-[4px]">
-                                        This Month
-                                    </span>
-                                </div>
-                                <h4 className="text-gray-500 dark:text-gray-400 text-sm font-medium">Monthly Work Hours</h4>
-                                <p className="text-2xl font-bold mt-1 text-gray-800 dark:text-white">
-                                    {totalMonthlyHours.toFixed(1)} hrs
-                                </p>
-                                <p className="text-xs text-gray-400 mt-1">
-                                    {totalMonthlyHours > 0 ? 'Total logged across all shifts' : 'No shift hours logged this month'}
-                                </p>
-                            </>
-                        )}
+                        <div className="flex justify-between items-center mb-3">
+                            <span className="text-[10px] font-bold text-[#059669] bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-[4px] uppercase tracking-[.06em]">
+                                This Month
+                            </span>
+                            <div className="w-7 h-7 rounded-[6px] bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center transition-colors">
+                                <CheckCircle2 size={15} />
+                            </div>
+                        </div>
+                        <p className="text-[12px] text-[#9AA3B1] mb-1 font-medium">Monthly Work Hours</p>
+                        <div className="kpi-num text-[24px] sm:text-[24px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight leading-none mb-1.5">
+                            {totalMonthlyHours.toFixed(1)} hrs
+                        </div>
+                        <p className="text-[12px] text-[#9AA3B1]">
+                            Total logged across all shifts
+                        </p>
                     </div>
                 </div>
             </div>
@@ -329,7 +321,7 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
             {/* EMPLOYEE ANALYTICS & CHARTS ACCORDING TO PROFILE */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* 1. Working Hours & Performance Chart */}
-                <div className="lg:col-span-2 bg-white dark:bg-brand-900/50 rounded-[6px] p-6 border border-gray-100 dark:border-white/5 shadow-sm flex flex-col justify-between">
+                <div className="lg:col-span-2 bg-white dark:bg-brand-900/50 rounded-[6px] p-6 border border-gray-100 dark:border-white/5 flex flex-col justify-between">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
                         <div>
                             <div className="flex items-center gap-2">
@@ -393,7 +385,7 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
                 </div>
 
                 {/* 2. Leave Allocation & Balances Breakdown */}
-                <div className="bg-white dark:bg-brand-900/50 rounded-[6px] p-6 border border-gray-100 dark:border-white/5 shadow-sm flex flex-col justify-between">
+                <div className="bg-white dark:bg-brand-900/50 rounded-[6px] p-6 border border-gray-100 dark:border-white/5 flex flex-col justify-between">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
                             <BarChart2 size={16} className="text-[#2C4FD6]" />
@@ -442,7 +434,7 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
             </div>
 
             {/* RECENT ATTENDANCE */}
-            <div className="bg-white dark:bg-brand-900/50 rounded-[6px] p-6 sm:p-8 border border-gray-100 dark:border-white/5 shadow-sm">
+            <div className="bg-white dark:bg-brand-900/50 rounded-[6px] p-6 sm:p-8 border border-gray-100 dark:border-white/5">
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="text-xl font-bold text-gray-800 dark:text-white">My Recent Activity</h3>
                     <button
@@ -457,7 +449,7 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
                     {recentAttendance.length > 0 ? recentAttendance.map((log, index) => (
                         <div key={index} onClick={() => navigate('/attendance')} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-white/5 rounded-[6px] border border-transparent hover:border-brand-500/20 transition-all group cursor-pointer">
                             <div className="flex items-center gap-4">
-                                <div className="w-8 h-8 rounded-[6px] bg-white dark:bg-brand-800 flex items-center justify-center text-gray-400 group-hover:text-brand-500 transition-colors shadow-sm">
+                                <div className="w-8 h-8 rounded-[6px] bg-white dark:bg-brand-800 flex items-center justify-center text-gray-400 group-hover:text-brand-500 transition-colors">
                                     <Clock size={16} />
                                 </div>
                                 <div>

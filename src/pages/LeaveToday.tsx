@@ -174,9 +174,24 @@ export default function LeaveToday() {
 
             {/* Content Section - Table View Matching EmployeeList EXACTLY */}
             {loading ? (
-                <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800">
-                    <Loader2 className="w-10 h-10 text-[#2C4FD6] animate-spin mb-4" />
-                    <p className="text-[#5B6472] dark:text-gray-400 font-medium text-xs">Fetching leave data...</p>
+                <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden animate-fade-in">
+                    <div className="divide-y divide-[#E2E6ED] dark:divide-gray-800">
+                        {Array.from({ length: 6 }).map((_, i) => (
+                            <div key={i} className="px-6 py-4 flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <div className="w-8 h-8 rounded-[6px] skeleton-shimmer shrink-0" />
+                                    <div className="space-y-1.5 min-w-0">
+                                        <div className="h-3.5 w-32 skeleton-shimmer rounded-[4px]" />
+                                        <div className="h-2.5 w-24 skeleton-shimmer rounded-[4px]" />
+                                    </div>
+                                </div>
+                                <div className="h-3.5 w-24 skeleton-shimmer rounded-[4px] hidden sm:block" />
+                                <div className="h-3.5 w-24 skeleton-shimmer rounded-[4px] hidden md:block" />
+                                <div className="h-5 w-16 skeleton-shimmer rounded-full" />
+                                <div className="h-7 w-16 skeleton-shimmer rounded-[6px]" />
+                            </div>
+                        ))}
+                    </div>
                 </div>
             ) : filteredLeaves.length === 0 ? (
                 <div className="text-center py-20 bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800">

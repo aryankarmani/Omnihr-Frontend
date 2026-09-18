@@ -3,12 +3,13 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useRBAC } from '../hooks/useRBAC';
-import { ArrowLeft, User, FileText, CreditCard, Download, Briefcase, Save, X, Printer, Loader2, Eye, Trash2, Upload, TrendingUp, TrendingDown, Coins, ExternalLink, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, ArrowRight, User, FileText, CreditCard, Download, Briefcase, Save, X, Printer, Loader2, Eye, Trash2, Upload, TrendingUp, TrendingDown, Coins, ExternalLink, Image as ImageIcon } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import toast from 'react-hot-toast';
 import api, { getMediaUrl } from '../utils/api';
 import { calculateProfileCompletion } from '../utils/profileCompletion';
+import { ProfileSkeleton } from '../components/common/SkeletonLoaders';
 
 const parseRadioOptions = (optionsString: string | null | undefined): string[] => {
     if (!optionsString) return ['Yes', 'No'];
@@ -78,6 +79,7 @@ export default function EmployeeProfile() {
     const [newProfilePicture, setNewProfilePicture] = useState<File | null>(null);
     const [newProfilePicturePreview, setNewProfilePicturePreview] = useState<string | null>(null);
     const [countryCode, setCountryCode] = useState('+91');
+    const [savingAndNext, setSavingAndNext] = useState(false);
 
     const fetchEmployee = async () => {
         try {
@@ -549,6 +551,189 @@ export default function EmployeeProfile() {
         }
     };
 
+    const validateStatutoryAndBank = () => {
+        const newErrors: Record<string, string> = {};
+        const p = employee?.employeeProfile?.statutory || {};
+        const b = employee?.employeeProfile?.bank || {};
+
+        if (p.pan && p.pan !== 'Not Provided' && !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(p.pan.trim().toUpperCase())) {
+            newErrors.pan = "Invalid PAN format";
+        }
+
+        if (p.aadhaar && p.aadhaar !== 'Not Provided' && !/^\d{12}$/.test(p.aadhaar.replace(/\s+/g, ''))) {
+            newErrors.aadhaar = "Aadhaar must be 12 digits";
+        }
+
+        if (p.uan && p.uan !== 'Not Provided' && !/^\d{12}$/.test(p.uan)) {
+            newErrors.uan = "UAN must be 12 digits";
+        }
+
+        if (p.esic && p.esic !== 'Not Provided' && !/^\d{10}$/.test(p.esic)) {
+            newErrors.esic = "ESIC must be 10 digits";
+        }
+
+        if (b.bankName && b.bankName !== 'Not Provided' && !/^[A-Za-z\s]{2,50}$/.test(b.bankName.trim())) {
+            newErrors.bankName = "Bank Name must contain only letters";
+        }
+
+        if (b.ifsc && b.ifsc !== 'Not Provided' && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(b.ifsc.trim().toUpperCase())) {
+            newErrors.ifsc = "Invalid IFSC format";
+        }
+
+        if (b.accountNumber && b.accountNumber !== 'Not Provided' && !/^\d{9,18}$/.test(b.accountNumber)) {
+            newErrors.accountNumber = "Account Number must be 9–18 digits";
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(prev => ({ ...prev, ...newErrors }));
+            toast.error("Please fix validations in Statutory & Bank Info");
+            return false;
+        }
+
+        return true;
+    };
+
+    const handleSaveAndAdvance = async (nextTab: 'documents' | 'personal' | 'shiftRoster' | 'salary' | 'team' | null) => {
+        // Validation per current tab
+        if (activeTab === 'statutory') {
+            if (!validateStatutoryAndBank()) return;
+        } else if (activeTab === 'personal') {
+            const newErrors: Record<string, string> = {};
+            const pd = employee?.employeeProfile || {};
+            if (!employee.name?.trim()) newErrors.name = "Full name is required";
+            if (!employee.email) newErrors.email = "Email is required";
+            else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(employee.email)) {
+                newErrors.email = "Please enter valid email";
+            }
+            const rawPhone = pd.phone || '';
+            const phoneNum = rawPhone.includes(' ') ? rawPhone.split(' ')[1] : rawPhone;
+            if (!phoneNum) newErrors.phone = "Phone number is required";
+            else if (!/^\d{10}$/.test(phoneNum)) {
+                newErrors.phone = "Enter valid 10 digit phone number";
+            }
+            if (!pd.dob) newErrors.dob = "Date of birth is required";
+            else if (new Date(pd.dob) > new Date()) newErrors.dob = "Future date is not allowed";
+            if (!pd.joiningDate) newErrors.joiningDate = "Date of joining is required";
+            if (!pd.bloodGroup) newErrors.bloodGroup = "Blood group is required";
+            if (!pd.address?.trim()) newErrors.address = "Address is required";
+
+            if (Object.keys(newErrors).length > 0) {
+                setErrors(prev => ({ ...prev, ...newErrors }));
+                toast.error("Please fix validations in Personal Details");
+                return;
+            }
+        } else if (activeTab === 'shiftRoster') {
+            if (!employee?.employeeProfile?.shiftId) {
+                setErrors(prev => ({ ...prev, shiftId: "Select a shift" }));
+                toast.error("Shift not assigned");
+                return;
+            }
+        } else if (activeTab === 'salary') {
+            const s = employee?.employeeProfile?.salary || {};
+            if (s.basic === "" || s.basic == null) {
+                setErrors(prev => ({ ...prev, basic: "Basic salary is required" }));
+                toast.error("Please fix validations in Salary Info");
+                return;
+            }
+        }
+
+        setSavingAndNext(true);
+        try {
+            const currentSelectedComponents =
+                employee.employeeProfile?.selectedSalaryComponents !== undefined
+                    ? employee.employeeProfile.selectedSalaryComponents
+                    : (employee.employeeProfile?.salaryComponents?.map((item: any) => item.component || item) || []);
+
+            const rawPhone = employee.employeeProfile?.phone || '';
+            const phoneNum = rawPhone.includes(' ') ? rawPhone.split(' ')[1] : rawPhone;
+            const combinedPhone = `${countryCode} ${phoneNum}`.trim();
+
+            const profileData = {
+                phone: combinedPhone,
+                dob: employee.employeeProfile?.dob,
+                joiningDate: employee.employeeProfile?.joiningDate,
+                bloodGroup: employee.employeeProfile?.bloodGroup,
+                address: employee.employeeProfile?.address,
+                location: employee.employeeProfile?.location,
+                department: employee.employeeProfile?.department,
+                departmentId: employee.employeeProfile?.departmentId,
+                title: employee.employeeProfile?.title,
+                designationId: employee.employeeProfile?.designationId,
+                status: employee.employeeProfile?.status || 'Active',
+                shiftId: employee.employeeProfile?.shiftId,
+                salary: employee.employeeProfile?.salary,
+                selectedSalaryComponents: currentSelectedComponents,
+                salaryComponents: currentSelectedComponents,
+                // Statutory
+                uan: employee.employeeProfile?.statutory?.uan,
+                pfNumber: employee.employeeProfile?.statutory?.pfNumber,
+                esic: employee.employeeProfile?.statutory?.esic,
+                pan: employee.employeeProfile?.statutory?.pan,
+                aadhaar: employee.employeeProfile?.statutory?.aadhaar,
+                // Bank
+                bankName: employee.employeeProfile?.bank?.bankName,
+                accountNumber: employee.employeeProfile?.bank?.accountNumber,
+                ifsc: employee.employeeProfile?.bank?.ifsc,
+                // User
+                name: employee.name,
+                email: employee.email,
+                roleId: employee.roleId || employee.role?.id,
+                role: employee.role?.name || employee.role?.title || (typeof employee.role === 'string' ? employee.role : undefined)
+            };
+
+            const endpoint = id ? `/employee/${id}` : '/employee/me';
+            await api.put(endpoint, profileData);
+
+            if (newProfilePicture) {
+                const pictureFormData = new FormData();
+                pictureFormData.append('profilePicture', newProfilePicture);
+                await api.put(
+                    id ? `/employee/${id}/profile-picture` : '/employee/me/profile-picture',
+                    pictureFormData
+                );
+                setNewProfilePicture(null);
+                setNewProfilePicturePreview(null);
+            }
+
+            // Save personal custom fields values
+            const personalCustomFields = customFields.filter((cf: any) => cf.field?.category === 'PERSONAL_DETAILS');
+            const customFieldsPayload = personalCustomFields.reduce((acc: any, cf: any) => {
+                acc[cf.fieldId] = cf.value;
+                return acc;
+            }, {});
+            const customFieldsEndpoint = id ? `/custom-fields/employee/${id}` : '/custom-fields/employee/me';
+            await api.put(customFieldsEndpoint, { customFields: customFieldsPayload });
+
+            await fetchEmployee();
+            fetchCustomFields();
+
+            if (nextTab) {
+                setIsEditing(true);
+                setActiveTab(nextTab);
+                const tabTitles: Record<string, string> = {
+                    documents: 'Document Vault',
+                    personal: 'Personal Details',
+                    shiftRoster: 'Shift & Roster',
+                    salary: 'Salary Info',
+                    team: 'Team Info'
+                };
+                toast.success(`Saved! Proceeding to ${tabTitles[nextTab] || nextTab}.`);
+            } else {
+                // When completing on Team Info
+                setIsEditing(false);
+                navigate(location.pathname, { replace: true });
+                toast.success('Profile Completed Successfully!');
+            }
+        } catch (error) {
+            console.error('Save error:', error);
+            toast.error('Failed to save details');
+        } finally {
+            setSavingAndNext(false);
+        }
+    };
+
+    const handleSaveAndNext = () => handleSaveAndAdvance('documents');
+
     const handleInputChange = (field: string, value: string) => {
         if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
         if (field === 'name' || field === 'email' || field === 'role') {
@@ -784,12 +969,7 @@ export default function EmployeeProfile() {
 
 
     if (loading) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh]">
-                <Loader2 size={48} className="text-brand-500 animate-spin mb-4" />
-                <p className="text-gray-500 font-medium">Loading Profile Details...</p>
-            </div>
-        );
+        return <ProfileSkeleton />;
     }
 
     if (!employee) {
@@ -1139,7 +1319,7 @@ export default function EmployeeProfile() {
             </button>
 
             {/* Profile Header */}
-            <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 p-6 shadow-sm flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+            <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 p-6 flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                 <div className="flex items-center gap-5">
                     <div className="relative w-16 h-16 rounded-[6px] bg-[#E8ECFC] text-[#2C4FD6] dark:bg-blue-950/40 dark:text-blue-400 flex items-center justify-center text-2xl font-bold shrink-0 overflow-hidden">
                         <span>{employeeInitials}</span>
@@ -1161,7 +1341,7 @@ export default function EmployeeProfile() {
                                         .getElementById('edit-profile-picture-input')
                                         ?.click()
                                 }
-                                className="absolute bottom-0 right-0 z-20 w-6 h-6 rounded-full bg-[#2C4FD6] text-white flex items-center justify-center shadow-sm hover:bg-[#203FB4] transition-colors"
+                                className="absolute bottom-0 right-0 z-20 w-6 h-6 rounded-full bg-[#2C4FD6] text-white flex items-center justify-center hover:bg-[#203FB4] transition-colors"
                                 title="Change profile picture"
                             >
                                 <Upload size={12} />
@@ -1212,13 +1392,13 @@ export default function EmployeeProfile() {
                             <button onClick={handleCancel} className="inline-flex items-center justify-center gap-[7px] rounded-[6px] px-[15px] py-[9px] text-[13.5px] font-semibold whitespace-nowrap bg-[#F7F8FA] text-[#5B6472] hover:bg-gray-200 transition-all cursor-pointer">
                                 Cancel
                             </button>
-                            <button onClick={handleSave} className="inline-flex items-center justify-center gap-[7px] rounded-[6px] px-[15px] py-[9px] text-[13.5px] font-semibold whitespace-nowrap bg-[#2C4FD6] hover:bg-[#203FB4] text-white shadow-sm transition-all cursor-pointer">
+                            <button onClick={handleSave} className="inline-flex items-center justify-center gap-[7px] rounded-[6px] px-[15px] py-[9px] text-[13.5px] font-semibold whitespace-nowrap bg-[#2C4FD6] hover:bg-[#203FB4] text-white transition-all cursor-pointer">
                                 <Save size={15} /> Save Changes
                             </button>
                         </>
                     ) : (
                         hasPermission(['HR_ADMIN']) && (
-                            <button onClick={() => setIsEditing(true)} className="inline-flex items-center justify-center gap-[7px] rounded-[6px] px-[15px] py-[9px] text-[13.5px] font-semibold whitespace-nowrap bg-[#2C4FD6] hover:bg-[#203FB4] text-white shadow-sm transition-all cursor-pointer">
+                            <button onClick={() => setIsEditing(true)} className="inline-flex items-center justify-center gap-[7px] rounded-[6px] px-[15px] py-[9px] text-[13.5px] font-semibold whitespace-nowrap bg-[#2C4FD6] hover:bg-[#203FB4] text-white transition-all cursor-pointer">
                                 Edit Profile
                             </button>
                         )
@@ -1258,7 +1438,7 @@ export default function EmployeeProfile() {
                 {/* Main Detail Card */}
                 <div className="lg:col-span-2 space-y-6">
                     {activeTab === 'statutory' && (
-                        <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-6 shadow-sm border border-[#E2E6ED] dark:border-gray-800 animate-fade-in-up space-y-6">
+                        <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-6 border border-[#E2E6ED] dark:border-gray-800 animate-fade-in-up space-y-6">
                             {/* Statutory Details */}
                             <div>
                                 <h3 className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white flex items-center gap-2 mb-[20px]">
@@ -1268,13 +1448,16 @@ export default function EmployeeProfile() {
                                     <div>
                                         <label className="text-[11px] font-medium text-[#9AA3B1] uppercase tracking-wider block mb-[6px]">UAN (PROVIDENT FUND)</label>
                                         {isEditing ? (
-                                            <input
-                                                type="text"
-                                                placeholder="12-digit UAN"
-                                                value={(statutory as any).uan && (statutory as any).uan !== 'Not Provided' ? (statutory as any).uan : ''}
-                                                onChange={(e) => handleStatutoryChange('uan', e.target.value.replace(/\D/g, '').slice(0, 12))}
-                                                className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-xs font-semibold text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
-                                            />
+                                            <>
+                                                <input
+                                                    type="text"
+                                                    placeholder="12-digit UAN"
+                                                    value={(statutory as any).uan && (statutory as any).uan !== 'Not Provided' ? (statutory as any).uan : ''}
+                                                    onChange={(e) => handleStatutoryChange('uan', e.target.value.replace(/\D/g, '').slice(0, 12))}
+                                                    className={`w-full px-3 py-2 bg-white dark:bg-[#12151C] border ${errors.uan ? 'border-red-500' : 'border-[#E2E6ED] dark:border-gray-800'} rounded-[6px] text-xs font-medium text-[#5B6472] dark:text-gray-300 outline-none focus:border-[#2C4FD6] focus:text-[#12151C] dark:focus:text-white transition-colors`}
+                                                />
+                                                {errors.uan && <p className="text-red-500 text-[11px] mt-1">{errors.uan}</p>}
+                                            </>
                                         ) : (
                                             <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
                                                 {(statutory as any).uan && (statutory as any).uan !== 'Not Provided' ? (statutory as any).uan : 'Not Provided'}
@@ -1284,13 +1467,16 @@ export default function EmployeeProfile() {
                                     <div>
                                         <label className="text-[11px] font-medium text-[#9AA3B1] uppercase tracking-wider block mb-[6px]">PF NUMBER</label>
                                         {isEditing ? (
-                                            <input
-                                                type="text"
-                                                placeholder="e.g. DL/CPM/12345/678"
-                                                value={(statutory as any).pfNumber && (statutory as any).pfNumber !== 'Not Provided' ? (statutory as any).pfNumber : ''}
-                                                onChange={(e) => handleStatutoryChange('pfNumber', e.target.value)}
-                                                className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-xs font-semibold text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
-                                            />
+                                            <>
+                                                <input
+                                                    type="text"
+                                                    placeholder="e.g. DL/CPM/12345/678"
+                                                    value={(statutory as any).pfNumber && (statutory as any).pfNumber !== 'Not Provided' ? (statutory as any).pfNumber : ''}
+                                                    onChange={(e) => handleStatutoryChange('pfNumber', e.target.value)}
+                                                    className={`w-full px-3 py-2 bg-white dark:bg-[#12151C] border ${errors.pfNumber ? 'border-red-500' : 'border-[#E2E6ED] dark:border-gray-800'} rounded-[6px] text-xs font-medium text-[#5B6472] dark:text-gray-300 outline-none focus:border-[#2C4FD6] focus:text-[#12151C] dark:focus:text-white transition-colors`}
+                                                />
+                                                {errors.pfNumber && <p className="text-red-500 text-[11px] mt-1">{errors.pfNumber}</p>}
+                                            </>
                                         ) : (
                                             <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
                                                 {(statutory as any).pfNumber && (statutory as any).pfNumber !== 'Not Provided' ? (statutory as any).pfNumber : 'Not Provided'}
@@ -1300,13 +1486,16 @@ export default function EmployeeProfile() {
                                     <div>
                                         <label className="text-[11px] font-medium text-[#9AA3B1] uppercase tracking-wider block mb-[6px]">ESIC NUMBER</label>
                                         {isEditing ? (
-                                            <input
-                                                type="text"
-                                                placeholder="10-digit ESIC Number"
-                                                value={(statutory as any).esic && (statutory as any).esic !== 'Not Provided' ? (statutory as any).esic : ''}
-                                                onChange={(e) => handleStatutoryChange('esic', e.target.value.replace(/\D/g, '').slice(0, 10))}
-                                                className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-xs font-semibold text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
-                                            />
+                                            <>
+                                                <input
+                                                    type="text"
+                                                    placeholder="10-digit ESIC Number"
+                                                    value={(statutory as any).esic && (statutory as any).esic !== 'Not Provided' ? (statutory as any).esic : ''}
+                                                    onChange={(e) => handleStatutoryChange('esic', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                                                    className={`w-full px-3 py-2 bg-white dark:bg-[#12151C] border ${errors.esic ? 'border-red-500' : 'border-[#E2E6ED] dark:border-gray-800'} rounded-[6px] text-xs font-medium text-[#5B6472] dark:text-gray-300 outline-none focus:border-[#2C4FD6] focus:text-[#12151C] dark:focus:text-white transition-colors`}
+                                                />
+                                                {errors.esic && <p className="text-red-500 text-[11px] mt-1">{errors.esic}</p>}
+                                            </>
                                         ) : (
                                             <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
                                                 {(statutory as any).esic && (statutory as any).esic !== 'Not Provided' ? (statutory as any).esic : 'Not Provided'}
@@ -1316,13 +1505,16 @@ export default function EmployeeProfile() {
                                     <div>
                                         <label className="text-[11px] font-medium text-[#9AA3B1] uppercase tracking-wider block mb-[6px]">PAN NUMBER</label>
                                         {isEditing ? (
-                                            <input
-                                                type="text"
-                                                placeholder="e.g. ABCDE1234F"
-                                                value={(statutory as any).pan && (statutory as any).pan !== 'Not Provided' ? (statutory as any).pan : ''}
-                                                onChange={(e) => handleStatutoryChange('pan', e.target.value.toUpperCase())}
-                                                className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-xs font-semibold text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
-                                            />
+                                            <>
+                                                <input
+                                                    type="text"
+                                                    placeholder="e.g. ABCDE1234F"
+                                                    value={(statutory as any).pan && (statutory as any).pan !== 'Not Provided' ? (statutory as any).pan : ''}
+                                                    onChange={(e) => handleStatutoryChange('pan', e.target.value.toUpperCase())}
+                                                    className={`w-full px-3 py-2 bg-white dark:bg-[#12151C] border ${errors.pan ? 'border-red-500' : 'border-[#E2E6ED] dark:border-gray-800'} rounded-[6px] text-xs font-medium text-[#5B6472] dark:text-gray-300 outline-none focus:border-[#2C4FD6] focus:text-[#12151C] dark:focus:text-white transition-colors`}
+                                                />
+                                                {errors.pan && <p className="text-red-500 text-[11px] mt-1">{errors.pan}</p>}
+                                            </>
                                         ) : (
                                             <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
                                                 {(statutory as any).pan && (statutory as any).pan !== 'Not Provided' ? (statutory as any).pan : 'Not Provided'}
@@ -1332,13 +1524,16 @@ export default function EmployeeProfile() {
                                     <div>
                                         <label className="text-[11px] font-medium text-[#9AA3B1] uppercase tracking-wider block mb-[6px]">AADHAAR NUMBER</label>
                                         {isEditing ? (
-                                            <input
-                                                type="text"
-                                                placeholder="12-digit Aadhaar Number"
-                                                value={(statutory as any).aadhaar && (statutory as any).aadhaar !== 'Not Provided' ? (statutory as any).aadhaar : ''}
-                                                onChange={(e) => handleStatutoryChange('aadhaar', e.target.value.replace(/\D/g, '').slice(0, 12))}
-                                                className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-xs font-semibold text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
-                                            />
+                                            <>
+                                                <input
+                                                    type="text"
+                                                    placeholder="12-digit Aadhaar Number"
+                                                    value={(statutory as any).aadhaar && (statutory as any).aadhaar !== 'Not Provided' ? (statutory as any).aadhaar : ''}
+                                                    onChange={(e) => handleStatutoryChange('aadhaar', e.target.value.replace(/\D/g, '').slice(0, 12))}
+                                                    className={`w-full px-3 py-2 bg-white dark:bg-[#12151C] border ${errors.aadhaar ? 'border-red-500' : 'border-[#E2E6ED] dark:border-gray-800'} rounded-[6px] text-xs font-medium text-[#5B6472] dark:text-gray-300 outline-none focus:border-[#2C4FD6] focus:text-[#12151C] dark:focus:text-white transition-colors`}
+                                                />
+                                                {errors.aadhaar && <p className="text-red-500 text-[11px] mt-1">{errors.aadhaar}</p>}
+                                            </>
                                         ) : (
                                             <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
                                                 {(statutory as any).aadhaar && (statutory as any).aadhaar !== 'Not Provided'
@@ -1361,13 +1556,16 @@ export default function EmployeeProfile() {
                                     <div>
                                         <label className="text-[11px] font-medium text-[#9AA3B1] uppercase tracking-wider block mb-[6px]">BANK NAME</label>
                                         {isEditing ? (
-                                            <input
-                                                type="text"
-                                                placeholder="e.g. HDFC Bank"
-                                                value={bank.bankName && bank.bankName !== 'Not Provided' ? bank.bankName : ''}
-                                                onChange={(e) => handleBankChange('bankName', e.target.value)}
-                                                className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-xs font-semibold text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
-                                            />
+                                            <>
+                                                <input
+                                                    type="text"
+                                                    placeholder="e.g. HDFC Bank"
+                                                    value={bank.bankName && bank.bankName !== 'Not Provided' ? bank.bankName : ''}
+                                                    onChange={(e) => handleBankChange('bankName', e.target.value)}
+                                                    className={`w-full px-3 py-2 bg-white dark:bg-[#12151C] border ${errors.bankName ? 'border-red-500' : 'border-[#E2E6ED] dark:border-gray-800'} rounded-[6px] text-xs font-medium text-[#5B6472] dark:text-gray-300 outline-none focus:border-[#2C4FD6] focus:text-[#12151C] dark:focus:text-white transition-colors`}
+                                                />
+                                                {errors.bankName && <p className="text-red-500 text-[11px] mt-1">{errors.bankName}</p>}
+                                            </>
                                         ) : (
                                             <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
                                                 {bank.bankName && bank.bankName !== 'Not Provided' ? bank.bankName : 'Not Provided'}
@@ -1377,13 +1575,16 @@ export default function EmployeeProfile() {
                                     <div>
                                         <label className="text-[11px] font-medium text-[#9AA3B1] uppercase tracking-wider block mb-[6px]">IFSC CODE</label>
                                         {isEditing ? (
-                                            <input
-                                                type="text"
-                                                placeholder="e.g. HDFC0001234"
-                                                value={bank.ifsc && bank.ifsc !== 'Not Provided' ? bank.ifsc : ''}
-                                                onChange={(e) => handleBankChange('ifsc', e.target.value.toUpperCase())}
-                                                className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-xs font-semibold text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
-                                            />
+                                            <>
+                                                <input
+                                                    type="text"
+                                                    placeholder="e.g. HDFC0001234"
+                                                    value={bank.ifsc && bank.ifsc !== 'Not Provided' ? bank.ifsc : ''}
+                                                    onChange={(e) => handleBankChange('ifsc', e.target.value.toUpperCase())}
+                                                    className={`w-full px-3 py-2 bg-white dark:bg-[#12151C] border ${errors.ifsc ? 'border-red-500' : 'border-[#E2E6ED] dark:border-gray-800'} rounded-[6px] text-xs font-medium text-[#5B6472] dark:text-gray-300 outline-none focus:border-[#2C4FD6] focus:text-[#12151C] dark:focus:text-white transition-colors`}
+                                                />
+                                                {errors.ifsc && <p className="text-red-500 text-[11px] mt-1">{errors.ifsc}</p>}
+                                            </>
                                         ) : (
                                             <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
                                                 {bank.ifsc && bank.ifsc !== 'Not Provided' ? bank.ifsc : 'Not Provided'}
@@ -1393,13 +1594,16 @@ export default function EmployeeProfile() {
                                     <div>
                                         <label className="text-[11px] font-medium text-[#9AA3B1] uppercase tracking-wider block mb-[6px]">ACCOUNT NUMBER</label>
                                         {isEditing ? (
-                                            <input
-                                                type="text"
-                                                placeholder="9 to 18 digits"
-                                                value={bank.accountNumber && bank.accountNumber !== 'Not Provided' ? bank.accountNumber : ''}
-                                                onChange={(e) => handleBankChange('accountNumber', e.target.value.replace(/\D/g, '').slice(0, 18))}
-                                                className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-xs font-semibold text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
-                                            />
+                                            <>
+                                                <input
+                                                    type="text"
+                                                    placeholder="9 to 18 digits"
+                                                    value={bank.accountNumber && bank.accountNumber !== 'Not Provided' ? bank.accountNumber : ''}
+                                                    onChange={(e) => handleBankChange('accountNumber', e.target.value.replace(/\D/g, '').slice(0, 18))}
+                                                    className={`w-full px-3 py-2 bg-white dark:bg-[#12151C] border ${errors.accountNumber ? 'border-red-500' : 'border-[#E2E6ED] dark:border-gray-800'} rounded-[6px] text-xs font-medium text-[#5B6472] dark:text-gray-300 outline-none focus:border-[#2C4FD6] focus:text-[#12151C] dark:focus:text-white transition-colors`}
+                                                />
+                                                {errors.accountNumber && <p className="text-red-500 text-[11px] mt-1">{errors.accountNumber}</p>}
+                                            </>
                                         ) : (
                                             <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
                                                 {bank.accountNumber && bank.accountNumber !== 'Not Provided'
@@ -1410,11 +1614,35 @@ export default function EmployeeProfile() {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Save & Next button for Statutory & Bank Info */}
+                            {isEditing && (
+                                <div className="flex justify-end pt-4 border-t border-[#E2E6ED] dark:border-gray-800">
+                                    <button
+                                        type="button"
+                                        onClick={handleSaveAndNext}
+                                        disabled={savingAndNext}
+                                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white text-xs sm:text-[13.5px] font-semibold rounded-[6px] transition-all cursor-pointer disabled:opacity-60"
+                                    >
+                                        {savingAndNext ? (
+                                            <>
+                                                <Loader2 size={15} className="animate-spin" />
+                                                <span>Saving...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span>Save & Next</span>
+                                                <ArrowRight size={15} />
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
 
                     {activeTab === 'documents' && (
-                        <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-6 shadow-sm border border-[#E2E6ED] dark:border-gray-800 animate-fade-in-up space-y-6">
+                        <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-6 border border-[#E2E6ED] dark:border-gray-800 animate-fade-in-up space-y-6">
                             <div className="flex justify-between items-center mb-[20px]">
                                 <h3 className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white flex items-center gap-2">
                                     <FileText size={16} className="text-[#2C4FD6]" /> Document Vault
@@ -1728,11 +1956,35 @@ export default function EmployeeProfile() {
                                     );
                                 })}
                             </div>
+
+                            {/* Save & Next button for Document Vault */}
+                            {isEditing && (
+                                <div className="flex justify-end pt-4 border-t border-[#E2E6ED] dark:border-gray-800">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSaveAndAdvance('personal')}
+                                        disabled={savingAndNext}
+                                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white text-xs sm:text-[13.5px] font-semibold rounded-[6px] transition-all cursor-pointer disabled:opacity-60"
+                                    >
+                                        {savingAndNext ? (
+                                            <>
+                                                <Loader2 size={15} className="animate-spin" />
+                                                <span>Saving...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span>Save & Next</span>
+                                                <ArrowRight size={15} />
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
 
                     {activeTab === 'personal' && (
-                        <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-6 shadow-sm border border-[#E2E6ED] dark:border-gray-800 animate-fade-in-up space-y-6">
+                        <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-6 border border-[#E2E6ED] dark:border-gray-800 animate-fade-in-up space-y-6">
                             <h3 className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white flex justify-between items-center mb-[20px]">
                                 <span className="flex items-center gap-2">
                                     <User size={16} className="text-[#2C4FD6]" /> Personal Information
@@ -2087,7 +2339,7 @@ export default function EmployeeProfile() {
                                         </div>
                                     ) : (
                                         <div className="mt-1">
-                                            <span className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider shadow-sm transition-all hover:scale-105 ${profile.status === 'Active'
+                                            <span className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all hover:scale-105 ${profile.status === 'Active'
                                                 ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 dark:text-emerald-400'
                                                 : 'bg-rose-500/10 text-rose-600 border border-rose-500/20 dark:text-rose-400'
                                                 }`}>
@@ -2156,7 +2408,7 @@ export default function EmployeeProfile() {
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => document.getElementById(`custom-file-input-personal-${cf.id}`)?.click()}
-                                                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white font-bold text-[10px] rounded-lg shadow-sm transition-all cursor-pointer"
+                                                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white font-bold text-[10px] rounded-lg transition-all cursor-pointer"
                                                                     >
                                                                         <Upload size={12} /> Upload
                                                                     </button>
@@ -2280,11 +2532,35 @@ export default function EmployeeProfile() {
                                     );
                                 })}
                             </div>
+
+                            {/* Save & Next button for Personal Details */}
+                            {isEditing && (
+                                <div className="flex justify-end pt-4 border-t border-[#E2E6ED] dark:border-gray-800">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSaveAndAdvance('shiftRoster')}
+                                        disabled={savingAndNext}
+                                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white text-xs sm:text-[13.5px] font-semibold rounded-[6px] transition-all cursor-pointer disabled:opacity-60"
+                                    >
+                                        {savingAndNext ? (
+                                            <>
+                                                <Loader2 size={15} className="animate-spin" />
+                                                <span>Saving...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span>Save & Next</span>
+                                                <ArrowRight size={15} />
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
 
                     {activeTab === 'shiftRoster' && (
-                        <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-6 shadow-sm border border-[#E2E6ED] dark:border-gray-800 animate-fade-in-up space-y-6">
+                        <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-6 border border-[#E2E6ED] dark:border-gray-800 animate-fade-in-up space-y-6">
                             <h3 className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white flex items-center gap-2 mb-[20px]">
                                 <Briefcase size={16} className="text-[#2C4FD6]" /> Shift & Roster
                             </h3>
@@ -2411,10 +2687,34 @@ export default function EmployeeProfile() {
                                     </div>
                                 )}
                             </div>
+
+                            {/* Save & Next button for Shift & Roster */}
+                            {isEditing && (
+                                <div className="flex justify-end pt-4 border-t border-[#E2E6ED] dark:border-gray-800">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSaveAndAdvance('salary')}
+                                        disabled={savingAndNext}
+                                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white text-xs sm:text-[13.5px] font-semibold rounded-[6px] transition-all cursor-pointer disabled:opacity-60"
+                                    >
+                                        {savingAndNext ? (
+                                            <>
+                                                <Loader2 size={15} className="animate-spin" />
+                                                <span>Saving...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span>Save & Next</span>
+                                                <ArrowRight size={15} />
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
                     {activeTab === 'salary' && (
-                        <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-6 shadow-sm border border-[#E2E6ED] dark:border-gray-800 animate-fade-in-up space-y-6">
+                        <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-6 border border-[#E2E6ED] dark:border-gray-800 animate-fade-in-up space-y-6">
                             <div className="flex items-center justify-between mb-[20px]">
                                 <h3 className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white flex items-center gap-2">
                                     <Coins size={16} className="text-[#2C4FD6]" /> Salary Overview
@@ -2686,10 +2986,34 @@ export default function EmployeeProfile() {
                                     Changes will be reflected after saving.
                                 </p>
                             )}
+
+                            {/* Save & Complete button for Salary Info */}
+                            {isEditing && (
+                                <div className="flex justify-end pt-4 border-t border-[#E2E6ED] dark:border-gray-800">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSaveAndAdvance(null)}
+                                        disabled={savingAndNext}
+                                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white text-xs sm:text-[13.5px] font-semibold rounded-[6px] transition-all cursor-pointer disabled:opacity-60"
+                                    >
+                                        {savingAndNext ? (
+                                            <>
+                                                <Loader2 size={15} className="animate-spin" />
+                                                <span>Saving...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span>Save & Complete</span>
+                                                <Save size={15} />
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
                     {activeTab === 'team' && (
-                        <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-6 shadow-sm border border-[#E2E6ED] dark:border-gray-800 animate-fade-in-up space-y-6">
+                        <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-6 border border-[#E2E6ED] dark:border-gray-800 animate-fade-in-up space-y-6">
                             {/* Team & Manager Details */}
                             <div>
                                 <h3 className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white flex items-center gap-2 mb-[20px]">
@@ -2745,7 +3069,7 @@ export default function EmployeeProfile() {
                         const completion = calculateProfileCompletion(employee);
                         const isComplete = completion.percentage === 100;
                         return (
-                            <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-6 shadow-sm border border-[#E2E6ED] dark:border-gray-800 animate-fade-in-up">
+                            <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-6 border border-[#E2E6ED] dark:border-gray-800 animate-fade-in-up">
                                 <div className="flex items-center justify-between text-xs font-bold mb-2">
                                     <span className="text-[13.5px] font-bold text-[#12151C] dark:text-white">
                                         Profile completion
@@ -2796,7 +3120,7 @@ export default function EmployeeProfile() {
                     })()}
 
                     {/* Quick Actions Card */}
-                    <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-6 shadow-sm border border-[#E2E6ED] dark:border-gray-800">
+                    <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-6 border border-[#E2E6ED] dark:border-gray-800">
                         <h3 className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white mb-[20px]">Quick Actions</h3>
                         <div className="space-y-3">
                             <button
@@ -2811,14 +3135,14 @@ export default function EmployeeProfile() {
 
                                     setShowPayslip(true);
                                 }}
-                                className="w-full flex items-center gap-2.5 px-4 py-2.5 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-[13px] font-medium text-[#12151C] dark:text-white hover:bg-[#F7F8FA] dark:hover:bg-gray-800 transition-all shadow-sm cursor-pointer"
+                                className="w-full flex items-center gap-2.5 px-4 py-2.5 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-[13px] font-medium text-[#12151C] dark:text-white hover:bg-[#F7F8FA] dark:hover:bg-gray-800 transition-all cursor-pointer"
                             >
                                 <FileText size={15} className="text-[#2C4FD6]" />
                                 <span>Generate Payslip</span>
                             </button>
                             <button
                                 onClick={() => setShowIDCard(true)}
-                                className="w-full flex items-center gap-2.5 px-4 py-2.5 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-[13px] font-medium text-[#12151C] dark:text-white hover:bg-[#F7F8FA] dark:hover:bg-gray-800 transition-all shadow-sm cursor-pointer"
+                                className="w-full flex items-center gap-2.5 px-4 py-2.5 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-[13px] font-medium text-[#12151C] dark:text-white hover:bg-[#F7F8FA] dark:hover:bg-gray-800 transition-all cursor-pointer"
                             >
                                 <CreditCard size={15} className="text-[#2C4FD6]" />
                                 <span>ID Card Preview</span>
@@ -2847,7 +3171,7 @@ export default function EmployeeProfile() {
 
                                 {/* Right: month + year fields */}
                                 <div className="flex items-center gap-3">
-                                    <div className="flex items-center border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden bg-white dark:bg-brand-800 shadow-sm">
+                                    <div className="flex items-center border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden bg-white dark:bg-brand-800">
                                         <div className="relative">
                                             <select
                                                 value={inputMonth}
@@ -2889,7 +3213,7 @@ export default function EmployeeProfile() {
                                     </div>
                                     <button
                                         onClick={applyPayslipMonth}
-                                        className="px-5 py-2 bg-brand-600 text-white text-sm font-bold rounded-xl hover:bg-brand-700 active:scale-95 transition-all shadow-sm"
+                                        className="px-5 py-2 bg-brand-600 text-white text-sm font-bold rounded-xl hover:bg-brand-700 active:scale-95 transition-all"
                                     >
                                         Apply
                                     </button>
@@ -2931,7 +3255,7 @@ export default function EmployeeProfile() {
                                 </div>
                             ) : (
 
-                                <div id="payslip-content" className="w-full max-w-3xl bg-white border border-gray-200 p-6 md:p-8 shadow-sm rounded-xl relative text-gray-900 text-sm">
+                                <div id="payslip-content" className="w-full max-w-3xl bg-white border border-gray-200 p-6 md:p-8 rounded-xl relative text-gray-900 text-sm">
                                     <div className="flex justify-between items-start border-b-2 border-brand-900 pb-4 mb-4">
                                         <div className="flex items-center gap-3">
                                             <div className="w-12 h-12 md:w-14 md:h-14 bg-brand-900 text-white flex items-center justify-center font-bold text-xl rounded-lg">OH</div>
@@ -3612,7 +3936,7 @@ export default function EmployeeProfile() {
                                                     href={previewDoc.url}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#2C4FD6] text-white text-sm font-semibold rounded-lg hover:bg-[#203FB4] shadow-sm transition-all"
+                                                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#2C4FD6] text-white text-sm font-semibold rounded-lg hover:bg-[#203FB4] transition-all"
                                                 >
                                                     <ExternalLink size={16} /> Open in New Tab
                                                 </a>

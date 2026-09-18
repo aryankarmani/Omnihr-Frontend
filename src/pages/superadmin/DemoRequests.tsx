@@ -210,7 +210,7 @@ The OmniHR Team`
         </div>
         <button
           onClick={fetchRequests}
-          className="inline-flex items-center gap-2 px-3.5 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-xs cursor-pointer"
+          className="inline-flex items-center gap-2 px-3.5 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
         >
           <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
           Refresh
@@ -219,22 +219,22 @@ The OmniHR Team`
 
       {/* Simplified Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200/80 dark:border-gray-700 shadow-xs">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200/80 dark:border-gray-700">
           <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Total Requests</span>
           <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{counts.total}</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200/80 dark:border-gray-700 shadow-xs">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200/80 dark:border-gray-700">
           <span className="text-xs font-medium text-amber-600 dark:text-amber-400">Pending (Awaiting Email)</span>
           <p className="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">{counts.pending}</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200/80 dark:border-gray-700 shadow-xs">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200/80 dark:border-gray-700">
           <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">Email Sent</span>
           <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{counts.emailed}</p>
         </div>
       </div>
 
       {/* Search & Simple Filter */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200/80 dark:border-gray-700 shadow-xs flex flex-col sm:flex-row gap-3">
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200/80 dark:border-gray-700 flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search
             size={18}
@@ -270,7 +270,7 @@ The OmniHR Team`
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200/80 dark:border-gray-700 shadow-xs overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200/80 dark:border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-[#F8FAFC] dark:bg-gray-900/60 border-b border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -348,7 +348,7 @@ The OmniHR Team`
                         {/* Send Email Button */}
                         <button
                           onClick={() => handleOpenEmailModal(req)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#2C4FD6] hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-all shadow-xs cursor-pointer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#2C4FD6] hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-all cursor-pointer"
                         >
                           <Send size={12} />
                           Send Email
@@ -613,7 +613,7 @@ The OmniHR Team`
                     setIsDetailsOpen(false);
                     handleOpenEmailModal(selectedRequest);
                   }}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-[#2C4FD6] hover:bg-blue-700 rounded-lg transition-colors shadow-xs cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-[#2C4FD6] hover:bg-blue-700 rounded-lg transition-colors cursor-pointer"
                 >
                   <Send size={12} />
                   Send Email

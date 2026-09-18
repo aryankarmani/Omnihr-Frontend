@@ -27,8 +27,25 @@ export default function AdminDashboard({
     const [approvalsList, setApprovalsList] = useState<any[]>(pendingApprovals);
     const [regList, setRegList] = useState<any[]>(pendingRegularizations);
 
+    // Track items processed during this session so they can remain visible with Approved/Rejected status if total <= 5
+    const [processedLeaves, setProcessedLeaves] = useState<any[]>([]);
+    const [processedRegs, setProcessedRegs] = useState<any[]>([]);
+
+    // Approve Modal State
+    const [approvingItem, setApprovingItem] = useState<{
+        type: 'LEAVE' | 'REGULARIZATION';
+        id: any;
+        name: string;
+        details?: string;
+    } | null>(null);
+    const [submittingApprove, setSubmittingApprove] = useState(false);
+
     // Rejection Modal State
-    const [rejectingItem, setRejectingItem] = useState<{ type: 'LEAVE' | 'REGULARIZATION'; id: any } | null>(null);
+    const [rejectingItem, setRejectingItem] = useState<{
+        type: 'LEAVE' | 'REGULARIZATION';
+        id: any;
+        name: string;
+    } | null>(null);
     const [rejectComment, setRejectComment] = useState('');
     const [submittingReject, setSubmittingReject] = useState(false);
 
@@ -40,38 +57,33 @@ export default function AdminDashboard({
         setRegList(pendingRegularizations || []);
     }, [pendingRegularizations]);
 
-    const handleApproveLeave = async (e: React.MouseEvent, id: number) => {
-        e.stopPropagation();
+    const handleApproveConfirm = async () => {
+        if (!approvingItem) return;
+        setSubmittingApprove(true);
         try {
-            await api.put(`/leave/${id}/status`, { status: 'APPROVED' });
-            toast.success('Leave request approved');
-            setApprovalsList(prev => prev.filter(item => item.id !== id));
+            if (approvingItem.type === 'LEAVE') {
+                await api.put(`/leave/${approvingItem.id}/status`, { status: 'APPROVED' });
+                toast.success('Leave request approved');
+                const target = approvalsList.find(a => a.id === approvingItem.id);
+                setApprovalsList(prev => prev.filter(item => item.id !== approvingItem.id));
+                if (target) {
+                    setProcessedLeaves(prev => [{ ...target, status: 'APPROVED', processedAt: new Date() }, ...prev]);
+                }
+            } else {
+                await api.put(`/attendance/regularize/${approvingItem.id}/approve`);
+                toast.success('Regularization approved');
+                const target = regList.find(r => r.id === approvingItem.id);
+                setRegList(prev => prev.filter(item => item.id !== approvingItem.id));
+                if (target) {
+                    setProcessedRegs(prev => [{ ...target, status: 'APPROVED', processedAt: new Date() }, ...prev]);
+                }
+            }
+            setApprovingItem(null);
         } catch (err: any) {
-            toast.error(err.response?.data?.message || 'Failed to approve leave');
+            toast.error(err.response?.data?.message || 'Failed to approve request');
+        } finally {
+            setSubmittingApprove(false);
         }
-    };
-
-    const handleRejectLeaveClick = (e: React.MouseEvent, id: number) => {
-        e.stopPropagation();
-        setRejectingItem({ type: 'LEAVE', id });
-        setRejectComment('');
-    };
-
-    const handleApproveReg = async (e: React.MouseEvent, id: any) => {
-        e.stopPropagation();
-        try {
-            await api.put(`/attendance/regularize/${id}/approve`);
-            toast.success('Regularization approved');
-            setRegList(prev => prev.filter(item => item.id !== id));
-        } catch (err: any) {
-            toast.error(err.response?.data?.message || 'Failed to approve regularization');
-        }
-    };
-
-    const handleRejectRegClick = (e: React.MouseEvent, id: any) => {
-        e.stopPropagation();
-        setRejectingItem({ type: 'REGULARIZATION', id });
-        setRejectComment('');
     };
 
     const handleRejectSubmit = async (e: React.FormEvent) => {
@@ -86,14 +98,22 @@ export default function AdminDashboard({
                     rejectionReason: rejectComment.trim()
                 });
                 toast.success('Leave request rejected');
+                const target = approvalsList.find(a => a.id === rejectingItem.id);
                 setApprovalsList(prev => prev.filter(item => item.id !== rejectingItem.id));
+                if (target) {
+                    setProcessedLeaves(prev => [{ ...target, status: 'REJECTED', processedAt: new Date() }, ...prev]);
+                }
             } else {
                 await api.put(`/attendance/regularize/${rejectingItem.id}/reject`, {
                     reason: rejectComment.trim(),
                     approverComment: rejectComment.trim()
                 });
                 toast.success('Regularization rejected');
+                const target = regList.find(r => r.id === rejectingItem.id);
                 setRegList(prev => prev.filter(item => item.id !== rejectingItem.id));
+                if (target) {
+                    setProcessedRegs(prev => [{ ...target, status: 'REJECTED', processedAt: new Date() }, ...prev]);
+                }
             }
             setRejectingItem(null);
             setRejectComment('');
@@ -114,6 +134,76 @@ export default function AdminDashboard({
         }
         return (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase();
     };
+
+    const sortByNewest = (a: any, b: any) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        if (timeA !== timeB) return timeB - timeA;
+        return Number(b.id) - Number(a.id);
+    };
+
+    const mapLeave = (leave: any, status: 'PENDING' | 'APPROVED' | 'REJECTED' = 'PENDING') => ({
+        uniqueKey: `leave-${leave.id}`,
+        id: leave.id,
+        category: 'LEAVE' as const,
+        userName: leave.userName || 'Employee',
+        tag: 'Leave',
+        subtext: `${leave.type || 'Leave'} · ${leave.duration || 1} days`,
+        avatar: leave.avatar,
+        createdAt: leave.createdAt || leave.startDate || 0,
+        status: leave.status || status,
+        processedAt: leave.processedAt || null,
+        onClick: () => navigate('/leave', { state: { activeTab: 'APPROVALS' } })
+    });
+
+    const mapReg = (reg: any, status: 'PENDING' | 'APPROVED' | 'REJECTED' = 'PENDING') => {
+        const name = reg.user?.name || `Employee #${reg.userId || reg.id}`;
+        return {
+            uniqueKey: `reg-${reg.id}`,
+            id: reg.id,
+            category: 'REGULARIZATION' as const,
+            userName: name,
+            tag: 'Regularize',
+            subtext: `${reg.reason || 'Regularization'} · ${reg.date || ''}`,
+            avatar: reg.user?.employeeProfile?.avatar || null,
+            createdAt: reg.createdAt || reg.date || 0,
+            status: reg.status || status,
+            processedAt: reg.processedAt || null,
+            onClick: () => navigate('/regularizations')
+        };
+    };
+
+    // Calculate display list for active tab:
+    // 1. Pending items are always placed on top (sorted newest first).
+    // 2. If pending count >= 5, show top 5 pending items.
+    // 3. If pending count < 5, fill remaining slots up to 5 with recently processed items (showing their Approved/Rejected status).
+    const getDisplayItems = () => {
+        // Calculate Top 5 Leaves (pending prioritized, then recently processed)
+        const pLeaves = approvalsList.map(l => mapLeave(l, 'PENDING')).sort(sortByNewest);
+        const prLeaves = processedLeaves.map(l => mapLeave(l)).sort((a, b) => (b.processedAt?.getTime() || 0) - (a.processedAt?.getTime() || 0));
+        const top5Leaves = pLeaves.length >= 5
+            ? pLeaves.slice(0, 5)
+            : [...pLeaves, ...prLeaves.slice(0, 5 - pLeaves.length)];
+
+        // Calculate Top 5 Regularizations (pending prioritized, then recently processed)
+        const pRegs = regList.map(r => mapReg(r, 'PENDING')).sort(sortByNewest);
+        const prRegs = processedRegs.map(r => mapReg(r)).sort((a, b) => (b.processedAt?.getTime() || 0) - (a.processedAt?.getTime() || 0));
+        const top5Regs = pRegs.length >= 5
+            ? pRegs.slice(0, 5)
+            : [...pRegs, ...prRegs.slice(0, 5 - pRegs.length)];
+
+        if (filterTab === 'LEAVE') {
+            return top5Leaves;
+        }
+        if (filterTab === 'REGULARIZATION') {
+            return top5Regs;
+        }
+
+        // 'ALL' tab: Shows Top 5 Leaves and Top 5 Regularizations combined, newest first
+        return [...top5Leaves, ...top5Regs].sort(sortByNewest);
+    };
+
+    const displayItems = getDisplayItems();
 
     return (
         <div className="text-[#12151C] dark:text-white">
@@ -182,102 +272,94 @@ export default function AdminDashboard({
                     </div>
 
                     <div className="space-y-2 overflow-y-auto pr-1 custom-scrollbar flex-1 min-h-0">
-                        {((filterTab === 'ALL' && totalPending === 0) ||
-                          (filterTab === 'LEAVE' && approvalsList.length === 0) ||
-                          (filterTab === 'REGULARIZATION' && regList.length === 0)) ? (
+                        {displayItems.length === 0 ? (
                             <div className="h-full flex items-center justify-center">
                                 <p className="text-xs text-[#9AA3B1] text-center">No pending requests.</p>
                             </div>
                         ) : (
-                            <>
-                                {(filterTab === 'ALL' || filterTab === 'LEAVE') && approvalsList.map((approval) => (
-                                    <div 
-                                        key={`leave-${approval.id}`} 
-                                        onClick={() => navigate('/leave', { state: { activeTab: 'APPROVALS' } })}
-                                        className="flex items-center justify-between p-1.5 rounded-[6px] hover:bg-[#F7F8FA] dark:hover:bg-gray-800 transition-all cursor-pointer border border-transparent hover:border-[#E2E6ED]"
-                                    >
-                                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                            <div className="w-8 h-8 rounded-full bg-[#EEF1F5] dark:bg-gray-700 flex items-center justify-center text-[#5B6472] dark:text-white font-mono-numbers font-bold text-xs shrink-0">
-                                                {getInitials(approval.userName)}
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <div className="flex items-center gap-1.5">
-                                                    <h4 className="text-[13px] font-semibold text-[#12151C] dark:text-white truncate">{approval.userName}</h4>
-                                                    <span className="text-[9px] font-semibold px-1 py-0.2 bg-[#E8ECFC] text-[#2C4FD6] rounded-[3px]">Leave</span>
-                                                </div>
-                                                <p className="text-[11.5px] text-[#5B6472] dark:text-gray-400 truncate">
-                                                    {approval.type} · <span className="font-mono-numbers">{approval.duration} days</span>
-                                                </p>
-                                            </div>
+                            displayItems.map((item) => (
+                                <div 
+                                    key={item.uniqueKey} 
+                                    onClick={item.onClick}
+                                    className="flex items-center justify-between p-1.5 rounded-[6px] hover:bg-[#F7F8FA] dark:hover:bg-gray-800 transition-all cursor-pointer border border-transparent hover:border-[#E2E6ED]"
+                                >
+                                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                        <div className={`w-8 h-8 rounded-full ${
+                                            item.category === 'LEAVE'
+                                                ? 'bg-[#EEF1F5] dark:bg-gray-700 text-[#5B6472] dark:text-white'
+                                                : 'bg-[#FFF7ED] dark:bg-orange-950/40 text-[#EA580C]'
+                                        } flex items-center justify-center font-mono-numbers font-bold text-xs shrink-0`}>
+                                            {getInitials(item.userName)}
                                         </div>
-                                        <div className="flex items-center gap-1.5 ml-2 shrink-0">
-                                            <button
-                                                onClick={(e) => handleApproveLeave(e, approval.id)}
-                                                className="w-6 h-6 rounded-[6px] border border-[#E2E6ED] text-[#1F8A5A] hover:bg-[#E4F5EC] flex items-center justify-center transition-colors"
-                                                title="Approve Leave"
-                                            >
-                                                <Check size={13} />
-                                            </button>
-                                            <button
-                                                onClick={(e) => handleRejectLeaveClick(e, approval.id)}
-                                                className="w-6 h-6 rounded-[6px] border border-[#E2E6ED] text-[#C13A3A] hover:bg-[#FBE7E7] flex items-center justify-center transition-colors"
-                                                title="Reject Leave"
-                                            >
-                                                <X size={13} />
-                                            </button>
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex items-center gap-1.5">
+                                                <h4 className="text-[13px] font-semibold text-[#12151C] dark:text-white truncate">{item.userName}</h4>
+                                                <span className={`text-[9px] font-semibold px-1 py-0.2 rounded-[3px] ${
+                                                    item.category === 'LEAVE'
+                                                        ? 'bg-[#E8ECFC] text-[#2C4FD6]'
+                                                        : 'bg-[#FFF7ED] text-[#EA580C]'
+                                                }`}>
+                                                    {item.tag}
+                                                </span>
+                                            </div>
+                                            <p className="text-[11.5px] text-[#5B6472] dark:text-gray-400 truncate">
+                                                {item.subtext}
+                                            </p>
                                         </div>
                                     </div>
-                                ))}
-
-                                {(filterTab === 'ALL' || filterTab === 'REGULARIZATION') && regList.map((request) => {
-                                    const name = request.user?.name || `Employee #${request.userId}`;
-                                    return (
-                                        <div 
-                                            key={`reg-${request.id}`} 
-                                            onClick={() => navigate('/regularizations')}
-                                            className="flex items-center justify-between p-1.5 rounded-[6px] hover:bg-[#F7F8FA] dark:hover:bg-gray-800 transition-all cursor-pointer border border-transparent hover:border-[#E2E6ED]"
-                                        >
-                                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                                <div className="w-8 h-8 rounded-full bg-[#FFF7ED] dark:bg-orange-950/40 flex items-center justify-center text-[#EA580C] font-mono-numbers font-bold text-xs shrink-0">
-                                                    {getInitials(name)}
-                                                </div>
-                                                <div className="min-w-0 flex-1">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <h4 className="text-[13px] font-semibold text-[#12151C] dark:text-white truncate">{name}</h4>
-                                                        <span className="text-[9px] font-semibold px-1 py-0.2 bg-[#FFF7ED] text-[#EA580C] rounded-[3px]">Regularize</span>
-                                                    </div>
-                                                    <p className="text-[11.5px] text-[#5B6472] dark:text-gray-400 truncate">
-                                                        {request.reason || 'Regularization'} · <span className="font-mono-numbers">{request.date}</span>
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-1.5 ml-2 shrink-0">
+                                    <div className="flex items-center gap-1.5 ml-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+                                        {item.status === 'APPROVED' ? (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[11px] font-semibold bg-[#E4F5EC] text-[#1F8A5A] dark:bg-green-950/50 dark:text-green-400">
+                                                <Check size={11} strokeWidth={2.5} /> Approved
+                                            </span>
+                                        ) : item.status === 'REJECTED' ? (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[11px] font-semibold bg-[#FBE7E7] text-[#DE350B] dark:bg-red-950/50 dark:text-red-400">
+                                                <X size={11} strokeWidth={2.5} /> Rejected
+                                            </span>
+                                        ) : (
+                                            <>
                                                 <button
-                                                    onClick={(e) => handleApproveReg(e, request.id)}
-                                                    className="w-6 h-6 rounded-[6px] border border-[#E2E6ED] text-[#1F8A5A] hover:bg-[#E4F5EC] flex items-center justify-center transition-colors"
-                                                    title="Approve Regularization"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setApprovingItem({
+                                                            type: item.category,
+                                                            id: item.id,
+                                                            name: item.userName,
+                                                            details: item.subtext
+                                                        });
+                                                    }}
+                                                    className="w-6 h-6 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 text-[#1F8A5A] hover:bg-[#E4F5EC] dark:hover:bg-green-950/40 flex items-center justify-center transition-colors cursor-pointer"
+                                                    title={`Approve ${item.category === 'LEAVE' ? 'Leave' : 'Regularization'}`}
                                                 >
                                                     <Check size={13} />
                                                 </button>
                                                 <button
-                                                    onClick={(e) => handleRejectRegClick(e, request.id)}
-                                                    className="w-6 h-6 rounded-[6px] border border-[#E2E6ED] text-[#C13A3A] hover:bg-[#FBE7E7] flex items-center justify-center transition-colors"
-                                                    title="Reject Regularization"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setRejectingItem({
+                                                            type: item.category,
+                                                            id: item.id,
+                                                            name: item.userName
+                                                        });
+                                                        setRejectComment('');
+                                                    }}
+                                                    className="w-6 h-6 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 text-[#C13A3A] hover:bg-[#FBE7E7] dark:hover:bg-red-950/40 flex items-center justify-center transition-colors cursor-pointer"
+                                                    title={`Reject ${item.category === 'LEAVE' ? 'Leave' : 'Regularization'}`}
                                                 >
                                                     <X size={13} />
                                                 </button>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            ))
                         )}
                     </div>
                 </div>
             </div>
 
             {/* Bottom Section: Employee Overview Table */}
-            <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden">
                 <div className="p-5 flex justify-between items-center border-b border-[#E2E6ED] dark:border-gray-800">
                     <span className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white block">Employee Overview</span>
                     <button
@@ -347,6 +429,51 @@ export default function AdminDashboard({
                 </div>
             </div>
 
+            {/* Approval Confirmation Modal */}
+            {approvingItem && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+                    <div 
+                        className="absolute inset-0 bg-slate-900/20 dark:bg-black/60 backdrop-blur-md" 
+                        onClick={() => {
+                            if (!submittingApprove) {
+                                setApprovingItem(null);
+                            }
+                        }} 
+                    />
+                    <div className="relative bg-white dark:bg-[#12151C] w-full max-w-md rounded-[11px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden p-6 animate-scale-in shadow-xl">
+                        <h3 className="text-base font-bold text-[#12151C] dark:text-white mb-1">Approve Request</h3>
+                        <p className="text-xs text-[#5B6472] dark:text-gray-400 mb-4">
+                            Are you sure you want to approve this {approvingItem.type === 'LEAVE' ? 'leave' : 'regularization'} request for <strong className="text-[#12151C] dark:text-white font-semibold">{approvingItem.name}</strong>?
+                        </p>
+                        {approvingItem.details && (
+                            <div className="mb-5 p-3 rounded-[7px] bg-[#F7F8FA] dark:bg-gray-800/60 border border-[#E2E6ED] dark:border-gray-700 text-xs text-[#5B6472] dark:text-gray-300">
+                                <span className="font-semibold text-[#12151C] dark:text-white block mb-0.5">Details</span>
+                                <span>{approvingItem.details}</span>
+                            </div>
+                        )}
+                        <div className="flex gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setApprovingItem(null)}
+                                disabled={submittingApprove}
+                                className="flex-1 py-2.5 px-4 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 text-[#5B6472] dark:text-gray-300 font-semibold rounded-[8px] hover:bg-gray-50 dark:hover:bg-white/5 transition-colors text-xs cursor-pointer text-center"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleApproveConfirm}
+                                disabled={submittingApprove}
+                                className="flex-1 py-2.5 px-4 bg-[#1F8A5A] text-white font-semibold rounded-[8px] hover:bg-[#186f48] transition-colors flex items-center justify-center gap-2 text-xs cursor-pointer disabled:opacity-60"
+                            >
+                                {submittingApprove ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Approve'}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
             {/* Rejection Modal */}
             {rejectingItem && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
@@ -362,7 +489,7 @@ export default function AdminDashboard({
                     <div className="relative bg-white dark:bg-[#12151C] w-full max-w-md rounded-[11px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden p-6 animate-scale-in shadow-xl">
                         <h3 className="text-base font-bold text-[#12151C] dark:text-white mb-1">Reject Request</h3>
                         <p className="text-xs text-[#5B6472] dark:text-gray-400 mb-4">
-                            Please provide a reason for rejecting this {rejectingItem.type === 'LEAVE' ? 'leave' : 'regularization'} request.
+                            Please provide a reason for rejecting this {rejectingItem.type === 'LEAVE' ? 'leave' : 'regularization'} request for <strong className="text-[#12151C] dark:text-white font-semibold">{rejectingItem.name}</strong>.
                         </p>
                         <form onSubmit={handleRejectSubmit}>
                             <textarea

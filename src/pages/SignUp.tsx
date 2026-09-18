@@ -200,10 +200,14 @@ export default function SignUp() {
             <div className="bg-white dark:bg-[#161B26] rounded-2xl md:rounded-[32px] border border-[#E2E6ED] dark:border-gray-800 w-full max-w-4xl max-h-[92vh] flex flex-col md:flex-row overflow-hidden relative z-10 animate-fade-in-up">
                 <div className="hidden md:flex md:w-1/2 bg-[#F4F6FB] dark:bg-[#1A1F2C] relative overflow-hidden flex-col justify-between p-8 lg:p-10 border-r border-[#E2E6ED] dark:border-gray-800">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-[#2C4FD6] rounded-[9px] flex items-center justify-center text-white font-bold text-xl shrink-0">
-                            O
-                        </div>
-                        <span className="text-2xl font-bold text-[#12151C] dark:text-white tracking-tight">OmniHR</span>
+                        <img
+                            src="/logo.png"
+                            alt="OmniHR Logo"
+                            className="w-10 h-10 object-contain rounded-[6px] shrink-0"
+                        />
+                        <span className="text-2xl font-extrabold text-[#12151C] dark:text-white tracking-tight">
+                            Omni<span className="text-[#2C4FD6]">HR</span>
+                        </span>
                     </div>
 
                     <div className="relative z-10 my-4">
@@ -225,10 +229,14 @@ export default function SignUp() {
                     <div className="w-full max-w-sm">
                         <div className="mb-4 text-center md:text-left md:hidden">
                             <div className="flex items-center justify-center md:justify-start gap-2.5 mb-2">
-                                <div className="w-8 h-8 bg-[#2C4FD6] rounded-[7px] flex items-center justify-center text-white font-bold text-base">
-                                    O
-                                </div>
-                                <span className="text-xl font-bold text-[#12151C] dark:text-white">OmniHR</span>
+                                <img
+                                    src="/logo.png"
+                                    alt="OmniHR Logo"
+                                    className="w-8 h-8 object-contain rounded-[6px] shrink-0"
+                                />
+                                <span className="text-xl font-extrabold text-[#12151C] dark:text-white">
+                                    Omni<span className="text-[#2C4FD6]">HR</span>
+                                </span>
                             </div>
                         </div>
 

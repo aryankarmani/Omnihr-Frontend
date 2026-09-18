@@ -5,6 +5,7 @@ import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import AdminDashboard from '../components/dashboard/AdminDashboard';
 import EmployeeDashboard from '../components/dashboard/EmployeeDashboard';
+import { DashboardSkeleton } from '../components/common/SkeletonLoaders';
 
 export default function DashboardHome() {
     const navigate = useNavigate();
@@ -58,11 +59,7 @@ export default function DashboardHome() {
     }, [user]);
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-[400px]">
-                <Loader2 className="animate-spin text-brand-500" size={48} />
-            </div>
-        );
+        return <DashboardSkeleton />;
     }
 
     // Role-based rendering

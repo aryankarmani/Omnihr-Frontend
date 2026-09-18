@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
     LayoutDashboard, Users, UsersRound, LogOut,
-    AlertCircle, ChevronDown,
+    AlertCircle, ChevronDown, ChevronLeft, ChevronRight,
     Fingerprint, UserCog, FileCheck, BarChart3, Settings2,
     CheckSquare, UserCircle, CalendarRange, FileText
 } from 'lucide-react';
@@ -49,7 +49,7 @@ interface SidebarProps {
     onToggleCollapse: () => void;
 }
 
-export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse: _onToggleCollapse }: SidebarProps) {
+export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: SidebarProps) {
     const { user } = useAuth();
     const { logout } = useAuth();
     const navigate = useNavigate();
@@ -183,11 +183,27 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                 ${isOpen ? 'translate-x-0' : '-translate-x-full'} 
                 md:translate-x-0
             `}>
-                <div className={`p-5 flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
-                    <div className="w-8 h-8 bg-[#2C4FD6] rounded-[6px] flex items-center justify-center text-white font-bold text-base shadow-sm shrink-0">
-                        O
+                <div className={`p-4 py-5 flex items-center ${isCollapsed ? 'flex-col gap-3 justify-center' : 'justify-between'}`}>
+                    <div className="flex items-center gap-3 min-w-0">
+                        <img
+                            src="/logo.png"
+                            alt="OmniHR Logo"
+                            className="w-8 h-8 object-contain rounded-[6px] shrink-0"
+                        />
+                        {!isCollapsed && (
+                            <span className="word text-[17px] font-extrabold tracking-tight text-[#12151C] dark:text-white truncate">
+                                Omni<span className="text-[#2C4FD6]">HR</span>
+                            </span>
+                        )}
                     </div>
-                    {!isCollapsed && <span className="word text-[16px] font-semibold tracking-[-0.01em] text-[#12151C] dark:text-white">OmniHR</span>}
+                    <button
+                        type="button"
+                        onClick={onToggleCollapse}
+                        title={isCollapsed ? "Expand sidebar" : "Minimize sidebar"}
+                        className="w-7 h-7 rounded-[6px] flex items-center justify-center text-[#5B6472] dark:text-gray-400 hover:text-[#2C4FD6] dark:hover:text-white hover:bg-white/80 dark:hover:bg-white/10 transition-all cursor-pointer border border-transparent hover:border-[#E2E6ED] dark:hover:border-gray-700"
+                    >
+                        {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+                    </button>
                 </div>
 
                 <nav className="flex-1 px-3 space-y-1 mt-2 overflow-y-auto overflow-x-hidden custom-scrollbar">

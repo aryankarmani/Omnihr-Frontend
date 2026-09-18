@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { createPortal } from 'react-dom';
+import { TableSkeleton } from '../components/common/SkeletonLoaders';
 // import { getTeams } from '../utils/teamApi';
 
 export const formatTime12h = (timeStr?: string) => {
@@ -465,12 +466,7 @@ export default function Leave() {
     }, [currentMonth, selectedDate, getDateStatus]);
 
     if (loading && leaveBalances.length === 0) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh]">
-                <Loader2 size={48} className="text-[#2C4FD6] animate-spin mb-4" />
-                <p className="text-[#5B6472] font-medium text-sm">Loading Leave Data...</p>
-            </div>
-        );
+        return <TableSkeleton rows={6} />;
     }
 
     return (
@@ -546,16 +542,22 @@ export default function Leave() {
                 )}
             </div>
 
-            {/* Balances Cards Strip — always mounted, hidden when not on MY_LEAVE */}
-            <div className={activeTab === 'MY_LEAVE' ? 'tab-panel-active grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-6' : 'tab-panel-hidden'}>
-                {leaveBalances.map((bal) => {
+            {/* Balances Cards Strip — connected strip matching Admin Dashboard (no middle gap) */}
+            <div className={activeTab === 'MY_LEAVE' ? 'tab-panel-active bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 divide-y sm:divide-y-0 divide-[#E2E6ED] dark:divide-gray-800' : 'tab-panel-hidden'}>
+                {leaveBalances.map((bal, index) => {
                     const percent = Math.min(100, Math.round((bal.balance / (bal.total || 1)) * 100));
 
                     return (
-                        <div key={bal.code} onClick={() => { setLeaveType(bal.code); setShowApplyModal(true); }} className="bg-white dark:bg-[#12151C] p-5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 h-[130px] flex flex-col justify-between group cursor-pointer hover:border-[#2C4FD6]/40 transition-all">
+                        <div 
+                            key={bal.code} 
+                            onClick={() => { setLeaveType(bal.code); setShowApplyModal(true); }} 
+                            className={`p-5 h-[130px] flex flex-col justify-between group cursor-pointer hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all ${
+                                index < leaveBalances.length - 1 ? 'border-b sm:border-b-0 sm:border-r border-[#E2E6ED] dark:border-gray-800' : ''
+                            }`}
+                        >
                             <div className="flex justify-between items-start">
                                 <span className="bal-label text-[12.5px] font-semibold text-[#5B6472] dark:text-gray-400">{bal.name}</span>
-                                <div className="w-7 h-7 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 flex items-center justify-center text-[#9AA3B1]">
+                                <div className="w-7 h-7 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 flex items-center justify-center text-[#9AA3B1] transition-colors group-hover:text-[#2C4FD6]">
                                     <CalendarIcon size={15} />
                                 </div>
                             </div>
@@ -706,16 +708,16 @@ export default function Leave() {
                                     <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 w-1/6 text-left">
                                         EMPLOYEE
                                     </th>
-                                    <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 w-1/6 text-left">
+                                    <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 w-1/6 text-left translate-x-[30px]">
                                         TYPE
                                     </th>
                                     <th className="py-[9px] px-[50px] border-b border-[#E2E6ED] dark:border-gray-800 w-1/6 text-left">
                                         DATES
                                     </th>
-                                    <th className="py-[9px] px-[12px] border-b border-[#E2E6ED] dark:border-gray-800 w-1/6 text-left">
+                                    <th className="py-[9px] px-[12px] border-b border-[#E2E6ED] dark:border-gray-800 w-1/6  translate-x-[20px]">
                                         REASON
                                     </th>
-                                    <th className="py-[9px] px-[30px] border-b border-[#E2E6ED] dark:border-gray-800 w-1/6 text-left">
+                                    <th className="py-[9px] px-[30px] border-b border-[#E2E6ED] dark:border-gray-800 w-1/6 text-left translate-x-[15px]">
                                         STATUS
                                     </th>
                                     <th className="py-[9px] px-[100px] border-b border-[#E2E6ED] dark:border-gray-800 w-1/6 text-right">
@@ -745,7 +747,7 @@ export default function Leave() {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="py-[13px] px-[22px]">
+                                            <td className="py-[13px] px-[22px] translate-x-[30px]">
                                                 <span className="px-2.5 py-1 rounded-[3px] text-[11px] font-bold bg-[#F1F3F7] dark:bg-gray-800 text-[#5B6472] dark:text-gray-300">
                                                     {l.leaveType?.code || 'LV'}
                                                 </span>
@@ -755,12 +757,12 @@ export default function Leave() {
                                             </td>
                                             <td
                                                 onClick={() => setSelectedLeaveForReason(l)}
-                                                className="py-[13px] px-[22px] text-xs text-[#5B6472] dark:text-gray-300 max-w-xs truncate italic cursor-pointer hover:text-[#2C4FD6] dark:hover:text-blue-400 transition-all"
+                                                className="py-[13px] px-[22px] text-xs text-[#5B6472] dark:text-gray-300 max-w-xs truncate italic cursor-pointer hover:text-[#2C4FD6] dark:hover:text-blue-400 transition-all translate-x-[10px]"
                                                 title="Click to view full reason"
                                             >
                                                 "{l.reason}"
                                             </td>
-                                            <td className="py-[13px] px-[22px]">
+                                            <td className="py-[13px] px-[22px] translate-x-[15px]">
                                                 <span className={`pill inline-block px-[10px] py-[3px] rounded-[3px] text-[11.5px] font-semibold tracking-wide ${l.status === 'APPROVED'
                                                     ? 'bg-[#E4F5EC] text-[#1F8A5A]'
                                                     : l.status === 'REJECTED'
@@ -1252,7 +1254,7 @@ export default function Leave() {
                                 <button
                                     type="button"
                                     onClick={() => setSelectedLeaveForReason(null)}
-                                    className="w-full py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold rounded-[6px] transition-all shadow-sm text-xs cursor-pointer"
+                                    className="w-full py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold rounded-[6px] transition-all text-xs cursor-pointer"
                                 >
                                     Close
                                 </button>
@@ -1287,7 +1289,7 @@ export default function Leave() {
                                 <button
                                     type="submit"
                                     disabled={submittingLeaveReject}
-                                    className="flex-1 py-2.5 px-4 bg-[#DE350B] text-white font-semibold rounded-[6px] hover:bg-[#b02a08] transition-colors shadow-sm flex items-center justify-center gap-2 text-xs cursor-pointer"
+                                    className="flex-1 py-2.5 px-4 bg-[#DE350B] text-white font-semibold rounded-[6px] hover:bg-[#b02a08] transition-colors flex items-center justify-center gap-2 text-xs cursor-pointer"
                                 >
                                     {submittingLeaveReject ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Reject'}
                                 </button>

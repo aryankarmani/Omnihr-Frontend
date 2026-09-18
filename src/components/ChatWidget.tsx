@@ -84,7 +84,7 @@ export default function ChatWidget() {
                     <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
                         {messages.map((msg) => (
                             <div key={msg.id} className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
-                                <div className={`max-w-[85%] p-3 rounded-xl text-sm whitespace-pre-wrap shadow-sm ${msg.sender === 'user'
+                                <div className={`max-w-[85%] p-3 rounded-xl text-sm whitespace-pre-wrap ${msg.sender === 'user'
                                     ? 'bg-brand-600 text-white rounded-br-none'
                                     : 'bg-white border border-gray-200 text-gray-700 rounded-bl-none'
                                     }`}>
@@ -108,7 +108,7 @@ export default function ChatWidget() {
                         ))}
                         {loading && (
                             <div className="flex justify-start">
-                                <div className="bg-white border border-gray-200 p-3 rounded-xl rounded-bl-none shadow-sm">
+                                <div className="bg-white border border-gray-200 p-3 rounded-xl rounded-bl-none">
                                     <div className="flex gap-1">
                                         <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                                         <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-75"></div>
@@ -131,7 +131,7 @@ export default function ChatWidget() {
                             <button
                                 key={action.label}
                                 onClick={() => handleSend(action.query)}
-                                className="text-xs bg-white border border-brand-200 text-brand-700 px-3 py-1.5 rounded-full hover:bg-brand-50 whitespace-nowrap transition-colors shadow-sm"
+                                className="text-xs bg-white border border-brand-200 text-brand-700 px-3 py-1.5 rounded-full hover:bg-brand-50 whitespace-nowrap transition-colors"
                             >
                                 {action.label}
                             </button>

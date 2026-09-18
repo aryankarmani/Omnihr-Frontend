@@ -42,14 +42,22 @@ export default function SuperAdminLogin() {
       <div className="w-full max-w-md bg-white dark:bg-[#12151C] rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl overflow-hidden animate-fade-in">
         {/* Header Branding */}
         <div className="p-8 pb-6 border-b border-gray-100 dark:border-gray-800 text-center">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-500 flex items-center justify-center text-white mx-auto mb-4 shadow-md shadow-indigo-500/20">
-            <ShieldCheck className="w-7 h-7" />
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <img
+              src="/logo.png"
+              alt="OmniHR Logo"
+              className="w-10 h-10 object-contain rounded-[6px]"
+            />
+            <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+              Omni<span className="text-[#2C4FD6]">HR</span>
+            </h1>
           </div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
-            OmniHR
-          </h1>
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/30 text-[#2C4FD6] dark:text-blue-400 text-xs font-semibold mb-1">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Super Admin Portal</span>
+          </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            Super Admin SaaS Management & Billing Portal
+            SaaS Management & Billing Portal
           </p>
         </div>
 
@@ -99,7 +107,7 @@ export default function SuperAdminLogin() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-2 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {submitting ? (
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />

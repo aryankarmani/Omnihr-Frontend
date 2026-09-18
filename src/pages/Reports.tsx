@@ -294,7 +294,7 @@ export default function Reports() {
             </div>
 
             {/* Generate Reports Panel matching Web App Theme */}
-            <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 p-6 shadow-sm mt-6">
+            <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 p-6 mt-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-5">
                     <div>
                         <span className="panel-title text-[15px] font-semibold text-[#12151C] dark:text-white block">

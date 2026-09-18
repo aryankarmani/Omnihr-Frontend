@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
+import PunchInPromptModal from './PunchInPromptModal';
 import { ShieldAlert, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -15,7 +16,17 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
     const { logout } = useAuth();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+        return localStorage.getItem('omnihr_sidebar_collapsed') === 'true';
+    });
+
+    const handleToggleCollapse = () => {
+        setIsSidebarCollapsed(prev => {
+            const next = !prev;
+            localStorage.setItem('omnihr_sidebar_collapsed', String(next));
+            return next;
+        });
+    };
     const [isSuspended, setIsSuspended] = useState(false);
     const [suspendedMessage, setSuspendedMessage] = useState<string | null>(null);
 
@@ -55,7 +66,7 @@ export default function Layout({ children }: LayoutProps) {
                     </div>
                     <button
                         onClick={logout}
-                        className="w-full py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold rounded-xl text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                        className="w-full py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold rounded-xl text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
                     >
                         <LogOut size={16} />
                         <span>Sign Out</span>
@@ -72,7 +83,7 @@ export default function Layout({ children }: LayoutProps) {
                 isOpen={isSidebarOpen}
                 onClose={() => setIsSidebarOpen(false)}
                 isCollapsed={isSidebarCollapsed}
-                onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                onToggleCollapse={handleToggleCollapse}
             />
 
             <main className="flex-1 flex flex-col overflow-hidden relative w-full">
@@ -86,12 +97,26 @@ export default function Layout({ children }: LayoutProps) {
 
                     {/* Footer with BlockCoders reference */}
                     <footer className="mt-8 pt-4 border-t border-gray-200/60 dark:border-gray-800/60 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-400 dark:text-gray-500 font-medium">
-                        <span>© {new Date().getFullYear()} OmniHR. All rights reserved.</span>
-                        <span>A product of <strong className="text-gray-700 dark:text-gray-300 font-semibold">BlockCoders</strong></span>
+                        <span>© {new Date().getFullYear()} OmniHR.</span>
+                        <span>
+                            Developed &amp; Operated by{' '}
+                            <a
+                                href="https://theblockcoders.co"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-gray-700 dark:text-gray-300 font-semibold hover:text-[#2C4FD6] dark:hover:text-[#2C4FD6] underline underline-offset-2 transition-colors cursor-pointer"
+                            >
+                                BlockCoders
+                            </a>
+                            . All rights reserved.
+                        </span>
                     </footer>
                 </div>
                 {/* <ChatWidget /> */}
             </main>
+
+            {/* Global Punch-in prompt modal for Admin and Employee (renders via portal to document.body for full-screen blur) */}
+            <PunchInPromptModal />
         </div>
     );
 }

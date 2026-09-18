@@ -117,7 +117,7 @@ export default function Notifications() {
         <button
           onClick={handleTriggerCheck}
           disabled={checking}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[13px] font-semibold shadow-sm transition-all cursor-pointer self-start sm:self-auto disabled:opacity-50"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[13px] font-semibold transition-all cursor-pointer self-start sm:self-auto disabled:opacity-50"
         >
           <RefreshCw size={15} className={checking ? "animate-spin" : ""} />
           <span>{checking ? "Checking..." : "Trigger Cadence Run"}</span>
@@ -131,7 +131,7 @@ export default function Notifications() {
           onClick={() => setActiveTab("cadence")}
           className={`text-left p-4 rounded-[6px] border transition-all cursor-pointer flex flex-col justify-between ${
             activeTab === "cadence"
-              ? "bg-white dark:bg-[#12151C] border-[#2C4FD6] ring-2 ring-[#2C4FD6]/20 shadow-xs"
+              ? "bg-white dark:bg-[#12151C] border-[#2C4FD6] ring-2 ring-[#2C4FD6]/20"
               : "bg-white/70 dark:bg-[#12151C]/70 border-[#E2E6ED] dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700"
           }`}
         >
@@ -164,7 +164,7 @@ export default function Notifications() {
           onClick={() => setActiveTab("expiring")}
           className={`text-left p-4 rounded-[6px] border transition-all cursor-pointer flex flex-col justify-between ${
             activeTab === "expiring"
-              ? "bg-white dark:bg-[#12151C] border-[#2C4FD6] ring-2 ring-[#2C4FD6]/20 shadow-xs"
+              ? "bg-white dark:bg-[#12151C] border-[#2C4FD6] ring-2 ring-[#2C4FD6]/20"
               : "bg-white/70 dark:bg-[#12151C]/70 border-[#E2E6ED] dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700"
           }`}
         >
@@ -197,7 +197,7 @@ export default function Notifications() {
           onClick={() => setActiveTab("history")}
           className={`text-left p-4 rounded-[6px] border transition-all cursor-pointer flex flex-col justify-between ${
             activeTab === "history"
-              ? "bg-white dark:bg-[#12151C] border-[#2C4FD6] ring-2 ring-[#2C4FD6]/20 shadow-xs"
+              ? "bg-white dark:bg-[#12151C] border-[#2C4FD6] ring-2 ring-[#2C4FD6]/20"
               : "bg-white/70 dark:bg-[#12151C]/70 border-[#E2E6ED] dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700"
           }`}
         >
@@ -290,7 +290,7 @@ export default function Notifications() {
             {filteredExpiring.length > 0 ? (
               <table className="w-full text-left min-w-[750px]">
                 <thead className="sticky top-0 z-10 bg-[#F4F6FB] dark:bg-[#1A1F2C]">
-                  <tr className="border-b border-[#E2E6ED] dark:border-gray-800 text-[12px] text-[#5B6472] dark:text-gray-400 font-semibold shadow-xs">
+                  <tr className="border-b border-[#E2E6ED] dark:border-gray-800 text-[12px] text-[#5B6472] dark:text-gray-400 font-semibold">
                     <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Company</th>
                     <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Plan</th>
                     <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Expiry Date</th>
@@ -332,7 +332,7 @@ export default function Notifications() {
                         <button
                           onClick={() => handleSendManual(c.id, c.companyName)}
                           disabled={sendingId === c.id}
-                          className="px-3.5 py-1.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[12px] font-semibold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors shadow-xs"
+                          className="px-3.5 py-1.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[12px] font-semibold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors"
                         >
                           <Send size={13} />
                           <span>{sendingId === c.id ? "Sending..." : "Send Reminder Now"}</span>
@@ -369,7 +369,7 @@ export default function Notifications() {
                       setExpiringPerPage(Number(e.target.value));
                       setExpiringPage(1);
                     }}
-                    className="px-2 py-1 bg-white dark:bg-[#1A1F2C] border border-[#E2E6ED] dark:border-gray-700 rounded-[5px] text-[#12151C] dark:text-white font-semibold cursor-pointer outline-none focus:border-[#2C4FD6] text-xs shadow-2xs"
+                    className="px-2 py-1 bg-white dark:bg-[#1A1F2C] border border-[#E2E6ED] dark:border-gray-700 rounded-[5px] text-[#12151C] dark:text-white font-semibold cursor-pointer outline-none focus:border-[#2C4FD6] text-xs"
                   >
                     <option value={5}>5</option>
                     <option value={10}>10</option>
@@ -389,7 +389,7 @@ export default function Notifications() {
                   <button
                     onClick={() => setExpiringPage(1)}
                     disabled={expiringPage === 1}
-                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
                     title="First Page"
                   >
                     <ChevronsLeft size={14} />
@@ -397,7 +397,7 @@ export default function Notifications() {
                   <button
                     onClick={() => setExpiringPage((prev) => Math.max(prev - 1, 1))}
                     disabled={expiringPage === 1}
-                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
                     title="Previous Page"
                   >
                     <ChevronLeft size={14} />
@@ -406,7 +406,7 @@ export default function Notifications() {
                   <button
                     onClick={() => setExpiringPage((prev) => Math.min(prev + 1, totalExpiringPages))}
                     disabled={expiringPage === totalExpiringPages}
-                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
                     title="Next Page"
                   >
                     <ChevronRight size={14} />
@@ -414,7 +414,7 @@ export default function Notifications() {
                   <button
                     onClick={() => setExpiringPage(totalExpiringPages)}
                     disabled={expiringPage === totalExpiringPages}
-                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
                     title="Last Page"
                   >
                     <ChevronsRight size={14} />
@@ -428,7 +428,7 @@ export default function Notifications() {
 
       {/* Tab 3 Content: Dispatch History Audit Ledger (Image 3) */}
       {activeTab === "history" && (
-        <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden animate-fade-in flex flex-col shadow-2xs">
+        <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden animate-fade-in flex flex-col">
           <div className="p-4 sm:p-5 border-b border-[#E2E6ED] dark:border-gray-800 flex items-center justify-between">
             <h3 className="text-[15px] font-semibold text-[#12151C] dark:text-white flex items-center gap-2">
               <BellRing size={18} className="text-[#2C4FD6]" />
@@ -443,7 +443,7 @@ export default function Notifications() {
             {history.length > 0 ? (
               <table className="w-full text-left min-w-[850px]">
                 <thead className="sticky top-0 z-10 bg-[#F4F6FB] dark:bg-[#1A1F2C]">
-                  <tr className="border-b border-[#E2E6ED] dark:border-gray-800 text-[12px] text-[#5B6472] dark:text-gray-400 font-semibold shadow-xs">
+                  <tr className="border-b border-[#E2E6ED] dark:border-gray-800 text-[12px] text-[#5B6472] dark:text-gray-400 font-semibold">
                     <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Company</th>
                     <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Notification Type</th>
                     <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Channel</th>
@@ -514,7 +514,7 @@ export default function Notifications() {
                       setHistoryPerPage(Number(e.target.value));
                       setHistoryPage(1);
                     }}
-                    className="px-2 py-1 bg-white dark:bg-[#1A1F2C] border border-[#E2E6ED] dark:border-gray-700 rounded-[5px] text-[#12151C] dark:text-white font-semibold cursor-pointer outline-none focus:border-[#2C4FD6] text-xs shadow-2xs"
+                    className="px-2 py-1 bg-white dark:bg-[#1A1F2C] border border-[#E2E6ED] dark:border-gray-700 rounded-[5px] text-[#12151C] dark:text-white font-semibold cursor-pointer outline-none focus:border-[#2C4FD6] text-xs"
                   >
                     <option value={5}>5</option>
                     <option value={10}>10</option>
@@ -534,7 +534,7 @@ export default function Notifications() {
                   <button
                     onClick={() => setHistoryPage(1)}
                     disabled={historyPage === 1}
-                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
                     title="First Page"
                   >
                     <ChevronsLeft size={14} />
@@ -542,7 +542,7 @@ export default function Notifications() {
                   <button
                     onClick={() => setHistoryPage((prev) => Math.max(prev - 1, 1))}
                     disabled={historyPage === 1}
-                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
                     title="Previous Page"
                   >
                     <ChevronLeft size={14} />
@@ -551,7 +551,7 @@ export default function Notifications() {
                   <button
                     onClick={() => setHistoryPage((prev) => Math.min(prev + 1, totalHistoryPages))}
                     disabled={historyPage === totalHistoryPages}
-                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
                     title="Next Page"
                   >
                     <ChevronRight size={14} />
@@ -559,7 +559,7 @@ export default function Notifications() {
                   <button
                     onClick={() => setHistoryPage(totalHistoryPages)}
                     disabled={historyPage === totalHistoryPages}
-                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
                     title="Last Page"
                   >
                     <ChevronsRight size={14} />

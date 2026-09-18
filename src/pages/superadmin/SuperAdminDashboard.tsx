@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { DashboardSkeleton } from "../../components/common/SkeletonLoaders";
 import {
   Building2,
   CalendarCheck,
@@ -57,14 +58,7 @@ export default function SuperAdminDashboard() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh] w-full">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-9 h-9 border-3 border-[#2C4FD6] border-t-transparent rounded-full animate-spin" />
-          <p className="text-[13px] text-[#5B6472] dark:text-gray-400">Loading SaaS metrics...</p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   const cards = data?.cards || {
@@ -253,7 +247,7 @@ export default function SuperAdminDashboard() {
             {data?.expiringSubscriptions && data.expiringSubscriptions.length > 0 ? (
               <table className="w-full text-left min-w-[450px]">
                 <thead className="sticky top-0 z-10 bg-[#F4F6FB] dark:bg-[#1A1F2C]">
-                  <tr className="border-b border-[#E2E6ED] dark:border-gray-800 text-[12px] text-[#5B6472] dark:text-gray-400 font-semibold shadow-2xs">
+                  <tr className="border-b border-[#E2E6ED] dark:border-gray-800 text-[12px] text-[#5B6472] dark:text-gray-400 font-semibold">
                     <th className="py-2.5 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Company</th>
                     <th className="py-2.5 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Plan</th>
                     <th className="py-2.5 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Remaining</th>
@@ -318,7 +312,7 @@ export default function SuperAdminDashboard() {
             {data?.recentPayments && data.recentPayments.length > 0 ? (
               <table className="w-full text-left min-w-[450px]">
                 <thead className="sticky top-0 z-10 bg-[#F4F6FB] dark:bg-[#1A1F2C]">
-                  <tr className="border-b border-[#E2E6ED] dark:border-gray-800 text-[12px] text-[#5B6472] dark:text-gray-400 font-semibold shadow-2xs">
+                  <tr className="border-b border-[#E2E6ED] dark:border-gray-800 text-[12px] text-[#5B6472] dark:text-gray-400 font-semibold">
                     <th className="py-2.5 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Company</th>
                     <th className="py-2.5 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Plan</th>
                     <th className="py-2.5 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Amount</th>
@@ -377,7 +371,7 @@ export default function SuperAdminDashboard() {
           {data?.recentCompanies && data.recentCompanies.length > 0 ? (
             <table className="w-full text-left min-w-[700px]">
               <thead className="sticky top-0 z-10 bg-[#F4F6FB] dark:bg-[#1A1F2C]">
-                <tr className="border-b border-[#E2E6ED] dark:border-gray-800 text-[12px] text-[#5B6472] dark:text-gray-400 font-semibold shadow-2xs">
+                <tr className="border-b border-[#E2E6ED] dark:border-gray-800 text-[12px] text-[#5B6472] dark:text-gray-400 font-semibold">
                   <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Company Name</th>
                   <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Tenant Domain</th>
                   <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Current Plan</th>

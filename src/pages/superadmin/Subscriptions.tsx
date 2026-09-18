@@ -206,17 +206,30 @@ export default function Subscriptions() {
       </div>
 
       {/* Subscriptions Table */}
-      <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden shadow-2xs">
+      <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden">
         <div className="overflow-x-auto max-h-[460px] overflow-y-auto table-scrollbar border-b border-[#E2E6ED] dark:border-gray-800">
           {loading ? (
-            <div className="py-16 flex flex-col items-center justify-center gap-2">
-              <div className="w-8 h-8 border-3 border-[#2C4FD6] border-t-transparent rounded-full animate-spin" />
-              <span className="text-[#5B6472] dark:text-gray-400 text-sm">Loading subscriptions...</span>
+            <div className="divide-y divide-[#E2E6ED] dark:divide-gray-800">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="px-6 py-4 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-8 h-8 rounded-[6px] skeleton-shimmer shrink-0" />
+                    <div className="space-y-1.5 min-w-0">
+                      <div className="h-3.5 w-32 skeleton-shimmer rounded-[4px]" />
+                      <div className="h-2.5 w-24 skeleton-shimmer rounded-[4px]" />
+                    </div>
+                  </div>
+                  <div className="h-3.5 w-24 skeleton-shimmer rounded-[4px] hidden sm:block" />
+                  <div className="h-3.5 w-24 skeleton-shimmer rounded-[4px] hidden md:block" />
+                  <div className="h-5 w-20 skeleton-shimmer rounded-full" />
+                  <div className="h-7 w-16 skeleton-shimmer rounded-[6px]" />
+                </div>
+              ))}
             </div>
           ) : subscriptions.length > 0 ? (
             <table className="w-full text-center min-w-[950px]">
               <thead className="sticky top-0 z-10 bg-[#F4F6FB] dark:bg-[#1A1F2C]">
-                <tr className="border-b border-[#E2E6ED] dark:border-gray-800 text-[12px] text-[#5B6472] dark:text-gray-400 font-semibold shadow-2xs">
+                <tr className="border-b border-[#E2E6ED] dark:border-gray-800 text-[12px] text-[#5B6472] dark:text-gray-400 font-semibold">
                   <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Company</th>
                   <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Plan</th>
                   <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Billing Cycle</th>
@@ -230,7 +243,7 @@ export default function Subscriptions() {
               <tbody className="divide-y divide-[#E2E6ED] dark:divide-gray-800/60 text-[13.5px]">
                 {paginatedSubscriptions.map((s) => (
                   <tr key={s.id} className="hover:bg-[#F9FAFD] dark:hover:bg-white/5 transition-colors">
-                    <td className="py-3.5 px-4 text-left whitespace-nowrap">
+                    <td className="py-3.5 px-4 text-center whitespace-nowrap">
                       <span className="font-bold text-[#12151C] dark:text-white block">
                         {s.companyName}
                       </span>
@@ -301,7 +314,7 @@ export default function Subscriptions() {
                         <button
                           onClick={() => handleSendReminder(s)}
                           disabled={sendingReminderId === s.id}
-                          className="px-3.5 py-1.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[12px] font-semibold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors shadow-xs"
+                          className="px-3.5 py-1.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[12px] font-semibold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors"
                         >
                           <Send size={13} />
                           <span>{sendingReminderId === s.id ? "Sending..." : "Send Reminder Now"}</span>
@@ -340,7 +353,7 @@ export default function Subscriptions() {
                     setPerPage(Number(e.target.value));
                     setCurrentPage(1);
                   }}
-                  className="px-2 py-1 bg-white dark:bg-[#1A1F2C] border border-[#E2E6ED] dark:border-gray-700 rounded-[5px] text-[#12151C] dark:text-white font-semibold cursor-pointer outline-none focus:border-[#2C4FD6] text-xs shadow-2xs"
+                  className="px-2 py-1 bg-white dark:bg-[#1A1F2C] border border-[#E2E6ED] dark:border-gray-700 rounded-[5px] text-[#12151C] dark:text-white font-semibold cursor-pointer outline-none focus:border-[#2C4FD6] text-xs"
                 >
                   <option value={5}>5</option>
                   <option value={10}>10</option>
@@ -360,7 +373,7 @@ export default function Subscriptions() {
                 <button
                   onClick={() => setCurrentPage(1)}
                   disabled={currentPage === 1}
-                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
                   title="First Page"
                 >
                   <ChevronsLeft size={14} />
@@ -368,7 +381,7 @@ export default function Subscriptions() {
                 <button
                   onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
-                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
                   title="Previous Page"
                 >
                   <ChevronLeft size={14} />
@@ -377,7 +390,7 @@ export default function Subscriptions() {
                 <button
                   onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
-                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
                   title="Next Page"
                 >
                   <ChevronRight size={14} />
@@ -385,7 +398,7 @@ export default function Subscriptions() {
                 <button
                   onClick={() => setCurrentPage(totalPages)}
                   disabled={currentPage === totalPages}
-                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
                   title="Last Page"
                 >
                   <ChevronsRight size={14} />
@@ -479,7 +492,7 @@ export default function Subscriptions() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[13px] font-semibold shadow-sm cursor-pointer disabled:opacity-50 transition-colors"
+                  className="px-5 py-2 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[13px] font-semibold cursor-pointer disabled:opacity-50 transition-colors"
                 >
                   {submitting ? "Extending..." : "Confirm Extension"}
                 </button>

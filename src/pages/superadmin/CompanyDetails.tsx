@@ -141,7 +141,7 @@ export default function CompanyDetails() {
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-[6px] bg-[#2C4FD6] flex items-center justify-center text-white font-bold text-lg shadow-sm">
+            <div className="w-12 h-12 rounded-[6px] bg-[#2C4FD6] flex items-center justify-center text-white font-bold text-lg">
               {data.name.charAt(0).toUpperCase()}
             </div>
             <div>
@@ -180,7 +180,7 @@ export default function CompanyDetails() {
                 {/* <button
                   onClick={handleSendReminder}
                   disabled={sendingReminder}
-                  className="px-3.5 py-1.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[12px] font-semibold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors shadow-xs"
+                  className="px-3.5 py-1.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[12px] font-semibold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors"
                 >
                   <Send size={13} />
                   <span>{sendingReminder ? "Sending..." : "Send Reminder Now"}</span>
@@ -297,7 +297,7 @@ export default function CompanyDetails() {
               <button
                 onClick={handleSendReminder}
                 disabled={sendingReminder}
-                className="px-3.5 py-1.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[12px] font-semibold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors shadow-xs"
+                className="px-3.5 py-1.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[12px] font-semibold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors"
               >
                 <Send size={13} />
                 <span>{sendingReminder ? "Sending..." : "Send Reminder Now"}</span>
@@ -521,7 +521,7 @@ export default function CompanyDetails() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[13px] font-semibold shadow-sm cursor-pointer disabled:opacity-50 transition-colors"
+                  className="px-5 py-2 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[13px] font-semibold cursor-pointer disabled:opacity-50 transition-colors"
                 >
                   {submitting ? "Extending..." : "Confirm Extension"}
                 </button>

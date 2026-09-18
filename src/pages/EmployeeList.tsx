@@ -271,7 +271,7 @@ export default function EmployeeList() {
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
                     <button
                         onClick={handleExportCSV}
-                        className="btn btn-ghost flex-1 sm:flex-initial inline-flex items-center justify-center gap-[7px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white rounded-[8px] px-[15px] py-[9px] text-[13.5px] font-semibold whitespace-nowrap hover:bg-gray-50 dark:hover:bg-white/5 transition-all cursor-pointer shadow-2xs"
+                        className="btn btn-ghost flex-1 sm:flex-initial inline-flex items-center justify-center gap-[7px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white rounded-[8px] px-[15px] py-[9px] text-[13.5px] font-semibold whitespace-nowrap hover:bg-gray-50 dark:hover:bg-white/5 transition-all cursor-pointer"
                     >
                         <Download size={15} />
                         <span>Export</span>
@@ -279,7 +279,7 @@ export default function EmployeeList() {
                     {isAdmin && (
                         <button
                             onClick={() => navigate('/employee/add')}
-                            className="btn btn-primary flex-1 sm:flex-initial inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#2442B8] text-white rounded-[8px] px-[15px] py-[9px] text-[13.5px] font-semibold whitespace-nowrap transition-all cursor-pointer shadow-sm"
+                            className="btn btn-primary flex-1 sm:flex-initial inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#2442B8] text-white rounded-[8px] px-[15px] py-[9px] text-[13.5px] font-semibold whitespace-nowrap transition-all cursor-pointer"
                         >
                             <Plus size={16} />
                             <span>Add Employee</span>
@@ -316,7 +316,7 @@ export default function EmployeeList() {
                                 setAppliedFilters({ ...appliedFilters, status: val });
                                 setCurrentPage(1);
                             }}
-                            className="appearance-none flex items-center gap-2 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] px-3 py-[9px] text-[13px] font-semibold text-[#5B6472] dark:text-gray-300 bg-white dark:bg-[#12151C] cursor-pointer transition-all hover:border-[#2C4FD6] shadow-2xs focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none pr-8"
+                            className="appearance-none flex items-center gap-2 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] px-3 py-[9px] text-[13px] font-semibold text-[#5B6472] dark:text-gray-300 bg-white dark:bg-[#12151C] cursor-pointer transition-all hover:border-[#2C4FD6] focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none pr-8"
                         >
                             <option value="All">All Status</option>
                             <option value="Active">Active</option>
@@ -331,7 +331,7 @@ export default function EmployeeList() {
                     {selectedEmployeeIds.length > 0 && (
                         <button
                             onClick={() => setShowBulkDeleteModal(true)}
-                            className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded-[6px] px-3.5 py-[9px] text-[13px] font-semibold transition-all shadow-sm cursor-pointer animate-fade-in shrink-0"
+                            className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded-[6px] px-3.5 py-[9px] text-[13px] font-semibold transition-all cursor-pointer animate-fade-in shrink-0"
                             title={`Delete ${selectedEmployeeIds.length} selected employee(s)`}
                         >
                             <Trash2 size={15} />
@@ -341,7 +341,7 @@ export default function EmployeeList() {
 
                     <button
                         onClick={() => setShowFilterDrawer(true)}
-                        className="flex items-center gap-2 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] px-3 py-[9px] text-[13px] font-semibold text-[#5B6472] dark:text-gray-300 bg-white dark:bg-[#12151C] hover:bg-gray-50 dark:hover:bg-white/5 transition-all shadow-2xs shrink-0 cursor-pointer"
+                        className="flex items-center gap-2 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] px-3 py-[9px] text-[13px] font-semibold text-[#5B6472] dark:text-gray-300 bg-white dark:bg-[#12151C] hover:bg-gray-50 dark:hover:bg-white/5 transition-all shrink-0 cursor-pointer"
                     >
                         <Filter size={15} className="text-[#5B6472] dark:text-gray-300" />
                     </button>
@@ -350,18 +350,33 @@ export default function EmployeeList() {
 
             {/* List View Table */}
             {loading ? (
-                <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800">
-                    <Loader2 className="w-10 h-10 text-[#2C4FD6] animate-spin mb-4" />
-                    <p className="text-[#5B6472] dark:text-gray-400 font-medium text-xs">Fetching workforce data...</p>
+                <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden animate-fade-in">
+                    <div className="divide-y divide-[#E2E6ED] dark:divide-gray-800">
+                        {Array.from({ length: 8 }).map((_, i) => (
+                            <div key={i} className="px-6 py-4 flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <div className="w-8 h-8 rounded-[6px] skeleton-shimmer shrink-0" />
+                                    <div className="space-y-1.5 min-w-0">
+                                        <div className="h-3.5 w-32 skeleton-shimmer rounded-[4px]" />
+                                        <div className="h-2.5 w-24 skeleton-shimmer rounded-[4px]" />
+                                    </div>
+                                </div>
+                                <div className="h-3.5 w-24 skeleton-shimmer rounded-[4px] hidden sm:block" />
+                                <div className="h-3.5 w-24 skeleton-shimmer rounded-[4px] hidden md:block" />
+                                <div className="h-5 w-16 skeleton-shimmer rounded-full" />
+                                <div className="h-7 w-16 skeleton-shimmer rounded-[6px]" />
+                            </div>
+                        ))}
+                    </div>
                 </div>
             ) : filteredEmployees.length === 0 ? (
-                <div className="text-center py-20 bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 shadow-2xs">
+                <div className="text-center py-20 bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800">
                     <User size={48} className="mx-auto text-[#9AA3B1] mb-4 opacity-50" />
                     <h3 className="text-base font-bold text-[#12151C] dark:text-white">No Employees Found</h3>
                     <p className="text-[#5B6472] dark:text-gray-400 text-xs mt-1">Try adjusting your filters or search term.</p>
                 </div>
             ) : (
-                <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 shadow-sm overflow-hidden animate-fade-in-up">
+                <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden animate-fade-in-up">
                     <div className="overflow-x-auto custom-scrollbar">
                         <table className="w-full text-left border-collapse min-w-[900px]">
                             <thead>
@@ -375,10 +390,10 @@ export default function EmployeeList() {
                                             title={isAllSelected ? "Deselect All" : "Select All"}
                                         />
                                     </th>
-                                    <th className="py-[9px] px-[20px] border-b border-[#E2E6ED] dark:border-gray-800 w-[24%]">EMPLOYEE</th>
+                                    <th className="py-[9px] px-[60px] border-b border-[#E2E6ED] dark:border-gray-800 w-[24%]">EMPLOYEE</th>
                                     <th className="py-[9px] px-[20px] border-b border-[#E2E6ED] dark:border-gray-800 w-[20%]">ROLE / DESIGNATION</th>
                                     <th className="py-[9px] px-[20px] border-b border-[#E2E6ED] dark:border-gray-800 w-[14%]">STATUS</th>
-                                    <th className="py-[9px] px-[20px] border-b border-[#E2E6ED] dark:border-gray-800 text-center w-[14%]">PROFILE COMPLETION</th>
+                                    <th className="py-[9px] px-[0px] border-b border-[#E2E6ED] dark:border-gray-800  w-[14%]">PROFILE COMPLETION</th>
                                     <th className="py-[9px] px-[20px] border-b border-[#E2E6ED] dark:border-gray-800 text-center w-[12%]">ATTENDANCE</th>
                                     <th className="py-[9px] px-[20px] border-b border-[#E2E6ED] dark:border-gray-800 text-center w-[16%]">ACTION</th>
                                 </tr>
@@ -433,18 +448,17 @@ export default function EmployeeList() {
                                                     {status}
                                                 </span>
                                             </td>
-                                            <td className="py-[13px] px-[20px] text-center">
+                                            <td className="py-[13px] px-[20px] translate-x-[30px]">
                                                 {(() => {
                                                     const comp = emp.profileCompletion || calculateProfileCompletion(emp);
                                                     const pct = typeof comp?.percentage === 'number' ? comp.percentage : 0;
                                                     return (
-                                                        <span className={`font-semibold font-mono-numbers text-[13px] ${
-                                                            pct === 100
+                                                        <span className={`font-semibold font-mono-numbers text-[13px] ${pct === 100
                                                                 ? 'text-[#1F8A5A] dark:text-emerald-400'
                                                                 : pct >= 50
                                                                     ? 'text-[#2C4FD6] dark:text-blue-400'
                                                                     : 'text-[#D97706] dark:text-amber-400'
-                                                        }`}>
+                                                            }`}>
                                                             {pct}%
                                                         </span>
                                                     );
@@ -456,7 +470,7 @@ export default function EmployeeList() {
                                                         e.stopPropagation();
                                                         handleViewAttendance(emp.id);
                                                     }}
-                                                    className="view-btn inline-flex items-center gap-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#5B6472] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-all text-[12px] font-semibold rounded-[6px] px-[10px] py-[5px] cursor-pointer shadow-2xs"
+                                                    className="view-btn inline-flex items-center gap-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#5B6472] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-all text-[12px] font-semibold rounded-[6px] px-[10px] py-[5px] cursor-pointer"
                                                 >
                                                     <Eye size={13} className="text-[#5B6472] dark:text-gray-300" /> View
                                                 </button>
@@ -465,7 +479,7 @@ export default function EmployeeList() {
                                                 <div className="flex items-center justify-center gap-2">
                                                     <button
                                                         onClick={() => navigate(`/employee/${emp.id}?edit=true`)}
-                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#2C4FD6] hover:bg-blue-50 dark:hover:bg-blue-500/10 text-[12px] font-semibold shadow-2xs transition-all cursor-pointer"
+                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#2C4FD6] hover:bg-blue-50 dark:hover:bg-blue-500/10 text-[12px] font-semibold transition-all cursor-pointer"
                                                         title="Edit Profile"
                                                     >
                                                         <Edit size={13} />
@@ -473,7 +487,7 @@ export default function EmployeeList() {
                                                     </button>
                                                     <button
                                                         onClick={() => setEmployeeToDelete(emp)}
-                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[6px] border border-red-200 dark:border-red-900/40 bg-white dark:bg-[#12151C] text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 text-[12px] font-semibold shadow-2xs transition-all cursor-pointer"
+                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[6px] border border-red-200 dark:border-red-900/40 bg-white dark:bg-[#12151C] text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 text-[12px] font-semibold transition-all cursor-pointer"
                                                         title="Delete Employee"
                                                     >
                                                         <Trash2 size={13} />
@@ -500,7 +514,7 @@ export default function EmployeeList() {
                                         setRowsPerPage(Number(e.target.value));
                                         setCurrentPage(1);
                                     }}
-                                    className="px-3 py-1 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[#12151C] dark:text-white text-xs font-semibold cursor-pointer shadow-2xs"
+                                    className="px-3 py-1 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[#12151C] dark:text-white text-xs font-semibold cursor-pointer"
                                 >
                                     <option value={5}>5</option>
                                     <option value={10}>10</option>
@@ -518,7 +532,7 @@ export default function EmployeeList() {
                                     <button
                                         onClick={() => setCurrentPage(1)}
                                         disabled={currentPage === 1}
-                                        className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                                        className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
                                         title="First Page"
                                     >
                                         <ChevronsLeft size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
@@ -527,7 +541,7 @@ export default function EmployeeList() {
                                     <button
                                         onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                                         disabled={currentPage === 1}
-                                        className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                                        className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
                                         title="Previous Page"
                                     >
                                         <ChevronLeft size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
@@ -536,7 +550,7 @@ export default function EmployeeList() {
                                     <button
                                         onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                                         disabled={currentPage === totalPages || totalPages === 0}
-                                        className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                                        className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
                                         title="Next Page"
                                     >
                                         <ChevronRight size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
@@ -545,7 +559,7 @@ export default function EmployeeList() {
                                     <button
                                         onClick={() => setCurrentPage(totalPages)}
                                         disabled={currentPage === totalPages || totalPages === 0}
-                                        className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                                        className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
                                         title="Last Page"
                                     >
                                         <ChevronsRight size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
@@ -566,10 +580,7 @@ export default function EmployeeList() {
             {employeeToDelete && createPortal(
                 <div
                     className="fixed inset-0 z-[999999] flex items-center justify-center bg-slate-900/30 dark:bg-black/60 backdrop-blur-md p-4 animate-fade-in">
-                    <div className="bg-white dark:bg-brand-950 rounded-[6px] shadow-2xl w-full max-w-md p-8 border border-gray-100 dark:border-white/10 text-center relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-2 bg-red-500"></div>
-
-
+                    <div className="bg-white dark:bg-brand-950 rounded-[6px] w-full max-w-md p-8 border border-gray-100 dark:border-white/10 text-center relative overflow-hidden">
                         <div className="w-20 h-20 bg-red-100 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
                             <Trash2 size={40} className="text-red-500" />
                         </div>
@@ -613,9 +624,7 @@ export default function EmployeeList() {
             {/* Bulk Delete Confirmation Modal */}
             {showBulkDeleteModal && createPortal(
                 <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-slate-900/30 dark:bg-black/60 backdrop-blur-md p-4 animate-fade-in">
-                    <div className="bg-white dark:bg-brand-950 rounded-[6px] shadow-2xl w-full max-w-md p-8 border border-gray-100 dark:border-white/10 text-center relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-2 bg-red-500"></div>
-
+                    <div className="bg-white dark:bg-brand-950 rounded-[6px] w-full max-w-md p-8 border border-gray-100 dark:border-white/10 text-center relative overflow-hidden">
                         <div className="w-20 h-20 bg-red-100 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
                             <Trash2 size={40} className="text-red-500" />
                         </div>
@@ -859,7 +868,7 @@ export default function EmployeeList() {
                             <button
                                 type="submit"
                                 onClick={handleAddEmployee}
-                                className="flex-[2] py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold rounded-[6px] text-xs shadow-sm transition-all cursor-pointer"
+                                className="flex-[2] py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold rounded-[6px] text-xs transition-all cursor-pointer"
                             >
                                 Create Employee
                             </button>
@@ -936,7 +945,7 @@ export default function EmployeeList() {
                                             <select
                                                 value={filters.status}
                                                 onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                                                className="appearance-none flex items-center gap-2 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] px-3 py-[9px] text-[13px] font-semibold text-[#5B6472] dark:text-gray-300 bg-white dark:bg-[#12151C] cursor-pointer transition-all hover:border-[#2C4FD6] shadow-2xs focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none pr-8 w-full"
+                                                className="appearance-none flex items-center gap-2 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] px-3 py-[9px] text-[13px] font-semibold text-[#5B6472] dark:text-gray-300 bg-white dark:bg-[#12151C] cursor-pointer transition-all hover:border-[#2C4FD6] focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none pr-8 w-full"
                                             >
                                                 <option value="All">All Status</option>
                                                 <option value="Active">Active</option>
@@ -965,7 +974,7 @@ export default function EmployeeList() {
                                             setFilters(reset);
                                             setAppliedFilters(reset);
                                         }}
-                                        className="flex-1 py-2.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#5B6472] dark:text-gray-300 font-semibold text-[13.5px] hover:bg-gray-50 dark:hover:bg-white/5 transition-all cursor-pointer shadow-2xs"
+                                        className="flex-1 py-2.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#5B6472] dark:text-gray-300 font-semibold text-[13.5px] hover:bg-gray-50 dark:hover:bg-white/5 transition-all cursor-pointer"
                                     >
                                         Clear
                                     </button>
@@ -975,7 +984,7 @@ export default function EmployeeList() {
                                             setAppliedFilters(filters);
                                             setShowFilterDrawer(false);
                                         }}
-                                        className="flex-1 py-2.5 rounded-[6px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold text-[13.5px] transition-all shadow-sm cursor-pointer"
+                                        className="flex-1 py-2.5 rounded-[6px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold text-[13.5px] transition-all cursor-pointer"
                                     >
                                         Apply Filters
                                     </button>
@@ -1022,7 +1031,7 @@ export default function EmployeeList() {
                                     {(() => {
                                         const comp = selectedEmployeeForActions.profileCompletion || calculateProfileCompletion(selectedEmployeeForActions);
                                         return (
-                                            <div className="mt-5 p-4 rounded-2xl bg-white dark:bg-brand-950/60 border border-gray-100 dark:border-white/10 shadow-sm">
+                                            <div className="mt-5 p-4 rounded-2xl bg-white dark:bg-brand-950/60 border border-gray-100 dark:border-white/10">
                                                 <div className="flex items-center justify-between text-xs font-bold mb-2">
                                                     <span className="text-gray-700 dark:text-gray-300">Profile completion</span>
                                                     <span className={comp.percentage === 100 ? 'text-emerald-500 font-bold' : 'text-amber-500 font-bold'}>
@@ -1071,7 +1080,7 @@ export default function EmployeeList() {
                                         onClick={() => { navigate(`/employee/${selectedEmployeeForActions.id}`); setSelectedEmployeeForActions(null); }}
                                         className="w-full flex items-center gap-4 p-4 rounded-[6px] bg-gray-50 dark:bg-white/5 border border-transparent hover:border-brand-500/30 hover:bg-white dark:hover:bg-brand-500/10 transition-all group"
                                     >
-                                        <div className="p-3 bg-white dark:bg-brand-900 rounded-[6px] text-brand-500 shadow-sm group-hover:scale-110 transition-transform">
+                                        <div className="p-3 bg-white dark:bg-brand-900 rounded-[6px] text-brand-500 group-hover:scale-110 transition-transform">
                                             <User size={20} />
                                         </div>
                                         <div className="text-left">
@@ -1084,7 +1093,7 @@ export default function EmployeeList() {
                                         onClick={() => { navigate(`/employee/${selectedEmployeeForActions.id}?edit=true`); setSelectedEmployeeForActions(null); }}
                                         className="w-full flex items-center gap-4 p-4 rounded-[6px] bg-gray-50 dark:bg-white/5 border border-transparent hover:border-brand-500/30 hover:bg-white dark:hover:bg-brand-500/10 transition-all group"
                                     >
-                                        <div className="p-3 bg-white dark:bg-brand-900 rounded-[6px] text-blue-500 shadow-sm group-hover:scale-110 transition-transform">
+                                        <div className="p-3 bg-white dark:bg-brand-900 rounded-[6px] text-blue-500 group-hover:scale-110 transition-transform">
                                             <Edit size={20} />
                                         </div>
                                         <div className="text-left">
@@ -1097,7 +1106,7 @@ export default function EmployeeList() {
                                         onClick={() => { setEmployeeToDelete(selectedEmployeeForActions); setSelectedEmployeeForActions(null); }}
                                         className="w-full flex items-center gap-4 p-4 rounded-[6px] bg-gray-50 dark:bg-white/5 border border-transparent hover:border-red-500/30 hover:bg-white dark:hover:bg-red-500/10 transition-all group"
                                     >
-                                        <div className="p-3 bg-white dark:bg-brand-900 rounded-[6px] text-red-500 shadow-sm group-hover:scale-110 transition-transform">
+                                        <div className="p-3 bg-white dark:bg-brand-900 rounded-[6px] text-red-500 group-hover:scale-110 transition-transform">
                                             <Trash2 size={20} />
                                         </div>
                                         <div className="text-left">

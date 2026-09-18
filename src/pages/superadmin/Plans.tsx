@@ -178,7 +178,7 @@ export default function Plans() {
         </div>
         <button
           onClick={openCreateModal}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[13px] font-semibold shadow-sm transition-all cursor-pointer self-start sm:self-auto"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[13px] font-semibold transition-all cursor-pointer self-start sm:self-auto"
         >
           <Plus size={16} />
           <span>Create New Tier</span>
@@ -202,7 +202,7 @@ export default function Plans() {
                 className={`bg-white dark:bg-[#12151C] rounded-[6px] border ${p.isActive
                   ? "border-[#E2E6ED] dark:border-gray-800"
                   : "border-gray-200/60 dark:border-gray-800/40 opacity-70"
-                  } p-6 flex flex-col justify-between relative shadow-xs`}
+                  } p-6 flex flex-col justify-between relative`}
               >
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -500,7 +500,7 @@ export default function Plans() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[13px] font-semibold shadow-sm cursor-pointer disabled:opacity-50 transition-colors"
+                  className="px-5 py-2 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[13px] font-semibold cursor-pointer disabled:opacity-50 transition-colors"
                 >
                   {submitting ? "Saving..." : "Save Tier"}
                 </button>

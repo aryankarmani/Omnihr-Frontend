@@ -4,6 +4,7 @@ import { Calendar, Clock, MapPin, AlertCircle, CheckCircle, ChevronLeft, Chevron
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { createPortal } from 'react-dom';
+import { AttendanceSkeleton } from '../components/common/SkeletonLoaders';
 
 // Types for Attendance Data
 type AttendanceStatus = 'Present' | 'Absent' | 'Late' | 'Half Day' | 'Holiday' | 'Weekend' | 'Pending' | 'Leave' | 'Leave (Pending)';
@@ -141,6 +142,13 @@ export default function Attendance() {
 
     useEffect(() => {
         fetchStatusAndPolicy();
+
+        const onPunchUpdated = () => {
+            fetchStatusAndPolicy();
+            fetchHistoryAndRequests();
+        };
+        window.addEventListener('punch-updated', onPunchUpdated);
+        return () => window.removeEventListener('punch-updated', onPunchUpdated);
     }, []);
 
     const fetchHistoryAndRequests = async () => {
@@ -480,6 +488,10 @@ export default function Attendance() {
         return days;
     };
 
+    if (loading && attendanceHistory.length === 0) {
+        return <AttendanceSkeleton />;
+    }
+
     return (
         <div className="animate-fade-in-up pb-8 relative">
             <header className="mb-6">
@@ -487,10 +499,10 @@ export default function Attendance() {
                 <p className="page-sub text-[14px] text-[#5B6472] dark:text-gray-400 mb-[26px]">Track your daily punches and regularization requests.</p>
             </header>
 
-            {/* Top Grid: Punch Card + 4 Stat Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.3fr_repeat(4,1fr)] gap-3 sm:gap-4 mb-6">
+            {/* Top Grid: Punch Card + 4 Stat Cards - Connected continuous strip matching Admin Dashboard (no middle gap) */}
+            <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.3fr_repeat(4,1fr)] divide-[#E2E6ED] dark:divide-gray-800">
                 {/* Card 1: Punch Widget */}
-                <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 p-6 text-center shadow-sm flex flex-col justify-between items-center h-[340px]">
+                <div className="p-6 text-center flex flex-col justify-between items-center h-[340px] border-b lg:border-b-0 lg:border-r border-[#E2E6ED] dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all">
                     <p className="text-[13px] text-[#5B6472] dark:text-gray-400 mb-[6px]">{currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
                     <div className="clock-time text-[40px] text-[#12151C] dark:text-white font-mono font-bold leading-tight mb-[22px] flex flex-col items-center">
                         <div>
@@ -504,7 +516,7 @@ export default function Attendance() {
                     <button
                         onClick={handlePunch}
                         disabled={punchMutation.isPending}
-                        className={`w-36 h-36 rounded-full border-2 flex flex-col items-center justify-center transition-all transform active:scale-95 shadow-sm ${isPunchedIn
+                        className={`w-36 h-36 rounded-full border-2 flex flex-col items-center justify-center transition-all transform active:scale-95 cursor-pointer ${isPunchedIn
                             ? 'border-[#C13A3A] bg-[#FBE7E7] text-[#C13A3A]'
                             : 'border-[#1F8A5A] bg-[#E4F5EC] text-[#1F8A5A]'
                             }`}
@@ -517,7 +529,7 @@ export default function Attendance() {
                 </div>
 
                 {/* Card 2: Present Days */}
-                <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 px-[18px] py-[16px] shadow-sm flex flex-col justify-start h-[340px]">
+                <div className="px-[18px] py-[16px] flex flex-col justify-start h-[340px] border-b sm:border-r border-[#E2E6ED] dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all">
                     <div className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 flex items-center justify-center text-[#5B6472] dark:text-gray-300 mb-4">
                         <CheckCircle size={16} />
                     </div>
@@ -528,7 +540,7 @@ export default function Attendance() {
                 </div>
 
                 {/* Card 3: Absents */}
-                <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 px-[18px] py-[16px] shadow-sm flex flex-col justify-start h-[340px]">
+                <div className="px-[18px] py-[16px] flex flex-col justify-start h-[340px] border-b lg:border-b-0 lg:border-r border-[#E2E6ED] dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all">
                     <div className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 flex items-center justify-center text-[#5B6472] dark:text-gray-300 mb-4">
                         <AlertCircle size={16} />
                     </div>
@@ -539,7 +551,7 @@ export default function Attendance() {
                 </div>
 
                 {/* Card 4: Late Marks */}
-                <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 px-[18px] py-[16px] shadow-sm flex flex-col justify-start h-[340px]">
+                <div className="px-[18px] py-[16px] flex flex-col justify-start h-[340px] border-b sm:border-b-0 sm:border-r border-[#E2E6ED] dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all">
                     <div className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 flex items-center justify-center text-[#5B6472] dark:text-gray-300 mb-4">
                         <Clock size={16} />
                     </div>
@@ -550,7 +562,7 @@ export default function Attendance() {
                 </div>
 
                 {/* Card 5: Holidays */}
-                <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 px-[18px] py-[16px] shadow-sm flex flex-col justify-start h-[340px]">
+                <div className="px-[18px] py-[16px] flex flex-col justify-start h-[340px] hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all">
                     <div className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 flex items-center justify-center text-[#5B6472] dark:text-gray-300 mb-4">
                         <Calendar size={16} />
                     </div>
@@ -568,7 +580,7 @@ export default function Attendance() {
             </div>
 
             {/* Monthly Calendar View */}
-            <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 p-6 shadow-sm mb-6">
+            <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 p-6 mb-6">
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="flex items-center gap-[9px] text-[14.5px] font-semibold text-[#12151C] dark:text-white">
                         <Calendar size={16} className="text-[#9AA3B1]" /> Monthly Log
@@ -806,7 +818,7 @@ export default function Attendance() {
                                 <label className="block text-xs font-bold text-rose-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
                                     Manager's Rejection Reason
                                 </label>
-                                <div className="p-4 bg-rose-50/50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/20 rounded-[6px] text-sm text-rose-700 dark:text-rose-300 font-bold leading-relaxed shadow-sm">
+                                <div className="p-4 bg-rose-50/50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/20 rounded-[6px] text-sm text-rose-700 dark:text-rose-300 font-bold leading-relaxed">
                                     <div className="max-h-[120px] overflow-y-auto custom-scrollbar break-words pr-2">
                                         {rejectedRequestToShow.approverComment || 'No comment provided.'}
                                     </div>
@@ -873,7 +885,7 @@ export default function Attendance() {
                                 <label className="block text-xs font-bold text-rose-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
                                     Manager's Rejection Reason
                                 </label>
-                                <div className="p-4 bg-rose-50/50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/20 rounded-[6px] text-sm text-rose-700 dark:text-rose-300 font-bold leading-relaxed shadow-sm">
+                                <div className="p-4 bg-rose-50/50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/20 rounded-[6px] text-sm text-rose-700 dark:text-rose-300 font-bold leading-relaxed">
                                     <div className="max-h-[120px] overflow-y-auto custom-scrollbar break-words pr-2">
                                         {rejectedLeaveToShow.rejectionReason || 'No comment provided.'}
                                     </div>

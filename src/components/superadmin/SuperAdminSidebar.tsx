@@ -75,20 +75,32 @@ export const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
         `}
       >
         {/* Logo Section */}
-        <div className={`p-5 flex items-center gap-3 ${isCollapsed ? "justify-center" : ""}`}>
-          <div className="w-8 h-8 bg-[#2C4FD6] rounded-[6px] flex items-center justify-center text-white font-bold text-base shadow-sm shrink-0">
-            O
+        <div className={`p-4 py-5 flex items-center ${isCollapsed ? "flex-col gap-3 justify-center" : "justify-between"}`}>
+          <div className="flex items-center gap-3 min-w-0">
+            <img
+              src="/logo.png"
+              alt="OmniHR Logo"
+              className="w-8 h-8 object-contain rounded-[6px] shrink-0"
+            />
+            {!isCollapsed && (
+              <div className="flex flex-col min-w-0">
+                <span className="text-[17px] font-extrabold tracking-tight text-[#12151C] dark:text-white truncate">
+                  Omni<span className="text-[#2C4FD6]">HR</span>
+                </span>
+                <span className="text-[10px] font-semibold text-[#2C4FD6] uppercase tracking-wider -mt-0.5">
+                  Super Admin
+                </span>
+              </div>
+            )}
           </div>
-          {!isCollapsed && (
-            <div className="flex flex-col min-w-0">
-              <span className="text-[16px] font-semibold tracking-[-0.01em] text-[#12151C] dark:text-white">
-                OmniHR
-              </span>
-              <span className="text-[10px] font-semibold text-[#2C4FD6] uppercase tracking-wider -mt-0.5">
-                Super Admin
-              </span>
-            </div>
-          )}
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            title={isCollapsed ? "Expand sidebar" : "Minimize sidebar"}
+            className="w-7 h-7 rounded-[6px] flex items-center justify-center text-[#5B6472] dark:text-gray-400 hover:text-[#2C4FD6] dark:hover:text-white hover:bg-white/80 dark:hover:bg-white/10 transition-all cursor-pointer border border-transparent hover:border-[#E2E6ED] dark:hover:border-gray-700"
+          >
+            {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          </button>
         </div>
 
         {/* Navigation Items */}
