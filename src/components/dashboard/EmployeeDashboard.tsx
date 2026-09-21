@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Clock, Calendar, History, LogIn, LogOut, Loader2, CheckCircle2, TrendingUp, BarChart2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useNavigate } from 'react-router-dom';
@@ -16,55 +16,55 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
     const [holidays, setHolidays] = useState<any[]>([]);
     const [isPunching, setIsPunching] = useState(false);
 
-    useEffect(() => {
-        const fetchEmployeeData = async () => {
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = now.getMonth() + 1;
+    const fetchEmployeeData = useCallback(async () => {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth() + 1;
 
-            try {
-                // Fetch each resource individually to handle partial failures
-                const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-                const reqs: Promise<any>[] = [
-                    api.get('/attendance/status'),
-                    api.get('/leave/balances'),
-                    api.get(`/attendance/history?year=${year}&month=${month}`),
-                    api.get('/masters/holidays')
-                ];
+        try {
+            // Fetch each resource individually to handle partial failures
+            const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            const reqs: Promise<any>[] = [
+                api.get('/attendance/status'),
+                api.get('/leave/balances'),
+                api.get(`/attendance/history?year=${year}&month=${month}`),
+                api.get('/masters/holidays')
+            ];
 
-                // If in first 7 days of month, fetch previous month too so 7-day chart has real data
-                if (now.getDate() <= 7) {
-                    reqs.push(api.get(`/attendance/history?year=${prevMonthDate.getFullYear()}&month=${prevMonthDate.getMonth() + 1}`));
-                }
-
-                const results = await Promise.allSettled(reqs);
-
-                if (results[0].status === 'fulfilled') setPunchStatus(results[0].value.data);
-                if (results[1].status === 'fulfilled') setLeaveBalances(results[1].value.data);
-
-                let allAttendance: any[] = [];
-                if (results[2].status === 'fulfilled' && Array.isArray(results[2].value.data)) {
-                    allAttendance = [...results[2].value.data];
-                }
-                if (results[4] && results[4].status === 'fulfilled' && Array.isArray(results[4].value.data)) {
-                    allAttendance = [...results[4].value.data, ...allAttendance];
-                }
-
-                setMonthlyAttendance(allAttendance);
-                setRecentAttendance(allAttendance.slice(-5).reverse());
-
-                if (results[3].status === 'fulfilled') setHolidays(results[3].value.data);
-
-            } catch (error) {
-                console.error("Failed to fetch employee dashboard data:", error);
-                toast.error("Some dashboard data failed to load");
-            } finally {
-                setLoading(false);
+            // If in first 7 days of month, fetch previous month too so 7-day chart has real data
+            if (now.getDate() <= 7) {
+                reqs.push(api.get(`/attendance/history?year=${prevMonthDate.getFullYear()}&month=${prevMonthDate.getMonth() + 1}`));
             }
-        };
 
-        fetchEmployeeData();
+            const results = await Promise.allSettled(reqs);
+
+            if (results[0].status === 'fulfilled') setPunchStatus(results[0].value.data);
+            if (results[1].status === 'fulfilled') setLeaveBalances(results[1].value.data);
+
+            let allAttendance: any[] = [];
+            if (results[2].status === 'fulfilled' && Array.isArray(results[2].value.data)) {
+                allAttendance = [...results[2].value.data];
+            }
+            if (results[4] && results[4].status === 'fulfilled' && Array.isArray(results[4].value.data)) {
+                allAttendance = [...results[4].value.data, ...allAttendance];
+            }
+
+            setMonthlyAttendance(allAttendance);
+            setRecentAttendance(allAttendance.slice(-5).reverse());
+
+            if (results[3].status === 'fulfilled') setHolidays(results[3].value.data);
+
+        } catch (error) {
+            console.error("Failed to fetch employee dashboard data:", error);
+            toast.error("Some dashboard data failed to load");
+        } finally {
+            setLoading(false);
+        }
     }, []);
+
+    useEffect(() => {
+        fetchEmployeeData();
+    }, [fetchEmployeeData]);
 
     // Listen to global punch-in updates from PunchInPromptModal or other tabs
     useEffect(() => {
@@ -73,7 +73,7 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
         };
         window.addEventListener('punch-updated', onPunchUpdated);
         return () => window.removeEventListener('punch-updated', onPunchUpdated);
-    }, []);
+    }, [fetchEmployeeData]);
 
     const handlePunch = async () => {
         if (isPunching) return;
