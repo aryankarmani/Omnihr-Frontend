@@ -645,31 +645,21 @@ export default function Leave() {
                             const today = new Date();
                             today.setHours(0, 0, 0, 0);
 
-                            const defaultHolidays = [
-                                { name: 'Gandhi Jayanti', date: '2026-10-02' },
-                                { name: 'Dussehra', date: '2026-10-20' },
-                                { name: 'Diwali', date: '2026-11-08' },
-                                { name: 'Guru Nanak Jayanti', date: '2026-11-24' },
-                                { name: 'Christmas Day', date: '2026-12-25' },
-                                { name: 'New Year Day', date: '2027-01-01' },
-                                { name: 'Republic Day', date: '2027-01-26' },
-                                { name: 'Maha Shivratri', date: '2027-03-06' },
-                                { name: 'Holi', date: '2027-03-22' },
-                                { name: 'Good Friday', date: '2027-03-26' },
-                                { name: 'Independence Day', date: '2027-08-15' }
-                            ];
-
-                            const combinedHolidays = [...(holidays || []), ...defaultHolidays];
-
-                            const nextHoliday = combinedHolidays
+                            const nextHoliday = (holidays || [])
                                 .filter(h => {
                                     const d = new Date(h.date);
+                                    d.setHours(0, 0, 0, 0);
                                     return !isNaN(d.getTime()) && d >= today;
                                 })
-                                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0] || {
-                                date: '2026-10-02',
-                                name: 'Gandhi Jayanti'
-                            };
+                                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
+
+                            if (!nextHoliday) {
+                                return (
+                                    <p className="text-xs text-[#9AA3B1] dark:text-gray-400 py-2 font-medium">
+                                        No upcoming holidays scheduled.
+                                    </p>
+                                );
+                            }
 
                             const hDate = new Date(nextHoliday.date);
                             return (
@@ -687,7 +677,7 @@ export default function Leave() {
                                             {nextHoliday.name}
                                         </div>
                                         <div className="holiday-sub text-[11.5px] text-[#9AA3B1] dark:text-gray-400 mt-[2px]">
-                                            Public holiday · all offices
+                                            {nextHoliday.type ? `${nextHoliday.type.toLowerCase()} holiday` : 'Public holiday · all offices'}
                                         </div>
                                     </div>
                                 </div>

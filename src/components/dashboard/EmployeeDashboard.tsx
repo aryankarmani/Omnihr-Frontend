@@ -62,12 +62,10 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
         }
     }, []);
 
+    // Initial fetch and listen to global punch-in updates from PunchInPromptModal or other tabs
     useEffect(() => {
         fetchEmployeeData();
-    }, [fetchEmployeeData]);
 
-    // Listen to global punch-in updates from PunchInPromptModal or other tabs
-    useEffect(() => {
         const onPunchUpdated = () => {
             fetchEmployeeData();
         };
@@ -274,7 +272,7 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
                                 <Calendar size={15} />
                             </div>
                         </div>
-                        <p className="text-[12px] text-[#9AA3B1] mb-1 font-medium">Remaining Balance</p>
+                        <p className="text-[12px] text-[#9AA3B1] mb-1 font-medium">Remaining </p>
                         <div className="kpi-num text-[24px] sm:text-[24px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight leading-none mb-1.5">
                             {totalLeaves} Days
                         </div>
@@ -458,10 +456,19 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
                                 </div>
                             </div>
                             <div className="text-right">
-                                <span className="px-3 py-1 bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 text-xs font-bold rounded-[6px]">
+                                <span className={`px-3 py-1 text-xs font-bold rounded-[6px] ${
+                                    log.status === 'Late'
+                                        ? 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400 border border-orange-200 dark:border-orange-800/30'
+                                        : log.status === 'Absent'
+                                            ? 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400 border border-red-200 dark:border-red-800/30'
+                                            : log.status === 'Half Day'
+                                                ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 border border-amber-200 dark:border-amber-800/30'
+                                                : log.status === 'Holiday'
+                                                    ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400 border border-purple-200 dark:border-purple-800/30'
+                                                    : 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400 border border-green-200 dark:border-green-800/30'
+                                }`}>
                                     {log.status || 'Present'}
                                 </span>
-                                
                             </div>
                         </div>
                     )) : (
