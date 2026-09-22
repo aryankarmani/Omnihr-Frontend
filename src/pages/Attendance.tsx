@@ -243,6 +243,13 @@ export default function Attendance() {
         const diffTime = today.getTime() - targetDate.getTime();
         const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
+        // Check if date is a weekend (Saturday / Sunday)
+        const dayOfWeek = targetDate.getDay();
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+            toast.error('Cannot apply for regularization on weekends (Saturday / Sunday)');
+            return;
+        }
+
         if (diffDays < 1) {
             toast.error('You can only regularize attendance for past dates.');
             return;
@@ -286,6 +293,12 @@ export default function Attendance() {
     };
 
     const handleOpenRegularize = (dateStr: string, log?: DailyLog) => {
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const targetDate = new Date(y, m - 1, d);
+        if (targetDate.getDay() === 0 || targetDate.getDay() === 6) {
+            toast.error('Cannot apply for regularization on weekends (Saturday / Sunday)');
+            return;
+        }
         setRegularizeDate(dateStr);
         setReason('');
         setCustomReason('');
@@ -343,6 +356,7 @@ export default function Attendance() {
 
             const targetDate = new Date(year, month, day);
             targetDate.setHours(0, 0, 0, 0);
+            const isWeekend = targetDate.getDay() === 0 || targetDate.getDay() === 6;
             const diffDays = Math.round((todayMidnight.getTime() - targetDate.getTime()) / (1000 * 60 * 60 * 24));
             const lookbackDays = attendancePolicy?.regularizationDays ?? 3;
 
@@ -358,6 +372,7 @@ export default function Attendance() {
             const needsRegularization = !isCleanPresent;
 
             const isEligibleForRegularize = isPastEligible &&
+                !isWeekend &&
                 !isBeforeJoining &&
                 !holiday &&
                 (!leave || leave.status !== 'APPROVED') &&
@@ -535,7 +550,7 @@ export default function Attendance() {
                     </div>
                     <div>
                         <div className="num text-[26px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight leading-none">{stats.present}</div>
-                        <p className="text-[12px] text-[#9AA3B1] mt-[2px]">Present Days</p>
+                        <p className="text-[12px] text-[#9AA3B1] mt-[2px]">Total Days Present</p>
                     </div>
                 </div>
 
@@ -546,7 +561,7 @@ export default function Attendance() {
                     </div>
                     <div>
                         <div className="num text-[26px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight leading-none">{stats.absent}</div>
-                        <p className="text-[12px] text-[#9AA3B1] mt-[2px]">Absents</p>
+                        <p className="text-[12px] text-[#9AA3B1] mt-[2px]">Total Days Absent</p>
                     </div>
                 </div>
 
@@ -557,7 +572,7 @@ export default function Attendance() {
                     </div>
                     <div>
                         <div className="num text-[26px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight leading-none">{stats.late}</div>
-                        <p className="text-[12px] text-[#9AA3B1] mt-[2px]">Late Marks</p>
+                        <p className="text-[12px] text-[#9AA3B1] mt-[2px]">Total Late Arrivals</p>
                     </div>
                 </div>
 
@@ -574,7 +589,7 @@ export default function Attendance() {
                                     hDate.getFullYear() === selectedMonth.getFullYear();
                             }).length}
                         </div>
-                        <p className="text-[12px] text-[#9AA3B1] mt-[2px]">Holidays</p>
+                        <p className="text-[12px] text-[#9AA3B1] mt-[2px]">Total Holidays</p>
                     </div>
                 </div>
             </div>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { useEffect } from 'react';
-import { Plus, MoreVertical, Briefcase, UserPlus, X, Trash2 } from 'lucide-react';
+import { Plus, MoreVertical, Briefcase, UserPlus, X, Trash2, Users, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
@@ -24,6 +24,7 @@ export default function Team() {
     // ✅ CHANGED: only HR admin can create/edit teams
     const canManageTeams = user?.role === 'HR_ADMIN';
     const [teams, setTeams] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
     const [menuOpen, setMenuOpen] = useState<number | null>(null);
@@ -115,11 +116,15 @@ export default function Team() {
         }
     };
     const fetchTeams = async () => {
+        setLoading(true);
         try {
             const res = await getTeams();
-            setTeams(res.data);
+            setTeams(Array.isArray(res.data) ? res.data : []);
         } catch (err) {
             console.log(err);
+            setTeams([]);
+        } finally {
+            setLoading(false);
         }
     };
     const saveTeamLog = async (
@@ -181,107 +186,148 @@ export default function Team() {
                 )}
             </div>
 
-            {/* Team Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                {teams.map((team) => {
-                    const managerName = team.manager ? (typeof team.manager === 'object' ? team.manager.name : team.manager) : 'Unassigned';
-                    const initials = managerName.split(' ').map((n: string) => n[0]).join('').substring(0, 2);
+            {/* Team Cards Grid or Empty State */}
+            {loading ? (
+                <div className="flex flex-col items-center justify-center py-24">
+                    <Loader2 className="animate-spin text-[#2C4FD6] mb-3" size={32} />
+                    <p className="text-xs text-[#9AA3B1] font-medium">Loading teams...</p>
+                </div>
+            ) : (() => {
+                const displayTeams = canManageTeams
+                    ? teams
+                    : teams.filter((team) => {
+                        const isManager = team.managerId === user?.id || team.manager?.id === user?.id;
+                        const isMember = team.members?.some((m: any) => m.id === user?.id);
+                        return isManager || isMember;
+                    });
 
-                    return (
-                        <div key={team.id} className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 p-6 hover:border-[#2C4FD6]/40 transition-all flex flex-col justify-between min-h-[230px] relative">
-                            <div>
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="w-[36px] h-[36px] rounded-[6px] bg-[#E8ECFC] text-[#2C4FD6] dark:bg-blue-950/40 dark:text-blue-400 flex items-center justify-center mb-[14px]">
-                                        <Briefcase size={16} />
-                                    </div>
-                                    <div className="relative">
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setMenuOpen(prev => prev === team.id ? null : team.id);
-                                            }}
-                                            className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors p-1 cursor-pointer"
-                                        >
-                                            <MoreVertical size={16} />
-                                        </button>
-                                        {menuOpen === team.id && (
-                                            <div
-                                                onClick={(e) => e.stopPropagation()}
-                                                className="absolute right-0 mt-1 w-36 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] overflow-hidden z-50">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setMenuOpen(null);
-                                                        setEditTeam(team);
-                                                    }}
-                                                    className="w-full text-left px-4 py-2 text-xs text-[#12151C] dark:text-gray-200 hover:bg-[#EEF1F5] dark:hover:bg-white/10 transition-all font-semibold cursor-pointer"
-                                                >
-                                                    Edit
-                                                </button>
-                                                <button
-                                                    onClick={async () => {
-                                                        setMenuOpen(null);
-                                                        setConfirmDelete(team.id);
-                                                    }}
-                                                    className="w-full text-left px-4 py-2 text-xs text-[#DE350B] dark:text-rose-400 hover:bg-[#FBE7E7] dark:hover:bg-rose-500/10 transition-all font-semibold border-b border-[#E2E6ED] dark:border-gray-800 cursor-pointer"
-                                                >
-                                                    Delete
-                                                </button>
-                                                {isAdmin && (
+                return displayTeams.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                        {displayTeams.map((team) => {
+                            const managerName = team.manager ? (typeof team.manager === 'object' ? team.manager.name : team.manager) : 'Unassigned';
+                            const initials = managerName.split(' ').map((n: string) => n[0]).join('').substring(0, 2);
+
+                            return (
+                                <div key={team.id} className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 p-6 hover:border-[#2C4FD6]/40 transition-all flex flex-col justify-between min-h-[230px] relative">
+                                    <div>
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div className="w-[36px] h-[36px] rounded-[6px] bg-[#E8ECFC] text-[#2C4FD6] dark:bg-blue-950/40 dark:text-blue-400 flex items-center justify-center mb-[14px]">
+                                                <Briefcase size={16} />
+                                            </div>
+                                            {canManageTeams && (
+                                                <div className="relative">
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            setMenuOpen(null);
-                                                            handleOpenAccessControl(team);
+                                                            setMenuOpen(prev => prev === team.id ? null : team.id);
                                                         }}
-                                                        className="w-full text-left px-4 py-2 text-xs text-[#2C4FD6] dark:text-blue-400 hover:bg-[#E8ECFC] dark:hover:bg-blue-500/10 transition-all font-semibold cursor-pointer"
+                                                        className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors p-1 cursor-pointer"
                                                     >
-                                                        Access Control
+                                                        <MoreVertical size={16} />
                                                     </button>
-                                                )}
+                                                    {menuOpen === team.id && (
+                                                        <div
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            className="absolute right-0 mt-1 w-36 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] overflow-hidden z-50">
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setMenuOpen(null);
+                                                                    setEditTeam(team);
+                                                                }}
+                                                                className="w-full text-left px-4 py-2 text-xs text-[#12151C] dark:text-gray-200 hover:bg-[#EEF1F5] dark:hover:bg-white/10 transition-all font-semibold cursor-pointer"
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                            <button
+                                                                onClick={async () => {
+                                                                    setMenuOpen(null);
+                                                                    setConfirmDelete(team.id);
+                                                                }}
+                                                                className="w-full text-left px-4 py-2 text-xs text-[#DE350B] dark:text-rose-400 hover:bg-[#FBE7E7] dark:hover:bg-rose-500/10 transition-all font-semibold border-b border-[#E2E6ED] dark:border-gray-800 cursor-pointer"
+                                                            >
+                                                                Delete
+                                                            </button>
+                                                            {isAdmin && (
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setMenuOpen(null);
+                                                                        handleOpenAccessControl(team);
+                                                                    }}
+                                                                    className="w-full text-left px-4 py-2 text-xs text-[#2C4FD6] dark:text-blue-400 hover:bg-[#E8ECFC] dark:hover:bg-blue-500/10 transition-all font-semibold cursor-pointer"
+                                                                >
+                                                                    Access Control
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <h3 className="text-base font-semibold text-[#12151C] dark:text-white mb-0.5">{team.name}</h3>
+                                        <p className="text-xs text-[#9AA3B1] dark:text-gray-400">
+                                            {team.description || 'No description provided'}
+                                        </p>
+
+                                        <div className="border-t border-[#E2E6ED] dark:border-gray-800 my-4"></div>
+
+                                        <div className="flex items-center gap-2.5 mb-4">
+                                            <div className="w-7 h-7 rounded-full bg-[#EEF1F5] dark:bg-gray-700 text-[#5B6472] dark:text-white font-mono-numbers font-bold text-[10px] flex items-center justify-center shrink-0 uppercase">
+                                                {initials}
                                             </div>
-                                        )}
-                                    </div>
-                                </div>
+                                            <div>
+                                                <div className="manager-role text-[10.5px] text-[#9AA3B1] dark:text-gray-400 uppercase tracking-[0.04em] leading-none mb-1">MANAGER</div>
+                                                <div className="manager-name text-[13px] font-semibold text-[#12151C] dark:text-white leading-none">
+                                                    {managerName}
+                                                </div>
+                                            </div>
+                                        </div>
 
-                                <h3 className="text-base font-semibold text-[#12151C] dark:text-white mb-0.5">{team.name}</h3>
-                                <p className="text-xs text-[#9AA3B1] dark:text-gray-400">
-                                    {team.description || 'No description provided'}
-                                </p>
-
-                                <div className="border-t border-[#E2E6ED] dark:border-gray-800 my-4"></div>
-
-                                <div className="flex items-center gap-2.5 mb-4">
-                                    <div className="w-7 h-7 rounded-full bg-[#EEF1F5] dark:bg-gray-700 text-[#5B6472] dark:text-white font-mono-numbers font-bold text-[10px] flex items-center justify-center shrink-0 uppercase">
-                                        {initials}
-                                    </div>
-                                    <div>
-                                        <div className="manager-role text-[10.5px] text-[#9AA3B1] dark:text-gray-400 uppercase tracking-[0.04em] leading-none mb-1">MANAGER</div>
-                                        <div className="manager-name text-[13px] font-semibold text-[#12151C] dark:text-white leading-none">
-                                            {managerName}
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[12.5px] text-[#5B6472] dark:text-gray-300">
+                                                {team.members ? team.members.length : 0} Members
+                                            </span>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setSelectedTeam(team.id);
+                                                }}
+                                                className="text-[12.5px] font-semibold text-[#2C4FD6] dark:text-blue-400 hover:underline cursor-pointer"
+                                            >
+                                                View Members
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
-
-                                <div className="flex items-center justify-between">
-                                    <span className="text-[12.5px] text-[#5B6472] dark:text-gray-300">
-                                        {team.members ? team.members.length : 0} Members
-                                    </span>
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setSelectedTeam(team.id);
-                                        }}
-                                        className="text-[12.5px] font-semibold text-[#2C4FD6] dark:text-blue-400 hover:underline cursor-pointer"
-                                    >
-                                        View Members
-                                    </button>
-                                </div>
-                            </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 p-8 sm:p-12 text-center flex flex-col items-center justify-center max-w-lg mx-auto my-10 shadow-sm">
+                        <div className="w-16 h-16 rounded-full bg-[#EEF1F5] dark:bg-gray-800 text-[#5B6472] dark:text-gray-300 flex items-center justify-center mb-4">
+                            <Users size={28} className="text-[#9AA3B1] dark:text-gray-400" />
                         </div>
-                    );
-                })}
-            </div>
+                        <h3 className="text-lg font-bold text-[#12151C] dark:text-white mb-2">
+                            {canManageTeams ? 'No Teams Created Yet' : 'No Team Assigned'}
+                        </h3>
+                        <p className="text-sm text-[#5B6472] dark:text-gray-400 max-w-sm mb-6 leading-relaxed">
+                            {canManageTeams
+                                ? 'No teams have been created yet. Click below to create your organization’s first team.'
+                                : 'You have not been assigned to any team yet. Please contact your administrator or HR manager to be assigned to a team.'}
+                        </p>
+                        {canManageTeams && (
+                            <button
+                                onClick={() => setShowCreateModal(true)}
+                                className="btn btn-primary inline-flex items-center justify-center gap-2 bg-[#2C4FD6] hover:bg-[#203FB4] text-white text-[13.5px] font-semibold rounded-[6px] px-4 py-2.5 active:scale-95 transition-all cursor-pointer"
+                            >
+                                <Plus size={16} /> Create New Team
+                            </button>
+                        )}
+                    </div>
+                );
+            })()}
             {showAddMemberModal && createPortal(
                 <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-slate-900/20 dark:bg-black/60 backdrop-blur-md p-4">
                     <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 w-full max-w-lg overflow-hidden animate-scale-in">
