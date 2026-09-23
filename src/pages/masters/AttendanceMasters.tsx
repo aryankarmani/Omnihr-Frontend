@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import api from '../../utils/api';
 
 export default function AttendanceMasters() {
-    const [activeTab, setActiveTab] = useState('shifts');
+    const [activeTab, setActiveTab] = useState<'SHIFTS' | 'HOLIDAYS' | 'POLICY'>('SHIFTS');
     const [shifts, setShifts] = useState<any[]>([]);
     const [holidays, setHolidays] = useState<any[]>([]);
     const [policy, setPolicy] = useState<any>({});
@@ -21,12 +21,9 @@ export default function AttendanceMasters() {
     });
 
     useEffect(() => {
-        if (activeTab === 'shifts') fetchShifts();
-        if (activeTab === 'policy') fetchPolicy();
-        if (activeTab === 'holidays') fetchHolidays();
-        if (activeTab === 'sandwich') {
-            console.log('Sandwich Rule Tab Opened');
-        }
+        if (activeTab === 'SHIFTS') fetchShifts();
+        if (activeTab === 'POLICY') fetchPolicy();
+        if (activeTab === 'HOLIDAYS') fetchHolidays();
     }, [activeTab]);
 
     const fetchShifts = () => api.get('/masters/shifts').then(r => setShifts(r.data));
@@ -114,8 +111,7 @@ export default function AttendanceMasters() {
                 {[
                     { id: 'SHIFTS', label: 'Work Shifts', icon: Clock },
                     { id: 'HOLIDAYS', label: 'Holiday Calendar', icon: Calendar },
-                    { id: 'POLICY', label: 'Attendance Rules', icon: Sliders },
-                    { id: 'WEEKOFFS', label: 'Week Off Policy', icon: Sliders }
+                    { id: 'POLICY', label: 'Attendance Rules', icon: Sliders }
                 ].map((tab) => (
                     <button
                         key={tab.id}
@@ -241,44 +237,6 @@ export default function AttendanceMasters() {
                                         <div><label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">OT Rate Multiplier</label><input type="number" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white text-sm outline-none focus:border-[#2C4FD6]" value={policy.otRate || 2} onChange={e => setPolicy({ ...policy, otRate: parseFloat(e.target.value) })} /></div>
                                     </div>
                                 )}
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {activeTab === 'WEEKOFFS' && (
-                    <div className="space-y-6 max-w-2xl">
-                        <div className="flex justify-between items-center pb-4 border-b border-[#E2E6ED] dark:border-gray-800">
-                            <div>
-                                <h3 className="text-base font-bold text-[#12151C] dark:text-white">Week Off Policy</h3>
-                                <p className="text-xs text-[#5B6472] dark:text-gray-400">Configure weekly days off for your organization.</p>
-                            </div>
-                            <button onClick={savePolicy} disabled={loading} className="inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[13.5px] font-semibold px-[15px] py-[9px] transition-all cursor-pointer">
-                                {loading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Save Week Offs
-                            </button>
-                        </div>
-                        <div className="bg-white dark:bg-[#12151C] p-6 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 space-y-6">
-                            <div className="space-y-3">
-                                {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day, idx) => (
-                                    <div key={day} className="flex items-center justify-between p-3 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px]">
-                                        <span className="text-sm font-semibold text-[#12151C] dark:text-white">{day}</span>
-                                        <label className="flex items-center gap-2 cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                className="w-4 h-4 rounded accent-[#2C4FD6]"
-                                                checked={policy.weekOffs ? policy.weekOffs.includes(idx) : idx === 0}
-                                                onChange={(e) => {
-                                                    const current = policy.weekOffs || [0];
-                                                    const updated = e.target.checked
-                                                        ? [...current, idx]
-                                                        : current.filter((d: number) => d !== idx);
-                                                    setPolicy({ ...policy, weekOffs: updated });
-                                                }}
-                                            />
-                                            <span className="text-xs text-[#5B6472] dark:text-gray-400">Week Off</span>
-                                        </label>
-                                    </div>
-                                ))}
                             </div>
                         </div>
                     </div>

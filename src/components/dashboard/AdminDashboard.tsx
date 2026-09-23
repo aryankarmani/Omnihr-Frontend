@@ -384,7 +384,7 @@ export default function AdminDashboard({
                                 .filter((emp) => emp.status !== 'Inactive' && emp.status?.toLowerCase() !== 'inactive')
                                 .slice(0, 8)
                                 .map((emp) => {
-                                    const attendancePct = emp.attendancePercentage !== undefined ? emp.attendancePercentage : null;
+                                    const attendancePct = emp.attendancePercentage !== undefined && emp.attendancePercentage !== null ? emp.attendancePercentage : null;
                                     const roleTitle = emp.role ? emp.role.replace('_', ' ') : 'Staff';
                                     const roleSub = emp.department || emp.designation || 'Team Member';
 
@@ -418,7 +418,7 @@ export default function AdminDashboard({
                                             </td>
                                             <td className="py-[13px] px-[22px] text-right">
                                                 <span className="font-semibold font-mono-numbers text-[13.5px] text-[#12151C] dark:text-white">
-                                                    {attendancePct !== null ? `${attendancePct}%` : '100%'}
+                                                    {attendancePct !== null ? `${attendancePct}%` : '0%'}
                                                 </span>
                                             </td>
                                         </tr>
