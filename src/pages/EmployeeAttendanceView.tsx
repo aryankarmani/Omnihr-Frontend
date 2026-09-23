@@ -1,4 +1,3 @@
- 
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -6,13 +5,10 @@ import {
   Clock,
   AlertCircle,
   CheckCircle,
-  Coffee,
   ChevronLeft,
   ChevronRight,
   Loader2,
   ArrowLeft,
-  LogIn,
-  LogOut,
   User
 } from 'lucide-react';
 
@@ -50,13 +46,24 @@ export default function EmployeeAttendanceView() {
   });
   const [joiningDate, setJoiningDate] = useState<Date | null>(null);
   const [holidays, setHolidays] = useState<any[]>([]);
-  const [setBackendStats] = useState<any>(null);
-
+  const [leaves, setLeaves] = useState<any[]>([]);
   const [attendanceHistory, setAttendanceHistory] = useState<DailyLog[]>([]);
 
-  // ✅ Reset stale data immediately when employee changes
+  const formatTime12h = (isoString?: string | null) => {
+    if (!isoString) return '--:--';
+    try {
+      const date = new Date(isoString);
+      if (isNaN(date.getTime())) return '--:--';
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+    } catch {
+      return '--:--';
+    }
+  };
+
+  // Reset stale data immediately when employee changes
   useEffect(() => {
     setAttendanceHistory([]);
+    setLeaves([]);
     setStats({ present: 0, absent: 0, late: 0, holiday: 0 });
     setEmployeeName('');
     setJoiningDate(null);
@@ -77,16 +84,21 @@ export default function EmployeeAttendanceView() {
         const historyData: DailyLog[] = res.data;
         setAttendanceHistory(historyData);
 
-        // Fetch backend stats (for missedCheckinCount)
+        // Fetch leaves
+        let leavesData: any[] = [];
         try {
-          const statsRes = await api.get(`/attendance/stats?employeeId=${id}&year=${year}&month=${month}`);
-          setBackendStats(statsRes.data);
-        } catch { console.log("Stats API not fully ready"); }
+          const leavesRes = await api.get(`/leave/history?employeeId=${id}`);
+          leavesData = Array.isArray(leavesRes.data) ? leavesRes.data : [];
+          setLeaves(leavesData);
+        } catch {
+          setLeaves([]);
+        }
 
         // Fetch holidays
         const holidayRes = await api.get('/masters/holidays');
         setHolidays(holidayRes.data);
         const holidayData = holidayRes.data;
+
         let effectiveJoiningDate = joiningDate;
         try {
           const empRes = await api.get(`/employee/${id}`);
@@ -106,7 +118,7 @@ export default function EmployeeAttendanceView() {
         const today = new Date();
         const isCurrentMonth =
           today.getFullYear() === year && today.getMonth() + 1 === month;
-        const endDay = isCurrentMonth ? today.getDate() : daysInMonth;
+        const endDay = isCurrentMonth ? Math.min(today.getDate() - 1, daysInMonth) : daysInMonth;
 
         for (let d = 1; d <= endDay; d++) {
           const currentLoopDate = new Date(year, month - 1, d);
@@ -123,6 +135,12 @@ export default function EmployeeAttendanceView() {
           const isWeekend =
             currentLoopDate.getDay() === 0 ||
             currentLoopDate.getDay() === 6;
+          const isApprovedLeave = leavesData.some((l: any) => {
+            if (l.status !== 'APPROVED') return false;
+            const s = l.startDate ? l.startDate.split('T')[0] : '';
+            const e = l.endDate ? l.endDate.split('T')[0] : '';
+            return dateStr >= s && dateStr <= e;
+          });
 
           if (isHoliday) {
             newStats.holiday++;
@@ -137,10 +155,7 @@ export default function EmployeeAttendanceView() {
             } else if (log.status === 'Holiday') {
               newStats.holiday++;
             }
-          } else if (
-            !isWeekend &&
-            !(isCurrentMonth && d === today.getDate())
-          ) {
+          } else if (!isWeekend && !isApprovedLeave) {
             newStats.absent++;
           }
         }
@@ -156,25 +171,6 @@ export default function EmployeeAttendanceView() {
     fetchHistory();
   }, [id, selectedMonth]);
 
-
-
-  const getStatusColor = (status: AttendanceStatus) => {
-    switch (status) {
-      case 'Present':
-        return 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300';
-      case 'Absent':
-        return 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300';
-      case 'Late':
-        return 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300';
-      case 'Holiday':
-        return 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300';
-      case 'Weekend':
-        return 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400';
-      default:
-        return 'bg-gray-100 text-gray-700';
-    }
-  };
-
   const generateCalendarDays = () => {
     const year = selectedMonth.getFullYear();
     const month = selectedMonth.getMonth();
@@ -184,12 +180,13 @@ export default function EmployeeAttendanceView() {
     const startingDayOfWeek = firstDay.getDay();
 
     const days = [];
+
     // Empty slots for days before the 1st
     for (let i = 0; i < startingDayOfWeek; i++) {
       days.push(
         <div
           key={`empty-${i}`}
-          className="h-24 bg-gray-50/50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-[6px]"
+          className="cal-day aspect-square rounded-[6px] bg-transparent"
         />
       );
     }
@@ -198,80 +195,118 @@ export default function EmployeeAttendanceView() {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const log = attendanceHistory.find((d) => d.date === dateStr);
       const holiday = holidays.find(h => h.date.split('T')[0] === dateStr);
+      const leave = leaves.find(l => {
+        const s = l.startDate ? l.startDate.split('T')[0] : '';
+        const e = l.endDate ? l.endDate.split('T')[0] : '';
+        return dateStr >= s && dateStr <= e;
+      });
+
       const currentLoopDate = new Date(year, month, day);
+      currentLoopDate.setHours(0, 0, 0, 0);
+      const todayMidnight = new Date();
+      todayMidnight.setHours(0, 0, 0, 0);
+      const isPastDay = currentLoopDate < todayMidnight;
       const isWeekend = currentLoopDate.getDay() === 0 || currentLoopDate.getDay() === 6;
       const isBeforeJoining = joiningDate && currentLoopDate < new Date(new Date(joiningDate).setHours(0, 0, 0, 0));
+      const isApprovedLeave = !isBeforeJoining && leave && leave.status === 'APPROVED';
+      const isAbsent = !isBeforeJoining && isPastDay && !isWeekend && !holiday && !isApprovedLeave && (!log || log.status === 'Absent');
 
-      const displayStatus: AttendanceStatus = log
-        ? log.status
-        : holiday
-          ? 'Holiday'
-          : isWeekend
-            ? 'Weekend'
-            : isBeforeJoining
-              ? 'Weekend'
-              : 'Absent';
+      // Check if day has any activity
+      const hasActivity = log || holiday || isApprovedLeave || isAbsent;
 
-      const statusLabel = isBeforeJoining ? '-' : (holiday ? 'Holiday' : displayStatus);
-      const isToday =
-        day === new Date().getDate() &&
-        month === new Date().getMonth() &&
-        year === new Date().getFullYear();
+      // Empty day with no data - keep original clean minimal look with no border or box
+      if (!hasActivity) {
+        days.push(
+          <div
+            key={day}
+            className="cal-day aspect-square rounded-[6px] bg-transparent flex items-center justify-center text-center transition-all"
+          >
+            <span className="font-mono font-bold text-[12.5px] text-[#9AA3B1]">{day}</span>
+          </div>
+        );
+        continue;
+      }
+
+      // Color rules matching Attendance page design
+      let containerBg = 'bg-transparent';
+      let textColor = 'text-[#9AA3B1]';
+
+      if (holiday) {
+        containerBg = 'bg-purple-50 dark:bg-purple-900/20';
+        textColor = 'text-purple-700 dark:text-purple-300';
+      } else if (log && (log.status === 'Present' || log.status === 'Late' || log.status === 'Half Day')) {
+        containerBg = 'bg-[#E4F5EC] dark:bg-green-950/30';
+        textColor = 'text-[#1F8A5A] dark:text-green-400';
+      } else if (isApprovedLeave) {
+        containerBg = 'bg-[#E8ECFC] dark:bg-blue-950/30';
+        textColor = 'text-[#2C4FD6] dark:text-blue-400';
+      } else if (isAbsent) {
+        containerBg = 'bg-[#FBE7E7] dark:bg-red-950/30';
+        textColor = 'text-[#C13A3A] dark:text-red-400';
+      }
 
       days.push(
         <div
           key={day}
-          className={`h-24 p-2 rounded-[6px] border transition-shadow hover:shadow-md cursor-pointer ${isToday
-            ? 'border-brand-500 ring-2 ring-brand-500 shadow-[0_0_15px_rgba(124,58,237,0.2)] z-10'
-            : 'border-gray-100 dark:border-white/10'
-            } ${holiday ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200' : 'bg-white dark:bg-brand-800'}`}
+          className={`cal-day aspect-square rounded-[6px] ${containerBg} p-1.5 sm:p-2 flex flex-col justify-between transition-all relative`}
         >
-          {/* Day number + Status badge */}
-          <div className="flex justify-between items-start">
-            <span
-              className={`text-sm font-semibold ${isToday
-                ? 'text-brand-600 dark:text-brand-400'
-                : 'text-gray-700 dark:text-gray-300'
-                }`}
-            >
+          {/* Top row: Day number and status badge */}
+          <div className="flex items-start justify-between h-5 sm:h-6 shrink-0">
+            <span className={`font-mono font-bold text-[12.5px] sm:text-[13.5px] leading-none pt-0.5 ${textColor}`}>
               {day}
             </span>
-            <span
-              className={`text-[10px] px-1.5 py-0.5 rounded-full ${holiday ? 'bg-purple-100 text-purple-700' : getStatusColor(displayStatus)}`}
-            >
-              {statusLabel}
-            </span>
+            <div className="flex items-start">
+              {holiday ? (
+                <span className="px-1.5 py-0.5 rounded-[3px] text-[8.5px] sm:text-[9.5px] font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800 leading-none inline-block">
+                  Holiday
+                </span>
+              ) : isApprovedLeave ? (
+                <span className="px-1.5 py-0.5 rounded-[3px] text-[8.5px] sm:text-[9.5px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800 leading-none inline-block">
+                  Leave
+                </span>
+              ) : isAbsent ? (
+                <span className="px-1.5 py-0.5 rounded-[3px] text-[8.5px] sm:text-[9.5px] font-medium bg-[#FBE7E7] text-[#C13A3A] dark:bg-red-900/40 dark:text-red-300 border border-red-200 dark:border-red-800 leading-none inline-block">
+                  Absent
+                </span>
+              ) : null}
+            </div>
           </div>
 
-          {holiday && (
-            <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-1 rounded-[6px] truncate w-full block text-center mt-1 font-bold">
-              {holiday.name}
-            </span>
-          )}
+          {/* Middle row: Punch In & Out times centered consistently across all cards */}
+          <div className="space-y-0.5 text-left flex-1 flex flex-col justify-center my-auto">
+            {holiday && !log?.inTime ? (
+              <div className="text-[10px] sm:text-[11.5px] font-semibold text-purple-700 dark:text-purple-300 leading-snug line-clamp-2" title={holiday.name}>
+                {holiday.name}
+              </div>
+            ) : null}
 
-          {/* Punch times */}
-          {log && log.inTime && (
-            <div className="mt-2 space-y-1">
-              <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
-                <LogIn size={10} />
-                {new Date(log.inTime).toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  hour12: true
-                })}
+            {log?.inTime ? (
+              <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-medium text-[#16A34A] dark:text-green-400 font-mono-numbers leading-tight truncate">
+                <Clock size={10} className="text-[#16A34A] shrink-0" />
+                <span>{formatTime12h(log.inTime).toLowerCase()}</span>
               </div>
-              <div className="flex items-center gap-1 text-xs text-red-500 dark:text-red-400">
-                <LogOut size={10} />
-                {log.outTime
-                  ? new Date(log.outTime).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: true
-                  })
-                  : '--:--'}
+            ) : null}
+            {log?.outTime ? (
+              <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-medium text-[#DC2626] dark:text-red-400 font-mono-numbers leading-tight truncate">
+                <Clock size={10} className="text-[#DC2626] shrink-0" />
+                <span>{formatTime12h(log.outTime).toLowerCase()}</span>
               </div>
-            </div>
-          )}
+            ) : log?.inTime ? (
+              <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-medium text-[#DC2626] dark:text-red-400 font-mono-numbers leading-tight truncate">
+                <Clock size={10} className="text-[#DC2626] shrink-0" />
+                <span>--:--</span>
+              </div>
+            ) : null}
+          </div>
+
+          {/* Bottom row: Holiday label if any, or placeholder */}
+          <div className="flex justify-end items-center h-5 shrink-0">
+            {holiday && (
+              <span className="text-[8.5px] sm:text-[9.5px] text-purple-700 dark:text-purple-300 font-medium truncate max-w-full">
+                {holiday.name}
+              </span>
+            )}
+          </div>
         </div>
       );
     }
@@ -286,23 +321,21 @@ export default function EmployeeAttendanceView() {
   return (
     <div className="animate-fade-in-up pb-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate(-1)}
-            className="p-2 bg-white dark:bg-brand-900 border border-gray-100 dark:border-white/10 rounded-[6px] hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
-          >
-            <ArrowLeft size={20} className="text-gray-600 dark:text-gray-300" />
-          </button>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-              <User size={22} className="text-brand-500" />
-              {employeeName || `Employee #${id}`}
-            </h2>
-            <p className="text-gray-500 dark:text-gray-400">
-              Employee Attendance Overview
-            </p>
-          </div>
+      <div className="flex items-center gap-3 mb-6">
+        <button
+          onClick={() => navigate(-1)}
+          className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] flex items-center justify-center text-[#5B6472] hover:text-[#12151C] dark:text-gray-400 dark:hover:text-white hover:bg-[#F7F8FA] dark:hover:bg-gray-800 transition-colors cursor-pointer shrink-0"
+        >
+          <ArrowLeft size={16} />
+        </button>
+        <div>
+          <h2 className="text-lg font-bold text-[#12151C] dark:text-white flex items-center gap-2 leading-tight">
+            <User size={18} className="text-[#2C4FD6]" />
+            {employeeName || `Employee #${id}`}
+          </h2>
+          <p className="text-xs text-[#5B6472] dark:text-gray-400 mt-0.5">
+            Employee Attendance Overview
+          </p>
         </div>
       </div>
 
@@ -317,7 +350,7 @@ export default function EmployeeAttendanceView() {
             <div className="num text-[26px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight leading-none">
               {stats.present}
             </div>
-            <p className="text-[12px] text-[#9AA3B1] mt-[2px]">Present Days</p>
+            <p className="text-[12px] text-[#9AA3B1] mt-[2px]">Total Days Present</p>
           </div>
         </div>
 
@@ -330,7 +363,7 @@ export default function EmployeeAttendanceView() {
             <div className="num text-[26px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight leading-none">
               {stats.absent}
             </div>
-            <p className="text-[12px] text-[#9AA3B1] mt-[2px]">Absents</p>
+            <p className="text-[12px] text-[#9AA3B1] mt-[2px]">Total Days Absent</p>
           </div>
         </div>
 
@@ -343,7 +376,7 @@ export default function EmployeeAttendanceView() {
             <div className="num text-[26px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight leading-none">
               {stats.late}
             </div>
-            <p className="text-[12px] text-[#9AA3B1] mt-[2px]">Late Marks</p>
+            <p className="text-[12px] text-[#9AA3B1] mt-[2px]">Total Late Marks</p>
           </div>
         </div>
 
@@ -360,73 +393,71 @@ export default function EmployeeAttendanceView() {
                   hDate.getFullYear() === selectedMonth.getFullYear();
               }).length}
             </div>
-            <p className="text-[12px] text-[#9AA3B1] mt-[2px]">Holidays</p>
+            <p className="text-[12px] text-[#9AA3B1] mt-[2px]">Total Holidays</p>
           </div>
         </div>
       </div>
 
-      {/* Monthly Calendar */}
-      <div className="bg-white dark:bg-[#12151C] rounded-[6px] p-6 border border-[#E2E6ED] dark:border-gray-800 mb-6">
+      {/* Monthly Calendar View */}
+      <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 p-6 mb-6">
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
-            <Calendar size={20} className="text-brand-500" /> Monthly Log
+          <h3 className="flex items-center gap-[9px] text-[14.5px] font-semibold text-[#12151C] dark:text-white">
+            <Calendar size={16} className="text-[#9AA3B1]" /> Monthly Log
           </h3>
-
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-4 bg-gray-50 dark:bg-white/5 p-1 rounded-[6px]">
-              <button
-                onClick={() =>
-                  setSelectedMonth(
-                    new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() - 1, 1)
-                  )
-                }
-                className="p-2 hover:bg-white dark:hover:bg-white/10 rounded-[6px] transition-colors"
-              >
-                <ChevronLeft size={20} />
-              </button>
-              <span className="font-bold w-36 text-center select-none text-gray-700 dark:text-white">
-                {selectedMonth.toLocaleDateString('en-US', {
-                  month: 'long',
-                  year: 'numeric'
-                })}
-              </span>
-              <button
-                onClick={() =>
-                  setSelectedMonth(
-                    new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 1)
-                  )
-                }
-                className="p-2 hover:bg-white dark:hover:bg-white/10 rounded-[6px] transition-colors"
-              >
-                <ChevronRight size={20} />
-              </button>
-            </div>
+          <div className="flex items-center gap-[14px] text-[13.5px] font-semibold text-[#5B6472] dark:text-gray-300">
+            <button
+              onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() - 1, 1))}
+              className="p-1 text-[#5B6472] hover:bg-[#EEF1F5] dark:hover:bg-gray-800 rounded-[6px] transition-colors cursor-pointer"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <span className="font-semibold text-[13.5px] text-[#12151C] dark:text-white font-mono-numbers select-none">
+              {selectedMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+            </span>
+            <button
+              onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 1))}
+              className="p-1 text-[#5B6472] hover:bg-[#EEF1F5] dark:hover:bg-gray-800 rounded-[6px] transition-colors cursor-pointer"
+            >
+              <ChevronRight size={16} />
+            </button>
           </div>
         </div>
 
-        {/* Weekday headers */}
-        <div className="grid grid-cols-7 gap-px mb-2 text-center">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-            <div
-              key={day}
-              className="text-xs font-bold text-gray-400 uppercase py-2"
-            >
+        {/* Weekday Headers */}
+        <div className="grid grid-cols-7 gap-1 sm:gap-3 md:gap-4 mb-4 text-center">
+          {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map(day => (
+            <div key={day} className="text-center text-[10.5px] font-semibold text-[#9AA3B1] uppercase tracking-[.05em] pb-[6px] truncate">
               {day}
             </div>
           ))}
         </div>
 
-        {/* Calendar grid */}
-        <div className="grid grid-cols-7 gap-2 relative min-h-[400px]">
+        {/* Calendar Grid */}
+        <div className="grid grid-cols-7 gap-1 sm:gap-3 md:gap-4 relative">
           {loading && (
-            <div className="absolute inset-0 bg-white/60 dark:bg-brand-900/60 backdrop-blur-sm z-10 flex items-center justify-center rounded-[6px]">
-              <Loader2 className="animate-spin text-brand-500" size={40} />
+            <div className="absolute inset-0 bg-white/50 dark:bg-black/50 backdrop-blur-sm z-10 flex items-center justify-center rounded-[6px]">
+              <Loader2 className="animate-spin text-[#2C4FD6]" size={32} />
             </div>
           )}
           {generateCalendarDays()}
         </div>
-      </div>
 
+        {/* Bottom Legend Footer */}
+        <div className="flex flex-wrap items-center gap-3 sm:gap-6 mt-6 pt-4 border-t border-[#E2E6ED] dark:border-gray-800 text-xs text-[#5B6472] dark:text-gray-300">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#1F8A5A]"></span> Present
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#C13A3A]"></span> Absent
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#2C4FD6]"></span> Approved leave
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#9AA3B1]"></span> Weekend / no data
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

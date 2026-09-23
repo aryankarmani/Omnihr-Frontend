@@ -81,6 +81,7 @@ function AppContent() {
                     )
                   }
                 />
+                <Route path="/login" element={<Navigate to="/signin" replace />} />
                 <Route path="/signup" element={<Navigate to="/signin" replace />} />
                 <Route path="/forgot-password" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <ForgotPassword />} />
 

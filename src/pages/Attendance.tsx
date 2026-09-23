@@ -360,8 +360,9 @@ export default function Attendance() {
             const diffDays = Math.round((todayMidnight.getTime() - targetDate.getTime()) / (1000 * 60 * 60 * 24));
             const lookbackDays = attendancePolicy?.regularizationDays ?? 3;
 
-            // Past date within policy (e.g. 1 to 3 days ago, strictly past and not today/future)
             const isPastEligible = diffDays >= 1 && diffDays <= lookbackDays;
+            const isPastDay = targetDate < todayMidnight;
+            const isApprovedLeave = !isBeforeJoining && leave && leave.status === 'APPROVED';
 
             // Only need regularization if there is an actual issue:
             // - Absent or no log on a past working day
@@ -375,12 +376,15 @@ export default function Attendance() {
                 !isWeekend &&
                 !isBeforeJoining &&
                 !holiday &&
-                (!leave || leave.status !== 'APPROVED') &&
+                !isApprovedLeave &&
                 !hasPendingRequest &&
                 needsRegularization;
 
+            // Past working day without punch, holiday, or approved leave is Absent
+            const isAbsent = !isBeforeJoining && isPastDay && !isWeekend && !holiday && !isApprovedLeave && (!log || log.status === 'Absent');
+
             // Check if day has any activity
-            const hasActivity = log || holiday || (leave && leave.status === 'APPROVED') || hasPendingRequest || hasRejectedRequest || isEligibleForRegularize;
+            const hasActivity = log || holiday || isApprovedLeave || hasPendingRequest || hasRejectedRequest || isEligibleForRegularize || isAbsent;
 
             // Empty day with no data - keep original clean minimal look with no border or box
             if (!hasActivity) {
@@ -405,17 +409,14 @@ export default function Attendance() {
             } else if (log && (log.status === 'Present' || log.status === 'Late' || log.status === 'Half Day')) {
                 containerBg = 'bg-[#E4F5EC] dark:bg-green-950/30';
                 textColor = 'text-[#1F8A5A] dark:text-green-400';
-            } else if (log && log.status === 'Absent') {
-                containerBg = 'bg-[#FBE7E7] dark:bg-red-950/30';
-                textColor = 'text-[#C13A3A] dark:text-red-400';
-            } else if (!isBeforeJoining && leave && leave.status === 'APPROVED') {
+            } else if (isApprovedLeave) {
                 containerBg = 'bg-[#E8ECFC] dark:bg-blue-950/30';
                 textColor = 'text-[#2C4FD6] dark:text-blue-400';
             } else if (!isBeforeJoining && hasPendingRequest) {
                 containerBg = 'bg-amber-50/50 dark:bg-amber-950/20';
                 textColor = 'text-amber-700';
-            } else if (isEligibleForRegularize) {
-                // If past day with no punch/absent eligible for regularization
+            } else if (isAbsent) {
+                // True absent day (past working day with no punch and no approved leave)
                 containerBg = 'bg-[#FBE7E7] dark:bg-red-950/30';
                 textColor = 'text-[#C13A3A] dark:text-red-400';
             }
@@ -452,9 +453,13 @@ export default function Attendance() {
                                 <span className="px-1.5 py-0.5 rounded-[3px] text-[8.5px] sm:text-[9.5px] font-medium bg-purple-100 text-purple-700 border border-purple-200 leading-none inline-block">
                                     Holiday
                                 </span>
-                            ) : leave && leave.status === 'APPROVED' ? (
+                            ) : isApprovedLeave ? (
                                 <span className="px-1.5 py-0.5 rounded-[3px] text-[8.5px] sm:text-[9.5px] font-medium bg-blue-100 text-blue-700 border border-blue-200 leading-none inline-block">
                                     Leave
+                                </span>
+                            ) : isAbsent ? (
+                                <span className="px-1.5 py-0.5 rounded-[3px] text-[8.5px] sm:text-[9.5px] font-medium bg-[#FBE7E7] text-[#C13A3A] border border-red-200 leading-none inline-block">
+                                    Absent
                                 </span>
                             ) : null}
                         </div>
@@ -462,6 +467,12 @@ export default function Attendance() {
 
                     {/* Middle row: Punch In & Out times centered consistently across all cards */}
                     <div className="space-y-0.5 text-left flex-1 flex flex-col justify-center my-auto">
+                        {holiday && !log?.inTime ? (
+                            <div className="text-[10px] sm:text-[11.5px] font-semibold text-purple-700 dark:text-purple-300 leading-snug line-clamp-2" title={holiday.name}>
+                                {holiday.name}
+                            </div>
+                        ) : null}
+
                         {log?.inTime ? (
                             <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-medium text-[#16A34A] dark:text-green-400 font-mono-numbers leading-tight truncate">
                                 <Clock size={10} className="text-[#16A34A] shrink-0" />
@@ -483,6 +494,11 @@ export default function Attendance() {
 
                     {/* Bottom: Regularize button directly in card (Web UI blue, NOT purple) - fixed height container */}
                     <div className="flex justify-end items-center h-5 shrink-0">
+                        {holiday && log?.inTime ? (
+                            <span className="text-[8.5px] sm:text-[9.5px] text-purple-700 dark:text-purple-300 font-medium truncate max-w-full" title={holiday.name}>
+                                {holiday.name}
+                            </span>
+                        ) : null}
                         {isEligibleForRegularize ? (
                             <button
                                 type="button"
@@ -651,19 +667,19 @@ export default function Attendance() {
 
             {/* Attendance Regularization Modal */}
             {regularizeDate && createPortal(
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white dark:bg-brand-900 rounded-[6px] p-5 sm:p-8 max-w-md w-full border border-gray-100 dark:border-white/10 shadow-2xl animate-scale-in">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-bold text-gray-800 dark:text-white">Attendance Correction</h3>
-                            <button type="button" onClick={() => setRegularizeDate(null)} className="p-1 hover:bg-gray-100 dark:hover:bg-white/5 rounded-[6px] transition-colors">
-                                <X size={20} />
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-900/20 dark:bg-black/60 backdrop-blur-md animate-fade-in">
+                    <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 w-full max-w-md overflow-hidden shadow-xl animate-scale-in">
+                        <div className="p-4 sm:p-5 border-b border-[#E2E6ED] dark:border-gray-800 flex justify-between items-center bg-[#F7F8FA] dark:bg-gray-800/30">
+                            <h3 className="text-base font-bold text-[#12151C] dark:text-white">Attendance Correction</h3>
+                            <button type="button" onClick={() => setRegularizeDate(null)} className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer p-1">
+                                <X size={18} />
                             </button>
                         </div>
 
-                        <form onSubmit={submitRegularization} className="space-y-4">
+                        <form onSubmit={submitRegularization} className="p-5 space-y-4">
                             <div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Requested Date</label>
-                                <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-[6px] font-semibold text-sm">
+                                <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 uppercase mb-1">Requested Date</label>
+                                <div className="px-3 py-2 bg-[#F7F8FA] dark:bg-gray-800/40 border border-[#E2E6ED] dark:border-gray-700/60 rounded-[6px] font-semibold text-[13px] text-[#12151C] dark:text-gray-200">
                                     {(() => {
                                         const [y, m, d] = regularizeDate.split('-').map(Number);
                                         const localDate = new Date(y, m - 1, d);
@@ -673,53 +689,53 @@ export default function Attendance() {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Reason for regularize</label>
+                                <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 uppercase mb-1">Reason for regularize</label>
                                 <select
                                     value={reason}
                                     onChange={(e) => setReason(e.target.value)}
                                     required
-                                    className="w-full p-3 bg-gray-50 dark:bg-brand-800 border border-gray-200 dark:border-white/10 rounded-[6px] outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-sm font-semibold text-gray-800 dark:text-white cursor-pointer"
+                                    className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] font-medium text-[#12151C] dark:text-white cursor-pointer"
                                 >
-                                    <option value="" disabled className="bg-white dark:bg-brand-800 text-gray-900 dark:text-white">Select a reason...</option>
-                                    <option value="Forgot to Punch In" className="bg-white dark:bg-brand-800 text-gray-900 dark:text-white">Forgot to Punch In</option>
-                                    <option value="Forgot to Punch Out" className="bg-white dark:bg-brand-800 text-gray-900 dark:text-white">Forgot to Punch Out</option>
-                                    <option value="Device/Bio-metric Issue" className="bg-white dark:bg-brand-800 text-gray-900 dark:text-white">Device/Bio-metric Issue</option>
-                                    <option value="Official Duty / Client Visit" className="bg-white dark:bg-brand-800 text-gray-900 dark:text-white">Official Duty / Client Visit</option>
-                                    <option value="Other" className="bg-white dark:bg-brand-800 text-gray-900 dark:text-white">Other (Write Custom Reason)</option>
+                                    <option value="" disabled className="bg-white dark:bg-[#12151C] text-gray-900 dark:text-white">Select a reason...</option>
+                                    <option value="Forgot to Punch In" className="bg-white dark:bg-[#12151C] text-gray-900 dark:text-white">Forgot to Punch In</option>
+                                    <option value="Forgot to Punch Out" className="bg-white dark:bg-[#12151C] text-gray-900 dark:text-white">Forgot to Punch Out</option>
+                                    <option value="Device/Bio-metric Issue" className="bg-white dark:bg-[#12151C] text-gray-900 dark:text-white">Device/Bio-metric Issue</option>
+                                    <option value="Official Duty / Client Visit" className="bg-white dark:bg-[#12151C] text-gray-900 dark:text-white">Official Duty / Client Visit</option>
+                                    <option value="Other" className="bg-white dark:bg-[#12151C] text-gray-900 dark:text-white">Other (Write Custom Reason)</option>
                                 </select>
                             </div>
 
                             {reason === 'Other' && (
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Specify Reason</label>
+                                    <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 uppercase mb-1">Specify Reason</label>
                                     <textarea
                                         value={customReason}
                                         onChange={(e) => setCustomReason(e.target.value)}
                                         required
                                         placeholder="Briefly describe your reason..."
                                         rows={3}
-                                        className="w-full p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-[6px] outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-sm font-semibold"
+                                        className="w-full p-3 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] transition-all text-[13px] font-medium text-[#12151C] dark:text-white"
                                     />
                                 </div>
                             )}
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Proposed In Time</label>
+                                    <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 uppercase mb-1">Proposed In Time</label>
                                     <div className="relative">
-                                        <Clock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                        <Clock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                                         <input
                                             type="text"
                                             value={inInputText}
                                             onChange={(e) => setInInputText(e.target.value)}
                                             placeholder="09:00 AM"
-                                            className={`w-full pl-10 pr-3 py-2.5 bg-gray-50 dark:bg-white/5 border rounded-[6px] outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-sm font-semibold animate-none ${inInputText && !parse12hTo24h(inInputText)
-                                                ? 'border-rose-500/60 focus:ring-rose-500/30'
-                                                : 'border-gray-200 dark:border-white/10'
+                                            className={`w-full pl-9 pr-3 py-2 bg-white dark:bg-[#12151C] border rounded-[6px] outline-none focus:border-[#2C4FD6] transition-all text-[13px] font-medium text-[#12151C] dark:text-white ${inInputText && !parse12hTo24h(inInputText)
+                                                ? 'border-rose-500/60'
+                                                : 'border-[#E2E6ED] dark:border-gray-700'
                                                 }`}
                                         />
                                     </div>
-                                    <p className={`text-[10px] mt-1 font-semibold ${inInputText && !parse12hTo24h(inInputText)
+                                    <p className={`text-[10.5px] mt-1 font-semibold ${inInputText && !parse12hTo24h(inInputText)
                                         ? 'text-rose-500'
                                         : 'text-gray-400 dark:text-gray-500'
                                         }`}>
@@ -729,21 +745,21 @@ export default function Attendance() {
                                     </p>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Proposed Out Time</label>
+                                    <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 uppercase mb-1">Proposed Out Time</label>
                                     <div className="relative">
-                                        <Clock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                        <Clock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                                         <input
                                             type="text"
                                             value={outInputText}
                                             onChange={(e) => setOutInputText(e.target.value)}
                                             placeholder="06:00 PM"
-                                            className={`w-full pl-10 pr-3 py-2.5 bg-gray-50 dark:bg-white/5 border rounded-[6px] outline-none focus:ring-2 focus:ring-brand-500/50 transition-all text-sm font-semibold animate-none ${outInputText && !parse12hTo24h(outInputText)
-                                                ? 'border-rose-500/60 focus:ring-rose-500/30'
-                                                : 'border-gray-200 dark:border-white/10'
+                                            className={`w-full pl-9 pr-3 py-2 bg-white dark:bg-[#12151C] border rounded-[6px] outline-none focus:border-[#2C4FD6] transition-all text-[13px] font-medium text-[#12151C] dark:text-white ${outInputText && !parse12hTo24h(outInputText)
+                                                ? 'border-rose-500/60'
+                                                : 'border-[#E2E6ED] dark:border-gray-700'
                                                 }`}
                                         />
                                     </div>
-                                    <p className={`text-[10px] mt-1 font-semibold ${outInputText && !parse12hTo24h(outInputText)
+                                    <p className={`text-[10.5px] mt-1 font-semibold ${outInputText && !parse12hTo24h(outInputText)
                                         ? 'text-rose-500'
                                         : 'text-gray-400 dark:text-gray-500'
                                         }`}>
@@ -754,20 +770,20 @@ export default function Attendance() {
                                 </div>
                             </div>
 
-                            <div className="flex items-center justify-between gap-4 pt-4 mt-2">
+                            <div className="flex items-center justify-between gap-3 pt-3 border-t border-[#E2E6ED] dark:border-gray-800">
                                 <button
                                     type="button"
                                     onClick={() => setRegularizeDate(null)}
-                                    className="px-6 py-2.5 text-[#5B6472] dark:text-gray-300 font-bold hover:bg-gray-100 dark:hover:bg-gray-800 rounded-[6px] transition-all text-xs tracking-wider uppercase cursor-pointer"
+                                    className="px-5 py-2.5 text-[#5B6472] dark:text-gray-300 font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 rounded-[6px] transition-all text-[13px] cursor-pointer"
                                 >
-                                    CANCEL
+                                    Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={submittingRequest}
-                                    className="px-8 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold rounded-[6px] transition-all shadow-md text-xs tracking-wider uppercase flex items-center justify-center gap-2 cursor-pointer"
+                                    className="px-6 py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold rounded-[6px] transition-all text-[13.5px] flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                                 >
-                                    {submittingRequest ? <Loader2 className="w-4 h-4 animate-spin" /> : 'SUBMIT'}
+                                    {submittingRequest ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Submit'}
                                 </button>
                             </div>
                         </form>
@@ -778,25 +794,28 @@ export default function Attendance() {
 
             {/* Rejected Request Detail Modal */}
             {rejectedRequestToShow && createPortal(
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white dark:bg-brand-900 rounded-[6px] p-8 max-w-md w-full border border-gray-100 dark:border-white/10 shadow-2xl animate-scale-in relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-rose-500 to-orange-500"></div>
-                        <div className="flex justify-between items-center mb-6">
-                            <div className="flex items-center gap-2">
-                                <span className="p-2 bg-rose-50 dark:bg-rose-500/10 text-rose-500 rounded-[6px]">
-                                    <AlertCircle size={20} />
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-900/20 dark:bg-black/60 backdrop-blur-md animate-fade-in">
+                    <div className="bg-white dark:bg-[#12151C] rounded-[6px] w-full max-w-md overflow-hidden relative border border-[#E2E6ED] dark:border-gray-800 shadow-xl animate-scale-in">
+                        <div className="p-4 sm:p-5 border-b border-[#E2E6ED] dark:border-gray-800 flex justify-between items-center bg-[#F7F8FA] dark:bg-gray-800/30">
+                            <div className="flex items-center gap-2.5">
+                                <span className="p-1.5 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 rounded-[6px] flex items-center justify-center">
+                                    <AlertCircle size={17} />
                                 </span>
-                                <h3 className="text-xl font-bold text-gray-800 dark:text-white">Correction Rejected</h3>
+                                <h3 className="text-base font-bold text-[#12151C] dark:text-white">Correction Rejected</h3>
                             </div>
-                            <button type="button" onClick={() => setRejectedRequestToShow(null)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/5 rounded-[6px] transition-colors">
-                                <X size={20} />
+                            <button
+                                type="button"
+                                onClick={() => setRejectedRequestToShow(null)}
+                                className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer p-1"
+                            >
+                                <X size={18} />
                             </button>
                         </div>
 
-                        <div className="space-y-4 font-sans">
+                        <div className="p-5 space-y-3.5">
                             <div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Date Requested</label>
-                                <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-[6px] font-bold text-sm text-gray-700 dark:text-gray-200">
+                                <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 uppercase mb-1">Date Requested</label>
+                                <div className="px-3 py-2 bg-[#F7F8FA] dark:bg-gray-800/40 border border-[#E2E6ED] dark:border-gray-700/60 rounded-[6px] font-semibold text-[13px] text-[#12151C] dark:text-gray-200">
                                     {(() => {
                                         const [y, m, d] = rejectedRequestToShow.date.split('-').map(Number);
                                         const localDate = new Date(y, m - 1, d);
@@ -805,46 +824,46 @@ export default function Attendance() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Proposed In Time</label>
-                                    <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-[6px] text-sm font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                                        <Clock size={14} /> {formatTime12h(rejectedRequestToShow.proposedIn || rejectedRequestToShow.inTime)}
+                                    <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 uppercase mb-1">Proposed In Time</label>
+                                    <div className="px-3 py-2 bg-[#F7F8FA] dark:bg-gray-800/40 border border-[#E2E6ED] dark:border-gray-700/60 rounded-[6px] text-[13px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                                        <Clock size={13} /> {formatTime12h(rejectedRequestToShow.proposedIn || rejectedRequestToShow.inTime)}
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Proposed Out Time</label>
-                                    <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-[6px] text-sm font-semibold text-rose-500 dark:text-rose-400 flex items-center gap-1.5">
-                                        <Clock size={14} /> {formatTime12h(rejectedRequestToShow.proposedOut || rejectedRequestToShow.outTime)}
+                                    <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 uppercase mb-1">Proposed Out Time</label>
+                                    <div className="px-3 py-2 bg-[#F7F8FA] dark:bg-gray-800/40 border border-[#E2E6ED] dark:border-gray-700/60 rounded-[6px] text-[13px] font-semibold text-rose-500 dark:text-rose-400 flex items-center gap-1.5">
+                                        <Clock size={13} /> {formatTime12h(rejectedRequestToShow.proposedOut || rejectedRequestToShow.outTime)}
                                     </div>
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Your Reason</label>
-                                <div className="p-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-[6px] text-sm text-gray-600 dark:text-gray-300 italic font-semibold leading-relaxed">
-                                    <div className="max-h-[120px] overflow-y-auto custom-scrollbar break-words pr-2">
+                                <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 uppercase mb-1">Your Reason</label>
+                                <div className="p-3 bg-[#F7F8FA] dark:bg-gray-800/40 border border-[#E2E6ED] dark:border-gray-700/60 rounded-[6px] text-[13px] text-[#5B6472] dark:text-gray-300 italic font-medium leading-relaxed">
+                                    <div className="max-h-[100px] overflow-y-auto custom-scrollbar break-words">
                                         "{rejectedRequestToShow.reason}"
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="pt-2">
-                                <label className="block text-xs font-bold text-rose-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                            <div>
+                                <label className="block text-xs font-semibold text-red-600 dark:text-red-400 uppercase mb-1 flex items-center gap-1">
                                     Manager's Rejection Reason
                                 </label>
-                                <div className="p-4 bg-rose-50/50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/20 rounded-[6px] text-sm text-rose-700 dark:text-rose-300 font-bold leading-relaxed">
-                                    <div className="max-h-[120px] overflow-y-auto custom-scrollbar break-words pr-2">
+                                <div className="p-3 bg-red-50/70 dark:bg-red-950/20 border border-red-200/80 dark:border-red-900/40 rounded-[6px] text-[13px] text-red-700 dark:text-red-300 font-medium leading-relaxed">
+                                    <div className="max-h-[100px] overflow-y-auto custom-scrollbar break-words">
                                         {rejectedRequestToShow.approverComment || 'No comment provided.'}
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="pt-4">
+                            <div className="pt-2">
                                 <button
                                     type="button"
                                     onClick={() => setRejectedRequestToShow(null)}
-                                    className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-bold rounded-[6px] transition-all shadow-lg shadow-rose-500/20 text-sm tracking-wider uppercase cursor-pointer"
+                                    className="w-full py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold text-[13.5px] rounded-[6px] transition-all cursor-pointer shadow-sm"
                                 >
                                     Close
                                 </button>
@@ -855,63 +874,67 @@ export default function Attendance() {
                 document.body
             )}
 
+            {/* Rejected Leave Detail Modal */}
             {rejectedLeaveToShow && createPortal(
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white dark:bg-brand-900 rounded-[6px] p-8 max-w-md w-full border border-gray-100 dark:border-white/10 shadow-2xl animate-scale-in relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-rose-500 to-orange-500"></div>
-                        <div className="flex justify-between items-center mb-6">
-                            <div className="flex items-center gap-2">
-                                <span className="p-2 bg-rose-50 dark:bg-rose-500/10 text-rose-500 rounded-[6px]">
-                                    <AlertCircle size={20} />
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-900/20 dark:bg-black/60 backdrop-blur-md animate-fade-in">
+                    <div className="bg-white dark:bg-[#12151C] rounded-[6px] w-full max-w-md overflow-hidden relative border border-[#E2E6ED] dark:border-gray-800 shadow-xl animate-scale-in">
+                        <div className="p-4 sm:p-5 border-b border-[#E2E6ED] dark:border-gray-800 flex justify-between items-center bg-[#F7F8FA] dark:bg-gray-800/30">
+                            <div className="flex items-center gap-2.5">
+                                <span className="p-1.5 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 rounded-[6px] flex items-center justify-center">
+                                    <AlertCircle size={17} />
                                 </span>
-                                <h3 className="text-xl font-bold text-gray-800 dark:text-white">Leave Rejected</h3>
+                                <h3 className="text-base font-bold text-[#12151C] dark:text-white">Leave Rejected</h3>
                             </div>
-                            <button type="button" onClick={() => setRejectedLeaveToShow(null)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/5 rounded-[6px] transition-colors">
-                                <X size={20} />
+                            <button
+                                type="button"
+                                onClick={() => setRejectedLeaveToShow(null)}
+                                className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer p-1"
+                            >
+                                <X size={18} />
                             </button>
                         </div>
 
-                        <div className="space-y-4 font-sans">
-                            <div className="grid grid-cols-2 gap-4">
+                        <div className="p-5 space-y-3.5">
+                            <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Leave Type</label>
-                                    <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-[6px] font-bold text-sm text-gray-700 dark:text-gray-200">
+                                    <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 uppercase mb-1">Leave Type</label>
+                                    <div className="px-3 py-2 bg-[#F7F8FA] dark:bg-gray-800/40 border border-[#E2E6ED] dark:border-gray-700/60 rounded-[6px] font-semibold text-[13px] text-[#12151C] dark:text-gray-200">
                                         {rejectedLeaveToShow.leaveType?.name || rejectedLeaveToShow.leaveType?.code || 'Leave'}
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Dates</label>
-                                    <div className="p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-[6px] font-bold text-xs text-gray-700 dark:text-gray-200 leading-tight">
+                                    <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 uppercase mb-1">Dates</label>
+                                    <div className="px-3 py-2 bg-[#F7F8FA] dark:bg-gray-800/40 border border-[#E2E6ED] dark:border-gray-700/60 rounded-[6px] font-semibold text-[12px] text-[#12151C] dark:text-gray-200 leading-tight flex items-center min-h-[38px]">
                                         {new Date(rejectedLeaveToShow.startDate).toLocaleDateString()} - {new Date(rejectedLeaveToShow.endDate).toLocaleDateString()}
                                     </div>
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Your Reason</label>
-                                <div className="p-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-[6px] text-sm text-gray-600 dark:text-gray-300 italic font-semibold leading-relaxed">
-                                    <div className="max-h-[120px] overflow-y-auto custom-scrollbar break-words pr-2">
+                                <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 uppercase mb-1">Your Reason</label>
+                                <div className="p-3 bg-[#F7F8FA] dark:bg-gray-800/40 border border-[#E2E6ED] dark:border-gray-700/60 rounded-[6px] text-[13px] text-[#5B6472] dark:text-gray-300 italic font-medium leading-relaxed">
+                                    <div className="max-h-[100px] overflow-y-auto custom-scrollbar break-words">
                                         "{rejectedLeaveToShow.reason}"
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="pt-2">
-                                <label className="block text-xs font-bold text-rose-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                            <div>
+                                <label className="block text-xs font-semibold text-red-600 dark:text-red-400 uppercase mb-1 flex items-center gap-1">
                                     Manager's Rejection Reason
                                 </label>
-                                <div className="p-4 bg-rose-50/50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/20 rounded-[6px] text-sm text-rose-700 dark:text-rose-300 font-bold leading-relaxed">
-                                    <div className="max-h-[120px] overflow-y-auto custom-scrollbar break-words pr-2">
+                                <div className="p-3 bg-red-50/70 dark:bg-red-950/20 border border-red-200/80 dark:border-red-900/40 rounded-[6px] text-[13px] text-red-700 dark:text-red-300 font-medium leading-relaxed">
+                                    <div className="max-h-[100px] overflow-y-auto custom-scrollbar break-words">
                                         {rejectedLeaveToShow.rejectionReason || 'No comment provided.'}
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="pt-4">
+                            <div className="pt-2">
                                 <button
                                     type="button"
                                     onClick={() => setRejectedLeaveToShow(null)}
-                                    className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-bold rounded-[6px] transition-all shadow-lg shadow-rose-500/20 text-sm tracking-wider uppercase cursor-pointer"
+                                    className="w-full py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold text-[13.5px] rounded-[6px] transition-all cursor-pointer shadow-sm"
                                 >
                                     Close
                                 </button>

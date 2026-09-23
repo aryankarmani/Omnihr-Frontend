@@ -142,6 +142,29 @@ export default function AddEmployee() {
     const [countryCode, setCountryCode] = useState('+91');
 
     const [errors, setErrors] = useState<any>({});
+    const [checkingEmail, setCheckingEmail] = useState(false);
+
+    const handleEmailBlur = async () => {
+        const email = formData.email?.trim();
+        if (!email) return;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) return;
+
+        setCheckingEmail(true);
+        try {
+            const res = await api.get(`/employee/check-email?email=${encodeURIComponent(email)}`);
+            if (res.data?.exists) {
+                setErrors((prev: any) => ({
+                    ...prev,
+                    email: 'This email is already in use. Please use a different email address.'
+                }));
+            }
+        } catch (err) {
+            console.error('Email check failed', err);
+        } finally {
+            setCheckingEmail(false);
+        }
+    };
     const steps = [
         { id: 1, title: 'Personal Details', icon: User },
         { id: 2, title: 'Statutory Info', icon: CreditCard },
@@ -366,9 +389,26 @@ export default function AddEmployee() {
                 }
             });
 
+            if (!newErrors.email && formData.email) {
+                setCheckingEmail(true);
+                try {
+                    const res = await api.get(`/employee/check-email?email=${encodeURIComponent(formData.email.trim())}`);
+                    if (res.data?.exists) {
+                        newErrors.email = 'This email is already in use. Please use a different email address.';
+                    }
+                } catch (err) {
+                    console.error('Email check failed', err);
+                } finally {
+                    setCheckingEmail(false);
+                }
+            }
+
             setErrors(newErrors);
 
             if (Object.keys(newErrors).length > 0) {
+                if (newErrors.email) {
+                    toast.error(newErrors.email);
+                }
                 return;
             }
         }
@@ -432,7 +472,15 @@ export default function AddEmployee() {
                 navigate('/employee');
             } catch (error: any) {
                 console.error('Onboarding error:', error);
-                toast.error(error.response?.data?.message || 'Failed to onboard employee');
+                const msg = error.response?.data?.message || 'Failed to onboard employee';
+                toast.error(msg);
+                if (msg.toLowerCase().includes('email')) {
+                    setCurrentStep(1);
+                    setErrors((prev: any) => ({
+                        ...prev,
+                        email: msg
+                    }));
+                }
             } finally {
                 setLoading(false);
             }
@@ -526,20 +574,23 @@ export default function AddEmployee() {
 
 
                             <div className="space-y-2">
-                                <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Email Address *</label>
+                                <div className="flex items-center justify-between">
+                                    <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Email Address *</label>
+                                    {checkingEmail && <span className="text-xs text-blue-500 animate-pulse">Checking email...</span>}
+                                </div>
                                 <input
                                     autoComplete="new-password"
                                     name="email"
                                     value={formData.email}
                                     onChange={handleInputChange}
+                                    onBlur={handleEmailBlur}
                                     type="email"
-                                    className="w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all placeholder:text-[#9AA3B1] placeholder:font-normal"
+                                    className={`w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border ${errors.email ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20' : 'border-[#E2E6ED] dark:border-white/10 focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6]'} rounded-[8px] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all placeholder:text-[#9AA3B1] placeholder:font-normal`}
                                     placeholder="Enter your email"
-
                                 />
                                 {errors.email && (
-                                    <p className="text-red-500 text-xs ml-1">
-                                        {errors.email}
+                                    <p className="text-red-500 text-xs ml-1 flex items-center gap-1 font-medium">
+                                        <span>•</span> {errors.email}
                                     </p>
                                 )}
                             </div>
