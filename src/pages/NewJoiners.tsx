@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Calendar, Mail, Loader2, ArrowLeft, UserCheck, Filter, LayoutGrid, List, Eye, XCircle } from 'lucide-react';
+import { Search, Calendar, Mail, Loader2, ArrowLeft, UserCheck, Filter, LayoutGrid, List, Eye, XCircle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
@@ -11,6 +11,8 @@ export default function NewJoiners() {
     const [newJoiners, setNewJoiners] = useState<any[]>([]);
     const [showFilterDrawer, setShowFilterDrawer] = useState(false);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
 
     // Filter states
     const [filters, setFilters] = useState({
@@ -78,12 +80,17 @@ export default function NewJoiners() {
         const reset = { name: '', email: '', role: '', location: '', status: 'All' };
         setFilters(reset);
         setAppliedFilters(reset);
+        setCurrentPage(1);
     };
 
     const applyFilters = () => {
         setAppliedFilters(filters);
+        setCurrentPage(1);
         setShowFilterDrawer(false);
     };
+
+    const totalPages = Math.ceil(filteredJoiners.length / rowsPerPage) || 1;
+    const paginatedJoiners = filteredJoiners.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
 
     return (
         <div className="animate-fade-in-up">
@@ -91,12 +98,12 @@ export default function NewJoiners() {
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => navigate(-1)}
-                        className="p-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-[#5B6472] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                        className="p-1.5 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[4px] text-[#5B6472] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
                     >
-                        <ArrowLeft size={18} />
+                        <ArrowLeft size={16} />
                     </button>
                     <div>
-                        <h2 className="text-2xl font-bold text-[#12151C] dark:text-white mb-0.5">New Joiners</h2>
+                        <h2 className="text-xl font-bold text-[#12151C] dark:text-white mb-0.5">New Joiners</h2>
                         <p className="text-[13.5px] text-[#5B6472] dark:text-gray-400">Employees who joined this month</p>
                     </div>
                 </div>
@@ -119,6 +126,7 @@ export default function NewJoiners() {
                                     const val = e.target.value;
                                     setFilters({ ...filters, name: val });
                                     setAppliedFilters({ ...appliedFilters, name: val });
+                                    setCurrentPage(1);
                                 }}
                                 className="w-full pl-9 pr-3 py-[9px] h-[36px] bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] transition-all text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
                             />
@@ -133,6 +141,7 @@ export default function NewJoiners() {
                                 const val = e.target.value;
                                 setFilters({ ...filters, status: val });
                                 setAppliedFilters({ ...appliedFilters, status: val });
+                                setCurrentPage(1);
                             }}
                             className="appearance-none flex items-center gap-2 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] px-3 py-[9px] h-[36px] text-[13px] font-semibold text-[#5B6472] dark:text-gray-300 bg-white dark:bg-[#12151C] cursor-pointer transition-all hover:border-[#2C4FD6] focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none pr-8"
                         >
@@ -185,14 +194,14 @@ export default function NewJoiners() {
             ) : (
                 viewMode === 'grid' ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {filteredJoiners.map((emp) => {
+                        {paginatedJoiners.map((emp) => {
                             const profile = emp.employeeProfile || {};
                             const initials = emp.name ? emp.name.trim().split(/\s+/).slice(0, 2).map((n: string) => n[0]).join('').toUpperCase() : '?';
                             const status = profile.status || 'Active';
 
                             return (
-                                <div 
-                                    key={emp.id} 
+                                <div
+                                    key={emp.id}
                                     onClick={() => navigate(`/employee/${emp.id}`)}
                                     className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 p-5 hover:border-[#2C4FD6]/40 transition-all cursor-pointer flex flex-col justify-between"
                                 >
@@ -220,14 +229,13 @@ export default function NewJoiners() {
                                     </div>
 
                                     <div className="flex items-center justify-between pt-3 border-t border-[#E2E6ED] dark:border-gray-800">
-                                        <span className={`px-[10px] py-[3px] rounded-[3px] text-[11.5px] font-semibold tracking-wide ${
-                                            status.toLowerCase() === 'active'
+                                        <span className={`px-[10px] py-[3px] rounded-[3px] text-[11.5px] font-semibold tracking-wide ${status.toLowerCase() === 'active'
                                                 ? 'bg-[#E4F5EC] text-[#1F8A5A]'
                                                 : 'bg-[#F1F3F7] text-[#5B6472]'
-                                        }`}>
+                                            }`}>
                                             {status}
                                         </span>
-                                        <button 
+                                        <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 (emp.id || emp._id) && navigate(`/employee/${emp.id || emp._id}`);
@@ -251,18 +259,18 @@ export default function NewJoiners() {
                                         <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 w-[25%]">ROLE / DESIGNATION</th>
                                         <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 w-[20%]">JOINING DATE</th>
                                         <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 w-[15%]">STATUS</th>
-                                        <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 text-right w-[10%]">ACTION</th>
+                                        <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 text-center w-[10%]">ACTION</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-[#E2E6ED] dark:divide-gray-800 text-xs">
-                                    {filteredJoiners.map((emp) => {
+                                    {paginatedJoiners.map((emp) => {
                                         const profile = emp.employeeProfile || {};
                                         const initials = emp.name ? emp.name.trim().split(/\s+/).slice(0, 2).map((n: string) => n[0]).join('').toUpperCase() : '?';
                                         const status = profile.status || 'Active';
 
                                         return (
-                                            <tr 
-                                                key={emp.id} 
+                                            <tr
+                                                key={emp.id}
                                                 onClick={() => navigate(`/employee/${emp.id}`)}
                                                 className="hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-colors group cursor-pointer"
                                             >
@@ -285,16 +293,15 @@ export default function NewJoiners() {
                                                     {profile.joiningDate ? new Date(profile.joiningDate).toLocaleDateString() : 'N/A'}
                                                 </td>
                                                 <td className="py-[13px] px-[22px]">
-                                                    <span className={`px-[10px] py-[3px] rounded-[3px] text-[11.5px] font-semibold tracking-wide ${
-                                                        status.toLowerCase() === 'active'
+                                                    <span className={`px-[10px] py-[3px] rounded-[3px] text-[11.5px] font-semibold tracking-wide ${status.toLowerCase() === 'active'
                                                             ? 'bg-[#E4F5EC] text-[#1F8A5A]'
                                                             : 'bg-[#F1F3F7] text-[#5B6472]'
-                                                    }`}>
+                                                        }`}>
                                                         {status}
                                                     </span>
                                                 </td>
-                                                <td className="py-[13px] px-[22px] text-right">
-                                                    <button 
+                                                <td className="py-[13px] px-[22px] text-center">
+                                                    <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             (emp.id || emp._id) && navigate(`/employee/${emp.id || emp._id}`);
@@ -310,6 +317,75 @@ export default function NewJoiners() {
                                 </tbody>
                             </table>
                         </div>
+
+                        {/* Pagination - Matching EmployeeList */}
+                        {filteredJoiners.length > 0 && (
+                            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-6 py-4 border-t border-[#E2E6ED] dark:border-gray-800 text-xs">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[#9AA3B1] font-semibold text-xs uppercase">
+                                        Rows per page
+                                    </span>
+
+                                    <select
+                                        value={rowsPerPage}
+                                        onChange={(e) => {
+                                            setRowsPerPage(Number(e.target.value));
+                                            setCurrentPage(1);
+                                        }}
+                                        className="px-3 py-1 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[#12151C] dark:text-white text-xs font-semibold cursor-pointer outline-none focus:border-[#2C4FD6]"
+                                    >
+                                        <option value={5}>5</option>
+                                        <option value={10}>10</option>
+                                        <option value={20}>20</option>
+                                        <option value={50}>50</option>
+                                    </select>
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                    <span className="text-xs font-bold text-[#5B6472] dark:text-gray-300 font-mono-numbers">
+                                        Page {currentPage} of {totalPages || 1}
+                                    </span>
+
+                                    <div className="flex items-center gap-1.5">
+                                        <button
+                                            onClick={() => setCurrentPage(1)}
+                                            disabled={currentPage === 1}
+                                            className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
+                                            title="First Page"
+                                        >
+                                            <ChevronsLeft size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
+                                        </button>
+
+                                        <button
+                                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                            disabled={currentPage === 1}
+                                            className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
+                                            title="Previous Page"
+                                        >
+                                            <ChevronLeft size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
+                                        </button>
+
+                                        <button
+                                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                            disabled={currentPage === totalPages || totalPages === 0}
+                                            className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
+                                            title="Next Page"
+                                        >
+                                            <ChevronRight size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
+                                        </button>
+
+                                        <button
+                                            onClick={() => setCurrentPage(totalPages)}
+                                            disabled={currentPage === totalPages || totalPages === 0}
+                                            className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
+                                            title="Last Page"
+                                        >
+                                            <ChevronsRight size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )
             )}
@@ -317,7 +393,7 @@ export default function NewJoiners() {
             {/* Advanced Search Drawer - Matching EmployeeList EXACTLY */}
             {showFilterDrawer && createPortal(
                 <div className="fixed inset-0 z-[999999]">
-                    <div 
+                    <div
                         className="absolute inset-0 bg-slate-900/20 dark:bg-black/60 backdrop-blur-md"
                         onClick={() => setShowFilterDrawer(false)}
                     />
@@ -335,38 +411,38 @@ export default function NewJoiners() {
                                     </button>
                                 </div>
                                 <div className="space-y-4">
-                                    <input 
+                                    <input
                                         type="text"
                                         placeholder="Search name..."
                                         value={filters.name}
-                                        onChange={(e) => setFilters({...filters, name: e.target.value})}
+                                        onChange={(e) => setFilters({ ...filters, name: e.target.value })}
                                         className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
                                     />
-                                    <input 
+                                    <input
                                         type="text"
                                         placeholder="Search email..."
                                         value={filters.email}
-                                        onChange={(e) => setFilters({...filters, email: e.target.value})}
+                                        onChange={(e) => setFilters({ ...filters, email: e.target.value })}
                                         className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
                                     />
-                                    <input 
+                                    <input
                                         type="text"
                                         placeholder="Filter by role..."
                                         value={filters.role}
-                                        onChange={(e) => setFilters({...filters, role: e.target.value})}
+                                        onChange={(e) => setFilters({ ...filters, role: e.target.value })}
                                         className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
                                     />
-                                    <input 
+                                    <input
                                         type="text"
                                         placeholder="Filter by location..."
                                         value={filters.location}
-                                        onChange={(e) => setFilters({...filters, location: e.target.value})}
+                                        onChange={(e) => setFilters({ ...filters, location: e.target.value })}
                                         className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
                                     />
                                     <div className="relative group/dropdown">
                                         <select
                                             value={filters.status}
-                                            onChange={(e) => setFilters({...filters, status: e.target.value})}
+                                            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
                                             className="appearance-none flex items-center gap-2 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] px-3 py-[9px] text-[13px] font-semibold text-[#5B6472] dark:text-gray-300 bg-white dark:bg-[#12151C] cursor-pointer transition-all hover:border-[#2C4FD6] focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none pr-8 w-full"
                                         >
                                             <option value="All">All Status</option>
@@ -380,13 +456,13 @@ export default function NewJoiners() {
                                 </div>
                             </div>
                             <div className="flex gap-3 pt-6 border-t border-[#E2E6ED] dark:border-gray-800">
-                                <button 
+                                <button
                                     onClick={clearFilters}
                                     className="flex-1 py-2.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#5B6472] dark:text-gray-300 font-semibold text-[13.5px] hover:bg-gray-50 dark:hover:bg-white/5 transition-all cursor-pointer"
                                 >
                                     Clear
                                 </button>
-                                <button 
+                                <button
                                     onClick={applyFilters}
                                     className="flex-1 py-2.5 rounded-[6px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold text-[13.5px] transition-all cursor-pointer"
                                 >

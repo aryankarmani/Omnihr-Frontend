@@ -472,50 +472,6 @@ export default function OrgMasters() {
                                         />
                                     </div>
                                 </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div>
-                                            <label className="text-[11px] font-semibold text-[#9AA3B1] uppercase tracking-[.06em] mb-2 block truncate">PRIMARY COLOR</label>
-                                            <div className="flex items-center gap-2.5 px-3 py-2 bg-[#EEF2F8] dark:bg-gray-800/60 border border-[#E2E6ED] dark:border-gray-700 rounded-[8px]">
-                                                <input
-                                                    type="color"
-                                                    name="primaryColor"
-                                                    value={company.primaryColor || '#2C4FD6'}
-                                                    onChange={handleCompanyChange}
-                                                    className="w-4 h-4 rounded-[4px] border-0 cursor-pointer p-0 bg-transparent shrink-0"
-                                                />
-                                                <input
-                                                    type="text"
-                                                    name="primaryColor"
-                                                    value={company.primaryColor || '#2C4FD6'}
-                                                    onChange={handleCompanyChange}
-                                                    className="w-full bg-transparent text-[12.5px] font-mono font-semibold text-[#12151C] dark:text-white uppercase outline-none"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="text-[11px] font-semibold text-[#9AA3B1] uppercase tracking-[.06em] mb-2 block truncate">SECONDARY COLOR</label>
-                                            <div className="flex items-center gap-2.5 px-3 py-2 bg-[#EEF2F8] dark:bg-gray-800/60 border border-[#E2E6ED] dark:border-gray-700 rounded-[8px]">
-                                                <input
-                                                    type="color"
-                                                    name="secondaryColor"
-                                                    value={company.secondaryColor || '#1F8A5A'}
-                                                    onChange={handleCompanyChange}
-                                                    className="w-4 h-4 rounded-[4px] border-0 cursor-pointer p-0 bg-transparent shrink-0"
-                                                />
-                                                <input
-                                                    type="text"
-                                                    name="secondaryColor"
-                                                    value={company.secondaryColor || '#1F8A5A'}
-                                                    onChange={handleCompanyChange}
-                                                    className="w-full bg-transparent text-[12.5px] font-mono font-semibold text-[#12151C] dark:text-white uppercase outline-none"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div></div>
-                                </div>
                             </div>
                         </div>
                     </div>

@@ -213,50 +213,56 @@ export default function Reports() {
                     <p className="panel-sub text-[12.5px] text-[#9AA3B1] dark:text-gray-400 mt-[12.5px] mb-[18px]">Average check-ins per week</p>
 
                     <div className="h-[230px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            {(() => {
-                                const chartData = attendanceData;
-                                if (!chartData || chartData.length === 0) {
-                                    return (
-                                        <div className="flex items-center justify-center h-full text-xs text-[#9AA3B1]">
-                                            No attendance records found for this period
-                                        </div>
-                                    );
-                                }
-                                return (
-                                    <BarChart data={chartData} margin={{ top: 10, right: 5, left: 5, bottom: 0 }} barCategoryGap="4%">
-                                        <XAxis
-                                            dataKey="name"
-                                            axisLine={false}
-                                            tickLine={false}
-                                            tick={{ fill: '#9AA3B1', fontSize: 10.5, fontFamily: 'JetBrains Mono, monospace' }}
-                                            dy={8}
-                                        />
-                                        <YAxis hide domain={[0, 100]} />
-                                        <Tooltip
-                                            cursor={{ fill: 'transparent' }}
-                                            contentStyle={{
-                                                backgroundColor: '#12151C',
-                                                border: '1px solid #E2E6ED',
-                                                borderRadius: '6px',
-                                                color: '#ffffff',
-                                                fontSize: '11px',
-                                                fontFamily: 'Instrument Sans, sans-serif'
-                                            }}
-                                        />
-                                        <Bar dataKey="present" radius={[12, 12, 12, 12]} barSize={110}>
-                                            {chartData.map((entry, index) => (
-                                                <Cell
-                                                    key={`cell-${index}`}
-                                                    fill={(entry.present || 0) >= 1 ? '#2C4FD6' : '#EEF2F8'}
-                                                    className="transition-all duration-200"
-                                                />
-                                            ))}
-                                        </Bar>
-                                    </BarChart>
-                                );
-                            })()}
-                        </ResponsiveContainer>
+                        {!attendanceData || attendanceData.length === 0 ? (
+                            <div className="flex items-center justify-center h-full text-xs text-[#9AA3B1]">
+                                No attendance records found for this period
+                            </div>
+                        ) : (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={attendanceData} margin={{ top: 10, right: 5, left: 5, bottom: 0 }} barCategoryGap="4%">
+                                    <XAxis
+                                        dataKey="name"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#9AA3B1', fontSize: 10.5, fontFamily: 'JetBrains Mono, monospace' }}
+                                        dy={8}
+                                    />
+                                    <YAxis hide domain={[0, 100]} />
+                                    <Tooltip
+                                        cursor={{ fill: 'transparent' }}
+                                        contentStyle={{
+                                            backgroundColor: '#ffffff',
+                                            border: '1px solid #E2E6ED',
+                                            borderRadius: '6px',
+                                            color: '#12151C',
+                                            fontSize: '12px',
+                                            fontWeight: 500,
+                                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                                            padding: '8px 12px',
+                                            fontFamily: 'Instrument Sans, sans-serif'
+                                        }}
+                                        labelStyle={{
+                                            color: '#12151C',
+                                            fontWeight: 600,
+                                            marginBottom: '2px'
+                                        }}
+                                        itemStyle={{
+                                            color: '#12151C',
+                                            fontWeight: 500
+                                        }}
+                                    />
+                                    <Bar dataKey="present" radius={[12, 12, 12, 12]} barSize={110}>
+                                        {attendanceData.map((entry, index) => (
+                                            <Cell
+                                                key={`cell-${index}`}
+                                                fill={(entry.present || 0) >= 1 ? '#2C4FD6' : '#EEF2F8'}
+                                                className="transition-all duration-200"
+                                            />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        )}
                     </div>
                 </div>
 

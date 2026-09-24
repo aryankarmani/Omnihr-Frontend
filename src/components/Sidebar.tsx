@@ -38,7 +38,7 @@ const menuItems: MenuItem[] = [
     { icon: CalendarRange, label: 'Leave', path: '/leave', module: 'LEAVE', state: { activeTab: 'MY_LEAVE' } },
     { icon: BarChart3, label: 'Reports', path: '/reports', module: 'REPORTS' },
     { icon: Settings2, label: 'Masters', path: '/masters', module: 'MASTERS' },
-    { icon: FileText, label: 'Log', path: '/log-file', module: 'TASK' },
+    { icon: FileText, label: 'Log', path: '/log-file', module: 'LOG' },
     { icon: UserCircle, label: 'My Profile', path: '/profile', module: 'MY_PROFILE' },
 ];
 
@@ -116,7 +116,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
         'LEAVE',
         'REPORTS',
         'MASTERS',
-        'TASK',
+        'LOG',
         'MY_PROFILE',
         'EMPLOYEE_ATTENDANCE',
     ];
@@ -126,6 +126,10 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
     let userModules: string[] = hasCustomModules
         ? [...user!.accessibleModules!]
         : (user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN' ? adminDefaultModules : employeeDefaultModules);
+
+    // Normalize LOG and TASK keys so both work identically
+    if (userModules.includes('TASK') && !userModules.includes('LOG')) userModules.push('LOG');
+    if (userModules.includes('LOG') && !userModules.includes('TASK')) userModules.push('TASK');
 
     // If employee is team manager, grant team management modules if allowed
     if (managerAccess.isTeamManager) {

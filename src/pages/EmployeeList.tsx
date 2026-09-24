@@ -454,10 +454,10 @@ export default function EmployeeList() {
                                                     const pct = typeof comp?.percentage === 'number' ? comp.percentage : 0;
                                                     return (
                                                         <span className={`font-semibold font-mono-numbers text-[13px] ${pct === 100
-                                                                ? 'text-[#1F8A5A] dark:text-emerald-400'
-                                                                : pct >= 50
-                                                                    ? 'text-[#2C4FD6] dark:text-blue-400'
-                                                                    : 'text-[#D97706] dark:text-amber-400'
+                                                            ? 'text-[#1F8A5A] dark:text-emerald-400'
+                                                            : pct >= 50
+                                                                ? 'text-[#2C4FD6] dark:text-blue-400'
+                                                                : 'text-[#D97706] dark:text-amber-400'
                                                             }`}>
                                                             {pct}%
                                                         </span>
@@ -501,7 +501,7 @@ export default function EmployeeList() {
                             </tbody>
                         </table>
                     </div>
-                    {totalPages > 1 && (
+                    {filteredEmployees.length > 0 && (
                         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-6 py-4 border-t border-[#E2E6ED] dark:border-gray-800 text-xs">
                             <div className="flex items-center gap-2">
                                 <span className="text-[#9AA3B1] font-semibold text-xs uppercase">
