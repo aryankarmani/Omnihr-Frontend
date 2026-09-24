@@ -139,7 +139,7 @@ export default function PunchInPromptModal() {
                         <MapPin size={22} className="mb-1.5" />
                     )}
                     <span className="text-[13px] font-extrabold uppercase tracking-wider leading-none">
-                        {isPunching ? 'PUNCHING...' : 'PUNCH IN'}
+                        {isPunching ? 'PROCESSING...' : 'PUNCH IN'}
                     </span>
                 </button>
             </div>

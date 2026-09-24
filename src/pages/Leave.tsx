@@ -1024,7 +1024,14 @@ export default function Leave() {
                                     className="flex-1 py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold text-[13.5px] rounded-[6px] transition-all flex items-center justify-center gap-2 cursor-pointer"
                                     disabled={submitting}
                                 >
-                                    {submitting ? <Loader2 size={16} className="animate-spin" /> : 'Submit Request'}
+                                    {submitting ? (
+                                        <>
+                                            <Loader2 size={16} className="animate-spin" />
+                                            Processing...
+                                        </>
+                                    ) : (
+                                        'Submit Request'
+                                    )}
                                 </button>
                             </div>
                         </form>
@@ -1281,7 +1288,14 @@ export default function Leave() {
                                     disabled={submittingLeaveReject}
                                     className="flex-1 py-2.5 px-4 bg-[#DE350B] text-white font-semibold rounded-[6px] hover:bg-[#b02a08] transition-colors flex items-center justify-center gap-2 text-xs cursor-pointer"
                                 >
-                                    {submittingLeaveReject ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Reject'}
+                                    {submittingLeaveReject ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Processing...
+                                        </>
+                                    ) : (
+                                        'Reject'
+                                    )}
                                 </button>
                             </div>
                         </form>

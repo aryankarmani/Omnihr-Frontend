@@ -1627,7 +1627,7 @@ export default function EmployeeProfile() {
                                         {savingAndNext ? (
                                             <>
                                                 <Loader2 size={15} className="animate-spin" />
-                                                <span>Saving...</span>
+                                                <span>Processing...</span>
                                             </>
                                         ) : (
                                             <>
@@ -1969,7 +1969,7 @@ export default function EmployeeProfile() {
                                         {savingAndNext ? (
                                             <>
                                                 <Loader2 size={15} className="animate-spin" />
-                                                <span>Saving...</span>
+                                                <span>Processing...</span>
                                             </>
                                         ) : (
                                             <>
@@ -2545,7 +2545,7 @@ export default function EmployeeProfile() {
                                         {savingAndNext ? (
                                             <>
                                                 <Loader2 size={15} className="animate-spin" />
-                                                <span>Saving...</span>
+                                                <span>Processing...</span>
                                             </>
                                         ) : (
                                             <>
@@ -2700,7 +2700,7 @@ export default function EmployeeProfile() {
                                         {savingAndNext ? (
                                             <>
                                                 <Loader2 size={15} className="animate-spin" />
-                                                <span>Saving...</span>
+                                                <span>Processing...</span>
                                             </>
                                         ) : (
                                             <>
@@ -2999,7 +2999,7 @@ export default function EmployeeProfile() {
                                         {savingAndNext ? (
                                             <>
                                                 <Loader2 size={15} className="animate-spin" />
-                                                <span>Saving...</span>
+                                                <span>Processing...</span>
                                             </>
                                         ) : (
                                             <>

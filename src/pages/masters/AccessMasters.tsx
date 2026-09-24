@@ -705,8 +705,17 @@ export default function AccessMasters() {
                                     disabled={loading}
                                     className="inline-flex items-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white text-[13px] font-semibold rounded-[6px] px-[20px] py-[9.5px] transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50"
                                 >
-                                    {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={15} />}
-                                    Save & Apply Changes
+                                    {loading ? (
+                                        <>
+                                            <Loader2 size={16} className="animate-spin" />
+                                            Processing...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <RefreshCw size={15} />
+                                            Save & Apply Changes
+                                        </>
+                                    )}
                                 </button>
                             </div>
                         </div>
@@ -717,29 +726,38 @@ export default function AccessMasters() {
 
             {/* Delete Confirmation Modal */}
             {itemToDelete && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-[2px] p-4 animate-fade-in">
-                    <div className="bg-[#0f1016] rounded-[8px] w-full max-w-[calc(100vw-2rem)] sm:max-w-[380px] border-t-4 border-red-600 text-center relative overflow-hidden pb-8 px-5 sm:px-6">
-                        <div className="w-16 h-16 bg-[#1c1d26] rounded-full flex items-center justify-center mx-auto mb-4 mt-6">
-                            <Trash2 size={28} className="text-red-600" />
+                <div className="fixed inset-0 z-[999999] bg-slate-900/30 dark:bg-black/60 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
+                    <div className="bg-white dark:bg-[#12151C] rounded-[8px] border border-[#E2E6ED] dark:border-gray-800 w-full max-w-[calc(100vw-2rem)] sm:max-w-sm p-6 text-center shadow-2xl relative animate-scale-in">
+                        <div className="w-14 h-14 bg-[#FBE7E7] dark:bg-red-500/10 text-[#DE350B] rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Trash2 size={26} />
                         </div>
-                        <h3 className="text-lg font-bold text-white mb-2">Delete Role?</h3>
-                        <p className="text-[#8a8b94] mb-6 text-xs leading-relaxed px-2">
-                            Are you sure you want to delete <span className="font-bold text-gray-200">{itemToDelete.name}</span>? <br />
+                        <h3 className="text-lg font-bold text-[#12151C] dark:text-white mb-2">Delete Role?</h3>
+                        <p className="text-[#5B6472] dark:text-gray-400 mb-6 text-xs leading-relaxed px-1">
+                            Are you sure you want to delete <span className="font-bold text-[#12151C] dark:text-white">{itemToDelete.name}</span>? <br />
                             This action will permanently remove all associated permissions and synchronize active sessions.
                         </p>
-                        <div className="flex gap-3 px-2">
+                        <div className="flex gap-3">
                             <button
+                                type="button"
                                 onClick={() => setItemToDelete(null)}
-                                className="flex-1 py-2.5 px-4 bg-[#1c1d26] text-white font-bold rounded-[6px] hover:bg-[#252631] transition-all active:scale-95 text-xs"
+                                className="flex-1 py-2.5 px-4 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#5B6472] dark:text-gray-300 font-semibold text-[13.5px] hover:bg-gray-50 dark:hover:bg-white/5 transition-all cursor-pointer"
                             >
                                 Cancel
                             </button>
                             <button
+                                type="button"
                                 onClick={handleDelete}
                                 disabled={loading}
-                                className="flex-1 py-2.5 px-4 bg-[#ff3b3b] text-white font-bold rounded-[6px] hover:bg-[#ff4d4d] transition-all active:scale-95 flex items-center justify-center gap-2 text-xs"
+                                className="flex-1 py-2.5 px-4 rounded-[6px] bg-[#DE350B] hover:bg-[#b02a08] text-white font-semibold text-[13.5px] transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
                             >
-                                {loading ? <Loader2 size={15} className="animate-spin" /> : "Yes, Delete"}
+                                {loading ? (
+                                    <>
+                                        <Loader2 size={16} className="animate-spin" />
+                                        Processing...
+                                    </>
+                                ) : (
+                                    "Yes, Delete"
+                                )}
                             </button>
                         </div>
                     </div>

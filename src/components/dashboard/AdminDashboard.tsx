@@ -466,7 +466,14 @@ export default function AdminDashboard({
                                 disabled={submittingApprove}
                                 className="flex-1 py-2.5 px-4 bg-[#1F8A5A] text-white font-semibold rounded-[8px] hover:bg-[#186f48] transition-colors flex items-center justify-center gap-2 text-xs cursor-pointer disabled:opacity-60"
                             >
-                                {submittingApprove ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Approve'}
+                                {submittingApprove ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Processing...
+                                    </>
+                                ) : (
+                                    'Approve'
+                                )}
                             </button>
                         </div>
                     </div>
@@ -517,7 +524,14 @@ export default function AdminDashboard({
                                     disabled={submittingReject}
                                     className="flex-1 py-2.5 px-4 bg-[#DE350B] text-white font-semibold rounded-[8px] hover:bg-[#b02a08] transition-colors flex items-center justify-center gap-2 text-xs cursor-pointer disabled:opacity-60"
                                 >
-                                    {submittingReject ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Reject'}
+                                    {submittingReject ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Processing...
+                                        </>
+                                    ) : (
+                                        'Reject'
+                                    )}
                                 </button>
                             </div>
                         </form>

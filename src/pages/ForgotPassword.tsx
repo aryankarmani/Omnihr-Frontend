@@ -374,7 +374,7 @@ export default function ForgotPassword() {
                     {loading ? (
                         <>
                             <Loader2 size={18} className="animate-spin" />
-                            <span>Sending OTP...</span>
+                            <span>Processing...</span>
                         </>
                     ) : (
                         <>
@@ -439,7 +439,7 @@ export default function ForgotPassword() {
                     {loading ? (
                         <>
                             <Loader2 size={18} className="animate-spin" />
-                            <span>Verifying...</span>
+                            <span>Processing...</span>
                         </>
                     ) : (
                         <>

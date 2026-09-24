@@ -264,8 +264,14 @@ export default function CustomFieldsMasters() {
                                 disabled={loading}
                                 className="inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white text-[13.5px] font-semibold rounded-[6px] px-[18px] py-[9px] transition-all cursor-pointer"
                             >
-                                {loading && <Loader2 size={16} className="animate-spin" />}
-                                Done
+                                {loading ? (
+                                    <>
+                                        <Loader2 size={16} className="animate-spin" />
+                                        Processing...
+                                    </>
+                                ) : (
+                                    "Done"
+                                )}
                             </button>
                         </div>
                     </div>
@@ -296,7 +302,14 @@ export default function CustomFieldsMasters() {
                                 disabled={loading}
                                 className="flex-1 py-3 px-4 bg-red-500 text-white font-bold rounded-[6px] hover:bg-red-600 transition-colors text-sm flex items-center justify-center gap-2"
                             >
-                                {loading ? <Loader2 size={16} className="animate-spin" /> : "Yes, Delete"}
+                                {loading ? (
+                                    <>
+                                        <Loader2 size={16} className="animate-spin" />
+                                        Processing...
+                                    </>
+                                ) : (
+                                    "Yes, Delete"
+                                )}
                             </button>
                         </div>
                     </div>
