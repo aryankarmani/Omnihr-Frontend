@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import {
     Shield, Plus, Edit2, Check, Lock, Trash2, X, Loader2,
     LayoutDashboard, Fingerprint, Users, UsersRound, CalendarRange,
-    BarChart3, Settings2, CheckSquare, UserCircle, Calendar, FileSpreadsheet,
+    BarChart3, Settings2, CheckSquare, UserCircle, Calendar, FileSpreadsheet, FileText,
     ChevronDown, ChevronUp, CheckCheck, Info, Sparkles, RefreshCw
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -27,7 +27,7 @@ const ALL_MODULES: ModuleDef[] = [
     { key: 'PAYROLL', label: 'Payroll', icon: FileSpreadsheet, description: 'Salary calculations, payslips & tax deductions' },
     { key: 'REPORTS', label: 'Reports', icon: BarChart3, description: 'HR analytics, attendance & payroll reports' },
     { key: 'MASTERS', label: 'Masters', icon: Settings2, description: 'System-wide organizational masters & statutory' },
-    { key: 'TASK', label: 'Task', icon: CheckSquare, description: 'Task assignments and project progress' },
+    { key: 'LOG', label: 'Log', icon: FileText, description: 'Audit trail and system activity logs' },
     { key: 'MY_PROFILE', label: 'My Profile', icon: UserCircle, description: 'Personal user profile & credentials' },
 ];
 
@@ -36,6 +36,9 @@ const MODULE_ALIASES: Record<string, string> = {
     HR: 'EMPLOYEE',
     SETTINGS: 'MASTERS',
     ADMIN: 'MASTERS',
+    TASK: 'LOG',
+    TASKS: 'LOG',
+    LOGS: 'LOG',
 };
 
 const normalizeModuleKey = (key: string): string => {

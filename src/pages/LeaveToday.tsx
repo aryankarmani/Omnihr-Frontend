@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Filter, Calendar, Mail, Loader2, ArrowLeft, UserMinus, LayoutGrid, List, Eye, XCircle, Clock } from 'lucide-react';
+import { Search, Filter, Calendar, Mail, Loader2, ArrowLeft, UserMinus, LayoutGrid, List, Eye, XCircle, Clock, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
@@ -11,7 +11,8 @@ export default function LeaveToday() {
     const [loading, setLoading] = useState(true);
     const [employeesOnLeave, setEmployeesOnLeave] = useState<any[]>([]);
     const [showFilterDrawer, setShowFilterDrawer] = useState(false);
-    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
 
     // Filter states
     const [filters, setFilters] = useState({
@@ -68,6 +69,7 @@ export default function LeaveToday() {
 
     const applyFilters = () => {
         setAppliedFilters(filters);
+        setCurrentPage(1);
         setShowFilterDrawer(false);
     };
 
@@ -75,6 +77,7 @@ export default function LeaveToday() {
         const empty = { name: '', email: '', role: '', location: '', status: 'All' };
         setFilters(empty);
         setAppliedFilters(empty);
+        setCurrentPage(1);
         setShowFilterDrawer(false);
     };
 
@@ -101,6 +104,9 @@ export default function LeaveToday() {
         return matchesName && matchesEmail && matchesRole && matchesLocation && matchesStatus;
     });
 
+    const totalPages = Math.ceil(filteredLeaves.length / rowsPerPage) || 1;
+    const paginatedLeaves = filteredLeaves.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+
     return (
         <div className="animate-fade-in-up pb-8">
             {/* Header Actions */}
@@ -108,12 +114,12 @@ export default function LeaveToday() {
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => navigate(-1)}
-                        className="p-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-[#5B6472] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-all cursor-pointer"
+                        className="p-1.5 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[4px] text-[#5B6472] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-all cursor-pointer"
                     >
                         <ArrowLeft size={18} />
                     </button>
                     <div>
-                        <h2 className="text-2xl font-bold text-[#12151C] dark:text-white mb-1">On Leave Today</h2>
+                        <h2 className="text-xl font-bold text-[#12151C] dark:text-white mb-1">On Leave Today</h2>
                         <p className="page-sub text-[14px] text-[#5B6472] dark:text-gray-400 mb-[5px]">List of employees currently away from work.</p>
                     </div>
                 </div>
@@ -136,6 +142,7 @@ export default function LeaveToday() {
                                     const val = e.target.value;
                                     setFilters({ ...filters, name: val });
                                     setAppliedFilters({ ...appliedFilters, name: val });
+                                    setCurrentPage(1);
                                 }}
                                 className="w-full pl-9 pr-3 py-[9px] h-[36px] bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] transition-all text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
                             />
@@ -150,6 +157,7 @@ export default function LeaveToday() {
                                 const val = e.target.value;
                                 setFilters({ ...filters, status: val });
                                 setAppliedFilters({ ...appliedFilters, status: val });
+                                setCurrentPage(1);
                             }}
                             className="appearance-none flex items-center gap-2 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] px-3 py-[9px] h-[36px] text-[13px] font-semibold text-[#5B6472] dark:text-gray-300 bg-white dark:bg-[#12151C] cursor-pointer transition-all hover:border-[#2C4FD6] focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none pr-8"
                         >
@@ -209,11 +217,11 @@ export default function LeaveToday() {
                                     <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 w-[25%]">ROLE / DESIGNATION</th>
                                     <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 w-[20%]">STATUS</th>
                                     <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 text-center w-[15%]">LEAVE DATES</th>
-                                    <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 text-right w-[10%]"></th>
+                                    <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800 text-center w-[10%]">ACTION</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[#E2E6ED] dark:divide-gray-800 text-xs">
-                                {filteredLeaves.map((leave) => {
+                                {paginatedLeaves.map((leave) => {
                                     const emp = leave.fullEmployee || leave.user || {};
                                     const profile = emp.employeeProfile || {};
                                     const name = emp.name || 'Employee';
@@ -267,7 +275,7 @@ export default function LeaveToday() {
                                                 )}
                                             </td>
 
-                                            <td className="py-[13px] px-[22px] text-right">
+                                            <td className="py-[13px] text-center">
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
@@ -284,6 +292,75 @@ export default function LeaveToday() {
                             </tbody>
                         </table>
                     </div>
+
+                    {/* Pagination - Matching EmployeeList */}
+                    {filteredLeaves.length > 0 && (
+                        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-6 py-4 border-t border-[#E2E6ED] dark:border-gray-800 text-xs">
+                            <div className="flex items-center gap-2">
+                                <span className="text-[#9AA3B1] font-semibold text-xs uppercase">
+                                    Rows per page
+                                </span>
+
+                                <select
+                                    value={rowsPerPage}
+                                    onChange={(e) => {
+                                        setRowsPerPage(Number(e.target.value));
+                                        setCurrentPage(1);
+                                    }}
+                                    className="px-3 py-1 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[#12151C] dark:text-white text-xs font-semibold cursor-pointer outline-none focus:border-[#2C4FD6]"
+                                >
+                                    <option value={5}>5</option>
+                                    <option value={10}>10</option>
+                                    <option value={20}>20</option>
+                                    <option value={50}>50</option>
+                                </select>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                                <span className="text-xs font-bold text-[#5B6472] dark:text-gray-300 font-mono-numbers">
+                                    Page {currentPage} of {totalPages || 1}
+                                </span>
+
+                                <div className="flex items-center gap-1.5">
+                                    <button
+                                        onClick={() => setCurrentPage(1)}
+                                        disabled={currentPage === 1}
+                                        className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
+                                        title="First Page"
+                                    >
+                                        <ChevronsLeft size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
+                                    </button>
+
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                        disabled={currentPage === 1}
+                                        className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
+                                        title="Previous Page"
+                                    >
+                                        <ChevronLeft size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
+                                    </button>
+
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                        disabled={currentPage === totalPages || totalPages === 0}
+                                        className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
+                                        title="Next Page"
+                                    >
+                                        <ChevronRight size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
+                                    </button>
+
+                                    <button
+                                        onClick={() => setCurrentPage(totalPages)}
+                                        disabled={currentPage === totalPages || totalPages === 0}
+                                        className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
+                                        title="Last Page"
+                                    >
+                                        <ChevronsRight size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 

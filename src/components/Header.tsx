@@ -74,13 +74,16 @@ export default function Header({ onMenuClick }: HeaderProps) {
     ];
 
 
-    const adminDefaultModules = ['DASHBOARD', 'ATTENDANCE', 'EMPLOYEE', 'EMPLOYEE_ATTENDANCE', 'TEAM', 'LEAVE', 'REPORTS', 'MASTERS', 'TASK', 'MY_PROFILE'];
+    const adminDefaultModules = ['DASHBOARD', 'ATTENDANCE', 'EMPLOYEE', 'EMPLOYEE_ATTENDANCE', 'TEAM', 'LEAVE', 'REPORTS', 'MASTERS', 'LOG', 'MY_PROFILE'];
     const employeeDefaultModules = ['DASHBOARD', 'ATTENDANCE', 'LEAVE', 'MY_PROFILE'];
     const hasCustomModules = Array.isArray(user?.accessibleModules) && user.accessibleModules.length > 0;
 
     let userModules: string[] = hasCustomModules
         ? [...user!.accessibleModules!]
         : (user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN' ? adminDefaultModules : employeeDefaultModules);
+
+    if (userModules.includes('TASK') && !userModules.includes('LOG')) userModules.push('LOG');
+    if (userModules.includes('LOG') && !userModules.includes('TASK')) userModules.push('TASK');
 
     const sortResults = (results: any[], query: string) => {
         const q = query.toLowerCase();
