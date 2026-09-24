@@ -699,7 +699,7 @@ export default function EmployeeList() {
                                                 value={newEmployee.roleId}
                                                 onChange={(e) => {
                                                     const id = e.target.value;
-                                                    const name = masters.roles.find(r => r.id === id)?.name || '';
+                                                    const name = masters.roles.find(r => String(r.id) === String(id))?.name || '';
                                                     setNewEmployee({ ...newEmployee, roleId: id, role: name });
                                                 }}
                                                 className="appearance-none w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all cursor-pointer"

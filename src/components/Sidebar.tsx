@@ -101,8 +101,6 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
         fetchManagerAccess();
     }, [user?.id]);
 
-    let userModules = user?.accessibleModules || [];
-
     const employeeDefaultModules = [
         'DASHBOARD',
         'ATTENDANCE',
@@ -123,22 +121,21 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
         'EMPLOYEE_ATTENDANCE',
     ];
 
+    // Strictly prioritize accessibleModules saved in database. Only fallback to defaults if not defined.
+    const hasCustomModules = Array.isArray(user?.accessibleModules) && user.accessibleModules.length > 0;
+    let userModules: string[] = hasCustomModules
+        ? [...user!.accessibleModules!]
+        : (user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN' ? adminDefaultModules : employeeDefaultModules);
 
-    if (user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN') {
-        userModules = userModules.length > 0
-            ? Array.from(new Set([...adminDefaultModules, ...userModules]))
-            : adminDefaultModules;
-    } else {
-        const baseModules = [...employeeDefaultModules];
-        // ✅ ADDED: if employee is team manager, add only allowed team modules
-        if (managerAccess.isTeamManager) {
-            if (managerAccess.access.list) baseModules.push('EMPLOYEE');
-            if (managerAccess.access.attendance || managerAccess.access.regularization) {
-                baseModules.push('EMPLOYEE_ATTENDANCE');
-            }
-            if (managerAccess.access.leaveApproval) baseModules.push('EMPLOYEE');
+    // If employee is team manager, grant team management modules if allowed
+    if (managerAccess.isTeamManager) {
+        const extraModules: string[] = [];
+        if (managerAccess.access.list) extraModules.push('EMPLOYEE');
+        if (managerAccess.access.attendance || managerAccess.access.regularization) {
+            extraModules.push('EMPLOYEE_ATTENDANCE');
         }
-        userModules = Array.from(new Set([...userModules, ...baseModules]));
+        if (managerAccess.access.leaveApproval) extraModules.push('EMPLOYEE');
+        userModules = Array.from(new Set([...userModules, ...extraModules]));
     }
 
     const toggleMenu = (label: string) => {
@@ -209,9 +206,12 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                 <nav className="flex-1 px-3 space-y-1 mt-2 overflow-y-auto overflow-x-hidden custom-scrollbar">
                     {menuItems.filter(item => {
                         if (item.module === 'EMPLOYEE_ATTENDANCE') {
-                            return user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN' ||
+                            const isAllowed = userModules.includes('EMPLOYEE_ATTENDANCE');
+                            return isAllowed && (
+                                user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN' ||
                                 (managerAccess.isTeamManager &&
-                                    (managerAccess.access.attendance || managerAccess.access.regularization));
+                                    (managerAccess.access.attendance || managerAccess.access.regularization))
+                            );
                         }
                         return userModules.includes(item.module);
                     }).map((item) => {
@@ -253,14 +253,15 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                                 {hasChildren && isOpen && !isCollapsed && (
                                     <div className="space-y-1 ml-4 border-l border-[#E2E6ED] dark:border-gray-800 pl-2 animate-fade-in">
                                         {item.children?.filter(child => {
-                                            if (user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN') return true;
-                                            if (managerAccess.isTeamManager) {
+                                            if (managerAccess.isTeamManager && user?.role !== 'HR_ADMIN' && (user?.role as string) !== 'ADMIN') {
                                                 if (child.label === 'List') return !!managerAccess.access.list;
                                                 if (child.label === 'Attendance') return !!managerAccess.access.attendance;
                                                 if (child.label === 'Leave Approval') return !!managerAccess.access.leaveApproval;
                                                 if (child.label === 'Regularizations') return !!managerAccess.access.regularization;
                                             }
-                                            if (child.module === 'EMPLOYEE_ATTENDANCE') return false;
+                                            if (child.module === 'EMPLOYEE_ATTENDANCE') {
+                                                return userModules.includes('EMPLOYEE_ATTENDANCE');
+                                            }
                                             return userModules.includes(child.module);
                                         }).map((child) => {
                                             const childActive = isActive(child.path, child.state);
