@@ -702,7 +702,7 @@ export default function AddEmployee() {
                                         value={formData.roleId}
                                         onChange={(e) => {
                                             const id = e.target.value;
-                                            const name = masters.roles.find(r => r.id === id)?.name || '';
+                                            const name = masters.roles.find(r => String(r.id) === String(id))?.name || '';
 
                                             setFormData({ ...formData, roleId: id, role: name });
 
