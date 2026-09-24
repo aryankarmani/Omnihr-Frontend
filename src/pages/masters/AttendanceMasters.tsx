@@ -205,8 +205,17 @@ export default function AttendanceMasters() {
                                 <h3 className="text-base font-bold text-[#12151C] dark:text-white">Attendance Rules</h3>
                                 <p className="text-xs text-[#5B6472] dark:text-gray-400">Configure cutoff times, late marks, and half-day hours.</p>
                             </div>
-                            <button onClick={savePolicy} disabled={loading} className="inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[13.5px] font-semibold px-[15px] py-[9px] transition-all cursor-pointer">
-                                {loading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Save Rules
+                            <button onClick={savePolicy} disabled={loading} className="inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[13.5px] font-semibold px-[15px] py-[9px] transition-all cursor-pointer disabled:opacity-50">
+                                {loading ? (
+                                    <>
+                                        <Loader2 size={16} className="animate-spin" />
+                                        Processing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Save size={16} /> Save Rules
+                                    </>
+                                )}
                             </button>
                         </div>
                         <div className="bg-white dark:bg-[#12151C] p-6 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 space-y-6">
@@ -292,27 +301,30 @@ export default function AttendanceMasters() {
             )}
 
             {deleteModal.isOpen && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
-                    <div className="bg-[#0f1016] rounded-[6px] w-full max-w-[calc(100vw-2rem)] sm:max-w-[360px] border-t-4 border-red-600 text-center relative overflow-hidden pb-8 px-5 sm:px-6">
-                        <div className="w-20 h-20 bg-[#1c1d26] rounded-full flex items-center justify-center mx-auto mb-6 mt-8">
-                            <AlertCircle size={40} className="text-red-500" />
+                <div className="fixed inset-0 z-[999999] bg-slate-900/30 dark:bg-black/60 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
+                    <div className="bg-white dark:bg-[#12151C] rounded-[8px] border border-[#E2E6ED] dark:border-gray-800 w-full max-w-[calc(100vw-2rem)] sm:max-w-sm p-6 text-center shadow-2xl relative animate-scale-in">
+                        <div className="w-14 h-14 bg-[#FBE7E7] dark:bg-red-500/10 text-[#DE350B] rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Trash2 size={26} />
                         </div>
-                        <h3 className="text-xl font-bold text-white mb-2">Delete Confirmation</h3>
-                        <p className="text-gray-400 text-sm mb-8 leading-relaxed">
-                            Are you sure you want to delete this {deleteModal.type.toLowerCase()}? This action cannot be undone.
+                        <h3 className="text-lg font-bold text-[#12151C] dark:text-white mb-2">Delete Confirmation</h3>
+                        <p className="text-[#5B6472] dark:text-gray-400 mb-6 text-xs leading-relaxed px-1">
+                            Are you sure you want to delete this {deleteModal.type.toLowerCase()}? <br />
+                            This action cannot be undone.
                         </p>
                         <div className="flex items-center gap-3">
                             <button
+                                type="button"
                                 onClick={() => setDeleteModal({ isOpen: false, id: null, type: 'SHIFT' })}
-                                className="flex-1 py-3.5 px-4 bg-[#1c1d26] text-white font-bold rounded-[6px] hover:bg-[#252631] transition-all active:scale-95"
+                                className="flex-1 py-2.5 px-4 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#5B6472] dark:text-gray-300 font-semibold text-[13.5px] hover:bg-gray-50 dark:hover:bg-white/5 transition-all cursor-pointer"
                             >
                                 Cancel
                             </button>
                             <button
+                                type="button"
                                 onClick={confirmDelete}
-                                className="flex-1 py-3.5 px-4 bg-[#ff3b3b] text-white font-bold rounded-[6px] hover:bg-[#ff4d4d] transition-all active:scale-95 flex items-center justify-center gap-2"
+                                className="flex-1 py-2.5 px-4 rounded-[6px] bg-[#DE350B] hover:bg-[#b02a08] text-white font-semibold text-[13.5px] transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
                             >
-                                Delete
+                                Yes, Delete
                             </button>
                         </div>
                     </div>

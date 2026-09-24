@@ -650,7 +650,7 @@ export default function EmployeeList() {
                                 {isBulkDeleting ? (
                                     <>
                                         <Loader2 size={16} className="animate-spin" />
-                                        <span>Deleting...</span>
+                                        <span>Processing...</span>
                                     </>
                                 ) : (
                                     `Yes, Delete (${selectedEmployeeIds.length})`

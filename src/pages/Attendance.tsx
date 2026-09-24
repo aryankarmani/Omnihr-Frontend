@@ -783,7 +783,14 @@ export default function Attendance() {
                                     disabled={submittingRequest}
                                     className="px-6 py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold rounded-[6px] transition-all text-[13.5px] flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                                 >
-                                    {submittingRequest ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Submit'}
+                                    {submittingRequest ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Processing...
+                                        </>
+                                    ) : (
+                                        'Submit'
+                                    )}
                                 </button>
                             </div>
                         </form>

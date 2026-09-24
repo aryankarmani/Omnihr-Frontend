@@ -342,7 +342,7 @@ export default function SignIn() {
                                     {isSubmitting ? (
                                         <>
                                             <Loader2 size={18} className="animate-spin" />
-                                            <span>Signing In...</span>
+                                            <span>Processing...</span>
                                         </>
                                     ) : (
                                         <>

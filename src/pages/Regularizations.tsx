@@ -567,7 +567,14 @@ export default function Regularizations() {
                     disabled={submittingReject}
                     className="flex-1 py-2.5 px-4 bg-[#DE350B] text-white font-semibold rounded-[6px] hover:bg-[#b02a08] transition-colors flex items-center justify-center gap-2 text-xs cursor-pointer disabled:opacity-60"
                   >
-                    {submittingReject ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Reject'}
+                    {submittingReject ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      'Reject'
+                    )}
                   </button>
                 </div>
               </form>
