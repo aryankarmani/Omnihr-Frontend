@@ -255,19 +255,19 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
                         {/* Overlay */}
                         <div
-                            className="absolute inset-0 bg-black/40 backdrop-blur-md z-10"
+                            className="absolute inset-0 bg-slate-900/20 dark:bg-black/60 backdrop-blur-md animate-fade-in z-10"
                             onClick={() => setShowNotifications(false)}
                         />
 
                         {/* Notification Panel */}
-                        <div className="absolute right-3 sm:right-4 top-16 w-[calc(100vw-1.5rem)] sm:w-[380px] max-h-[80vh] sm:max-h-[550px] bg-white dark:bg-brand-900/95 backdrop-blur-xl rounded-[6px] shadow-2xl border border-gray-100 dark:border-white/10 p-4 sm:p-5 z-20 pointer-events-auto flex flex-col">
+                        <div className="absolute right-3 sm:right-4 top-16 w-[calc(100vw-1.5rem)] sm:w-[380px] max-h-[80vh] sm:max-h-[550px] bg-white dark:bg-[#12151C] rounded-[6px] shadow-2xl border border-[#E2E6ED] dark:border-gray-800 p-4 sm:p-5 z-20 pointer-events-auto flex flex-col animate-scale-in">
 
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-xl font-black text-gray-800 dark:text-white">
                                     Notifications
                                 </h2>
                                 {notifications.some((n: any) => n.unread) && (
-                                    <span className="px-2.5 py-1 bg-brand-500 text-white text-[10px] font-black rounded-full">
+                                    <span className="px-2.5 py-1 bg-brand-500 text-white text-[10px] font-black rounded-[4px]">
                                         {notifications.filter((n: any) => n.unread).length} NEW
                                     </span>
                                 )}

@@ -112,7 +112,7 @@ export default function Notifications() {
                     )}
                         <button 
                             onClick={markAllRead}
-                            className="flex items-center gap-2 px-4 py-2 bg-brand-500/10 hover:bg-brand-500 text-brand-600 dark:text-brand-400 hover:text-white rounded-xl font-bold transition-all border border-brand-500/20"
+                            className="flex items-center gap-2 px-4 py-2 bg-brand-500/10 hover:bg-brand-500 text-brand-600 dark:text-brand-400 hover:text-white rounded-[6px] font-bold transition-all border border-brand-500/20"
                         >
                         <Check size={16} />
                         <span>Mark all read</span>
@@ -121,7 +121,7 @@ export default function Notifications() {
             </div>
 
             {/* Filters & Search */}
-            <div className="bg-white dark:bg-[#12151C] p-3.5 rounded-[11px] border border-[#E2E6ED] dark:border-gray-800 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div className="bg-white dark:bg-[#12151C] p-3.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
                 <div className="flex items-center gap-4 w-full md:w-auto">
                     <div className="flex items-center gap-2 px-2">
                         <input 
@@ -186,7 +186,7 @@ export default function Notifications() {
                                     markAsRead(n.id);
                                 }
                             }}
-                            className={`group relative p-3.5 rounded-[8px] border transition-all ${
+                            className={`group relative p-3.5 rounded-[6px] border transition-all ${
                                n.unread 
                                 ? 'bg-white dark:bg-[#12151C] border-[#E2E6ED] dark:border-gray-800'
                                 : 'bg-[#F7F8FA] dark:bg-gray-800/40 border-[#E2E6ED] dark:border-gray-800'

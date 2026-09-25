@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Check, ChevronRight, ChevronDown, Upload, FileText, User, CreditCard, Loader2, Trash2, Eye, ExternalLink, Image as ImageIcon, X, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
+import { downloadFile } from '../utils/fileDownloader';
 
 const parseRadioOptions = (optionsString: string | null | undefined): string[] => {
     if (!optionsString) return ['Yes', 'No'];
@@ -1332,7 +1333,7 @@ export default function AddEmployee() {
                                                     </div>
                                                     <div>
                                                         <p className="font-semibold text-[#12151C] dark:text-white text-sm">
-                                                            {doc.name} {doc.required && <span className="text-red-500">*</span>}
+                                                            {doc.name} {doc.required && <span className="text-red-500"></span>}
                                                         </p>
                                                         <p className={`text-xs font-medium transition-colors ${hasFile ? 'text-emerald-600 dark:text-emerald-400' : 'text-[#9AA3B1]'}`}>
                                                             {hasFile ? fileObj?.name : 'Click to upload document'}
@@ -1470,7 +1471,7 @@ export default function AddEmployee() {
 
                                         <div>
                                             <p className="font-semibold text-[#12151C] dark:text-white text-sm">
-                                                Profile Picture <span className="text-red-500">*</span>
+                                                Profile Picture <span className="text-red-500"></span>
                                             </p>
 
                                             <p
@@ -1653,14 +1654,14 @@ export default function AddEmployee() {
                                     >
                                         <ExternalLink size={18} />
                                     </a>
-                                    <a
-                                        href={previewDoc.url}
-                                        download={previewDoc.fileName || 'document'}
+                                    <button
+                                        type="button"
+                                        onClick={() => downloadFile(previewDoc.url, previewDoc.fileName)}
                                         className="p-2 text-gray-500 hover:text-[#2C4FD6] hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
                                         title="Download document"
                                     >
                                         <Download size={18} />
-                                    </a>
+                                    </button>
                                     <button
                                         type="button"
                                         onClick={() => setPreviewDoc(null)}
@@ -1738,13 +1739,13 @@ export default function AddEmployee() {
                                                 >
                                                     <ExternalLink size={16} /> Open in New Tab
                                                 </a>
-                                                <a
-                                                    href={previewDoc.url}
-                                                    download={previewDoc.fileName || 'document'}
-                                                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-200 text-sm font-semibold rounded-lg hover:bg-gray-200 dark:hover:bg-white/20 transition-all"
+                                                <button
+                                                    type="button"
+                                                    onClick={() => downloadFile(previewDoc.url, previewDoc.fileName)}
+                                                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-200 text-sm font-semibold rounded-lg hover:bg-gray-200 dark:hover:bg-white/20 transition-all cursor-pointer"
                                                 >
                                                     <Download size={16} /> Download
-                                                </a>
+                                                </button>
                                             </div>
                                         </div>
                                     );

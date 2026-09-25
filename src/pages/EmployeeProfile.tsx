@@ -10,6 +10,8 @@ import toast from 'react-hot-toast';
 import api, { getMediaUrl } from '../utils/api';
 import { calculateProfileCompletion } from '../utils/profileCompletion';
 import { ProfileSkeleton } from '../components/common/SkeletonLoaders';
+import { downloadFile } from '../utils/fileDownloader';
+import { extractPhoneDigits, formatPhoneNumber } from '../utils/phoneUtils';
 
 const parseRadioOptions = (optionsString: string | null | undefined): string[] => {
     if (!optionsString) return ['Yes', 'No'];
@@ -318,11 +320,10 @@ export default function EmployeeProfile() {
             newErrors.email = "Please enter valid email";
         }
 
-        const rawPhone = pd.phone || '';
-        const phoneNum = rawPhone.includes(' ') ? rawPhone.split(' ')[1] : rawPhone;
+        const phoneDigits = extractPhoneDigits(pd.phone);
 
-        if (!phoneNum) newErrors.phone = "Phone number is required";
-        else if (!/^\d{10}$/.test(phoneNum)) {
+        if (!phoneDigits) newErrors.phone = "Phone number is required";
+        else if (phoneDigits.length !== 10) {
             newErrors.phone = "Enter valid 10 digit phone number";
         }
         if (!pd.dob) {
@@ -472,9 +473,8 @@ export default function EmployeeProfile() {
                     ? employee.employeeProfile.selectedSalaryComponents
                     : (employee.employeeProfile?.salaryComponents?.map((item: any) => item.component || item) || []);
 
-            const rawPhone = employee.employeeProfile?.phone || '';
-            const phoneNum = rawPhone.includes(' ') ? rawPhone.split(' ')[1] : rawPhone;
-            const combinedPhone = `${countryCode} ${phoneNum}`.trim();
+            const phoneDigits = extractPhoneDigits(employee.employeeProfile?.phone);
+            const combinedPhone = phoneDigits ? `+91 ${phoneDigits}` : null;
 
             const profileData = {
                 phone: combinedPhone,
@@ -605,10 +605,9 @@ export default function EmployeeProfile() {
             else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(employee.email)) {
                 newErrors.email = "Please enter valid email";
             }
-            const rawPhone = pd.phone || '';
-            const phoneNum = rawPhone.includes(' ') ? rawPhone.split(' ')[1] : rawPhone;
-            if (!phoneNum) newErrors.phone = "Phone number is required";
-            else if (!/^\d{10}$/.test(phoneNum)) {
+            const phoneDigits = extractPhoneDigits(pd.phone);
+            if (!phoneDigits) newErrors.phone = "Phone number is required";
+            else if (phoneDigits.length !== 10) {
                 newErrors.phone = "Enter valid 10 digit phone number";
             }
             if (!pd.dob) newErrors.dob = "Date of birth is required";
@@ -644,9 +643,8 @@ export default function EmployeeProfile() {
                     ? employee.employeeProfile.selectedSalaryComponents
                     : (employee.employeeProfile?.salaryComponents?.map((item: any) => item.component || item) || []);
 
-            const rawPhone = employee.employeeProfile?.phone || '';
-            const phoneNum = rawPhone.includes(' ') ? rawPhone.split(' ')[1] : rawPhone;
-            const combinedPhone = `${countryCode} ${phoneNum}`.trim();
+            const phoneDigits = extractPhoneDigits(employee.employeeProfile?.phone);
+            const combinedPhone = phoneDigits ? `+91 ${phoneDigits}` : null;
 
             const profileData = {
                 phone: combinedPhone,
@@ -2012,11 +2010,25 @@ export default function EmployeeProfile() {
                                     <label className="text-[11px] font-semibold text-[#9AA3B1] uppercase tracking-[.06em] block">PHONE</label>
                                     {isEditing ? (
                                         <>
-                                            <input type="text" value={profile.phone || ''} onChange={(e) => handleInputChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
-                                                className={`w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border ${errors.phone ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-[6px] outline-none`} />
+                                            <div className={`flex items-center rounded-[6px] border ${errors.phone ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} bg-gray-50 dark:bg-white/5 overflow-hidden transition-all focus-within:ring-2 focus-within:ring-[#2C4FD6]/20 focus-within:border-[#2C4FD6]`}>
+                                                <span className="px-3 py-2 text-[12.5px] font-semibold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-white/10 border-r border-gray-200 dark:border-white/10 select-none">
+                                                    +91
+                                                </span>
+                                                <input
+                                                    type="tel"
+                                                    value={extractPhoneDigits(profile.phone)}
+                                                    onChange={(e) => handleInputChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                                                    placeholder="Enter 10-digit number"
+                                                    className="w-full px-3 py-2 bg-transparent outline-none text-[13.5px] font-medium text-[#12151C] dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                                                />
+                                            </div>
                                             {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
                                         </>
-                                    ) : <p className="text-[13.5px] font-semibold text-[#12151C] dark:text-white">{profile.phone || 'N/A'}</p>}
+                                    ) : (
+                                        <p className="text-[13.5px] font-semibold text-[#12151C] dark:text-white">
+                                            {formatPhoneNumber(profile.phone) || 'N/A'}
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-[11px] font-semibold text-[#9AA3B1] uppercase tracking-[.06em] block">EMAIL</label>
@@ -3044,7 +3056,7 @@ export default function EmployeeProfile() {
                                                             </div>
                                                             <div className="space-y-1">
                                                                 <label className="text-[10.5px] font-semibold text-[#9AA3B1] uppercase tracking-[.06em]">Team Manager Phone</label>
-                                                                <p className="font-semibold text-[#12151C] dark:text-gray-200 text-[12.5px]">{teamManager.employeeProfile?.phone || 'N/A'}</p>
+                                                                <p className="font-semibold text-[#12151C] dark:text-gray-200 text-[12.5px]">{formatPhoneNumber(teamManager.employeeProfile?.phone) || 'N/A'}</p>
                                                             </div>
                                                         </div>
                                                     ) : (
@@ -3153,10 +3165,15 @@ export default function EmployeeProfile() {
 
             </div>
 
-            {/* Payslip Modal (Keep original UI logic, but ensure it uses the dynamic data) */}
+            {/* Payslip Modal (Website Standard Glassmorphism Backdrop) */}
             {showPayslip && createPortal(
-                <div className="fixed inset-0 z-[999999] flex items-center justify-center  bg-black/70 backdrop-blur-sm p-4 animate-fade-in overflow-y-auto custom-scrollbar scrollbar-thin scrollbar-thumb-brand-500/60">
-                    <div className="bg-white dark:bg-brand-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden">
+                <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 overflow-y-auto custom-scrollbar">
+                    {/* Website-standard Glassmorphism Backdrop with Click-to-Close */}
+                    <div 
+                        className="fixed inset-0 bg-slate-900/30 dark:bg-black/60 backdrop-blur-md animate-fade-in cursor-pointer"
+                        onClick={() => setShowPayslip(false)}
+                    />
+                    <div className="relative z-10 bg-white dark:bg-brand-900 rounded-[6px] shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden my-auto animate-scale-in">
 
                         {/* Header */}
                         <div className="px-6 py-4 border-b border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 shrink-0">
@@ -3171,7 +3188,7 @@ export default function EmployeeProfile() {
 
                                 {/* Right: month + year fields */}
                                 <div className="flex items-center gap-3">
-                                    <div className="flex items-center border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden bg-white dark:bg-brand-800">
+                                    <div className="flex items-center border border-gray-200 dark:border-white/10 rounded-[6px] overflow-hidden bg-white dark:bg-brand-800">
                                         <div className="relative">
                                             <select
                                                 value={inputMonth}
@@ -3213,7 +3230,7 @@ export default function EmployeeProfile() {
                                     </div>
                                     <button
                                         onClick={applyPayslipMonth}
-                                        className="px-5 py-2 bg-brand-600 text-white text-sm font-bold rounded-xl hover:bg-brand-700 active:scale-95 transition-all"
+                                        className="px-5 py-2 bg-brand-600 text-white text-sm font-bold rounded-[6px] hover:bg-brand-700 active:scale-95 transition-all"
                                     >
                                         Apply
                                     </button>
@@ -3255,17 +3272,16 @@ export default function EmployeeProfile() {
                                 </div>
                             ) : (
 
-                                <div id="payslip-content" className="w-full max-w-3xl bg-white border border-gray-200 p-6 md:p-8 rounded-xl relative text-gray-900 text-sm">
+                                <div id="payslip-content" className="w-full max-w-3xl bg-white border border-gray-200 p-6 md:p-8 rounded-[6px] relative text-gray-900 text-sm">
                                     <div className="flex justify-between items-start border-b-2 border-brand-900 pb-4 mb-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-12 h-12 md:w-14 md:h-14 bg-brand-900 text-white flex items-center justify-center font-bold text-xl rounded-lg">OH</div>
-                                            <div className="text-left">
-                                                <h1 className="text-2xl font-bold text-gray-900 tracking-tight">OmniHR</h1>
+                                        <div className="flex items-center gap-3">   
+                                            <div className="text-">
+                                                <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">OmniHR</h1>
                                             </div>
                                         </div>
                                         <div className="text-right text-xs text-gray-600">
-                                            <p className="font-bold text-gray-800">EncalmIT Consultancy Pvt. Ltd.</p>
-                                            <p>Gurgaon, Haryana, India</p>
+                                            <p className="font-bold text-gray-800">OmniHR Consultancy Pvt. Ltd.</p>
+                                            {/* <p>Gurgaon, Haryana, India</p> */}
                                             <p>CIN: U12345HR2023PTC123456</p>
                                         </div>
                                     </div>
@@ -3306,7 +3322,7 @@ export default function EmployeeProfile() {
                                     </div>
 
                                     {/* Payroll Summary Bar */}
-                                    <div className="flex items-center gap-0 mb-4 border border-gray-200 rounded-lg overflow-hidden text-xs">
+                                    <div className="flex items-center gap-0 mb-4 border border-gray-200 rounded-[4px] overflow-hidden text-xs">
                                         <div className="flex-1 bg-gray-50 px-3 py-2 text-center border-r border-gray-200">
                                             <p className="text-gray-400 font-medium uppercase tracking-wider text-[9px]">Total Working Days</p>
                                             <p className="font-bold text-gray-800 text-sm mt-0.5">{calendarDays}</p>
@@ -3321,7 +3337,7 @@ export default function EmployeeProfile() {
                                         </div>
                                     </div>
 
-                                    <div className="border border-gray-200 rounded-lg overflow-hidden mb-6">
+                                    <div className="border border-gray-200 rounded-[4px] overflow-hidden mb-6">
                                         <div className="grid grid-cols-2 bg-gray-50 border-b border-gray-200">
                                             <div className="p-2 font-bold text-gray-700 text-xs uppercase text-center border-r border-gray-200">Earnings</div>
                                             <div className="p-2 font-bold text-gray-700 text-xs uppercase text-center">Deductions</div>
@@ -3448,7 +3464,7 @@ export default function EmployeeProfile() {
                         <div className="p-4 border-t border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 flex justify-end gap-3 shrink-0">
                             <button
                                 onClick={() => setShowPayslip(false)}
-                                className="px-6 py-2.5 bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-300 dark:hover:bg-white/20 transition-colors"
+                                className="px-6 py-2.5 bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-gray-300 font-bold rounded-[6px] hover:bg-gray-300 dark:hover:bg-white/20 transition-colors"
                             >
                                 Back
                             </button>
@@ -3497,7 +3513,7 @@ export default function EmployeeProfile() {
                                             toast.error("Failed to generate PDF");
                                         }
                                     }}
-                                    className="flex items-center gap-2 px-6 py-2.5 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 transition-colors shadow-lg shadow-brand-500/20"
+                                    className="flex items-center gap-2 px-6 py-2.5 bg-brand-600 text-white font-bold rounded-[6px] hover:bg-brand-700 transition-colors shadow-lg shadow-brand-500/20"
                                 >
                                     <Download size={18} /> Download PDF
                                 </button>
@@ -3509,18 +3525,28 @@ export default function EmployeeProfile() {
                 document.body
             )}
 
-            {/* ID Card Modal (Keep original UI logic, with dynamic data) */}
+            {/* ID Card Modal (Website Standard UI with Backdrop Blur) */}
             {showIDCard && createPortal(
-                <div className="fixed inset-0 z-[999999] flex items-start justify-center pt-20 bg-black/80 backdrop-blur-md p-4 animate-fade-in">
-                    <div className="relative">
-                        <button onClick={() => setShowIDCard(false)} className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors">
-                            <X size={24} />
+                <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 overflow-y-auto custom-scrollbar">
+                    {/* Website-standard Glassmorphism Backdrop with Click-to-Close */}
+                    <div 
+                        className="fixed inset-0 bg-slate-900/30 dark:bg-black/60 backdrop-blur-md animate-fade-in cursor-pointer"
+                        onClick={() => setShowIDCard(false)}
+                    />
+
+                    <div className="relative z-10 flex flex-col items-center my-auto animate-scale-in">
+                        <button 
+                            onClick={() => setShowIDCard(false)} 
+                            className="absolute -top-11 right-0 w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer shadow-md"
+                            title="Close Preview"
+                        >
+                            <X size={18} />
                         </button>
 
-                        <div id="id-card-container" className="w-full max-w-[320px] h-[540px] bg-white rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden relative flex flex-col animate-scale-in mx-auto">
+                        <div id="id-card-container" className="w-full max-w-[340px] h-[540px] bg-white rounded-[6px] shadow-[0_10px_40px_rgba(0,0,0,0.25)] overflow-hidden relative flex flex-col mx-auto">
                             <div
                                 className="absolute top-0 inset-x-0 h-48 rounded-b-[50px] z-0"
-                                style={{ background: 'linear-gradient(to bottom right, #5b21b6, #7c3aed)' }}
+                                style={{ background: 'linear-gradient(135deg, #1D3599 0%, #203FB4 50%, #2C4FD6 100%)' }}
                             ></div>
                             <div className="mx-auto w-16 h-3 bg-white/20 rounded-full mt-4 relative z-10 backdrop-blur-sm"></div>
                             <div className="flex justify-between items-start mb-6 px-6 pt-4 relative z-10">
@@ -3530,7 +3556,7 @@ export default function EmployeeProfile() {
                             <div className="relative z-10 mx-auto mt-6">
                                 <div
                                     className="w-32 h-32 rounded-full border-4 border-white shadow-lg overflow-hidden flex items-center justify-center text-white font-bold text-4xl"
-                                    style={{ background: '#7c3aed' }}
+                                    style={{ background: '#2C4FD6' }}
                                 >
                                     {displayedProfilePictureUrl ? (
                                         <img
@@ -3548,43 +3574,42 @@ export default function EmployeeProfile() {
                             </div>
                             <div className="text-center mt-4 flex-1 flex flex-col items-center">
                                 <h1 className="text-2xl font-bold text-gray-800 px-4">{employee.name}</h1>
-                                <p className="text-brand-600 font-medium text-sm mt-1">{profile.title || 'Employee'}</p>
-                                <div className="w-12 h-1 bg-brand-200 rounded-full my-4"></div>
-                                <div className="grid grid-cols-[1.3fr_0.7fr] gap-x-5 gap-y-2 text-left w-full px-8">    {/* First row */}
+                                <p className="text-[#2C4FD6] font-medium text-sm mt-1">{profile.title || 'Employee'}</p>
+                                <div className="w-12 h-1 bg-[#2C4FD6]/20 rounded-full my-4"></div>
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-left w-full px-6">
                                     <div className="min-w-0">
-                                        <p className="text-[9px] text-gray-400 uppercase font-bold">
+                                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
                                             Employee ID
                                         </p>
-                                        <p className="text-sm font-semibold text-gray-700">
+                                        <p className="text-[13px] font-semibold text-gray-700 truncate font-mono-numbers">
                                             {employee.id}
                                         </p>
                                     </div>
 
                                     <div className="min-w-0">
-                                        <p className="text-[10px] text-gray-400 uppercase font-bold">
+                                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
                                             Blood Group
                                         </p>
-                                        <p className="text-sm font-semibold text-gray-700">
+                                        <p className="text-[13px] font-semibold text-gray-700 truncate">
                                             {profile.bloodGroup || 'N/A'}
                                         </p>
                                     </div>
 
-                                    {/* Second row */}
                                     <div className="min-w-0">
-                                        <p className="text-[10px] text-gray-400 uppercase font-bold">
+                                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
                                             Department
                                         </p>
-                                        <p className="text-sm font-semibold text-gray-700 truncate">
+                                        <p className="text-[13px] font-semibold text-gray-700 truncate" title={profile.department || 'N/A'}>
                                             {profile.department || 'N/A'}
                                         </p>
                                     </div>
 
                                     <div className="min-w-0">
-                                        <p className="text-[9px] text-gray-400 uppercase font-bold whitespace-nowrap">
+                                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
                                             Mobile Number
                                         </p>
-                                        <p className="text-sm font-semibold text-gray-700 whitespace-nowrap">
-                                            {profile.phone || 'N/A'}
+                                        <p className="text-[13px] font-semibold text-gray-700 truncate font-mono-numbers" title={formatPhoneNumber(profile.phone) || 'N/A'}>
+                                            {formatPhoneNumber(profile.phone) || 'N/A'}
                                         </p>
                                     </div>
                                 </div>
@@ -3599,15 +3624,19 @@ export default function EmployeeProfile() {
                                     />
                                 </div>
                                 <div className="text-right flex flex-col items-end justify-end">
-                                    <div className=" w-30 h-full object-contain object-bottom "> {adminSignatureUrl && (
-                                        <img
-                                            src={adminSignatureUrl}
-                                            alt="Admin Signature"
-
-                                        />
-                                    )}
+                                    <div className="w-30 h-full object-contain object-bottom">
+                                        {adminSignatureUrl ? (
+                                            <img
+                                                src={adminSignatureUrl}
+                                                alt="Admin Signature"
+                                            />
+                                        ) : (
+                                            <span className="font-serif italic font-semibold text-[15px] text-gray-700">
+                                                System Admin
+                                            </span>
+                                        )}
                                     </div>
-                                    <div className=" text-[13px] italic text-gray-300 text-s leading-none">
+                                    <div className="text-[13px] italic text-gray-400 text-s leading-none mt-0.5">
                                         Authorized Sig.
                                     </div>
                                 </div>
@@ -3661,7 +3690,7 @@ export default function EmployeeProfile() {
                 position: fixed !important;
                 left: 50% !important;
                 top: 100px !important;
-                width: 320px !important;
+                width: 340px !important;
                 height: 540px !important;
                 margin: 0 !important;
                 transform: translateX(-50%) !important;
@@ -3693,7 +3722,7 @@ export default function EmployeeProfile() {
 
                                     window.print();
                                 }}
-                                className="flex items-center gap-2 px-6 py-2 bg-white text-gray-800 font-bold rounded-full shadow-lg hover:bg-gray-100 transition-colors"
+                                className="flex items-center gap-2 px-6 py-2 bg-white text-gray-800 font-bold rounded-full shadow-lg hover:bg-gray-100 transition-all cursor-pointer border border-gray-100"
                             >
                                 <Printer size={18} /> Print
                             </button>
@@ -3705,7 +3734,7 @@ export default function EmployeeProfile() {
             {/* Document Deletion Confirmation */}
             {docToDelete !== null && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setDocToDelete(null)} />
+                    <div className="absolute inset-0 bg-slate-900/30 dark:bg-black/60 backdrop-blur-md animate-fade-in" onClick={() => setDocToDelete(null)} />
                     <div className="relative bg-white dark:bg-brand-950 w-full max-w-sm rounded-[2rem] shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden animate-scale-in">
                         <div className="p-8 text-center">
                             <div className="w-16 h-16 bg-red-50 dark:bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -3762,7 +3791,7 @@ export default function EmployeeProfile() {
                 createPortal(
                     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                         <div
-                            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
+                            className="absolute inset-0 bg-slate-900/30 dark:bg-black/60 backdrop-blur-md animate-fade-in"
                             onClick={() =>
                                 setShowProfilePictureDeleteModal(false)
                             }
@@ -3811,7 +3840,7 @@ export default function EmployeeProfile() {
             {previewDoc &&
                 createPortal(
                     <div
-                        className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-sm animate-fade-in"
+                        className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6 bg-slate-900/30 dark:bg-black/60 backdrop-blur-md animate-fade-in"
                         onClick={() => setPreviewDoc(null)}
                     >
                         <div
@@ -3850,16 +3879,14 @@ export default function EmployeeProfile() {
                                     >
                                         <ExternalLink size={18} />
                                     </a>
-                                    <a
-                                        href={previewDoc.url}
-                                        download={previewDoc.fileName || 'document'}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
+                                    <button
+                                        type="button"
+                                        onClick={() => downloadFile(previewDoc.url, previewDoc.fileName)}
                                         className="p-2 text-gray-500 hover:text-[#2C4FD6] hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
                                         title="Download document"
                                     >
                                         <Download size={18} />
-                                    </a>
+                                    </button>
                                     <button
                                         type="button"
                                         onClick={() => setPreviewDoc(null)}
@@ -3940,13 +3967,13 @@ export default function EmployeeProfile() {
                                                 >
                                                     <ExternalLink size={16} /> Open in New Tab
                                                 </a>
-                                                <a
-                                                    href={previewDoc.url}
-                                                    download={previewDoc.fileName || 'document'}
-                                                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-200 text-sm font-semibold rounded-lg hover:bg-gray-200 dark:hover:bg-white/20 transition-all"
+                                                <button
+                                                    type="button"
+                                                    onClick={() => downloadFile(previewDoc.url, previewDoc.fileName)}
+                                                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-200 text-sm font-semibold rounded-lg hover:bg-gray-200 dark:hover:bg-white/20 transition-all cursor-pointer"
                                                 >
                                                     <Download size={16} /> Download
-                                                </a>
+                                                </button>
                                             </div>
                                         </div>
                                     );

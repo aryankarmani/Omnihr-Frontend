@@ -520,7 +520,7 @@ export default function OrgMasters() {
                                 <Users size={20} className="text-[#2C4FD6]" />
                                 Departments & Units ({departments.length})
                             </h3>
-                            <button onClick={() => { setEditingDeptId(null); setNewDept({ name: '', headId: null }); setShowDeptModal(true); }} className="inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white text-[13.5px] font-semibold rounded-[8px] px-[15px] py-[9px] active:scale-95 transition-all cursor-pointer">
+                            <button onClick={() => { setEditingDeptId(null); setNewDept({ name: '', headId: null }); setShowDeptModal(true); }} className="inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white text-[13.5px] font-semibold rounded-[6px] px-[15px] py-[9px] active:scale-95 transition-all cursor-pointer">
                                 <Plus size={16} /> Add Department
                             </button>
                         </div>
@@ -529,7 +529,7 @@ export default function OrgMasters() {
                                 const headEmployee = employees.find(e => e.id === dept.headId);
                                 const deptEmployees = employees.filter(e => e.employeeProfile?.departmentId === dept.id);
                                 return (
-                                    <div key={dept.id} className="group p-5 bg-white dark:bg-[#12151C] rounded-[11px] border border-[#E2E6ED] dark:border-gray-800 flex flex-col justify-between hover:border-[#2C4FD6]/40 transition-all relative overflow-hidden">
+                                    <div key={dept.id} className="group p-5 bg-white dark:bg-[#12151C] rounded-[4px] border border-[#E2E6ED] dark:border-gray-800 flex flex-col justify-between hover:border-[#2C4FD6]/40 transition-all relative overflow-hidden">
                                         <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
                                             <button onClick={() => handleEditDept(dept)} className="p-1.5 bg-[#EEF1F5] dark:bg-white/10 text-[#5B6472] dark:text-gray-200 rounded-[6px] hover:text-[#2C4FD6] transition-colors cursor-pointer"><Edit size={14} /></button>
                                             <button onClick={() => setItemToDelete({ id: dept.id, name: dept.name, type: 'department' })} className="p-1.5 bg-[#FBE7E7] dark:bg-rose-500/10 text-[#DE350B] rounded-[6px] hover:bg-rose-200 transition-colors cursor-pointer"><Trash2 size={14} /></button>
@@ -537,7 +537,7 @@ export default function OrgMasters() {
 
                                         <div>
                                             <div className="flex items-center gap-3 mb-4">
-                                                <div className="w-10 h-10 rounded-[9px] bg-[#E8ECFC] text-[#2C4FD6] dark:bg-blue-950/40 dark:text-blue-400 flex items-center justify-center">
+                                                <div className="w-10 h-10 rounded-[6px] bg-[#E8ECFC] text-[#2C4FD6] dark:bg-blue-950/40 dark:text-blue-400 flex items-center justify-center">
                                                     <Users size={20} />
                                                 </div>
                                                 <div>
@@ -546,7 +546,7 @@ export default function OrgMasters() {
                                                 </div>
                                             </div>
                                             <div className="space-y-3">
-                                                <div className="flex items-center gap-2 p-2.5 bg-[#F7F8FA] dark:bg-white/5 rounded-[8px] border border-[#E2E6ED] dark:border-gray-800">
+                                                <div className="flex items-center gap-2 p-2.5 bg-[#F7F8FA] dark:bg-white/5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800">
                                                     <div className="w-7 h-7 rounded-full bg-[#E8ECFC] text-[#2C4FD6] dark:bg-blue-900/30 flex items-center justify-center">
                                                         <Briefcase size={13} />
                                                     </div>
@@ -573,7 +573,7 @@ export default function OrgMasters() {
                                                     </div>
                                                 )}
                                             </div>
-                                            <span className="text-xs font-semibold text-[#2C4FD6] dark:text-blue-400 bg-[#E8ECFC] dark:bg-blue-500/10 px-2.5 py-1 rounded-full">
+                                            <span className="text-xs font-semibold text-[#2C4FD6] dark:text-blue-400 bg-[#E8ECFC] dark:bg-blue-500/10 px-2.5 py-1 rounded-[4px]">
                                                 {deptEmployees.length} Employees
                                             </span>
                                         </div>
