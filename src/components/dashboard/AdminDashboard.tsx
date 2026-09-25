@@ -440,13 +440,13 @@ export default function AdminDashboard({
                             }
                         }} 
                     />
-                    <div className="relative bg-white dark:bg-[#12151C] w-full max-w-md rounded-[11px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden p-6 animate-scale-in shadow-xl">
+                    <div className="relative bg-white dark:bg-[#12151C] w-full max-w-md rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden p-6 animate-scale-in shadow-xl">
                         <h3 className="text-base font-bold text-[#12151C] dark:text-white mb-1">Approve Request</h3>
                         <p className="text-xs text-[#5B6472] dark:text-gray-400 mb-4">
                             Are you sure you want to approve this {approvingItem.type === 'LEAVE' ? 'leave' : 'regularization'} request for <strong className="text-[#12151C] dark:text-white font-semibold">{approvingItem.name}</strong>?
                         </p>
                         {approvingItem.details && (
-                            <div className="mb-5 p-3 rounded-[7px] bg-[#F7F8FA] dark:bg-gray-800/60 border border-[#E2E6ED] dark:border-gray-700 text-xs text-[#5B6472] dark:text-gray-300">
+                            <div className="mb-5 p-3 rounded-[6px] bg-[#F7F8FA] dark:bg-gray-800/60 border border-[#E2E6ED] dark:border-gray-700 text-xs text-[#5B6472] dark:text-gray-300">
                                 <span className="font-semibold text-[#12151C] dark:text-white block mb-0.5">Details</span>
                                 <span>{approvingItem.details}</span>
                             </div>
@@ -456,7 +456,7 @@ export default function AdminDashboard({
                                 type="button"
                                 onClick={() => setApprovingItem(null)}
                                 disabled={submittingApprove}
-                                className="flex-1 py-2.5 px-4 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 text-[#5B6472] dark:text-gray-300 font-semibold rounded-[8px] hover:bg-gray-50 dark:hover:bg-white/5 transition-colors text-xs cursor-pointer text-center"
+                                className="flex-1 py-2.5 px-4 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 text-[#5B6472] dark:text-gray-300 font-semibold rounded-[6px] hover:bg-gray-50 dark:hover:bg-white/5 transition-colors text-xs cursor-pointer text-center"
                             >
                                 Cancel
                             </button>
@@ -464,7 +464,7 @@ export default function AdminDashboard({
                                 type="button"
                                 onClick={handleApproveConfirm}
                                 disabled={submittingApprove}
-                                className="flex-1 py-2.5 px-4 bg-[#1F8A5A] text-white font-semibold rounded-[8px] hover:bg-[#186f48] transition-colors flex items-center justify-center gap-2 text-xs cursor-pointer disabled:opacity-60"
+                                className="flex-1 py-2.5 px-4 bg-[#1F8A5A] text-white font-semibold rounded-[6px] hover:bg-[#186f48] transition-colors flex items-center justify-center gap-2 text-xs cursor-pointer disabled:opacity-60"
                             >
                                 {submittingApprove ? (
                                     <>
@@ -493,7 +493,7 @@ export default function AdminDashboard({
                             }
                         }} 
                     />
-                    <div className="relative bg-white dark:bg-[#12151C] w-full max-w-md rounded-[11px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden p-6 animate-scale-in shadow-xl">
+                    <div className="relative bg-white dark:bg-[#12151C] w-full max-w-md rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden p-6 animate-scale-in shadow-xl">
                         <h3 className="text-base font-bold text-[#12151C] dark:text-white mb-1">Reject Request</h3>
                         <p className="text-xs text-[#5B6472] dark:text-gray-400 mb-4">
                             Please provide a reason for rejecting this {rejectingItem.type === 'LEAVE' ? 'leave' : 'regularization'} request for <strong className="text-[#12151C] dark:text-white font-semibold">{rejectingItem.name}</strong>.
@@ -505,7 +505,7 @@ export default function AdminDashboard({
                                 placeholder="Enter rejection reason..."
                                 required
                                 autoFocus
-                                className="w-full px-3 py-2 rounded-[7px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white text-xs outline-none focus:border-[#2C4FD6] min-h-[90px] mb-4 placeholder-[#9AA3B1] resize-none"
+                                className="w-full px-3 py-2 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white text-xs outline-none focus:border-[#2C4FD6] min-h-[90px] mb-4 placeholder-[#9AA3B1] resize-none"
                             />
                             <div className="flex gap-3">
                                 <button
@@ -515,14 +515,14 @@ export default function AdminDashboard({
                                         setRejectComment('');
                                     }}
                                     disabled={submittingReject}
-                                    className="flex-1 py-2.5 px-4 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 text-[#5B6472] dark:text-gray-300 font-semibold rounded-[8px] hover:bg-gray-50 dark:hover:bg-white/5 transition-colors text-xs cursor-pointer text-center"
+                                    className="flex-1 py-2.5 px-4 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 text-[#5B6472] dark:text-gray-300 font-semibold rounded-[6px] hover:bg-gray-50 dark:hover:bg-white/5 transition-colors text-xs cursor-pointer text-center"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={submittingReject}
-                                    className="flex-1 py-2.5 px-4 bg-[#DE350B] text-white font-semibold rounded-[8px] hover:bg-[#b02a08] transition-colors flex items-center justify-center gap-2 text-xs cursor-pointer disabled:opacity-60"
+                                    className="flex-1 py-2.5 px-4 bg-[#DE350B] text-white font-semibold rounded-[6px] hover:bg-[#b02a08] transition-colors flex items-center justify-center gap-2 text-xs cursor-pointer disabled:opacity-60"
                                 >
                                     {submittingReject ? (
                                         <>

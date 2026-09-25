@@ -115,26 +115,20 @@ export default function EmployeeAttendanceView() {
         // Stats calculation
         const newStats = { present: 0, absent: 0, late: 0, holiday: 0 };
         const daysInMonth = new Date(year, month, 0).getDate();
-        const today = new Date();
-        const isCurrentMonth =
-          today.getFullYear() === year && today.getMonth() + 1 === month;
-        const endDay = isCurrentMonth ? Math.min(today.getDate() - 1, daysInMonth) : daysInMonth;
+        const todayMidnight = new Date();
+        todayMidnight.setHours(0, 0, 0, 0);
 
-        for (let d = 1; d <= endDay; d++) {
+        for (let d = 1; d <= daysInMonth; d++) {
           const currentLoopDate = new Date(year, month - 1, d);
+          currentLoopDate.setHours(0, 0, 0, 0);
           const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 
-          if (effectiveJoiningDate) {
-            const jdCopy = new Date(effectiveJoiningDate);
-            jdCopy.setHours(0, 0, 0, 0);
-            if (currentLoopDate < jdCopy) continue;
-          }
+          const isPastDay = currentLoopDate < todayMidnight;
+          const isWeekend = currentLoopDate.getDay() === 0 || currentLoopDate.getDay() === 6;
+          const isBeforeJoining = effectiveJoiningDate && currentLoopDate < new Date(new Date(effectiveJoiningDate).setHours(0, 0, 0, 0));
 
           const log = historyData.find((l) => l.date === dateStr);
           const isHoliday = holidayData.some((h: any) => h.date.split('T')[0] === dateStr);
-          const isWeekend =
-            currentLoopDate.getDay() === 0 ||
-            currentLoopDate.getDay() === 6;
           const isApprovedLeave = leavesData.some((l: any) => {
             if (l.status !== 'APPROVED') return false;
             const s = l.startDate ? l.startDate.split('T')[0] : '';
@@ -142,23 +136,28 @@ export default function EmployeeAttendanceView() {
             return dateStr >= s && dateStr <= e;
           });
 
-          if (isHoliday) {
-            newStats.holiday++;
-          } else if (log) {
-            if (log.status === 'Present') {
+          // 1. Present & Late counting (including today and worked holidays)
+          if (log) {
+            if (log.status === 'Present' || log.status === 'Late' || log.status === 'Half Day') {
               newStats.present++;
-            } else if (log.status === 'Late') {
-              newStats.present++;
-              newStats.late++;
-            } else if (log.status === 'Absent') {
-              newStats.absent++;
-            } else if (log.status === 'Holiday') {
-              newStats.holiday++;
             }
-          } else if (!isWeekend && !isApprovedLeave) {
+            if (log.status === 'Late') {
+              newStats.late++;
+            }
+          }
+
+          // 2. Absent counting: exactly matches calendar's isAbsent rule
+          const isAbsent = !isBeforeJoining && isPastDay && !isWeekend && !isHoliday && !isApprovedLeave && (!log || log.status === 'Absent');
+          if (isAbsent) {
             newStats.absent++;
           }
         }
+
+        // Total holidays in this month
+        newStats.holiday = holidayData.filter((h: any) => {
+          const hDate = new Date(h.date);
+          return hDate.getMonth() === month - 1 && hDate.getFullYear() === year;
+        }).length;
 
         setStats(newStats);
       } catch (err) {
@@ -387,11 +386,7 @@ export default function EmployeeAttendanceView() {
           </div>
           <div>
             <div className="num text-[26px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight leading-none">
-              {holidays.filter(h => {
-                const hDate = new Date(h.date);
-                return hDate.getMonth() === selectedMonth.getMonth() &&
-                  hDate.getFullYear() === selectedMonth.getFullYear();
-              }).length}
+              {stats.holiday}
             </div>
             <p className="text-[12px] text-[#9AA3B1] mt-[2px]">Total Holidays</p>
           </div>

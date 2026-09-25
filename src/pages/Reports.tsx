@@ -50,7 +50,10 @@ export default function Reports() {
                 return;
             }
 
-            const blob = new Blob([response.data]);
+            const mimeType = filename.endsWith('.xlsx')
+                ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                : 'text/csv;charset=utf-8;';
+            const blob = new Blob([response.data], { type: mimeType });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
