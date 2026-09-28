@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Bell, Menu, User, LayoutGrid, Calendar, Users, FileText, Settings, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import api from '../utils/api';
+import api, { getMediaUrl } from '../utils/api';
 
 interface HeaderProps {
     onMenuClick: () => void;
@@ -18,7 +18,50 @@ export default function Header({ onMenuClick }: HeaderProps) {
     const [notifications, setNotifications] = useState<any[]>([]);
     const [employees, setEmployees] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
-    const { user } = useAuth();
+    const { user, updateUser } = useAuth();
+    const [userAvatar, setUserAvatar] = useState<string | null>(user?.avatar || (user as any)?.profilePicture || null);
+    const [avatarError, setAvatarError] = useState(false);
+
+    useEffect(() => {
+        const currentAvatar = user?.avatar || (user as any)?.profilePicture || null;
+        setUserAvatar(currentAvatar);
+        setAvatarError(false);
+    }, [user?.avatar, (user as any)?.profilePicture]);
+
+    useEffect(() => {
+        if (!userAvatar && user && user.role !== 'SUPER_ADMIN') {
+            api.get('/employee/me')
+                .then(res => {
+                    const avatar = res.data?.employeeProfile?.avatar || res.data?.avatar;
+                    if (avatar) {
+                        setUserAvatar(avatar);
+                        updateUser({ avatar, profilePicture: avatar });
+                    }
+                })
+                .catch(() => { });
+        }
+    }, [user?.id, userAvatar]);
+
+    useEffect(() => {
+        const handleAuthUpdate = () => {
+            if (user && user.role !== 'SUPER_ADMIN') {
+                api.get('/employee/me')
+                    .then(res => {
+                        const avatar = res.data?.employeeProfile?.avatar || res.data?.avatar || null;
+                        setUserAvatar(avatar);
+                        setAvatarError(false);
+                    })
+                    .catch(() => { });
+            }
+        };
+
+        window.addEventListener('auth_user_updated', handleAuthUpdate);
+        return () => window.removeEventListener('auth_user_updated', handleAuthUpdate);
+    }, [user?.id]);
+
+    const avatarUrl = userAvatar && typeof userAvatar === 'string' && !userAvatar.startsWith('bg-')
+        ? getMediaUrl(userAvatar)
+        : null;
 
     const fetchNotifications = async (silent = false) => {
         if (!silent) setLoading(true);
@@ -231,11 +274,20 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                 onClick={() => navigate('/profile')}
                                 className="flex items-center gap-2.5 pl-2 cursor-pointer hover:opacity-85 transition-opacity"
                             >
-                                <div className="w-8 h-8 rounded-full bg-[#EEF1F5] dark:bg-gray-700 text-[#12151C] dark:text-white font-mono-numbers font-semibold text-xs flex items-center justify-center shrink-0">
-                                    {user.name.charAt(0)}
+                                <div className="relative w-8 h-8 rounded-full bg-[#EEF1F5] dark:bg-gray-700 text-[#12151C] dark:text-white font-mono-numbers font-semibold text-xs flex items-center justify-center shrink-0 overflow-hidden ring-1 ring-black/5 dark:ring-white/10">
+                                    {avatarUrl && !avatarError ? (
+                                        <img
+                                            src={avatarUrl}
+                                            alt={user.name}
+                                            className="w-full h-full object-cover object-top rounded-full"
+                                            onError={() => setAvatarError(true)}
+                                        />
+                                    ) : (
+                                        <span>{user.name ? user.name.charAt(0).toUpperCase() : 'U'}</span>
+                                    )}
                                 </div>
                                 <div className="user-name text-left hidden md:block">
-                                    <p className="text-[13.5px] font-semibold text-[#12151C] dark:text-gray-100 leading-tight">{user.name}</p>
+                                    <p className="text-[13.5px] font-semibold text-[#12151C] dark:text-gray-100 leading-tight capitalize">{user.name}</p>
                                     <p className="text-[11px] text-[#9AA3B1] leading-tight">
                                         {user.role === 'HR_ADMIN' || (user.role as string) === 'ADMIN'
                                             ? 'Admin'
@@ -334,7 +386,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                                 </div>
                                             </div>
                                             {n.unread && (
-                                                <div className="absolute top-4 right-4 w-2 h-2 bg-brand-500 rounded-full shadow-[0_0_8px_rgba(139,92,246,0.5)]"></div>
+                                                <div className="absolute top-1.5 right-2 w-2 h-2 bg-brand-500 rounded-full shadow-[0_0_8px_rgba(139,92,246,0.5)]"></div>
                                             )}
                                         </div>
                                     ))

@@ -91,6 +91,9 @@ export default function EmployeeProfile() {
             console.log("SALARY DATA:", res.data.employeeProfile?.salary);
             setEmployee(res.data);
             setErrors({});
+            if (!id) {
+                window.dispatchEvent(new Event('auth_user_updated'));
+            }
         } catch (error) {
             console.error('Error fetching employee:', error);
             toast.error('Failed to load employee profile');
@@ -528,6 +531,7 @@ export default function EmployeeProfile() {
             }
 
             await fetchEmployee();
+            window.dispatchEvent(new Event('auth_user_updated'));
 
             setNewProfilePicture(null);
             setNewProfilePicturePreview(null);
@@ -703,6 +707,7 @@ export default function EmployeeProfile() {
             await api.put(customFieldsEndpoint, { customFields: customFieldsPayload });
 
             await fetchEmployee();
+            window.dispatchEvent(new Event('auth_user_updated'));
             fetchCustomFields();
 
             if (nextTab) {
@@ -871,6 +876,7 @@ export default function EmployeeProfile() {
             );
 
             await fetchEmployee();
+            window.dispatchEvent(new Event('auth_user_updated'));
             toast.success('Profile picture deleted successfully');
             setShowProfilePictureDeleteModal(false);
         } catch (error) {
@@ -3169,7 +3175,7 @@ export default function EmployeeProfile() {
             {showPayslip && createPortal(
                 <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 overflow-y-auto custom-scrollbar">
                     {/* Website-standard Glassmorphism Backdrop with Click-to-Close */}
-                    <div 
+                    <div
                         className="fixed inset-0 bg-slate-900/30 dark:bg-black/60 backdrop-blur-md animate-fade-in cursor-pointer"
                         onClick={() => setShowPayslip(false)}
                     />
@@ -3274,7 +3280,7 @@ export default function EmployeeProfile() {
 
                                 <div id="payslip-content" className="w-full max-w-3xl bg-white border border-gray-200 p-6 md:p-8 rounded-[6px] relative text-gray-900 text-sm">
                                     <div className="flex justify-between items-start border-b-2 border-brand-900 pb-4 mb-4">
-                                        <div className="flex items-center gap-3">   
+                                        <div className="flex items-center gap-3">
                                             <div className="text-">
                                                 <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">OmniHR</h1>
                                             </div>
@@ -3529,14 +3535,14 @@ export default function EmployeeProfile() {
             {showIDCard && createPortal(
                 <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 overflow-y-auto custom-scrollbar">
                     {/* Website-standard Glassmorphism Backdrop with Click-to-Close */}
-                    <div 
+                    <div
                         className="fixed inset-0 bg-slate-900/30 dark:bg-black/60 backdrop-blur-md animate-fade-in cursor-pointer"
                         onClick={() => setShowIDCard(false)}
                     />
 
                     <div className="relative z-10 flex flex-col items-center my-auto animate-scale-in">
-                        <button 
-                            onClick={() => setShowIDCard(false)} 
+                        <button
+                            onClick={() => setShowIDCard(false)}
                             className="absolute -top-11 right-0 w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer shadow-md"
                             title="Close Preview"
                         >

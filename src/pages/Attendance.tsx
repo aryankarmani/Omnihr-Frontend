@@ -246,17 +246,17 @@ export default function Attendance() {
         // Check if date is a weekend (Saturday / Sunday)
         const dayOfWeek = targetDate.getDay();
         if (dayOfWeek === 0 || dayOfWeek === 6) {
-            toast.error('Cannot apply for regularization on weekends (Saturday / Sunday)');
+            toast.error('Cannot apply for correction on weekends (Saturday / Sunday)');
             return;
         }
 
         if (diffDays < 1) {
-            toast.error('You can only regularize attendance for past dates.');
+            toast.error('You can only correct attendance for past dates.');
             return;
         }
 
         if (diffDays > lookbackDays) {
-            toast.error(`You can only regularize attendance for the past ${lookbackDays} days.`);
+            toast.error(`You can only correct attendance for the past ${lookbackDays} days.`);
             return;
         }
 
@@ -279,14 +279,14 @@ export default function Attendance() {
                 proposedOut: outTimeStr
             });
 
-            toast.success('Regularization request submitted to your manager');
+            toast.success('Correction request submitted to your manager');
             setRegularizeDate(null);
             setReason('');
             setCustomReason('');
             // Refresh
             fetchHistoryAndRequests();
         } catch (error: any) {
-            toast.error(error.response?.data?.message || 'Failed to submit regularization request');
+            toast.error(error.response?.data?.message || 'Failed to submit correction request');
         } finally {
             setSubmittingRequest(false);
         }
@@ -296,7 +296,7 @@ export default function Attendance() {
         const [y, m, d] = dateStr.split('-').map(Number);
         const targetDate = new Date(y, m - 1, d);
         if (targetDate.getDay() === 0 || targetDate.getDay() === 6) {
-            toast.error('Cannot apply for regularization on weekends (Saturday / Sunday)');
+            toast.error('Cannot apply for correction on weekends (Saturday / Sunday)');
             return;
         }
         setRegularizeDate(dateStr);
@@ -386,14 +386,22 @@ export default function Attendance() {
             // Check if day has any activity
             const hasActivity = log || holiday || isApprovedLeave || hasPendingRequest || hasRejectedRequest || isEligibleForRegularize || isAbsent;
 
-            // Empty day with no data - keep original clean minimal look with no border or box
+            // Empty day with no data - upcoming weekdays without status get light gray styling, weekends stay clean
             if (!hasActivity) {
+                const isUpcomingWeekday = !isPastDay && !isWeekend;
+
                 days.push(
                     <div
                         key={day}
-                        className="cal-day aspect-square rounded-[6px] bg-transparent flex items-center justify-center text-center transition-all"
+                        className={`cal-day aspect-square rounded-[6px] ${
+                            isUpcomingWeekday
+                                ? 'bg-[#F7F8FA] dark:bg-white/5 dark:border-gray-800'
+                                : 'bg-transparent'
+                        } flex items-center justify-center text-center transition-all`}
                     >
-                        <span className="font-mono font-bold text-[12.5px] text-[#9AA3B1]">{day}</span>
+                        <span className={`font-mono font-bold text-[12.5px] ${
+                            isUpcomingWeekday ? 'text-[#5B6472] dark:text-gray-300' : 'text-[#9AA3B1]'
+                        }`}>{day}</span>
                     </div>
                 );
                 continue;
@@ -508,7 +516,7 @@ export default function Attendance() {
                                 }}
                                 className="px-1.5 sm:px-2 py-0.5 bg-[#E8ECFC] hover:bg-[#2C4FD6] text-[#2C4FD6] hover:text-white border border-[#2C4FD6]/30 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-700/50 rounded-[4px] text-[9px] sm:text-[9.5px] font-semibold transition-colors cursor-pointer leading-tight"
                             >
-                                Regularize
+                                Correction
                             </button>
                         ) : null}
                     </div>
@@ -527,85 +535,119 @@ export default function Attendance() {
         <div className="animate-fade-in-up pb-8 relative">
             <header className="mb-6">
                 <h2 className="text-2xl font-bold text-[#12151C] dark:text-white mb-1">My Attendance</h2>
-                <p className="page-sub text-[14px] text-[#5B6472] dark:text-gray-400 mb-[26px]">Track your daily punches and regularization requests.</p>
+                <p className="page-sub text-[14px] text-[#5B6472] dark:text-gray-400 mb-[26px]">Track your daily punches and correction requests.</p>
             </header>
 
-            {/* Top Grid: Punch Card + 4 Stat Cards - Connected continuous strip matching Admin Dashboard (no middle gap) */}
-            <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.3fr_repeat(4,1fr)] divide-[#E2E6ED] dark:divide-gray-800">
+            {/* Top Grid: Punch Card + 4 Stat Cards - Connected continuous strip matching Admin Dashboard (h-[130px]) */}
+            <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.3fr_repeat(4,1fr)] divide-y sm:divide-y-0 divide-[#E2E6ED] dark:divide-gray-800">
                 {/* Card 1: Punch Widget */}
-                <div className="p-6 text-center flex flex-col justify-between items-center h-[340px] border-b lg:border-b-0 lg:border-r border-[#E2E6ED] dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all">
-                    <p className="text-[13px] text-[#5B6472] dark:text-gray-400 mb-[6px]">{currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
-                    <div className="clock-time text-[40px] text-[#12151C] dark:text-white font-mono font-bold leading-tight mb-[22px] flex flex-col items-center">
+                <div className="p-4 sm:p-5 flex items-center justify-between gap-3 h-[130px] border-b lg:border-b-0 lg:border-r border-[#E2E6ED] dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all">
+                    <div className="flex flex-col justify-between h-full min-w-0">
+                        <p className="text-[13px] sm:text-[16px] font-semibold text-[#12151C] dark:text-gray-200 leading-tight truncate">
+                            {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                        </p>
                         <div>
-                            {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
-                        </div>
-                        <div className="text-[32px] font-mono leading-none mt-1">
-                            {currentTime.getHours() >= 12 ? 'PM' : 'AM'}
+                            <div className="clock-time flex items-baseline gap-1.5 font-mono font-bold text-[24px] sm:text-[26px] text-[#12151C] dark:text-white leading-none">
+                                <span>{String(currentTime.getHours()).padStart(2, '0')}:{String(currentTime.getMinutes()).padStart(2, '0')}</span>
+                                <span className="text-[13px] sm:text-[14px] font-semibold text-[#5B6472] dark:text-gray-400">{currentTime.getHours() >= 12 ? 'PM' : 'AM'}</span>
+                            </div>
+                            <div className="mt-1.5 flex items-center gap-1.5">
+                                <span className={`w-2 h-2 rounded-full ${isPunchedIn ? 'bg-[#1F8A5A] animate-pulse' : 'bg-gray-400'}`}></span>
+                                <span className="text-[11.5px] font-medium text-[#5B6472] dark:text-gray-400">
+                                    {isPunchedIn ? 'Working' : 'Not Clocked In'}
+                                </span>
+                            </div>
                         </div>
                     </div>
 
                     <button
                         onClick={handlePunch}
                         disabled={punchMutation.isPending}
-                        className={`w-36 h-36 rounded-full border-2 flex flex-col items-center justify-center transition-all transform active:scale-95 cursor-pointer ${isPunchedIn
-                            ? 'border-[#C13A3A] bg-[#FBE7E7] text-[#C13A3A]'
-                            : 'border-[#1F8A5A] bg-[#E4F5EC] text-[#1F8A5A]'
+                        className={`w-[78px] h-[78px] sm:w-[84px] sm:h-[84px] rounded-[6px] border-2 flex flex-col items-center justify-center transition-all transform active:scale-95 cursor-pointer shrink-0 ${isPunchedIn
+                            ? 'border-[#C13A3A] bg-[#FBE7E7] text-[#C13A3A] hover:bg-[#F9D5D5]'
+                            : 'border-[#1F8A5A] bg-[#E4F5EC] text-[#1F8A5A] hover:bg-[#D5EFE2]'
                             }`}
                     >
-                        <MapPin size={22} className="mb-1.5" />
-                        <span className="lbl text-[13px] font-extrabold uppercase tracking-wider leading-none">
+                        <MapPin size={20} className="mb-1 shrink-0" />
+                        <span className="lbl text-[10.5px] font-extrabold uppercase tracking-wider leading-none text-center">
                             {isPunchedIn ? 'PUNCH OUT' : 'PUNCH IN'}
                         </span>
                     </button>
                 </div>
 
                 {/* Card 2: Present Days */}
-                <div className="px-[18px] py-[16px] flex flex-col justify-start h-[340px] border-b sm:border-r border-[#E2E6ED] dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all">
-                    <div className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 flex items-center justify-center text-[#5B6472] dark:text-gray-300 mb-4">
-                        <CheckCircle size={16} />
+                <div className="p-4 sm:p-5 flex flex-col justify-between h-[130px] border-b sm:border-r border-[#E2E6ED] dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all">
+                    <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-[6px] bg-[#EEF1F5] dark:bg-gray-800 text-[#5B6472] dark:text-gray-300 flex items-center justify-center shrink-0">
+                            <CheckCircle size={16} />
+                        </div>
+                        <span className="kpi-label text-[12px] sm:text-[12.5px] font-bold text-[#12151C] dark:text-gray-200 uppercase tracking-[.05em]">
+                            TOTAL DAYS PRESENT
+                        </span>
                     </div>
                     <div>
-                        <div className="num text-[26px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight leading-none">{stats.present}</div>
-                        <p className="text-[12px] text-[#9AA3B1] mt-[2px]">Total Days Present</p>
+                        <div className="num text-[28px] sm:text-[30px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight leading-none mb-1">
+                            {stats.present}
+                        </div>
+                        <p className="text-[12px] text-[#9AA3B1] leading-none">this month</p>
                     </div>
                 </div>
 
                 {/* Card 3: Absents */}
-                <div className="px-[18px] py-[16px] flex flex-col justify-start h-[340px] border-b lg:border-b-0 lg:border-r border-[#E2E6ED] dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all">
-                    <div className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 flex items-center justify-center text-[#5B6472] dark:text-gray-300 mb-4">
-                        <AlertCircle size={16} />
+                <div className="p-4 sm:p-5 flex flex-col justify-between h-[130px] border-b lg:border-b-0 lg:border-r border-[#E2E6ED] dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all">
+                    <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-[6px] bg-[#EEF1F5] dark:bg-gray-800 text-[#5B6472] dark:text-gray-300 flex items-center justify-center shrink-0">
+                            <AlertCircle size={16} />
+                        </div>
+                        <span className="kpi-label text-[12px] sm:text-[12.5px] font-bold text-[#12151C] dark:text-gray-200 uppercase tracking-[.05em]">
+                            TOTAL DAYS ABSENT
+                        </span>
                     </div>
                     <div>
-                        <div className="num text-[26px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight leading-none">{stats.absent}</div>
-                        <p className="text-[12px] text-[#9AA3B1] mt-[2px]">Total Days Absent</p>
+                        <div className="num text-[28px] sm:text-[30px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight leading-none mb-1">
+                            {stats.absent}
+                        </div>
+                        <p className="text-[12px] text-[#9AA3B1] leading-none">this month</p>
                     </div>
                 </div>
 
                 {/* Card 4: Late Marks */}
-                <div className="px-[18px] py-[16px] flex flex-col justify-start h-[340px] border-b sm:border-b-0 sm:border-r border-[#E2E6ED] dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all">
-                    <div className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 flex items-center justify-center text-[#5B6472] dark:text-gray-300 mb-4">
-                        <Clock size={16} />
+                <div className="p-4 sm:p-5 flex flex-col justify-between h-[130px] border-b sm:border-b-0 sm:border-r border-[#E2E6ED] dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all">
+                    <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-[6px] bg-[#EEF1F5] dark:bg-gray-800 text-[#5B6472] dark:text-gray-300 flex items-center justify-center shrink-0">
+                            <Clock size={16} />
+                        </div>
+                        <span className="kpi-label text-[12px] sm:text-[12.5px] font-bold text-[#12151C] dark:text-gray-200 uppercase tracking-[.05em]">
+                            TOTAL LATE ARRIVALS
+                        </span>
                     </div>
                     <div>
-                        <div className="num text-[26px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight leading-none">{stats.late}</div>
-                        <p className="text-[12px] text-[#9AA3B1] mt-[2px]">Total Late Arrivals</p>
+                        <div className="num text-[28px] sm:text-[30px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight leading-none mb-1">
+                            {stats.late}
+                        </div>
+                        <p className="text-[12px] text-[#9AA3B1] leading-none">this month</p>
                     </div>
                 </div>
 
                 {/* Card 5: Holidays */}
-                <div className="px-[18px] py-[16px] flex flex-col justify-start h-[340px] hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all">
-                    <div className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 flex items-center justify-center text-[#5B6472] dark:text-gray-300 mb-4">
-                        <Calendar size={16} />
+                <div className="p-4 sm:p-5 flex flex-col justify-between h-[130px] hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all">
+                    <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-[6px] bg-[#EEF1F5] dark:bg-gray-800 text-[#5B6472] dark:text-gray-300 flex items-center justify-center shrink-0">
+                            <Calendar size={16} />
+                        </div>
+                        <span className="kpi-label text-[12px] sm:text-[12.5px] font-bold text-[#12151C] dark:text-gray-200 uppercase tracking-[.05em]">
+                            TOTAL HOLIDAYS
+                        </span>
                     </div>
                     <div>
-                        <div className="num text-[26px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight leading-none">
+                        <div className="num text-[28px] sm:text-[30px] font-bold text-[#12151C] dark:text-white font-mono tracking-tight leading-none mb-1">
                             {holidays.filter(h => {
                                 const hDate = new Date(h.date);
                                 return hDate.getMonth() === selectedMonth.getMonth() &&
                                     hDate.getFullYear() === selectedMonth.getFullYear();
                             }).length}
                         </div>
-                        <p className="text-[12px] text-[#9AA3B1] mt-[2px]">Total Holidays</p>
+                        <p className="text-[12px] text-[#9AA3B1] leading-none">this month</p>
                     </div>
                 </div>
             </div>
@@ -689,7 +731,7 @@ export default function Attendance() {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 uppercase mb-1">Reason for regularize</label>
+                                <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 uppercase mb-1">Reason for correction</label>
                                 <select
                                     value={reason}
                                     onChange={(e) => setReason(e.target.value)}

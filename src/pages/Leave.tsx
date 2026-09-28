@@ -403,12 +403,17 @@ export default function Leave() {
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             const status = getDateStatus(dateStr);
             const dayDate = new Date(year, month, day);
-            const isPast = dayDate < new Date(new Date().setHours(0, 0, 0, 0));
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const isPast = dayDate < today;
+            const dayOfWeek = dayDate.getDay();
+            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
             const isSelected = selectedDate?.toDateString() === dayDate.toDateString();
 
             let containerBg = 'bg-transparent';
             let textColor = 'text-[#9AA3B1]';
             let dayClass = 'cal-day';
+            let borderClass = isSelected ? '' : '';
 
             if (status?.type === 'Holiday') {
                 containerBg = 'bg-[#FDF0E5] dark:bg-orange-900/20';
@@ -418,18 +423,28 @@ export default function Leave() {
                 if (leaveStatus === 'APPROVED') {
                     containerBg = 'bg-[#E8ECFC] dark:bg-blue-950/30';
                     textColor = 'text-[#2C4FD6] dark:text-blue-400';
-                } else {
+                } else if (leaveStatus === 'REJECTED') {
                     containerBg = 'bg-[#FBE7E7] dark:bg-red-950/30';
                     textColor = 'text-[#C13A3A] dark:text-red-400';
+                } else {
+                    containerBg = 'bg-amber-50 dark:bg-amber-950/20';
+                    textColor = 'text-amber-700 dark:text-amber-400';
                 }
             } else if (!isPast) {
-                // Present / active month day fill preview matching screenshot
-                if (day >= 3 && day <= 25 && day !== 13 && day !== 26 && day !== 27) {
-                    containerBg = 'bg-[#E4F5EC] dark:bg-green-950/30';
-                    textColor = 'text-[#1F8A5A] dark:text-green-400';
+                // Upcoming / future dates with no status:
+                // Only weekdays (Monday to Friday) are highlighted in light gray; weekends remain clean
+                if (!isWeekend) {
+                    containerBg = 'bg-[#F7F8FA] dark:bg-white/5';
+                    borderClass = isSelected ? '' : '';
+                    textColor = 'text-[#5B6472] dark:text-gray-300';
+                } else {
+                    containerBg = 'bg-transparent';
+                    textColor = 'text-[#9AA3B1]';
                 }
             } else {
                 dayClass = 'cal-day muted';
+                containerBg = 'bg-transparent';
+                textColor = 'text-[#C5CCD6] dark:text-gray-600';
             }
 
             dayCells.push(
@@ -452,8 +467,7 @@ export default function Leave() {
                             setShowApplyModal(true);
                         }
                     }}
-                    className={`h-20 sm:h-24 p-2 rounded-[6px] ${containerBg} flex items-center justify-center text-center transition-all relative group cursor-pointer ${isSelected ? 'border-2 border-[#2C4FD6]' : 'border border-transparent'
-                        }`}
+                    className={`h-20 sm:h-24 p-2 rounded-[6px] ${containerBg} ${borderClass} flex items-center justify-center text-center transition-all relative group cursor-pointer`}
                 >
                     <span className={`${dayClass} font-mono font-bold text-[12.5px] ${textColor}`}>{day}</span>
                 </div>

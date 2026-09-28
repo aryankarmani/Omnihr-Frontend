@@ -31,7 +31,7 @@ const menuItems: MenuItem[] = [
         children: [
             { label: 'List', path: '/employee', module: 'EMPLOYEE', icon: Users },
             { label: 'Leave Approval', path: '/leave', module: 'LEAVE', icon: FileCheck, state: { activeTab: 'APPROVALS' } },
-            { label: 'Regularizations', path: '/regularizations', module: 'EMPLOYEE_ATTENDANCE', icon: CheckSquare },
+            { label: 'Correction', path: '/regularizations', module: 'EMPLOYEE_ATTENDANCE', icon: CheckSquare },
         ]
     },
     { icon: UsersRound, label: 'Team', path: '/team', module: 'TEAM' },
@@ -261,7 +261,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                                                 if (child.label === 'List') return !!managerAccess.access.list;
                                                 if (child.label === 'Attendance') return !!managerAccess.access.attendance;
                                                 if (child.label === 'Leave Approval') return !!managerAccess.access.leaveApproval;
-                                                if (child.label === 'Regularizations') return !!managerAccess.access.regularization;
+                                                if (child.label === 'Correction' || child.label === 'Regularizations') return !!managerAccess.access.regularization;
                                             }
                                             if (child.module === 'EMPLOYEE_ATTENDANCE') {
                                                 return userModules.includes('EMPLOYEE_ATTENDANCE');
