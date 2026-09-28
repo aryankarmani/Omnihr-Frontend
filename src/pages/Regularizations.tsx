@@ -75,7 +75,7 @@ export default function Regularizations() {
       setRequests(Array.isArray(res.data) ? res.data : []);
     } catch (error: any) {
       console.error('Error fetching regularizations:', error);
-      toast.error(error.response?.data?.message || 'Failed to load regularizations');
+      toast.error(error.response?.data?.message || 'Failed to load corrections');
     } finally {
       setLoading(false);
     }
@@ -88,7 +88,7 @@ export default function Regularizations() {
   const handleApprove = async (id: string) => {
     try {
       await api.put(`/attendance/regularize/${id}/approve`);
-      toast.success('Attendance regularization approved successfully');
+      toast.success('Attendance correction approved successfully');
       setRequests((prev) =>
         prev.map((r) => (r.id === id ? { ...r, status: 'APPROVED' } : r))
       );
@@ -112,7 +112,7 @@ export default function Regularizations() {
         reason: rejectComment,
         approverComment: rejectComment
       });
-      toast.success('Attendance regularization rejected');
+      toast.success('Attendance correction rejected');
       setRequests((prev) =>
         prev.map((r) => (r.id === rejectingId ? { ...r, status: 'REJECTED', approverComment: rejectComment } : r))
       );
@@ -197,10 +197,10 @@ export default function Regularizations() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
           <h2 className="text-2xl font-bold text-[#12151C] dark:text-white mb-1">
-            Attendance Regularizations
+            Attendance Corrections
           </h2>
           <p className="page-sub text-[14px] text-[#5B6472] dark:text-gray-400 mb-[5px]">
-            Review and approve attendance regularization requests
+            Review and approve attendance correction requests
           </p>
         </div>
 

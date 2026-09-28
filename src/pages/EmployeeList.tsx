@@ -424,7 +424,7 @@ export default function EmployeeList() {
                                                         {initials}
                                                     </div>
                                                     <div>
-                                                        <div className="emp-name font-semibold text-[#12151C] dark:text-white text-[13.5px] hover:text-[#2C4FD6] dark:hover:text-blue-400 transition-colors">
+                                                        <div className="emp-name font-semibold text-[#12151C] dark:text-white text-[13.5px] hover:text-[#2C4FD6] dark:hover:text-blue-400 transition-colors capitalize">
                                                             {emp.name}
                                                         </div>
                                                         <div className="emp-email text-[11.5px] text-[#717E95] dark:text-gray-400">
@@ -479,7 +479,7 @@ export default function EmployeeList() {
                                                 <div className="flex items-center justify-center gap-2">
                                                     <button
                                                         onClick={() => navigate(`/employee/${emp.id}?edit=true`)}
-                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#2C4FD6] hover:bg-blue-50 dark:hover:bg-blue-500/10 text-[12px] font-semibold transition-all cursor-pointer"
+                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#5B6472]  text-[12px] hover:bg-gray-50 dark:hover:bg-white/5 font-semibold transition-all cursor-pointer"
                                                         title="Edit Profile"
                                                     >
                                                         <Edit size={13} />

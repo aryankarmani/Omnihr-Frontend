@@ -13,6 +13,8 @@ interface User {
     token?: string;
     accessibleModules?: string[];
     forcePasswordChange?: boolean;
+    avatar?: string | null;
+    profilePicture?: string | null;
 }
 
 interface AuthContextType {
@@ -43,6 +45,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 if (userData && typeof userData.role === 'string') {
                     userData.role = userData.role.toUpperCase();
                 }
+
+                if (!userData.avatar && !userData.profilePicture && userData.role !== 'SUPER_ADMIN') {
+                    try {
+                        const empRes = await api.get('/employee/me');
+                        const empAvatar = empRes.data?.employeeProfile?.avatar || empRes.data?.avatar || null;
+                        if (empAvatar) {
+                            userData.avatar = empAvatar;
+                            userData.profilePicture = empAvatar;
+                        }
+                    } catch (e) {
+                        // ignore
+                    }
+                }
+
                 setUser(userData);
                 sessionStorage.setItem('encalm_user', JSON.stringify(userData));
             }

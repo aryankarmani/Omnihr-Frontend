@@ -71,7 +71,7 @@ export default function AdminDashboard({
                 }
             } else {
                 await api.put(`/attendance/regularize/${approvingItem.id}/approve`);
-                toast.success('Regularization approved');
+                toast.success('Correction approved');
                 const target = regList.find(r => r.id === approvingItem.id);
                 setRegList(prev => prev.filter(item => item.id !== approvingItem.id));
                 if (target) {
@@ -108,7 +108,7 @@ export default function AdminDashboard({
                     reason: rejectComment.trim(),
                     approverComment: rejectComment.trim()
                 });
-                toast.success('Regularization rejected');
+                toast.success('Correction rejected');
                 const target = regList.find(r => r.id === rejectingItem.id);
                 setRegList(prev => prev.filter(item => item.id !== rejectingItem.id));
                 if (target) {
@@ -163,8 +163,8 @@ export default function AdminDashboard({
             id: reg.id,
             category: 'REGULARIZATION' as const,
             userName: name,
-            tag: 'Regularize',
-            subtext: `${reg.reason || 'Regularization'} · ${reg.date || ''}`,
+            tag: 'Correction',
+            subtext: `${reg.reason || 'Correction'} · ${reg.date || ''}`,
             avatar: reg.user?.employeeProfile?.avatar || null,
             createdAt: reg.createdAt || reg.date || 0,
             status: reg.status || status,
@@ -265,7 +265,7 @@ export default function AdminDashboard({
                                         : 'bg-[#EEF1F5] dark:bg-gray-800 text-[#5B6472] dark:text-gray-400 hover:text-[#12151C]'
                                 }`}
                             >
-                                Regularizations ({regList.length})
+                                Corrections ({regList.length})
                             </button>
                         </div>
                         <div className="border-b border-[#E2E6ED] dark:border-gray-800 mb-2"></div>
@@ -329,7 +329,7 @@ export default function AdminDashboard({
                                                         });
                                                     }}
                                                     className="w-6 h-6 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 text-[#1F8A5A] hover:bg-[#E4F5EC] dark:hover:bg-green-950/40 flex items-center justify-center transition-colors cursor-pointer"
-                                                    title={`Approve ${item.category === 'LEAVE' ? 'Leave' : 'Regularization'}`}
+                                                    title={`Approve ${item.category === 'LEAVE' ? 'Leave' : 'Correction'}`}
                                                 >
                                                     <Check size={13} />
                                                 </button>
@@ -344,7 +344,7 @@ export default function AdminDashboard({
                                                         setRejectComment('');
                                                     }}
                                                     className="w-6 h-6 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 text-[#C13A3A] hover:bg-[#FBE7E7] dark:hover:bg-red-950/40 flex items-center justify-center transition-colors cursor-pointer"
-                                                    title={`Reject ${item.category === 'LEAVE' ? 'Leave' : 'Regularization'}`}
+                                                    title={`Reject ${item.category === 'LEAVE' ? 'Leave' : 'Correction'}`}
                                                 >
                                                     <X size={13} />
                                                 </button>
@@ -443,7 +443,7 @@ export default function AdminDashboard({
                     <div className="relative bg-white dark:bg-[#12151C] w-full max-w-md rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden p-6 animate-scale-in shadow-xl">
                         <h3 className="text-base font-bold text-[#12151C] dark:text-white mb-1">Approve Request</h3>
                         <p className="text-xs text-[#5B6472] dark:text-gray-400 mb-4">
-                            Are you sure you want to approve this {approvingItem.type === 'LEAVE' ? 'leave' : 'regularization'} request for <strong className="text-[#12151C] dark:text-white font-semibold">{approvingItem.name}</strong>?
+                            Are you sure you want to approve this {approvingItem.type === 'LEAVE' ? 'leave' : 'correction'} request for <strong className="text-[#12151C] dark:text-white font-semibold">{approvingItem.name}</strong>?
                         </p>
                         {approvingItem.details && (
                             <div className="mb-5 p-3 rounded-[6px] bg-[#F7F8FA] dark:bg-gray-800/60 border border-[#E2E6ED] dark:border-gray-700 text-xs text-[#5B6472] dark:text-gray-300">
@@ -496,7 +496,7 @@ export default function AdminDashboard({
                     <div className="relative bg-white dark:bg-[#12151C] w-full max-w-md rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden p-6 animate-scale-in shadow-xl">
                         <h3 className="text-base font-bold text-[#12151C] dark:text-white mb-1">Reject Request</h3>
                         <p className="text-xs text-[#5B6472] dark:text-gray-400 mb-4">
-                            Please provide a reason for rejecting this {rejectingItem.type === 'LEAVE' ? 'leave' : 'regularization'} request for <strong className="text-[#12151C] dark:text-white font-semibold">{rejectingItem.name}</strong>.
+                            Please provide a reason for rejecting this {rejectingItem.type === 'LEAVE' ? 'leave' : 'correction'} request for <strong className="text-[#12151C] dark:text-white font-semibold">{rejectingItem.name}</strong>.
                         </p>
                         <form onSubmit={handleRejectSubmit}>
                             <textarea
