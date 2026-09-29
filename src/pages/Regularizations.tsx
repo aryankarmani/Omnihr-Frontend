@@ -64,6 +64,7 @@ export default function Regularizations() {
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectComment, setRejectComment] = useState('');
   const [submittingReject, setSubmittingReject] = useState(false);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
 
   // View details modal state
   const [selectedRequestForReason, setSelectedRequestForReason] = useState<RegularizationRequest | null>(null);
@@ -86,7 +87,9 @@ export default function Regularizations() {
   }, []);
 
   const handleApprove = async (id: string) => {
+    if (approvingId) return;
     try {
+      setApprovingId(id);
       await api.put(`/attendance/regularize/${id}/approve`);
       toast.success('Attendance correction approved successfully');
       setRequests((prev) =>
@@ -94,6 +97,8 @@ export default function Regularizations() {
       );
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to approve request');
+    } finally {
+      setApprovingId(null);
     }
   };
 
@@ -286,7 +291,7 @@ export default function Regularizations() {
       ) : filteredRequests.length === 0 ? (
         <div className="text-center py-20 bg-white dark:bg-gray-900 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800">
           <Calendar size={44} className="mx-auto text-gray-300 mb-3 opacity-60" />
-          <h3 className="text-lg font-bold text-gray-800 dark:text-white">No Regularizations Found</h3>
+          <h3 className="text-lg font-bold text-gray-800 dark:text-white">No Corrections Found</h3>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">No requests match your current filters.</p>
         </div>
       ) : (
@@ -393,11 +398,12 @@ export default function Regularizations() {
                           <div className="flex items-center gap-2 justify-end">
                             <button
                               onClick={() => handleApprove(req.id)}
-                              className="px-3.5 py-1.5 rounded-[3px] bg-[#E4F5EC] text-[#1F8A5A] hover:bg-[#d1f0e0] text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer"
+                              disabled={approvingId === req.id}
+                              className="px-3.5 py-1.5 rounded-[3px] bg-[#E4F5EC] text-[#1F8A5A] hover:bg-[#d1f0e0] disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer"
                               title="Approve Request"
                             >
                               <CheckCircle size={14} />
-                              <span>Approve</span>
+                              <span>{approvingId === req.id ? 'Approving...' : 'Approve'}</span>
                             </button>
                             <button
                               onClick={() => handleRejectClick(req.id)}
@@ -544,7 +550,7 @@ export default function Regularizations() {
             <div className="absolute inset-0 bg-slate-900/20 dark:bg-black/60 backdrop-blur-md" onClick={() => setRejectingId(null)} />
             <div className="relative bg-white dark:bg-[#12151C] w-full max-w-md rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden p-6 animate-scale-in shadow-xl">
               <h3 className="text-base font-bold text-[#12151C] dark:text-white mb-1">Reject Request</h3>
-              <p className="text-xs text-[#5B6472] dark:text-gray-400 mb-4">Please provide a reason for rejecting this regularization request.</p>
+              <p className="text-xs text-[#5B6472] dark:text-gray-400 mb-4">Please provide a reason for rejecting this correction request.</p>
               <form onSubmit={handleRejectSubmit}>
                 <textarea
                   value={rejectComment}
@@ -589,7 +595,7 @@ export default function Regularizations() {
           <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/20 dark:bg-black/60 backdrop-blur-md animate-fade-in">
             <div className="relative bg-white dark:bg-[#12151C] w-full max-w-md rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden p-6 shadow-xl">
               <div className="flex justify-between items-center mb-4 border-b border-[#E2E6ED] dark:border-gray-800 pb-3">
-                <h3 className="text-base font-bold text-[#12151C] dark:text-white">Regularization Details</h3>
+                <h3 className="text-base font-bold text-[#12151C] dark:text-white">Correction Details</h3>
                 <button
                   type="button"
                   onClick={() => setSelectedRequestForReason(null)}

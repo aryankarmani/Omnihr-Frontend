@@ -47,7 +47,7 @@ export default function LiveAttendance({ data }: LiveAttendanceProps) {
                             tick={{ fill: '#9AA3B1', fontSize: 11, fontFamily: 'JetBrains Mono, monospace' }}
                             dy={5}
                         />
-                        <YAxis domain={[0, 100]} hide />
+                        <YAxis domain={[0, Math.max(maxVal + 2, 5)]} hide />
                         <Tooltip
                             cursor={{ fill: 'rgba(238, 241, 245, 0.4)' }}
                             contentStyle={{
@@ -61,12 +61,12 @@ export default function LiveAttendance({ data }: LiveAttendanceProps) {
                         />
                         <Bar dataKey="visitors" radius={[6, 6, 0, 0]} barSize={64}>
                             {chartData.map((entry, index) => {
-                                const isPeak = entry.visitors >= maxVal * 0.7;
+                                const hasVisitors = entry.visitors > 0;
                                 const isHovered = activeIndex === index;
                                 return (
                                     <Cell
                                         key={`cell-${index}`}
-                                        fill={isPeak || isHovered ? '#2C4FD6' : '#EEF1F5'}
+                                        fill={hasVisitors ? (isHovered ? '#1E3BB8' : '#2C4FD6') : '#EEF1F5'}
                                         className="transition-all duration-200"
                                         onMouseEnter={() => setActiveIndex(index)}
                                         onMouseLeave={() => setActiveIndex(null)}

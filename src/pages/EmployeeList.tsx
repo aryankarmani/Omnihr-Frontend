@@ -232,7 +232,9 @@ export default function EmployeeList() {
             ["ID", "Name", "Email", "Phone", "Role", "Department", "Location", "Status", "Profile Completion"],
         ];
 
-        filteredEmployees.forEach((emp) => {
+        const sortedForExport = [...filteredEmployees].sort((a, b) => Number(a.id) - Number(b.id));
+
+        sortedForExport.forEach((emp) => {
             const profile = emp.employeeProfile || {};
             const comp = emp.profileCompletion || calculateProfileCompletion(emp);
 

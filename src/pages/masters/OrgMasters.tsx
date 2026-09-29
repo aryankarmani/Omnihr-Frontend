@@ -1,8 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Building2, Plus, Save, MapPin, Trash2, Users, Briefcase, X, Edit, Loader2, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Country, State, City } from 'country-state-city';
 import api, { getMediaUrl } from '../../utils/api';
+import SearchableSelect from '../../components/common/SearchableSelect';
 
 export default function OrgMasters() {
     const [activeTab, setActiveTab] = useState('company');
@@ -30,13 +32,17 @@ export default function OrgMasters() {
     };
 
     const saveCompany = async () => {
+        if (loading) return;
         try {
             setLoading(true);
             await api.post('/masters/company', company);
             toast.success("Company details saved successfully!");
             fetchCompany();
-        } catch { toast.error("Failed to save company details"); }
-        finally { setLoading(false); }
+        } catch (error: any) {
+            toast.error(error.response?.data?.error || error.response?.data?.message || "Failed to save company details");
+        } finally {
+            setLoading(false);
+        }
     };
     const fetchSignature = async () => {
         try {
@@ -156,10 +162,67 @@ export default function OrgMasters() {
     // --- LOCATIONS STATE ---
     const [locations, setLocations] = useState<any[]>([]);
     const [showLocModal, setShowLocModal] = useState(false);
-    const [editingLocId, setEditingLocId] = useState<number | null>(null);
-    const [newLoc, setNewLoc] = useState({ name: '', address: '', city: '', state: '', license: '' });
-    const [stateList, setStateList] = useState<any[]>([]);
-    const [cityList, setCityList] = useState<any[]>([]);
+    const [editingLocId, setEditingLocId] = useState<string | number | null>(null);
+    const [newLoc, setNewLoc] = useState({
+        name: '',
+        address: '',
+        country: 'India',
+        countryCode: 'IN',
+        state: '',
+        stateCode: '',
+        city: ''
+    });
+
+    // Country, State, City cascading options using country-state-city
+    const countryOptions = useMemo(() => {
+        return Country.getAllCountries().map(c => ({
+            label: c.name,
+            value: c.name,
+            subLabel: c.isoCode,
+            flag: c.flag
+        }));
+    }, []);
+
+    // Current selected Country object
+    const selectedCountryObj = useMemo(() => {
+        if (!newLoc.country) return null;
+        return (
+            Country.getAllCountries().find(
+                c => c.name.toLowerCase() === newLoc.country.toLowerCase() ||
+                     c.isoCode.toLowerCase() === newLoc.countryCode.toLowerCase()
+            ) || null
+        );
+    }, [newLoc.country, newLoc.countryCode]);
+
+    // States list for selected country
+    const stateOptions = useMemo(() => {
+        if (!selectedCountryObj) return [];
+        return State.getStatesOfCountry(selectedCountryObj.isoCode).map(s => ({
+            label: s.name,
+            value: s.name,
+            subLabel: s.isoCode
+        }));
+    }, [selectedCountryObj]);
+
+    // Current selected State object
+    const selectedStateObj = useMemo(() => {
+        if (!selectedCountryObj || !newLoc.state) return null;
+        return (
+            State.getStatesOfCountry(selectedCountryObj.isoCode).find(
+                s => s.name.toLowerCase() === newLoc.state.toLowerCase() ||
+                     s.isoCode.toLowerCase() === newLoc.stateCode.toLowerCase()
+            ) || null
+        );
+    }, [selectedCountryObj, newLoc.state, newLoc.stateCode]);
+
+    // Cities list for selected state
+    const cityOptions = useMemo(() => {
+        if (!selectedCountryObj || !selectedStateObj) return [];
+        return City.getCitiesOfState(selectedCountryObj.isoCode, selectedStateObj.isoCode).map(c => ({
+            label: c.name,
+            value: c.name
+        }));
+    }, [selectedCountryObj, selectedStateObj]);
 
     // --- SHARED DELETE STATE ---
     const [itemToDelete, setItemToDelete] = useState<{ id: number, name: string, type: 'location' | 'department' | 'designation' } | null>(null);
@@ -173,7 +236,28 @@ export default function OrgMasters() {
 
     const handleEditLoc = (loc: any) => {
         setEditingLocId(loc.id);
-        setNewLoc({ name: loc.name, address: loc.address, city: loc.city, state: loc.state, license: loc.license });
+        const countryName = loc.country || 'India';
+        const matchedCountry = Country.getAllCountries().find(
+            c => c.name.toLowerCase() === countryName.toLowerCase()
+        );
+        const countryCode = matchedCountry ? matchedCountry.isoCode : 'IN';
+
+        const matchedState = matchedCountry
+            ? State.getStatesOfCountry(countryCode).find(
+                  s => s.name.toLowerCase() === (loc.state || '').toLowerCase()
+              )
+            : null;
+        const stateCode = matchedState ? matchedState.isoCode : '';
+
+        setNewLoc({
+            name: loc.name || '',
+            address: loc.address || '',
+            country: countryName,
+            countryCode,
+            state: loc.state || '',
+            stateCode,
+            city: loc.city || ''
+        });
         setShowLocModal(true);
     };
 
@@ -209,6 +293,7 @@ export default function OrgMasters() {
     };
 
     const saveDepartment = async () => {
+        if (loading) return;
         if (!newDept.name) return toast.error("Name is required");
         try {
             setLoading(true);
@@ -226,8 +311,11 @@ export default function OrgMasters() {
             setShowDeptModal(false);
             setNewDept({ name: '', headId: null });
             setEditingDeptId(null);
-        } catch { toast.error("Failed"); }
-        finally { setLoading(false); }
+        } catch (error: any) {
+            toast.error(error.response?.data?.error || error.response?.data?.message || "Failed to save department");
+        } finally {
+            setLoading(false);
+        }
     };
 
     // --- DESIGNATIONS STATE ---
@@ -250,45 +338,90 @@ export default function OrgMasters() {
     };
 
     const saveDesignation = async () => {
-        if (!newDesig.name) return toast.error("Title required");
+        if (loading) return;
+        if (!newDesig.name?.trim()) return toast.error("Job Title is required");
         try {
             setLoading(true);
-            const cId = company.id;
-            if (!cId) return toast.error("Save company first");
+            const cId = company?.id;
+
+            const payload: any = {
+                name: newDesig.name.trim(),
+                grade: newDesig.grade?.trim() || null,
+                reportTo: newDesig.reportTo?.trim() || null,
+            };
+            if (cId) {
+                payload.companyId = cId;
+            }
 
             if (editingDesigId) {
-                await api.put(`/masters/designations/${editingDesigId}`, newDesig);
+                await api.put(`/masters/designations/${editingDesigId}`, payload);
+                toast.success("Designation updated successfully!");
             } else {
-                await api.post('/masters/designations', { ...newDesig, companyId: cId });
+                await api.post('/masters/designations', payload);
+                toast.success("Designation created successfully!");
             }
             fetchDesignations();
             setShowDesigModal(false);
             setNewDesig({ name: '', grade: '', reportTo: '' });
             setEditingDesigId(null);
-            toast.success("Success");
-        } catch { toast.error("Failed"); }
-        finally { setLoading(false); }
+        } catch (error: any) {
+            console.error("Save designation error:", error);
+            const errMsg = error.response?.data?.details || error.response?.data?.error || error.response?.data?.message || "Failed to save designation";
+            toast.error(errMsg);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const saveLocation = async () => {
-        if (!newLoc.name || !newLoc.city || !newLoc.state) return toast.error("Required fields missing");
+        if (loading) return;
+        if (!newLoc.name.trim()) return toast.error("Branch name is required");
+        if (!newLoc.country.trim()) return toast.error("Country is required");
+        if (!newLoc.state.trim()) return toast.error("State is required");
+        if (!newLoc.city.trim()) return toast.error("City is required");
         try {
             setLoading(true);
-            const cId = company.id;
-            if (!cId) return toast.error("Save company first");
+            const cId = company?.id;
+
+            const payload: any = {
+                name: newLoc.name.trim(),
+                address: (newLoc.address || '').trim(),
+                country: (newLoc.country || 'India').trim(),
+                state: (newLoc.state || '').trim(),
+                city: (newLoc.city || '').trim(),
+                pincode: '000000',
+            };
+
+            if (cId) {
+                payload.companyId = cId;
+            }
 
             if (editingLocId) {
-                await api.put(`/masters/locations/${editingLocId}`, newLoc);
+                await api.put(`/masters/locations/${editingLocId}`, payload);
+                toast.success("Location updated successfully!");
             } else {
-                await api.post('/masters/locations', { ...newLoc, companyId: cId });
+                await api.post('/masters/locations', payload);
+                toast.success("Location added successfully!");
             }
             fetchLocations();
             setShowLocModal(false);
-            setNewLoc({ name: '', address: '', city: '', state: '', license: '' });
+            setNewLoc({
+                name: '',
+                address: '',
+                country: 'India',
+                countryCode: 'IN',
+                state: '',
+                stateCode: '',
+                city: ''
+            });
             setEditingLocId(null);
-            toast.success("Success");
-        } catch { toast.error("Failed"); }
-        finally { setLoading(false); }
+        } catch (error: any) {
+            console.error("Save location error:", error);
+            const errMsg = error.response?.data?.details || error.response?.data?.error || error.response?.data?.message || "Failed to save location";
+            toast.error(errMsg);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleDelete = async () => {
@@ -319,17 +452,7 @@ export default function OrgMasters() {
         fetchDepartments();
         fetchDesignations();
         fetchEmployees();
-        api.get('/masters/states').then(res => setStateList(res.data)).catch(console.error);
     }, []);
-
-    useEffect(() => {
-        if (newLoc.state) {
-            const selectedState = stateList.find(s => s.name === newLoc.state);
-            if (selectedState) {
-                api.get(`/masters/cities?stateId=${selectedState.id}`).then(res => setCityList(res.data)).catch(console.error);
-            }
-        } else { setCityList([]); }
-    }, [newLoc.state, stateList]);
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -372,7 +495,8 @@ export default function OrgMasters() {
                             </h3>
                             <button
                                 onClick={saveCompany}
-                                className="inline-flex items-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white text-[13.5px] font-semibold rounded-[6px] px-[15px] py-[9px] whitespace-nowrap transition-all cursor-pointer"
+                                disabled={loading}
+                                className="inline-flex items-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] disabled:opacity-50 disabled:cursor-not-allowed text-white text-[13.5px] font-semibold rounded-[6px] px-[15px] py-[9px] whitespace-nowrap transition-all cursor-pointer"
                             >
                                 {loading ? (
                                     <>
@@ -485,7 +609,7 @@ export default function OrgMasters() {
                                 <MapPin size={20} className="text-[#2C4FD6]" />
                                 Branch Offices & Sites ({locations.length})
                             </h3>
-                            <button onClick={() => { setEditingLocId(null); setNewLoc({ name: '', address: '', city: '', state: '', license: '' }); setShowLocModal(true); }} className="inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white text-[13.5px] font-semibold rounded-[8px] px-[15px] py-[9px] active:scale-95 transition-all cursor-pointer">
+                            <button onClick={() => { setEditingLocId(null); setNewLoc({ name: '', address: '', country: 'India', countryCode: 'IN', state: '', stateCode: '', city: '' }); setShowLocModal(true); }} className="inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white text-[13.5px] font-semibold rounded-[8px] px-[15px] py-[9px] active:scale-95 transition-all cursor-pointer">
                                 <Plus size={16} /> Add Location
                             </button>
                         </div>
@@ -500,11 +624,15 @@ export default function OrgMasters() {
                                         <div className="w-10 h-10 rounded-[9px] bg-[#E8ECFC] text-[#2C4FD6] dark:bg-blue-950/40 dark:text-blue-400 flex items-center justify-center font-bold">
                                             {loc.name.substring(0, 2).toUpperCase()}
                                         </div>
-                                        <div><h4 className="font-semibold text-[#12151C] dark:text-white">{loc.name}</h4><p className="text-xs text-[#2C4FD6] dark:text-blue-400 font-medium">{loc.city}, {loc.state}</p></div>
+                                        <div>
+                                            <h4 className="font-semibold text-[#12151C] dark:text-white">{loc.name}</h4>
+                                            <p className="text-xs text-[#2C4FD6] dark:text-blue-400 font-medium">
+                                                {loc.city ? `${loc.city}, ` : ''}{loc.state}{loc.country ? `, ${loc.country}` : ''}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div className="space-y-2 text-sm text-[#5B6472] dark:text-gray-400 mb-4">
+                                    <div className="text-sm text-[#5B6472] dark:text-gray-400 mb-4">
                                         <p className="line-clamp-2 min-h-[40px]">{loc.address}</p>
-                                        <div className="pt-2 border-t border-[#E2E6ED] dark:border-gray-800"><p className="text-[10px] text-[#9AA3B1] uppercase">Shop & Est. License</p><p className="font-mono text-xs text-[#12151C] dark:text-gray-200">{loc.license || 'N/A'}</p></div>
                                     </div>
                                 </div>
                             ))}
@@ -592,11 +720,11 @@ export default function OrgMasters() {
                                 <Briefcase size={20} className="text-[#2C4FD6]" />
                                 Job Titles & Grades ({designations.length})
                             </h3>
-                            <button onClick={() => { setEditingDesigId(null); setNewDesig({ name: '', grade: '', reportTo: '' }); setShowDesigModal(true); }} className="inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white text-[13.5px] font-semibold rounded-[8px] px-[15px] py-[9px] active:scale-95 transition-all cursor-pointer">
+                            <button onClick={() => { setEditingDesigId(null); setNewDesig({ name: '', grade: '', reportTo: '' }); setShowDesigModal(true); }} className="inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white text-[13.5px] font-semibold rounded-[6px] px-[15px] py-[9px] active:scale-95 transition-all cursor-pointer">
                                 <Plus size={16} /> Add Designation
                             </button>
                         </div>
-                        <div className="overflow-hidden bg-white dark:bg-[#12151C] rounded-[11px] border border-[#E2E6ED] dark:border-gray-800">
+                        <div className="overflow-hidden bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800">
                             <table className="w-full text-left text-sm text-[#5B6472] dark:text-gray-300">
                                 <thead>
                                     <tr className="bg-[#EEF1F5] dark:bg-gray-800/60 text-[#9AA3B1] dark:text-gray-400 text-[11px] font-semibold uppercase tracking-[.05em]">
@@ -611,7 +739,15 @@ export default function OrgMasters() {
                                         <tr key={des.id} className="hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-colors">
                                             <td className="py-[13px] px-[22px] font-semibold text-[#12151C] dark:text-white text-[13.5px]">{des.name}</td>
                                             <td className="py-[13px] px-[22px]"><span className="px-2 py-1 rounded-[6px] bg-[#EEF1F5] dark:bg-gray-800 text-xs font-mono text-[#5B6472] dark:text-gray-300">{des.grade || 'N/A'}</span></td>
-                                            <td className="py-[13px] px-[22px] text-[11.5px] text-[#717E95] dark:text-gray-300">{des.reportTo || '-'}</td>
+                                            <td className="py-[13px] px-[22px] text-[12.5px] font-medium text-[#12151C] dark:text-gray-200">
+                                                {des.reportTo ? (
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-[5px] bg-[#EEF1F5] dark:bg-gray-800 text-[12px] font-medium text-[#12151C] dark:text-gray-300">
+                                                        {des.reportTo}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-gray-400 font-normal">-</span>
+                                                )}
+                                            </td>
                                             <td className="py-[13px] px-[22px] flex gap-3">
                                                 <button onClick={() => handleEditDesig(des)} className="text-[#9AA3B1] hover:text-[#2C4FD6] cursor-pointer"><Edit size={16} /></button>
                                                 <button onClick={() => setItemToDelete({ id: des.id, name: des.name, type: 'designation' })} className="text-[#DE350B] hover:text-[#b02a08] cursor-pointer"><Trash2 size={16} /></button>
@@ -777,14 +913,105 @@ export default function OrgMasters() {
                             <button onClick={() => setShowLocModal(false)} className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer"><X size={18} /></button>
                         </div>
                         <div className="p-6 space-y-4">
-                            <div><label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Branch Name</label><input type="text" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[7px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newLoc.name} onChange={e => setNewLoc({ ...newLoc, name: e.target.value })} /></div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div><label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">State</label><select className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[7px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newLoc.state} onChange={e => setNewLoc({ ...newLoc, state: e.target.value, city: '' })}><option value="">Select State</option>{stateList.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select></div>
-                                <div><label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">City</label><select className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[7px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newLoc.city} onChange={e => setNewLoc({ ...newLoc, city: e.target.value })} disabled={!newLoc.state}><option value="">Select City</option>{cityList.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}</select></div>
+                            <div>
+                                <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">
+                                    Branch Name <span className="text-[#DE350B]">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. Headquarters / Mumbai Office"
+                                    className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[7px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
+                                    value={newLoc.name}
+                                    onChange={e => setNewLoc({ ...newLoc, name: e.target.value })}
+                                />
                             </div>
-                            <div><label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Address</label><textarea className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[7px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" rows={2} value={newLoc.address} onChange={e => setNewLoc({ ...newLoc, address: e.target.value })}></textarea></div>
-                            <div><label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Shop License No.</label><input type="text" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[7px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newLoc.license} onChange={e => setNewLoc({ ...newLoc, license: e.target.value })} /></div>
-                            <button onClick={saveLocation} disabled={loading} className="w-full py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[8px] font-semibold text-[13.5px] transition-all cursor-pointer mt-2 flex items-center justify-center gap-2 disabled:opacity-50">
+
+                            {/* Searchable Country */}
+                            <SearchableSelect
+                                label="Country"
+                                required
+                                placeholder="Select Country"
+                                searchPlaceholder="Type country name (e.g. India, USA, UK)..."
+                                options={countryOptions}
+                                value={newLoc.country}
+                                onChange={(val, opt) => {
+                                    const countryCode = opt?.subLabel || Country.getAllCountries().find(c => c.name === val)?.isoCode || 'IN';
+                                    setNewLoc({
+                                        ...newLoc,
+                                        country: val,
+                                        countryCode,
+                                        state: '',
+                                        stateCode: '',
+                                        city: ''
+                                    });
+                                }}
+                            />
+
+                            {/* Searchable State and City */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <SearchableSelect
+                                    label="State / Province"
+                                    required
+                                    placeholder={newLoc.country ? "Select State" : "Select Country first"}
+                                    searchPlaceholder={`Type state name (e.g. ${stateOptions[0]?.label || 'state'})...`}
+                                    disabled={!newLoc.country || stateOptions.length === 0}
+                                    options={stateOptions}
+                                    value={newLoc.state}
+                                    onChange={(val, opt) => {
+                                        const stateCode = opt?.subLabel || (selectedCountryObj ? State.getStatesOfCountry(selectedCountryObj.isoCode).find(s => s.name === val)?.isoCode : '') || '';
+                                        setNewLoc({
+                                            ...newLoc,
+                                            state: val,
+                                            stateCode,
+                                            city: ''
+                                        });
+                                    }}
+                                />
+
+                                {newLoc.state && cityOptions.length === 0 ? (
+                                    <div>
+                                        <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">
+                                            City <span className="text-[#DE350B]">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="Enter city name..."
+                                            className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[7px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
+                                            value={newLoc.city}
+                                            onChange={e => setNewLoc({ ...newLoc, city: e.target.value })}
+                                        />
+                                    </div>
+                                ) : (
+                                    <SearchableSelect
+                                        label="City"
+                                        required
+                                        placeholder={newLoc.state ? (cityOptions.length > 0 ? "Select City" : "No predefined cities") : "Select State first"}
+                                        searchPlaceholder={`Type city name in ${newLoc.state || 'state'}...`}
+                                        disabled={!newLoc.state || cityOptions.length === 0}
+                                        options={cityOptions}
+                                        value={newLoc.city}
+                                        onChange={(val) => {
+                                            setNewLoc({ ...newLoc, city: val });
+                                        }}
+                                    />
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Address</label>
+                                <textarea
+                                    className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[7px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
+                                    rows={2}
+                                    placeholder="Enter street / building address..."
+                                    value={newLoc.address}
+                                    onChange={e => setNewLoc({ ...newLoc, address: e.target.value })}
+                                />
+                            </div>
+                            <button
+                                onClick={saveLocation}
+                                disabled={loading}
+                                className="w-full py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-[8px] font-semibold text-[13.5px] transition-all cursor-pointer mt-2 flex items-center justify-center gap-2"
+                            >
                                 {loading ? (
                                     <>
                                         <Loader2 size={16} className="animate-spin" />
@@ -893,7 +1120,8 @@ export default function OrgMasters() {
                                 </button>
                                 <button
                                     onClick={saveDepartment}
-                                    className="flex-1 py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[8px] font-semibold transition-all text-[13.5px] flex items-center justify-center gap-2 cursor-pointer"
+                                    disabled={loading}
+                                    className="flex-1 py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-[8px] font-semibold transition-all text-[13.5px] flex items-center justify-center gap-2 cursor-pointer"
                                 >
                                     {loading ? (
                                         <>
@@ -916,16 +1144,26 @@ export default function OrgMasters() {
             {/* Designation Modal */}
             {showDesigModal && (
                 <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-slate-900/20 dark:bg-black/60 backdrop-blur-md">
-                    <div className="bg-white dark:bg-[#12151C] rounded-[11px] border border-[#E2E6ED] dark:border-gray-800 w-full max-w-md overflow-hidden animate-scale-in">
+                    <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 w-full max-w-md overflow-hidden animate-scale-in">
                         <div className="p-5 border-b border-[#E2E6ED] dark:border-gray-800 flex justify-between items-center bg-[#F7F8FA] dark:bg-white/5">
                             <h3 className="text-base font-bold text-[#12151C] dark:text-white">{editingDesigId ? 'Edit Designation' : 'Add Designation'}</h3>
                             <button onClick={() => setShowDesigModal(false)} className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer"><X size={18} /></button>
                         </div>
                         <div className="p-6 space-y-4">
-                            <div><label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Job Title</label><input type="text" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[7px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newDesig.name} onChange={e => setNewDesig({ ...newDesig, name: e.target.value })} /></div>
-                            <div><label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Grade / Level</label><input type="text" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[7px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newDesig.grade} onChange={e => setNewDesig({ ...newDesig, grade: e.target.value })} /></div>
-                            <div><label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Reports To</label><input type="text" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[7px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newDesig.reportTo} onChange={e => setNewDesig({ ...newDesig, reportTo: e.target.value })} /></div>
-                            <button onClick={saveDesignation} disabled={loading} className="w-full py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[8px] font-semibold text-[13.5px] transition-all cursor-pointer mt-2 flex items-center justify-center gap-2 disabled:opacity-50">
+                            <div><label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Job Title</label><input type="text" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newDesig.name} onChange={e => setNewDesig({ ...newDesig, name: e.target.value })} /></div>
+                            <div><label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Grade / Level</label><input type="text" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newDesig.grade} onChange={e => setNewDesig({ ...newDesig, grade: e.target.value })} /></div>
+                            <div>
+                                <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Reports To</label>
+                                <input
+                                    type="text"
+                                    list="reportsToSuggestions"
+                                    placeholder="Select or enter reporting designation..."
+                                    className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
+                                    value={newDesig.reportTo}
+                                    onChange={e => setNewDesig({ ...newDesig, reportTo: e.target.value })}
+                                />
+                            </div>
+                            <button onClick={saveDesignation} disabled={loading} className="w-full py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] font-semibold text-[13.5px] transition-all cursor-pointer mt-2 flex items-center justify-center gap-2 disabled:opacity-50">
                                 {loading ? (
                                     <>
                                         <Loader2 size={16} className="animate-spin" />

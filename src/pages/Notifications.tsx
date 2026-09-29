@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Bell, Check, Trash2, Calendar, FileText, Info, Loader2, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { createPortal } from 'react-dom';
+import { getNotificationRedirectUrl } from '../utils/notificationNavigation';
 
 export default function Notifications() {
+    const navigate = useNavigate();
     const [notifications, setNotifications] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'all' | 'unread'>('all');
@@ -185,8 +188,12 @@ export default function Notifications() {
                                 if (n.unread) {
                                     markAsRead(n.id);
                                 }
+                                const targetUrl = getNotificationRedirectUrl(n);
+                                if (targetUrl) {
+                                    navigate(targetUrl);
+                                }
                             }}
-                            className={`group relative p-3.5 rounded-[6px] border transition-all ${
+                            className={`group relative p-3.5 rounded-[6px] border transition-all cursor-pointer hover:border-brand-200 dark:hover:border-brand-500/30 ${
                                n.unread 
                                 ? 'bg-white dark:bg-[#12151C] border-[#E2E6ED] dark:border-gray-800'
                                 : 'bg-[#F7F8FA] dark:bg-gray-800/40 border-[#E2E6ED] dark:border-gray-800'
@@ -196,6 +203,7 @@ export default function Notifications() {
                                 <input 
                                     type="checkbox" 
                                     checked={selectedIds.includes(n.id)}
+                                    onClick={(e) => e.stopPropagation()}
                                     onChange={() => toggleSelect(n.id)}
                                     className="w-4 h-4 rounded border-gray-300 text-[#2C4FD6] focus:ring-[#2C4FD6] cursor-pointer"
                                 />

@@ -588,32 +588,67 @@ export default function Team() {
                                 </button>
                             )}
 
-                            {teams.find(t => t.id === selectedTeam)?.members.map((emp: any) => (
-                                <div key={emp.id} className="flex items-center justify-between p-3 bg-[#F7F8FA] dark:bg-white/5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-[#EEF1F5] dark:bg-gray-700 text-[#5B6472] dark:text-white font-mono-numbers font-bold text-xs flex items-center justify-center shrink-0 uppercase">
-                                            {emp.name.split(' ').map((n: string) => n[0]).join('')}
-                                        </div>
-                                        <div className="min-w-0 flex-1">
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    sessionStorage.setItem(
-                                                        'teamModalState',
-                                                        JSON.stringify({
-                                                            modal: 'team-roster',
-                                                            teamId: selectedTeam
-                                                        })
-                                                    );
+                            {(() => {
+                                const currentTeam = teams.find(t => t.id === selectedTeam);
+                                if (!currentTeam) return null;
 
-                                                    navigate(`/employee/${emp.id}`);
-                                                }} className="font-semibold text-[#12151C] dark:text-white text-[13.5px] break-all hover:text-[#2C4FD6] hover:underline text-left cursor-pointer"
-                                            >
-                                                {emp.name}
-                                            </button>                                            <p className="text-[11.5px] text-[#717E95] dark:text-gray-400 truncate">{emp.role}</p>
-                                        </div>
-                                    </div>
-                                    {canManageTeams && (
+                                const allMembers = [...(currentTeam.members || [])];
+                                if (currentTeam.manager && !allMembers.some((m: any) => m.id === currentTeam.manager.id)) {
+                                    allMembers.unshift({
+                                        id: currentTeam.manager.id,
+                                        name: currentTeam.manager.name,
+                                        email: currentTeam.manager.email,
+                                        role: currentTeam.manager.role || 'Manager',
+                                    });
+                                }
+
+                                const sortedMembers = [...allMembers].sort((a, b) => {
+                                    const aIsManager = a.id === currentTeam.managerId || a.id === currentTeam.manager?.id;
+                                    const bIsManager = b.id === currentTeam.managerId || b.id === currentTeam.manager?.id;
+                                    if (aIsManager && !bIsManager) return -1;
+                                    if (!aIsManager && bIsManager) return 1;
+                                    return 0;
+                                });
+
+                                return sortedMembers.map((emp: any) => {
+                                    const isManager = emp.id === currentTeam.managerId || emp.id === currentTeam.manager?.id;
+
+                                    return (
+                                        <div key={emp.id} className="flex items-center justify-between p-3 bg-[#F7F8FA] dark:bg-white/5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-[#EEF1F5] dark:bg-gray-700 text-[#5B6472] dark:text-white font-mono-numbers font-bold text-xs flex items-center justify-center shrink-0 uppercase">
+                                                    {emp.name.split(' ').map((n: string) => n[0]).join('')}
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                sessionStorage.setItem(
+                                                                    'teamModalState',
+                                                                    JSON.stringify({
+                                                                        modal: 'team-roster',
+                                                                        teamId: selectedTeam
+                                                                    })
+                                                                );
+                                                                navigate(`/employee/${emp.id}`);
+                                                            }}
+                                                            className="font-semibold text-[#12151C] dark:text-white text-[13.5px] break-all hover:text-[#2C4FD6] hover:underline text-left cursor-pointer"
+                                                        >
+                                                            {emp.name}
+                                                        </button>
+                                                        {isManager && (
+                                                            <span className="px-2 py-0.5 rounded-[4px] text-[10px] font-bold uppercase tracking-wider bg-[#E8ECFC] text-[#2C4FD6] dark:bg-blue-950/60 dark:text-blue-400 border border-[#2C4FD6]/20 shrink-0">
+                                                                Manager
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-[11.5px] text-[#717E95] dark:text-gray-400 truncate">
+                                                        {isManager ? (emp.role && emp.role !== 'Employee' ? `${emp.role} • Team Manager` : 'Team Manager') : emp.role}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            {canManageTeams && (
                                         <div className="relative">
                                             <button
                                                 onClick={() => setConfirmRemove(emp.id)}
@@ -656,8 +691,10 @@ export default function Team() {
                                             )}
                                         </div>
                                     )}
-                                </div>
-                            ))}
+                                        </div>
+                                    );
+                                });
+                            })()}
                         </div>
                     </div>
                 </div>,
@@ -726,7 +763,7 @@ export default function Team() {
                                     { key: 'list', label: 'Employee List', desc: 'Allows viewing and searching the team member roster' },
                                     { key: 'attendance', label: 'Attendance', desc: 'Allows viewing daily attendance sheets of the team' },
                                     { key: 'leaveApproval', label: 'Leave Approval', desc: 'Allows reviewing, approving, and rejecting leave requests' },
-                                    { key: 'regularization', label: 'Regularization', desc: 'Allows managing attendance regularizations and requests' }
+                                    { key: 'regularization', label: 'Correction', desc: 'Allows managing attendance correction requests' }
                                 ].map((option) => {
                                     const isChecked = (permissions as any)[option.key];
                                     return (

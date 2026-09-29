@@ -208,11 +208,13 @@ export default function Attendance() {
     });
 
     const handlePunch = () => {
+        if (punchMutation.isPending) return;
         punchMutation.mutate();
     };
 
     const submitRegularization = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (submittingRequest) return;
         if (!regularizeDate) return;
 
         const finalReason = reason === 'Other' ? customReason : reason;

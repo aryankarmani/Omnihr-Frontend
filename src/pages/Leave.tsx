@@ -46,7 +46,10 @@ export default function Leave() {
     const { user } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState<'MY_LEAVE' | 'APPROVALS'>('MY_LEAVE');
+    const initialTab = new URLSearchParams(window.location.search).get('tab');
+    const [activeTab, setActiveTab] = useState<'MY_LEAVE' | 'APPROVALS'>(
+        initialTab === 'APPROVALS' ? 'APPROVALS' : 'MY_LEAVE'
+    );
     const getInitials = (name?: string) => {
         if (!name?.trim()) return '?';
 
@@ -66,12 +69,13 @@ export default function Leave() {
 
     // Track the last applied tab from location so we switch immediately on every navigation
     useEffect(() => {
-        const tab = location.state?.activeTab;
+        const queryTab = new URLSearchParams(location.search).get('tab');
+        const tab = location.state?.activeTab || (queryTab === 'APPROVALS' || queryTab === 'MY_LEAVE' ? queryTab : null);
         if (tab === 'MY_LEAVE' || tab === 'APPROVALS') {
             setActiveTab(tab);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [location.key]);
+    }, [location.key, location.search]);
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [showApplyModal, setShowApplyModal] = useState(false);
@@ -168,6 +172,18 @@ export default function Leave() {
             ];
 
             const rawBalances = balancesRes.data && balancesRes.data.length > 0 ? balancesRes.data : defaultTypes;
+            const holidaysList = holidaysRes.data || [];
+            const holidayDates = new Set<string>();
+            holidaysList.forEach((h: any) => {
+                if (h.date) {
+                    const iso = String(h.date).split('T')[0];
+                    holidayDates.add(iso);
+                    const d = new Date(h.date);
+                    if (!isNaN(d.getTime())) {
+                        holidayDates.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+                    }
+                }
+            });
 
             const updatedBalances = rawBalances.map((b: any) => {
                 const code = (b.code || b.leaveType?.code || 'CL').toUpperCase();
@@ -178,8 +194,28 @@ export default function Leave() {
                     .reduce((acc: number, l: any) => {
                         const start = new Date(l.startDate);
                         const end = new Date(l.endDate);
-                        const days = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
-                        return acc + days;
+
+                        let deductible = 0;
+                        const cur = new Date(start);
+                        cur.setHours(0, 0, 0, 0);
+                        const last = new Date(end);
+                        last.setHours(0, 0, 0, 0);
+
+                        while (cur <= last) {
+                            const y = cur.getFullYear();
+                            const m = String(cur.getMonth() + 1).padStart(2, '0');
+                            const d = String(cur.getDate()).padStart(2, '0');
+                            const key = `${y}-${m}-${d}`;
+                            const isoKey = cur.toISOString().split('T')[0];
+
+                            // Skip holiday dates so employee leave quota is not deducted
+                            if (!holidayDates.has(key) && !holidayDates.has(isoKey)) {
+                                deductible += 1;
+                            }
+                            cur.setDate(cur.getDate() + 1);
+                        }
+
+                        return acc + deductible;
                     }, 0);
 
                 const balance = Math.max(0, total - taken);
@@ -238,6 +274,7 @@ export default function Leave() {
 
     const handleApplyLeave = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (submitting) return;
 
         if (!fromDate || !toDate) {
             toast.error('Please select a valid date');
@@ -395,7 +432,7 @@ export default function Leave() {
 
         // Empty slots
         for (let i = 0; i < startingDayOfWeek; i++) {
-            dayCells.push(<div key={`empty-${i}`} className="h-20 sm:h-24 bg-transparent rounded-[6px]"></div>);
+            dayCells.push(<div key={`empty-${i}`} className="cal-day aspect-square bg-transparent rounded-[6px]"></div>);
         }
 
         // Days
@@ -413,11 +450,11 @@ export default function Leave() {
             let containerBg = 'bg-transparent';
             let textColor = 'text-[#9AA3B1]';
             let dayClass = 'cal-day';
-            let borderClass = isSelected ? '' : '';
+            let borderClass = isSelected ? 'ring-2 ring-[#2C4FD6]' : '';
 
             if (status?.type === 'Holiday') {
-                containerBg = 'bg-[#FDF0E5] dark:bg-orange-900/20';
-                textColor = 'text-[#D97706]';
+                containerBg = 'bg-purple-50 dark:bg-purple-900/20';
+                textColor = 'text-purple-700';
             } else if (status?.type === 'Leave') {
                 const leaveStatus = String(status.status).toUpperCase();
                 if (leaveStatus === 'APPROVED') {
@@ -432,10 +469,8 @@ export default function Leave() {
                 }
             } else if (!isPast) {
                 // Upcoming / future dates with no status:
-                // Only weekdays (Monday to Friday) are highlighted in light gray; weekends remain clean
                 if (!isWeekend) {
                     containerBg = 'bg-[#F7F8FA] dark:bg-white/5';
-                    borderClass = isSelected ? '' : '';
                     textColor = 'text-[#5B6472] dark:text-gray-300';
                 } else {
                     containerBg = 'bg-transparent';
@@ -450,7 +485,12 @@ export default function Leave() {
             dayCells.push(
                 <div
                     key={day}
+                    title={status?.label ? (status.type === 'Holiday' ? `Official Holiday: ${status.label}` : `Leave: ${status.label} (${status.status})`) : undefined}
                     onClick={() => {
+                        if (status?.type === 'Holiday') {
+                            toast(`Official Holiday: ${status.label}`, { icon: '🎉' });
+                            return;
+                        }
                         const dayOfWeek = dayDate.getDay();
                         if (dayOfWeek === 0 || dayOfWeek === 6) {
                             toast.error('Cannot apply for leave on weekends (Saturday/Sunday)');
@@ -467,9 +507,47 @@ export default function Leave() {
                             setShowApplyModal(true);
                         }
                     }}
-                    className={`h-20 sm:h-24 p-2 rounded-[6px] ${containerBg} ${borderClass} flex items-center justify-center text-center transition-all relative group cursor-pointer`}
+                    className={`cal-day aspect-square rounded-[6px] ${containerBg} ${borderClass} p-1.5 sm:p-2 flex flex-col justify-between transition-all relative cursor-pointer hover:opacity-95`}
                 >
-                    <span className={`${dayClass} font-mono font-bold text-[12.5px] ${textColor}`}>{day}</span>
+                    {/* Top row: Day number on top-left and Status badge on top-right (matching Attendance calendar exactly) */}
+                    <div className="flex items-start justify-between h-5 sm:h-6 shrink-0">
+                        <span className={`font-mono font-bold text-[12.5px] sm:text-[13.5px] leading-none pt-0.5 ${textColor}`}>
+                            {day}
+                        </span>
+                        <div className="flex items-start">
+                            {status?.type === 'Holiday' ? (
+                                <span className="px-1.5 py-0.5 rounded-[3px] text-[8.5px] sm:text-[9.5px] font-medium bg-purple-100 text-purple-700 border border-purple-200 leading-none inline-block">
+                                    Holiday
+                                </span>
+                            ) : status?.type === 'Leave' ? (
+                                <span className={`px-1.5 py-0.5 rounded-[3px] text-[8.5px] sm:text-[9.5px] font-medium leading-none inline-block ${
+                                    String(status.status).toUpperCase() === 'APPROVED'
+                                        ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                                        : String(status.status).toUpperCase() === 'REJECTED'
+                                        ? 'bg-[#FBE7E7] text-[#C13A3A] border border-red-200'
+                                        : 'bg-amber-100 text-amber-800 border border-amber-200'
+                                }`}>
+                                    {String(status.status).toUpperCase() === 'APPROVED' ? 'Leave' : status.status}
+                                </span>
+                            ) : null}
+                        </div>
+                    </div>
+
+                    {/* Middle row: Holiday name or Leave label (matching Attendance calendar layout) */}
+                    <div className="space-y-0.5 text-left flex-1 flex flex-col justify-center my-auto">
+                        {status?.type === 'Holiday' ? (
+                            <div className="text-[10px] sm:text-[11.5px] font-semibold text-purple-700 dark:text-purple-300 leading-snug line-clamp-2" title={status.label}>
+                                {status.label}
+                            </div>
+                        ) : status?.type === 'Leave' ? (
+                            <div className={`text-[10px] sm:text-[11.5px] font-semibold leading-snug line-clamp-2 ${textColor}`} title={status.label}>
+                                {status.label}
+                            </div>
+                        ) : null}
+                    </div>
+
+                    {/* Bottom spacer */}
+                    <div className="h-1 shrink-0"></div>
                 </div>
             );
         }
