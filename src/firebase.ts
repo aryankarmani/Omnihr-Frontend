@@ -47,8 +47,6 @@ export const requestFcmToken = async () => {
       serviceWorkerRegistration: registration,
     });
 
-    console.log("FCM TOKEN:", fcmToken);
-
     return fcmToken;
   } catch (error) {
     console.error("FCM token error:", error);

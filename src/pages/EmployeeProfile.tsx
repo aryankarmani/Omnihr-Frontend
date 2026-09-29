@@ -96,8 +96,6 @@ export default function EmployeeProfile() {
         try {
             const endpoint = id ? `/employee/${id}` : '/employee/me';
             const res = await api.get(endpoint);
-            console.log("EMPLOYEE DATA:", res.data);
-            console.log("SALARY DATA:", res.data.employeeProfile?.salary);
             setEmployee(res.data);
             setErrors({});
             if (!id) {
@@ -207,7 +205,6 @@ export default function EmployeeProfile() {
     const fetchRoles = async () => {
         try {
             const res = await api.get('/masters/roles');
-            console.log("ROLES DATA:", res.data);
             setRoles(res.data);
         } catch (error) {
             console.error('Error fetching roles:', error);
@@ -227,8 +224,6 @@ export default function EmployeeProfile() {
     const fetchDepartments = async () => {
         try {
             const res = await api.get('/masters/departments');
-            console.log("DEPARTMENTS DATA:", res.data);
-
             setDepartments(Array.isArray(res.data) ? res.data : res.data.departments || []);
         } catch (error) {
             console.error('Error fetching departments:', error);
