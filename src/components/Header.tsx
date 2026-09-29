@@ -88,9 +88,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
         fetchNotifications();
         fetchEmployees();
 
+        // Check for new notifications every 60 seconds instead of every 3 seconds
         const interval = setInterval(() => {
             fetchNotifications(true);
-        }, 3000);
+        }, 60000);
 
         return () => clearInterval(interval);
     }, []);
