@@ -98,9 +98,6 @@ export default function EmployeeProfile() {
             const res = await api.get(endpoint);
             setEmployee(res.data);
             setErrors({});
-            if (!id) {
-                window.dispatchEvent(new Event('auth_user_updated'));
-            }
         } catch (error) {
             console.error('Error fetching employee:', error);
             toast.error('Failed to load employee profile');
