@@ -10,6 +10,7 @@ export default function LeaveToday() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [employeesOnLeave, setEmployeesOnLeave] = useState<any[]>([]);
+    const [todayHoliday, setTodayHoliday] = useState<any | null>(null);
     const [showFilterDrawer, setShowFilterDrawer] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -34,16 +35,35 @@ export default function LeaveToday() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // 1. Fetch Leave History
-                const leaveRes = await api.get('/leave/history?all=true');
-                // 2. Fetch All Employees to get full details (Email, ID, Profile)
-                const empRes = await api.get('/employee');
+                // 1. Fetch Leave History, Employees, and Holidays in parallel
+                const [leaveRes, empRes, holidayRes] = await Promise.all([
+                    api.get('/leave/history?all=true'),
+                    api.get('/employee'),
+                    api.get('/masters/holidays').catch(() => ({ data: [] }))
+                ]);
 
-                const today = new Date().toISOString().split('T')[0];
-                const employeesList = empRes.data;
+                const now = new Date();
+                const today = now.toISOString().split('T')[0];
+                const localToday = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+                const holidaysList = holidayRes.data || [];
+                const foundHoliday = holidaysList.find((h: any) => {
+                    const hDate = String(h.date).split('T')[0];
+                    return hDate === today || hDate === localToday;
+                });
+
+                setTodayHoliday(foundHoliday || null);
+
+                // If today is an official holiday, company operations are closed and leave tracking is paused
+                if (foundHoliday) {
+                    setEmployeesOnLeave([]);
+                    return;
+                }
+
+                const employeesList = empRes.data || [];
 
                 // 3. Filter and Merge data
-                const onLeaveToday = leaveRes.data.filter((leave: any) => {
+                const onLeaveToday = (leaveRes.data || []).filter((leave: any) => {
                     const start = new Date(leave.startDate).toISOString().split('T')[0];
                     const end = new Date(leave.endDate).toISOString().split('T')[0];
                     return today >= start && today <= end && leave.status === 'APPROVED';
@@ -200,6 +220,14 @@ export default function LeaveToday() {
                             </div>
                         ))}
                     </div>
+                </div>
+            ) : todayHoliday ? (
+                <div className="text-center py-20 bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800">
+                    <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-[#FDF0E5] dark:bg-orange-950/40 text-[#D97706] flex items-center justify-center text-2xl font-bold">
+                        🎉
+                    </div>
+                    <h3 className="text-base font-bold text-[#12151C] dark:text-white">Today is an Official Holiday: {todayHoliday.name}</h3>
+                    <p className="text-[#5B6472] dark:text-gray-400 text-xs mt-1">Company operations are closed for today. Regular leave tracking is paused for all employees.</p>
                 </div>
             ) : filteredLeaves.length === 0 ? (
                 <div className="text-center py-20 bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800">

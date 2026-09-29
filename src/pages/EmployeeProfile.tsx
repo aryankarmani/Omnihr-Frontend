@@ -38,13 +38,22 @@ export default function EmployeeProfile() {
 
     const queryParams = new URLSearchParams(location.search);
     const initialEditMode = queryParams.get('edit') === 'true';
+    const validTabs: Array<'personal' | 'statutory' | 'documents' | 'shiftRoster' | 'salary' | 'team'> = [
+        'personal', 'statutory', 'documents', 'shiftRoster', 'salary', 'team'
+    ];
+    const initialTabParam = queryParams.get('tab') as any;
+    const initialTab = validTabs.includes(initialTabParam) ? initialTabParam : 'statutory';
 
-    const [activeTab, setActiveTab] = useState<'personal' | 'statutory' | 'documents' | 'shiftRoster' | 'salary' | 'team'>('statutory');
+    const [activeTab, setActiveTab] = useState<'personal' | 'statutory' | 'documents' | 'shiftRoster' | 'salary' | 'team'>(initialTab);
     const [isEditing, setIsEditing] = useState(initialEditMode);
 
     useEffect(() => {
         const params = new URLSearchParams(location.search);
         setIsEditing(params.get('edit') === 'true');
+        const tabParam = params.get('tab') as any;
+        if (tabParam && validTabs.includes(tabParam)) {
+            setActiveTab(tabParam);
+        }
     }, [location.search]);
     const [showPayslip, setShowPayslip] = useState(false);
     const [showIDCard, setShowIDCard] = useState(false);

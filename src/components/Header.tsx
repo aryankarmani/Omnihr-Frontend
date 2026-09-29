@@ -5,6 +5,7 @@ import { Search, Bell, Menu, User, LayoutGrid, Calendar, Users, FileText, Settin
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import api, { getMediaUrl } from '../utils/api';
+import { getNotificationRedirectUrl } from '../utils/notificationNavigation';
 
 interface HeaderProps {
     onMenuClick: () => void;
@@ -353,10 +354,15 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                                     )
                                                 );
 
-
                                                 try {
                                                     await api.patch(`/notifications/${n.id}/read`);
                                                 } catch (e) { }
+
+                                                setShowNotifications(false);
+                                                const targetUrl = getNotificationRedirectUrl(n);
+                                                if (targetUrl) {
+                                                    navigate(targetUrl);
+                                                }
                                             }}
 
                                             className={`group relative p-4 rounded-[6px] border transition-all cursor-pointer ${n.unread

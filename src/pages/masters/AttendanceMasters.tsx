@@ -37,6 +37,7 @@ export default function AttendanceMasters() {
     });
 
     const saveShift = async () => {
+        if (loading) return;
         try {
             setLoading(true);
             await api.post('/masters/shifts', newShift);
@@ -44,8 +45,11 @@ export default function AttendanceMasters() {
             setShowShiftModal(false);
             toast.success("Shift saved!");
             setNewShift({ name: '', startTime: '09:00', endTime: '18:00', breakDuration: 60, graceTime: 15, isNightShift: false });
-        } catch { toast.error("Failed to save shift"); }
-        finally { setLoading(false); }
+        } catch (error: any) {
+            toast.error(error.response?.data?.error || error.response?.data?.message || "Failed to save shift");
+        } finally {
+            setLoading(false);
+        }
     };
 
     // Holiday Form State
@@ -53,6 +57,7 @@ export default function AttendanceMasters() {
     const [newHoliday, setNewHoliday] = useState({ name: '', date: '', type: 'PUBLIC' });
 
     const saveHoliday = async () => {
+        if (loading) return;
         try {
             setLoading(true);
             await api.post('/masters/holidays', newHoliday);
@@ -60,17 +65,24 @@ export default function AttendanceMasters() {
             setShowHolidayModal(false);
             toast.success("Holiday added!");
             setNewHoliday({ name: '', date: '', type: 'PUBLIC' });
-        } catch { toast.error("Failed to add holiday"); }
-        finally { setLoading(false); }
+        } catch (error: any) {
+            toast.error(error.response?.data?.error || error.response?.data?.message || "Failed to add holiday");
+        } finally {
+            setLoading(false);
+        }
     };
 
     const savePolicy = async () => {
+        if (loading) return;
         try {
             setLoading(true);
             await api.post('/masters/attendance-policy', policy);
             toast.success("Policy updated!");
-        } catch { toast.error("Failed to update policy"); }
-        finally { setLoading(false); }
+        } catch (error: any) {
+            toast.error(error.response?.data?.error || error.response?.data?.message || "Failed to update policy");
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleDelete = async () => {
@@ -275,7 +287,20 @@ export default function AttendanceMasters() {
                             <label className="flex items-center gap-3 text-xs text-[#5B6472] dark:text-gray-300 cursor-pointer"><input type="checkbox" className="w-4 h-4 rounded accent-[#2C4FD6]" checked={newShift.isNightShift} onChange={e => setNewShift({ ...newShift, isNightShift: e.target.checked })} /> Night Shift (Ends Next Day)</label>
                         </div>
                         <div className="p-4 border-t border-[#E2E6ED] dark:border-gray-800 bg-[#F7F8FA] dark:bg-gray-800/30">
-                            <button onClick={saveShift} className="w-full py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold text-[13.5px] rounded-[6px] transition-all cursor-pointer mt-2">Save Shift</button>
+                            <button
+                                onClick={saveShift}
+                                disabled={loading}
+                                className="w-full py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-[13.5px] rounded-[6px] transition-all cursor-pointer mt-2 flex items-center justify-center gap-2"
+                            >
+                                {loading ? (
+                                    <>
+                                        <Loader2 size={16} className="animate-spin" />
+                                        Saving Shift...
+                                    </>
+                                ) : (
+                                    'Save Shift'
+                                )}
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -294,7 +319,20 @@ export default function AttendanceMasters() {
                             <div><label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Type</label><select className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newHoliday.type} onChange={e => setNewHoliday({ ...newHoliday, type: e.target.value })}><option value="PUBLIC">Public Holiday</option><option value="COMPANY">Company Holiday</option></select></div>
                         </div>
                         <div className="p-4 border-t border-[#E2E6ED] dark:border-gray-800 bg-[#F7F8FA] dark:bg-gray-800/30">
-                            <button onClick={saveHoliday} className="w-full py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold text-[13.5px] rounded-[6px] transition-all cursor-pointer mt-2">Add Holiday</button>
+                            <button
+                                onClick={saveHoliday}
+                                disabled={loading}
+                                className="w-full py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-[13.5px] rounded-[6px] transition-all cursor-pointer mt-2 flex items-center justify-center gap-2"
+                            >
+                                {loading ? (
+                                    <>
+                                        <Loader2 size={16} className="animate-spin" />
+                                        Adding Holiday...
+                                    </>
+                                ) : (
+                                    'Add Holiday'
+                                )}
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -315,16 +353,25 @@ export default function AttendanceMasters() {
                             <button
                                 type="button"
                                 onClick={() => setDeleteModal({ isOpen: false, id: null, type: 'SHIFT' })}
-                                className="flex-1 py-2.5 px-4 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#5B6472] dark:text-gray-300 font-semibold text-[13.5px] hover:bg-gray-50 dark:hover:bg-white/5 transition-all cursor-pointer"
+                                disabled={loading}
+                                className="flex-1 py-2.5 px-4 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#5B6472] dark:text-gray-300 font-semibold text-[13.5px] hover:bg-gray-50 dark:hover:bg-white/5 transition-all cursor-pointer disabled:opacity-50"
                             >
                                 Cancel
                             </button>
                             <button
                                 type="button"
                                 onClick={confirmDelete}
-                                className="flex-1 py-2.5 px-4 rounded-[6px] bg-[#DE350B] hover:bg-[#b02a08] text-white font-semibold text-[13.5px] transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
+                                disabled={loading}
+                                className="flex-1 py-2.5 px-4 rounded-[6px] bg-[#DE350B] hover:bg-[#b02a08] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-[13.5px] transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
                             >
-                                Yes, Delete
+                                {loading ? (
+                                    <>
+                                        <Loader2 size={16} className="animate-spin" />
+                                        Deleting...
+                                    </>
+                                ) : (
+                                    'Yes, Delete'
+                                )}
                             </button>
                         </div>
                     </div>
