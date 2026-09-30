@@ -29,37 +29,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
         setAvatarError(false);
     }, [user?.avatar, (user as any)?.profilePicture]);
 
-    useEffect(() => {
-        if (!userAvatar && user && user.role !== 'SUPER_ADMIN') {
-            api.get('/employee/me')
-                .then(res => {
-                    const avatar = res.data?.employeeProfile?.avatar || res.data?.avatar;
-                    if (avatar) {
-                        setUserAvatar(avatar);
-                        updateUser({ avatar, profilePicture: avatar });
-                    }
-                })
-                .catch(() => { });
-        }
-    }, [user?.id, userAvatar]);
-
-    useEffect(() => {
-        const handleAuthUpdate = () => {
-            if (user && user.role !== 'SUPER_ADMIN') {
-                api.get('/employee/me')
-                    .then(res => {
-                        const avatar = res.data?.employeeProfile?.avatar || res.data?.avatar || null;
-                        setUserAvatar(avatar);
-                        setAvatarError(false);
-                    })
-                    .catch(() => { });
-            }
-        };
-
-        window.addEventListener('auth_user_updated', handleAuthUpdate);
-        return () => window.removeEventListener('auth_user_updated', handleAuthUpdate);
-    }, [user?.id]);
-
     const avatarUrl = userAvatar && typeof userAvatar === 'string' && !userAvatar.startsWith('bg-')
         ? getMediaUrl(userAvatar)
         : null;
@@ -88,11 +57,12 @@ export default function Header({ onMenuClick }: HeaderProps) {
         fetchNotifications();
         fetchEmployees();
 
-        const interval = setInterval(() => {
+        const handleNewNotification = () => {
             fetchNotifications(true);
-        }, 3000);
+        };
 
-        return () => clearInterval(interval);
+        window.addEventListener('new-notification-received', handleNewNotification);
+        return () => window.removeEventListener('new-notification-received', handleNewNotification);
     }, []);
 
 

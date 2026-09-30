@@ -196,13 +196,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-    const logout = async () => {
-        try {
-            // ✅ Remove FCM token from backend before clearing token
-            await api.delete("/push-notification/remove-token");
-        } catch (error) {
-            console.log("Failed to remove FCM token:", error);
-        }
+    const logout = () => {
+        // Clear state & storage immediately so isAuthenticated is instantly false
         setUser(null);
         removeStoredItem('encalm_user');
         removeStoredItem('token');

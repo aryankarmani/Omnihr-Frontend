@@ -47,8 +47,6 @@ export const requestFcmToken = async () => {
       serviceWorkerRegistration: registration,
     });
 
-    console.log("FCM TOKEN:", fcmToken);
-
     return fcmToken;
   } catch (error) {
     console.error("FCM token error:", error);
@@ -67,7 +65,8 @@ export const listenToForegroundMessages = async () => {
   const messaging = getMessaging(app);
 
   onMessage(messaging, (payload) => {
-    console.log("Foreground notification:", payload);
+    // Notify components that a new notification has arrived
+    window.dispatchEvent(new CustomEvent("new-notification-received", { detail: payload }));
 
     if (
       Notification.permission === "granted" &&

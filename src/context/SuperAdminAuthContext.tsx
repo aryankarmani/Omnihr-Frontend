@@ -75,7 +75,7 @@ export const SuperAdminAuthProvider: React.FC<{ children: React.ReactNode }> = (
       if (savedUser) {
         try {
           const parsed = JSON.parse(savedUser);
-          if (parsed?.role === "SUPER_ADMIN") {
+          if (parsed?.role === "SUPER_ADMIN" || parsed?.role === "super_admin") {
             setAdmin(parsed);
           } else {
             setAdmin(null);
@@ -92,14 +92,14 @@ export const SuperAdminAuthProvider: React.FC<{ children: React.ReactNode }> = (
   }, []);
 
   const syncSession = useCallback(() => {
-    const savedToken = sessionStorage.getItem("superadmin_token") || sessionStorage.getItem("token");
-    const savedUser = sessionStorage.getItem("superadmin_user") || sessionStorage.getItem("encalm_user");
+    const savedToken = sessionStorage.getItem("superadmin_token");
+    const savedUser = sessionStorage.getItem("superadmin_user");
     if (savedToken) {
       setToken(savedToken);
       if (savedUser) {
         try {
           const parsed = JSON.parse(savedUser);
-          if (parsed?.role === "SUPER_ADMIN") {
+          if (parsed?.role === "SUPER_ADMIN" || parsed?.role === "super_admin") {
             setAdmin(parsed);
           }
         } catch {}
@@ -111,7 +111,7 @@ export const SuperAdminAuthProvider: React.FC<{ children: React.ReactNode }> = (
   }, [fetchProfile]);
 
   useEffect(() => {
-    const savedToken = sessionStorage.getItem("superadmin_token") || sessionStorage.getItem("token");
+    const savedToken = sessionStorage.getItem("superadmin_token");
     if (savedToken) {
       setToken(savedToken);
       fetchProfile();
