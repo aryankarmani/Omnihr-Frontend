@@ -221,7 +221,7 @@ export default function Reports() {
                                 No attendance records found for this period
                             </div>
                         ) : (
-                            <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 600, height: 260 }}>
+                            <ResponsiveContainer width="100%" height={260} minWidth={0}>
                                 <BarChart data={attendanceData} margin={{ top: 10, right: 5, left: 5, bottom: 0 }} barCategoryGap="4%">
                                     <XAxis
                                         dataKey="name"
