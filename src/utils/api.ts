@@ -39,12 +39,12 @@ let isRefreshing = false;
 // Add a request interceptor to inject the auth token
 api.interceptors.request.use(
     (config) => {
-        const token = sessionStorage.getItem('token');
+        const token = sessionStorage.getItem('token') || localStorage.getItem('token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
         // TENANT ID
-        const tenantId = sessionStorage.getItem('tenantId');
+        const tenantId = sessionStorage.getItem('tenantId') || localStorage.getItem('tenantId');
 
         if (tenantId) {
             config.headers['x-tenant-id'] = tenantId;
@@ -73,7 +73,7 @@ api.interceptors.response.use(
             isRefreshing = true;
 
             try {
-                const refreshToken = sessionStorage.getItem('refreshToken');
+                const refreshToken = sessionStorage.getItem('refreshToken') || localStorage.getItem('refreshToken');
 
                 if (!refreshToken) {
                     throw new Error('No refresh token found');
@@ -86,13 +86,17 @@ api.interceptors.response.use(
 
                 const newToken = res.data.token;
 
-
-                sessionStorage.setItem('token', newToken);
+                if (localStorage.getItem('token')) {
+                    localStorage.setItem('token', newToken);
+                }
+                if (sessionStorage.getItem('token')) {
+                    sessionStorage.setItem('token', newToken);
+                }
 
                 originalRequest.headers.Authorization = `Bearer ${newToken}`;
                 // IMPORTANT FIX
                 const tenantId =
-                    sessionStorage.getItem('tenantId');
+                    sessionStorage.getItem('tenantId') || localStorage.getItem('tenantId');
 
                 if (tenantId) {
                     originalRequest.headers['x-tenant-id'] =
@@ -104,6 +108,10 @@ api.interceptors.response.use(
                 sessionStorage.removeItem('token');
                 sessionStorage.removeItem('refreshToken');
                 sessionStorage.removeItem('tenantId');
+                localStorage.removeItem('token');
+                localStorage.removeItem('refreshToken');
+                localStorage.removeItem('tenantId');
+                localStorage.removeItem('encalm_remember_me');
 
                 window.location.href = '/signin';
 

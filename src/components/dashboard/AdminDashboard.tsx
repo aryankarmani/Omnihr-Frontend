@@ -221,7 +221,7 @@ export default function AdminDashboard({
 
             {/* Middle Section: Live Attendance (3/5) & Approval Center (2/5) */}
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-5">
-                <div className="lg:col-span-3">
+                <div className="lg:col-span-3 min-w-0">
                     <LiveAttendance data={attendanceData} />
                 </div>
 
@@ -460,10 +460,13 @@ export default function AdminDashboard({
                                                             } else if (type === 'HALF_DAY' || text.toLowerCase().includes('half')) {
                                                                 badgeClass = "bg-[#E0F2FE] text-[#0284C7] dark:bg-sky-950/50 dark:text-sky-400";
                                                                 dotColor = "bg-[#0284C7]";
+                                                            } else if (type === 'HOLIDAY' || text.toLowerCase().includes('holiday')) {
+                                                                badgeClass = "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300";
+                                                                dotColor = "bg-purple-600";
                                                             } else if (type === 'LEAVE' || text.toLowerCase().includes('leave')) {
-                                                                badgeClass = "bg-[#F3E8FF] text-[#9333EA] dark:bg-purple-950/50 dark:text-purple-400";
-                                                                dotColor = "bg-[#9333EA]";
-                                                            } else if (type === 'HOLIDAY' || type === 'WEEKEND' || text.toLowerCase() === 'holiday' || text.toLowerCase() === 'weekend') {
+                                                                badgeClass = "bg-[#E8ECFC] text-[#2C4FD6] dark:bg-blue-950/50 dark:text-blue-400";
+                                                                dotColor = "bg-[#2C4FD6]";
+                                                            } else if (type === 'WEEKEND' || text.toLowerCase().includes('weekend')) {
                                                                 badgeClass = "bg-[#F3F4F6] text-[#6B7280] dark:bg-gray-800 dark:text-gray-400";
                                                                 dotColor = "bg-[#6B7280]";
                                                             }

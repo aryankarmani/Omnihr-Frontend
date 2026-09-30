@@ -230,16 +230,22 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
                         </div>
                         <p className="text-[12px] text-[#9AA3B1] mb-1 font-medium">Punch Status</p>
                         <div className="kpi-num text-[22px] sm:text-[24px] font-bold text-[#12151C] dark:text-white tracking-tight leading-none mb-1.5">
-                            {punchStatus?.isPunchedIn ? 'Currently Working' : 'Not Punched In'}
+                            {punchStatus?.isPunchedIn
+                                ? 'Currently Working'
+                                : punchStatus?.isOnLeave
+                                    ? (punchStatus?.leaveTypeName || 'On Leave')
+                                    : isHolidayToday
+                                        ? `Holiday (${todayHoliday?.name || 'Official'})`
+                                        : 'Not Punched In'}
                         </div>
                     </div>
 
                     <div className="mt-4 pt-3 border-t border-[#E2E6ED] dark:border-gray-800 flex items-center justify-between gap-2">
                         <button
                             onClick={handlePunch}
-                            disabled={isPunching || isShiftCompleted || isHolidayToday}
+                            disabled={isPunching || isShiftCompleted || punchStatus?.isOnLeave}
                             className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[6px] text-xs font-bold transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer ${
-                                isHolidayToday
+                                punchStatus?.isOnLeave
                                     ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
                                     : isPunchedIn
                                         ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/20'
@@ -248,8 +254,24 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
                                             : 'bg-green-600 hover:bg-green-700 text-white shadow-green-600/20'
                             }`}
                         >
-                            {isHolidayToday ? <Calendar size={14} /> : isPunchedIn ? <LogOut size={14} /> : <LogIn size={14} />}
-                            <span>{isHolidayToday ? 'Holiday' : isPunchedIn ? 'Punch Out' : isShiftCompleted ? 'Shift Ended' : 'Punch In Now'}</span>
+                            {punchStatus?.isOnLeave ? (
+                                <Calendar size={14} />
+                            ) : isPunchedIn ? (
+                                <LogOut size={14} />
+                            ) : (
+                                <LogIn size={14} />
+                            )}
+                            <span>
+                                {punchStatus?.isOnLeave
+                                    ? (punchStatus?.leaveTypeName || 'On Leave')
+                                    : isPunchedIn
+                                        ? 'Punch Out'
+                                        : isShiftCompleted
+                                            ? 'Shift Ended'
+                                            : isHolidayToday
+                                                ? 'Punch In (Holiday)'
+                                                : 'Punch In Now'}
+                            </span>
                         </button>
 
                         <button
@@ -338,8 +360,8 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
                         </div>
                     </div>
 
-                    <div className="h-[210px] w-full mt-2">
-                        <ResponsiveContainer width="100%" height="100%">
+                    <div className="h-[210px] w-full mt-2 min-w-0">
+                        <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 500, height: 210 }}>
                             <BarChart data={weeklyChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                 <XAxis
                                     dataKey="name"

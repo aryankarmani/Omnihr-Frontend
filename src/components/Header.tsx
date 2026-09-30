@@ -380,13 +380,13 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                                             <Bell size={20} />}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center justify-between mb-0.5">
-                                                        <h3 className={`text-sm font-bold truncate ${n.unread ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-300'}`}>
+                                                    <div className="flex items-center justify-between gap-2 mb-0.5">
+                                                        <h3 className={`text-sm font-bold truncate min-w-0 ${n.unread ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-300'}`}>
                                                             {n.title}
                                                         </h3>
-                                                        <span className="text-[10px] text-gray-400 font-medium">{n.time}</span>
+                                                        <span className="text-[10px] text-gray-400 font-medium whitespace-nowrap shrink-0">{n.time}</span>
                                                     </div>
-                                                    <p className={`text-xs leading-relaxed break-all ${n.unread ? 'text-gray-700 dark:text-gray-200' : 'text-gray-500 dark:text-gray-400'}`}>
+                                                    <p className={`text-xs leading-relaxed break-words ${n.unread ? 'text-gray-700 dark:text-gray-200' : 'text-gray-500 dark:text-gray-400'}`}>
                                                         {n.message || n.title}
                                                     </p>
                                                 </div>

@@ -16,8 +16,8 @@ export function useRBAC() {
     return {
         hasPermission,
         role: user?.role,
-        isAdmin: user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN',
+        isAdmin: user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN' || user?.role === 'SYSTEM_ADMIN' || user?.role === 'SUPER_ADMIN',
         // ✅ CHANGED: Manager is no longer a role
-        isManager: user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN', // Admins imply manager access usually
+        isManager: user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN' || user?.role === 'SYSTEM_ADMIN' || user?.role === 'SUPER_ADMIN', // Admins imply manager access usually
     };
 }

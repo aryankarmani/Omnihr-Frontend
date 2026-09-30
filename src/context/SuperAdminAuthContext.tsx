@@ -24,7 +24,11 @@ const SuperAdminAuthContext = createContext<SuperAdminAuthContextType | undefine
 
 export const SuperAdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [admin, setAdmin] = useState<SuperAdminUser | null>(() => {
-    const saved = sessionStorage.getItem("superadmin_user") || sessionStorage.getItem("encalm_user");
+    const saved =
+      sessionStorage.getItem("superadmin_user") ||
+      localStorage.getItem("superadmin_user") ||
+      sessionStorage.getItem("encalm_user") ||
+      localStorage.getItem("encalm_user");
     try {
       return saved ? JSON.parse(saved) : null;
     } catch {
@@ -32,12 +36,20 @@ export const SuperAdminAuthProvider: React.FC<{ children: React.ReactNode }> = (
     }
   });
   const [token, setToken] = useState<string | null>(
-    () => sessionStorage.getItem("superadmin_token") || sessionStorage.getItem("token")
+    () =>
+      sessionStorage.getItem("superadmin_token") ||
+      localStorage.getItem("superadmin_token") ||
+      sessionStorage.getItem("token") ||
+      localStorage.getItem("token")
   );
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const fetchProfile = useCallback(async () => {
-    const currentToken = sessionStorage.getItem("superadmin_token") || sessionStorage.getItem("token");
+    const currentToken =
+      sessionStorage.getItem("superadmin_token") ||
+      localStorage.getItem("superadmin_token") ||
+      sessionStorage.getItem("token") ||
+      localStorage.getItem("token");
     if (!currentToken) {
       setIsLoading(false);
       return;
@@ -46,12 +58,20 @@ export const SuperAdminAuthProvider: React.FC<{ children: React.ReactNode }> = (
       const response = await superAdminApi.get("/auth/profile");
       if (response.data?.superAdmin) {
         setAdmin(response.data.superAdmin);
-        sessionStorage.setItem("superadmin_user", JSON.stringify(response.data.superAdmin));
+        if (localStorage.getItem("encalm_remember_me") === "true") {
+          localStorage.setItem("superadmin_user", JSON.stringify(response.data.superAdmin));
+        } else {
+          sessionStorage.setItem("superadmin_user", JSON.stringify(response.data.superAdmin));
+        }
       }
     } catch (error) {
       console.warn("Could not fetch superadmin profile:", error);
       // If profile fails, check if we still have a valid superadmin session
-      const savedUser = sessionStorage.getItem("superadmin_user") || sessionStorage.getItem("encalm_user");
+      const savedUser =
+        sessionStorage.getItem("superadmin_user") ||
+        localStorage.getItem("superadmin_user") ||
+        sessionStorage.getItem("encalm_user") ||
+        localStorage.getItem("encalm_user");
       if (savedUser) {
         try {
           const parsed = JSON.parse(savedUser);
@@ -123,6 +143,11 @@ export const SuperAdminAuthProvider: React.FC<{ children: React.ReactNode }> = (
     sessionStorage.removeItem("superadmin_user");
     sessionStorage.removeItem("encalm_user");
     sessionStorage.removeItem("token");
+    localStorage.removeItem("superadmin_token");
+    localStorage.removeItem("superadmin_user");
+    localStorage.removeItem("encalm_user");
+    localStorage.removeItem("token");
+    localStorage.removeItem("encalm_remember_me");
     setToken(null);
     setAdmin(null);
     window.location.href = "/signin";

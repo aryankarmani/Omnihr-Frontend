@@ -217,18 +217,18 @@ export default function Notifications() {
                                      <Info size={18} />}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <div className="flex items-center justify-between mb-0.5">
-                                        <div className="flex items-center gap-2">
-                                            <h3 className={`text-[13.5px] font-semibold ${n.unread ? 'text-[#12151C] dark:text-white' : 'text-[#5B6472] dark:text-gray-300'}`}>
+                                    <div className="flex items-center justify-between gap-2 mb-0.5">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <h3 className={`text-[13.5px] font-semibold truncate ${n.unread ? 'text-[#12151C] dark:text-white' : 'text-[#5B6472] dark:text-gray-300'}`}>
                                                 {n.title}
                                             </h3>
                                             {n.unread && (
-                                                <span className="px-[6px] py-[1.5px] bg-[#2C4FD6] text-white text-[9px] font-bold rounded-full uppercase tracking-wider">NEW</span>
+                                                <span className="px-[6px] py-[1.5px] bg-[#2C4FD6] text-white text-[9px] font-bold rounded-full uppercase tracking-wider shrink-0">NEW</span>
                                             )}
                                         </div>
-                                        <span className="text-[11px] text-[#9AA3B1] font-mono-numbers">{n.time}</span>
+                                        <span className="text-[11px] text-[#9AA3B1] font-mono-numbers whitespace-nowrap shrink-0">{n.time}</span>
                                     </div>
-                                    <p className={`text-xs font-normal leading-relaxed break-all ${n.unread ? 'text-[#12151C] dark:text-gray-200' : 'text-[#717E95] dark:text-gray-400'}`}>
+                                    <p className={`text-xs font-normal leading-relaxed break-words ${n.unread ? 'text-[#12151C] dark:text-gray-200' : 'text-[#717E95] dark:text-gray-400'}`}>
                                         {n.message}
                                     </p>
                                 </div>
