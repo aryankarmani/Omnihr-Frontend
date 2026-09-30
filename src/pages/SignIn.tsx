@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
     Eye, EyeOff, Mail, Lock, Loader2, ArrowRight,
@@ -16,6 +16,15 @@ export default function SignIn() {
     const [rememberMe, setRememberMe] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [serverError, setServerError] = useState<string | null>(null);
+
+    // Load saved email if Remember Me was previously used
+    useEffect(() => {
+        const savedEmail = localStorage.getItem('saved_login_email');
+        if (savedEmail) {
+            setEmail(savedEmail);
+            setRememberMe(true);
+        }
+    }, []);
 
     const [touched, setTouched] = useState<{ email?: boolean; password?: boolean }>({});
     const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
@@ -79,7 +88,13 @@ export default function SignIn() {
 
         setIsSubmitting(true);
         try {
-            const loggedInUser = await login(email.trim(), password);
+            const loggedInUser = await login(email.trim(), password, rememberMe);
+            if (rememberMe) {
+                localStorage.setItem('saved_login_email', email.trim());
+            } else {
+                localStorage.removeItem('saved_login_email');
+            }
+
             if (loggedInUser?.role === 'SUPER_ADMIN') {
                 navigate('/superadmin/dashboard');
             } else {

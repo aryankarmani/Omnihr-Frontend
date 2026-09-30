@@ -21,7 +21,7 @@ interface AuthContextType {
     user: User | null;
     isAuthenticated: boolean;
     isLoading: boolean;
-    login: (email: string, password: string) => Promise<User>;
+    login: (email: string, password: string, rememberMe?: boolean) => Promise<User>;
     logout: () => void;
     refreshUser: () => Promise<void>;
     updateUser: (updatedUser: Partial<User>) => void;
@@ -30,6 +30,23 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const getStoredItem = (key: string): string | null => {
+    return sessionStorage.getItem(key) || localStorage.getItem(key);
+};
+
+const setStoredItem = (key: string, value: string) => {
+    if (localStorage.getItem('encalm_remember_me') === 'true') {
+        localStorage.setItem(key, value);
+    } else {
+        sessionStorage.setItem(key, value);
+    }
+};
+
+const removeStoredItem = (key: string) => {
+    sessionStorage.removeItem(key);
+    localStorage.removeItem(key);
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -37,7 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const refreshUser = async () => {
         try {
-            const token = sessionStorage.getItem('token');
+            const token = getStoredItem('token');
             if (!token) return;
             const res = await api.get('/auth/me');
             if (res.data?.user) {
@@ -60,7 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 }
 
                 setUser(userData);
-                sessionStorage.setItem('encalm_user', JSON.stringify(userData));
+                setStoredItem('encalm_user', JSON.stringify(userData));
             }
         } catch (e) {
             console.error('Failed to refresh user profile:', e);
@@ -71,24 +88,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(prev => {
             if (!prev) return null;
             const merged = { ...prev, ...updated };
-            sessionStorage.setItem('encalm_user', JSON.stringify(merged));
+            setStoredItem('encalm_user', JSON.stringify(merged));
             return merged;
         });
     };
 
-    // Initialize from session storage to persist login across refreshes
+    // Initialize from session/local storage to persist login across refreshes & tabs
     useEffect(() => {
-        const storedUser = sessionStorage.getItem('encalm_user');
+        const storedUser = getStoredItem('encalm_user');
         if (storedUser) {
-            const parsedUser = JSON.parse(storedUser);
-            if (parsedUser && typeof parsedUser.role === 'string') {
-                parsedUser.role = parsedUser.role.toUpperCase();
-                if (parsedUser.role === 'ADMIN') parsedUser.role = 'HR_ADMIN';
+            try {
+                const parsedUser = JSON.parse(storedUser);
+                if (parsedUser && typeof parsedUser.role === 'string') {
+                    parsedUser.role = parsedUser.role.toUpperCase();
+                    if (parsedUser.role === 'ADMIN') parsedUser.role = 'HR_ADMIN';
+                }
+                setUser(parsedUser);
+                listenToForegroundMessages();
+                // Also refresh latest from server in background
+                refreshUser();
+            } catch (e) {
+                console.error("Error parsing stored user:", e);
             }
-            setUser(parsedUser);
-            listenToForegroundMessages();
-            // Also refresh latest from server in background
-            refreshUser();
         }
         setIsLoading(false);
 
@@ -99,7 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return () => window.removeEventListener('auth_user_updated', handleAuthUpdate);
     }, []);
 
-    const login = async (email: string, password: string) => {
+    const login = async (email: string, password: string, rememberMe: boolean = false) => {
         try {
             setError(null);
             setIsLoading(true);
@@ -115,19 +136,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
 
             setUser(userData);
-            sessionStorage.setItem('encalm_user', JSON.stringify(userData));
-            sessionStorage.setItem('token', token);
+
+            const storage = rememberMe ? localStorage : sessionStorage;
+
+            if (rememberMe) {
+                localStorage.setItem('encalm_remember_me', 'true');
+                // Clear any leftover tab session keys so they don't conflict
+                sessionStorage.removeItem('encalm_user');
+                sessionStorage.removeItem('token');
+                sessionStorage.removeItem('refreshToken');
+                sessionStorage.removeItem('tenantId');
+                sessionStorage.removeItem('superadmin_token');
+                sessionStorage.removeItem('superadmin_user');
+            } else {
+                localStorage.removeItem('encalm_remember_me');
+                localStorage.removeItem('encalm_user');
+                localStorage.removeItem('token');
+                localStorage.removeItem('refreshToken');
+                localStorage.removeItem('tenantId');
+                localStorage.removeItem('superadmin_token');
+                localStorage.removeItem('superadmin_user');
+            }
+
+            storage.setItem('encalm_user', JSON.stringify(userData));
+            storage.setItem('token', token);
 
             if (userData?.role === 'SUPER_ADMIN') {
-                sessionStorage.setItem('superadmin_token', token);
-                sessionStorage.setItem('superadmin_user', JSON.stringify(userData));
+                storage.setItem('superadmin_token', token);
+                storage.setItem('superadmin_user', JSON.stringify(userData));
                 window.dispatchEvent(new Event('superadmin-login'));
             } else {
                 if (refreshToken) {
-                    sessionStorage.setItem('refreshToken', refreshToken);
+                    storage.setItem('refreshToken', refreshToken);
                 }
                 if (userData?.tenantId) {
-                    sessionStorage.setItem('tenantId', userData.tenantId);
+                    storage.setItem('tenantId', userData.tenantId);
                 }
 
                 // ✅ Get FCM token from browser
@@ -156,15 +199,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const logout = () => {
         // Clear state & storage immediately so isAuthenticated is instantly false
         setUser(null);
-        sessionStorage.removeItem('encalm_user');
-        sessionStorage.removeItem('token');
-        sessionStorage.removeItem('refreshToken');
-        sessionStorage.removeItem('tenantId');
-        sessionStorage.removeItem('superadmin_token');
-        sessionStorage.removeItem('superadmin_user');
-
-        // Fire-and-forget backend FCM removal in background
-        api.delete("/push-notification/remove-token").catch(() => {});
+        removeStoredItem('encalm_user');
+        removeStoredItem('token');
+        removeStoredItem('refreshToken');
+        removeStoredItem('tenantId');
+        removeStoredItem('superadmin_token');
+        removeStoredItem('superadmin_user');
+        localStorage.removeItem('encalm_remember_me');
     };
 
     return (

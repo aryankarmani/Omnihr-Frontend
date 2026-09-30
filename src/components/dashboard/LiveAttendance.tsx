@@ -37,8 +37,8 @@ export default function LiveAttendance({ data }: LiveAttendanceProps) {
                 </div>
             </div>
 
-            <div className="flex-1 w-full min-h-0">
-                <ResponsiveContainer width="100%" height="100%">
+            <div className="flex-1 w-full min-h-0 min-w-0 h-[210px]">
+                <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 500, height: 200 }}>
                     <BarChart data={chartData} margin={{ top: 15, right: 5, left: 5, bottom: 0 }} barCategoryGap="10%">
                         <XAxis
                             dataKey="name"

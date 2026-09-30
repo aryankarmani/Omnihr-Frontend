@@ -13,7 +13,7 @@ export const superAdminApi = axios.create({
 
 superAdminApi.interceptors.request.use(
   (config) => {
-    const token = sessionStorage.getItem("superadmin_token");
+    const token = sessionStorage.getItem("superadmin_token") || localStorage.getItem("superadmin_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -28,6 +28,8 @@ superAdminApi.interceptors.response.use(
     if (error.response && error.response.status === 401) {
       sessionStorage.removeItem("superadmin_token");
       sessionStorage.removeItem("superadmin_user");
+      localStorage.removeItem("superadmin_token");
+      localStorage.removeItem("superadmin_user");
       if (window.location.pathname.startsWith("/superadmin")) {
         window.location.href = "/signin";
       }

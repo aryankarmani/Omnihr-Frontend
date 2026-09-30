@@ -34,7 +34,7 @@ export default function EmployeeProfile() {
     const { id } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
-    const { hasPermission } = useRBAC();
+    const { hasPermission, isAdmin } = useRBAC();
 
     const queryParams = new URLSearchParams(location.search);
     const initialEditMode = queryParams.get('edit') === 'true';
@@ -3113,17 +3113,27 @@ export default function EmployeeProfile() {
                                             {completion.missingItems.map((item, idx) => (
                                                 <li
                                                     key={idx}
-                                                    onClick={() => setActiveTab(item.tabKey)}
-                                                    className="text-xs text-[#5B6472] dark:text-gray-400 flex items-center justify-between group cursor-pointer hover:text-[#2C4FD6] dark:hover:text-blue-400 transition-colors py-0.5"
-                                                    title={`Go to ${item.tabKey} tab`}
+                                                    onClick={() => {
+                                                        if (isAdmin) {
+                                                            setActiveTab(item.tabKey);
+                                                        }
+                                                    }}
+                                                    className={`text-xs text-[#5B6472] dark:text-gray-400 flex items-center justify-between py-0.5 ${
+                                                        isAdmin
+                                                            ? 'group cursor-pointer hover:text-[#2C4FD6] dark:hover:text-blue-400 transition-colors'
+                                                            : 'cursor-default'
+                                                    }`}
+                                                    title={isAdmin ? `Go to ${item.tabKey} tab` : undefined}
                                                 >
                                                     <div className="flex items-center gap-2 min-w-0">
                                                         <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
                                                         <span className="truncate">{item.label}</span>
                                                     </div>
-                                                    <span className="text-[10px] text-[#9AA3B1] group-hover:text-[#2C4FD6] dark:group-hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap ml-1 font-medium">
-                                                        Fill →
-                                                    </span>
+                                                    {isAdmin && (
+                                                        <span className="text-[10px] text-[#9AA3B1] group-hover:text-[#2C4FD6] dark:group-hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap ml-1 font-medium">
+                                                            Fill →
+                                                        </span>
+                                                    )}
                                                 </li>
                                             ))}
                                         </ul>
