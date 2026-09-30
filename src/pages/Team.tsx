@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { useEffect } from 'react';
 import { Plus, MoreVertical, Briefcase, UserPlus, X, Trash2, Users, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useRBAC } from '../hooks/useRBAC';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 import {
@@ -19,8 +20,8 @@ import {
 export default function Team() {
     const [employees, setEmployees] = useState<any[]>([]);
     const { user } = useAuth();
+    const { isAdmin } = useRBAC();
     const navigate = useNavigate();
-    const isAdmin = user?.role === 'HR_ADMIN';
     // ✅ CHANGED: only HR admin can create/edit teams
     const canManageTeams = user?.role === 'HR_ADMIN';
     const [teams, setTeams] = useState<any[]>([]);
@@ -621,22 +622,28 @@ export default function Team() {
                                                 </div>
                                                 <div className="min-w-0 flex-1">
                                                     <div className="flex items-center gap-2 flex-wrap">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                sessionStorage.setItem(
-                                                                    'teamModalState',
-                                                                    JSON.stringify({
-                                                                        modal: 'team-roster',
-                                                                        teamId: selectedTeam
-                                                                    })
-                                                                );
-                                                                navigate(`/employee/${emp.id}`);
-                                                            }}
-                                                            className="font-semibold text-[#12151C] dark:text-white text-[13.5px] break-all hover:text-[#2C4FD6] hover:underline text-left cursor-pointer"
-                                                        >
-                                                            {emp.name}
-                                                        </button>
+                                                        {isAdmin ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    sessionStorage.setItem(
+                                                                        'teamModalState',
+                                                                        JSON.stringify({
+                                                                            modal: 'team-roster',
+                                                                            teamId: selectedTeam
+                                                                        })
+                                                                    );
+                                                                    navigate(`/employee/${emp.id}`);
+                                                                }}
+                                                                className="font-semibold text-[#12151C] dark:text-white text-[13.5px] break-all hover:text-[#2C4FD6] hover:underline text-left cursor-pointer"
+                                                            >
+                                                                {emp.name}
+                                                            </button>
+                                                        ) : (
+                                                            <span className="font-semibold text-[#12151C] dark:text-white text-[13.5px] break-all text-left">
+                                                                {emp.name}
+                                                            </span>
+                                                        )}
                                                         {isManager && (
                                                             <span className="px-2 py-0.5 rounded-[4px] text-[10px] font-bold uppercase tracking-wider bg-[#E8ECFC] text-[#2C4FD6] dark:bg-blue-950/60 dark:text-blue-400 border border-[#2C4FD6]/20 shrink-0">
                                                                 Manager

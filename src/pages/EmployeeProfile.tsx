@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useRBAC } from '../hooks/useRBAC';
+import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, ArrowRight, User, FileText, CreditCard, Download, Briefcase, Save, X, Printer, Loader2, Eye, Trash2, Upload, TrendingUp, TrendingDown, Coins, ExternalLink, Image as ImageIcon } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
@@ -34,6 +35,7 @@ export default function EmployeeProfile() {
     const { id } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
+    const { user } = useAuth();
     const { hasPermission, isAdmin } = useRBAC();
 
     const queryParams = new URLSearchParams(location.search);
@@ -98,8 +100,16 @@ export default function EmployeeProfile() {
             const res = await api.get(endpoint);
             setEmployee(res.data);
             setErrors({});
-        } catch (error) {
+            if (!id) {
+                window.dispatchEvent(new Event('auth_user_updated'));
+            }
+        } catch (error: any) {
             console.error('Error fetching employee:', error);
+            if (error.response?.status === 403) {
+                toast.error('Access denied: You do not have permission to view other employee profiles');
+                navigate('/profile', { replace: true });
+                return;
+            }
             toast.error('Failed to load employee profile');
         } finally {
             setLoading(false);
@@ -279,6 +289,12 @@ export default function EmployeeProfile() {
     };
 
     useEffect(() => {
+        if (id && user && !isAdmin && Number(id) !== Number(user.id)) {
+            toast.error('Access denied: You do not have permission to view other employee profiles');
+            navigate('/profile', { replace: true });
+            return;
+        }
+
         fetchEmployee();
         fetchShifts();
         fetchRoles();
@@ -288,7 +304,7 @@ export default function EmployeeProfile() {
         fetchCompanySignature();
         fetchSalaryComponents();
         fetchCustomFields();
-    }, [id]);
+    }, [id, isAdmin, user?.id]);
 
     useEffect(() => {
         if (employee?.employeeProfile?.phone) {
