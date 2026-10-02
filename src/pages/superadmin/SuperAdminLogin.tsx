@@ -24,7 +24,9 @@ export default function SuperAdminLogin() {
       setSubmitting(true);
       await login(email.trim(), password);
       toast.success("Welcome back, Platform Administrator!");
-      navigate("/superadmin/dashboard");
+      const redirectUrl = sessionStorage.getItem("superadmin_redirect") || "/superadmin/dashboard";
+      sessionStorage.removeItem("superadmin_redirect");
+      navigate(redirectUrl);
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Invalid Super Admin credentials.");
     } finally {

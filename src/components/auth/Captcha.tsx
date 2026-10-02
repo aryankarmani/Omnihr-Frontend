@@ -1,28 +1,35 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { RefreshCw } from 'lucide-react';
+import api from '../../utils/api';
 
 interface CaptchaProps {
-  onVerify: (code: string) => void;
+  onVerify: (token: string) => void;
   className?: string;
   children?: React.ReactNode;
 }
 
 export const Captcha: React.FC<CaptchaProps> = ({ onVerify, className = "", children }) => {
-  const [captchaText, setCaptchaText] = useState("");
+  const [captchaSvg, setCaptchaSvg] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
 
-  const generateCaptcha = useCallback(() => {
-    const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    let result = "";
-    for (let i = 0; i < 5; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
+  const fetchCaptcha = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await api.get('/auth/captcha');
+      if (res.data?.captchaSvg) {
+        setCaptchaSvg(res.data.captchaSvg);
+        onVerify(res.data.captchaToken || '');
+      }
+    } catch (e) {
+      console.error('Failed to load captcha from server:', e);
+    } finally {
+      setLoading(false);
     }
-    setCaptchaText(result);
-    onVerify(result);
   }, [onVerify]);
 
   useEffect(() => {
-    generateCaptcha();
-  }, [generateCaptcha]);
+    fetchCaptcha();
+  }, [fetchCaptcha]);
 
   return (
     <div className={`space-y-1.5 ${className}`}>
@@ -32,30 +39,25 @@ export const Captcha: React.FC<CaptchaProps> = ({ onVerify, className = "", chil
         </label>
         <button
           type="button"
-          onClick={generateCaptcha}
-          className="text-brand-600 hover:text-brand-700 active:scale-95 transition-all outline-none flex items-center justify-center"
+          onClick={fetchCaptcha}
+          disabled={loading}
+          className="text-brand-600 hover:text-brand-700 active:scale-95 transition-all outline-none flex items-center justify-center cursor-pointer disabled:opacity-50"
           title="Refresh Captcha"
+          aria-label="Refresh Captcha"
         >
-          <RefreshCw size={17} />
+          <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
         </button>
       </div>
       <div className="flex gap-2 items-center">
-        <div className="w-32 h-11 bg-[#F8F9FA] rounded-[6px] flex items-center justify-center border border-[#E2E6ED] select-none overflow-hidden">
-          <span
-            className="text-xl font-black tracking-[0.2em] text-gray-800 italic whitespace-nowrap"
-            style={{
-              fontFamily: 'monospace',
-              textShadow: '1px 1px 2px rgba(0,0,0,0.1)',
-              background: 'linear-gradient(45deg, #1e1b4b, #4c1d95)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent'
-            }}
-          >
-            {captchaText}
-          </span>
-        </div>
+        <div
+          className="w-32 h-11 bg-[#F8F9FA] dark:bg-gray-800 rounded-[6px] flex items-center justify-center border border-[#E2E6ED] dark:border-gray-700 select-none overflow-hidden shrink-0"
+          dangerouslySetInnerHTML={{
+            __html: captchaSvg || '<span style="font-size:11px;color:#9AA3B1;">Loading...</span>'
+          }}
+        />
         {children}
       </div>
     </div>
   );
 };
+

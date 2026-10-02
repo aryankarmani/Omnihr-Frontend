@@ -35,6 +35,21 @@ const api = axios.create({
     baseURL: getBaseURL(),
 });
 let isRefreshing = false;
+let failedQueue: Array<{
+    resolve: (token: string) => void;
+    reject: (error: any) => void;
+}> = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+    failedQueue.forEach((prom) => {
+        if (error) {
+            prom.reject(error);
+        } else {
+            prom.resolve(token!);
+        }
+    });
+    failedQueue = [];
+};
 
 // Add a request interceptor to inject the auth token
 api.interceptors.request.use(
@@ -66,14 +81,31 @@ api.interceptors.response.use(
         if (
             error.response?.status === 401 &&
             !originalRequest.url?.includes('/auth/login') &&
-            !originalRequest._retry &&
-            !isRefreshing
+            !originalRequest._retry
         ) {
+            // If another request is currently refreshing the token, queue this request
+            if (isRefreshing) {
+                return new Promise<string>((resolve, reject) => {
+                    failedQueue.push({ resolve, reject });
+                })
+                    .then((token) => {
+                        originalRequest.headers.Authorization = `Bearer ${token}`;
+                        const tenantId =
+                            sessionStorage.getItem('tenantId') || localStorage.getItem('tenantId');
+                        if (tenantId) {
+                            originalRequest.headers['x-tenant-id'] = tenantId;
+                        }
+                        return api(originalRequest);
+                    })
+                    .catch((err) => Promise.reject(err));
+            }
+
             originalRequest._retry = true;
             isRefreshing = true;
 
             try {
-                const refreshToken = sessionStorage.getItem('refreshToken') || localStorage.getItem('refreshToken');
+                const refreshToken =
+                    sessionStorage.getItem('refreshToken') || localStorage.getItem('refreshToken');
 
                 if (!refreshToken) {
                     throw new Error('No refresh token found');
@@ -94,17 +126,21 @@ api.interceptors.response.use(
                 }
 
                 originalRequest.headers.Authorization = `Bearer ${newToken}`;
-                // IMPORTANT FIX
                 const tenantId =
                     sessionStorage.getItem('tenantId') || localStorage.getItem('tenantId');
 
                 if (tenantId) {
-                    originalRequest.headers['x-tenant-id'] =
-                        tenantId;
+                    originalRequest.headers['x-tenant-id'] = tenantId;
                 }
+
+                // Resolve all paused requests in the queue with the new token
+                processQueue(null, newToken);
 
                 return api(originalRequest);
             } catch (refreshError) {
+                // Reject all queued requests and wipe session
+                processQueue(refreshError, null);
+
                 sessionStorage.removeItem('token');
                 sessionStorage.removeItem('refreshToken');
                 sessionStorage.removeItem('tenantId');

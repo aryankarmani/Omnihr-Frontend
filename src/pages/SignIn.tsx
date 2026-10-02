@@ -96,7 +96,13 @@ export default function SignIn() {
             }
 
             if (loggedInUser?.role === 'SUPER_ADMIN') {
-                navigate('/superadmin/dashboard');
+                const superAdminRedirect = sessionStorage.getItem('superadmin_redirect');
+                if (superAdminRedirect) {
+                    sessionStorage.removeItem('superadmin_redirect');
+                    navigate(superAdminRedirect);
+                } else {
+                    navigate('/superadmin/dashboard');
+                }
             } else {
                 navigate('/dashboard');
             }

@@ -291,6 +291,7 @@ export default function AddEmployee() {
     };
 
     const handleNext = async () => {
+        if (loading) return;
         // STEP 1 VALIDATION
         if (currentStep === 1) {
 
@@ -1537,7 +1538,7 @@ export default function AddEmployee() {
                     <button
                         onClick={handleNext}
                         disabled={loading}
-                        className="flex items-center gap-2 px-7 py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[8px] transition-all font-semibold text-sm disabled:opacity-50 cursor-pointer"
+                        className="flex items-center gap-2 px-7 py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[8px] transition-all font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none cursor-pointer"
                     >
                         {loading ? (
                             <>

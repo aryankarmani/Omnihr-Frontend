@@ -22,7 +22,7 @@ interface AuthContextType {
     isAuthenticated: boolean;
     isLoading: boolean;
     login: (email: string, password: string, rememberMe?: boolean) => Promise<User>;
-    logout: () => void;
+    logout: () => Promise<void> | void;
     refreshUser: () => Promise<void>;
     updateUser: (updatedUser: Partial<User>) => void;
     error: string | null;
@@ -163,6 +163,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             if (userData?.role === 'SUPER_ADMIN') {
                 storage.setItem('superadmin_token', token);
+                if (refreshToken) {
+                    storage.setItem('superadmin_refresh_token', refreshToken);
+                }
                 storage.setItem('superadmin_user', JSON.stringify(userData));
                 window.dispatchEvent(new Event('superadmin-login'));
             } else {
@@ -196,7 +199,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-    const logout = () => {
+    const logout = async () => {
+        const refreshToken =
+            getStoredItem('refreshToken') ||
+            sessionStorage.getItem('refreshToken') ||
+            localStorage.getItem('refreshToken');
+
         // Clear state & storage immediately so isAuthenticated is instantly false
         setUser(null);
         removeStoredItem('encalm_user');
@@ -206,6 +214,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         removeStoredItem('superadmin_token');
         removeStoredItem('superadmin_user');
         localStorage.removeItem('encalm_remember_me');
+
+        // Revoke the refresh token on the server/database
+        if (refreshToken) {
+            try {
+                await api.post('/auth/logout', { refreshToken });
+            } catch (err) {
+                console.warn('Server-side logout revocation failed:', err);
+            }
+        }
     };
 
     return (

@@ -565,14 +565,18 @@ export default function Attendance() {
                     <button
                         onClick={handlePunch}
                         disabled={punchMutation.isPending}
-                        className={`w-[78px] h-[78px] sm:w-[84px] sm:h-[84px] rounded-[6px] border-2 flex flex-col items-center justify-center transition-all transform active:scale-95 cursor-pointer shrink-0 ${isPunchedIn
+                        className={`w-[78px] h-[78px] sm:w-[84px] sm:h-[84px] rounded-[6px] border-2 flex flex-col items-center justify-center transition-all transform active:scale-95 shrink-0 ${isPunchedIn
                             ? 'border-[#C13A3A] bg-[#FBE7E7] text-[#C13A3A] hover:bg-[#F9D5D5]'
                             : 'border-[#1F8A5A] bg-[#E4F5EC] text-[#1F8A5A] hover:bg-[#D5EFE2]'
-                            }`}
+                            } ${punchMutation.isPending ? 'opacity-60 cursor-not-allowed pointer-events-none' : 'cursor-pointer'}`}
                     >
-                        <MapPin size={20} className="mb-1 shrink-0" />
-                        <span className="lbl text-[10.5px] font-extrabold uppercase tracking-wider leading-none text-center">
-                            {isPunchedIn ? 'PUNCH OUT' : 'PUNCH IN'}
+                        {punchMutation.isPending ? (
+                            <Loader2 size={20} className="mb-1 shrink-0 animate-spin" />
+                        ) : (
+                            <MapPin size={20} className="mb-1 shrink-0" />
+                        )}
+                        <span className="lbl text-[10px] font-extrabold uppercase tracking-wider leading-none text-center">
+                            {punchMutation.isPending ? 'WAIT...' : isPunchedIn ? 'PUNCH OUT' : 'PUNCH IN'}
                         </span>
                     </button>
                 </div>

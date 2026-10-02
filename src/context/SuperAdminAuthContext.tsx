@@ -123,15 +123,27 @@ export const SuperAdminAuthProvider: React.FC<{ children: React.ReactNode }> = (
       syncSession();
     };
 
+    const handleSessionExpired = () => {
+      setToken(null);
+      setAdmin(null);
+    };
+
     window.addEventListener("superadmin-login", handleLoginEvent);
-    return () => window.removeEventListener("superadmin-login", handleLoginEvent);
+    window.addEventListener("superadmin-session-expired", handleSessionExpired);
+    return () => {
+      window.removeEventListener("superadmin-login", handleLoginEvent);
+      window.removeEventListener("superadmin-session-expired", handleSessionExpired);
+    };
   }, [fetchProfile, syncSession]);
 
   const login = async (email: string, password: string) => {
     const response = await superAdminApi.post("/auth/login", { email, password });
-    const { token: receivedToken, superAdmin } = response.data;
+    const { token: receivedToken, refreshToken: receivedRefreshToken, superAdmin } = response.data;
 
     sessionStorage.setItem("superadmin_token", receivedToken);
+    if (receivedRefreshToken) {
+      sessionStorage.setItem("superadmin_refresh_token", receivedRefreshToken);
+    }
     sessionStorage.setItem("superadmin_user", JSON.stringify(superAdmin));
 
     setToken(receivedToken);
@@ -140,10 +152,12 @@ export const SuperAdminAuthProvider: React.FC<{ children: React.ReactNode }> = (
 
   const logout = () => {
     sessionStorage.removeItem("superadmin_token");
+    sessionStorage.removeItem("superadmin_refresh_token");
     sessionStorage.removeItem("superadmin_user");
     sessionStorage.removeItem("encalm_user");
     sessionStorage.removeItem("token");
     localStorage.removeItem("superadmin_token");
+    localStorage.removeItem("superadmin_refresh_token");
     localStorage.removeItem("superadmin_user");
     localStorage.removeItem("encalm_user");
     localStorage.removeItem("token");
