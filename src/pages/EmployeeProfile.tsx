@@ -5,8 +5,6 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useRBAC } from '../hooks/useRBAC';
 import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, ArrowRight, User, FileText, CreditCard, Download, Briefcase, Save, X, Printer, Loader2, Eye, Trash2, Upload, TrendingUp, TrendingDown, Coins, ExternalLink, Image as ImageIcon } from 'lucide-react';
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
 import toast from 'react-hot-toast';
 import api, { getMediaUrl } from '../utils/api';
 import { calculateProfileCompletion } from '../utils/profileCompletion';
@@ -1332,9 +1330,9 @@ export default function EmployeeProfile() {
     return (
         <div className="animate-fade-in-up pb-8 relative">
             <button
-                onClick={() => navigate(-1)}
-                className="flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-6 transition-colors"
-                disabled={isEditing}
+                type="button"
+                onClick={() => navigate('/employee')}
+                className="flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-6 transition-colors cursor-pointer"
             >
                 <ArrowLeft size={20} /> Back to List
             </button>
@@ -2652,12 +2650,6 @@ export default function EmployeeProfile() {
                                                                 <span className="font-semibold">Grace Time:</span>
                                                                 <span>{shift.graceTime} mins</span>
                                                             </p>
-
-                                                            <p className="flex justify-between text-xs">
-                                                                <span className="font-semibold">Night Shift:</span>
-                                                                <span>{shift.isNightShift ? "Yes" : "No"}</span>
-                                                            </p>
-
                                                         </div>
 
                                                     </div>
@@ -2705,14 +2697,6 @@ export default function EmployeeProfile() {
                                                             <span className="font-medium">Grace Time:</span>
                                                             <span>{assignedShift.graceTime} mins</span>
                                                         </div>
-
-                                                        <div className="flex justify-between">
-                                                            <span className="font-medium">Night Shift:</span>
-                                                            <span>
-                                                                {assignedShift.isNightShift ? 'Yes' : 'No'}
-                                                            </span>
-                                                        </div>
-
                                                     </div>
                                                 </div>
                                             ) : (
@@ -3515,6 +3499,10 @@ export default function EmployeeProfile() {
 
                                         try {
                                             const toastId = toast.loading("Generating PDF...");
+                                            const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+                                                import('html2canvas'),
+                                                import('jspdf')
+                                            ]);
                                             const canvas = await html2canvas(input, {
                                                 scale: 2,
                                                 useCORS: true,

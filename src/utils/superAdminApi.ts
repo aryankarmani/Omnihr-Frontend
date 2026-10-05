@@ -27,7 +27,7 @@ export const superAdminApi = axios.create({
 
 superAdminApi.interceptors.request.use(
   (config) => {
-    const token = sessionStorage.getItem("superadmin_token") || localStorage.getItem("superadmin_token");
+    const token = localStorage.getItem("superadmin_token") || sessionStorage.getItem("superadmin_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

@@ -26,11 +26,11 @@ export const SuperAdminAuthProvider: React.FC<{ children: React.ReactNode }> = (
   const [admin, setAdmin] = useState<SuperAdminUser | null>(() => {
     const saved =
       sessionStorage.getItem("superadmin_user") ||
-      localStorage.getItem("superadmin_user") ||
-      sessionStorage.getItem("encalm_user") ||
-      localStorage.getItem("encalm_user");
+      localStorage.getItem("superadmin_user");
     try {
-      return saved ? JSON.parse(saved) : null;
+      if (!saved) return null;
+      const parsed = JSON.parse(saved);
+      return (parsed?.role === "SUPER_ADMIN" || parsed?.role === "super_admin") ? parsed : null;
     } catch {
       return null;
     }
@@ -38,18 +38,14 @@ export const SuperAdminAuthProvider: React.FC<{ children: React.ReactNode }> = (
   const [token, setToken] = useState<string | null>(
     () =>
       sessionStorage.getItem("superadmin_token") ||
-      localStorage.getItem("superadmin_token") ||
-      sessionStorage.getItem("token") ||
-      localStorage.getItem("token")
+      localStorage.getItem("superadmin_token")
   );
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const fetchProfile = useCallback(async () => {
     const currentToken =
       sessionStorage.getItem("superadmin_token") ||
-      localStorage.getItem("superadmin_token") ||
-      sessionStorage.getItem("token") ||
-      localStorage.getItem("token");
+      localStorage.getItem("superadmin_token");
     if (!currentToken) {
       setIsLoading(false);
       return;
@@ -66,12 +62,9 @@ export const SuperAdminAuthProvider: React.FC<{ children: React.ReactNode }> = (
       }
     } catch (error) {
       console.warn("Could not fetch superadmin profile:", error);
-      // If profile fails, check if we still have a valid superadmin session
       const savedUser =
         sessionStorage.getItem("superadmin_user") ||
-        localStorage.getItem("superadmin_user") ||
-        sessionStorage.getItem("encalm_user") ||
-        localStorage.getItem("encalm_user");
+        localStorage.getItem("superadmin_user");
       if (savedUser) {
         try {
           const parsed = JSON.parse(savedUser);
@@ -85,6 +78,9 @@ export const SuperAdminAuthProvider: React.FC<{ children: React.ReactNode }> = (
           setAdmin(null);
           setToken(null);
         }
+      } else {
+        setAdmin(null);
+        setToken(null);
       }
     } finally {
       setIsLoading(false);

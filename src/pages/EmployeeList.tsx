@@ -107,21 +107,26 @@ export default function EmployeeList() {
     const [employeeToDelete, setEmployeeToDelete] = useState<any>(null);
 
     const filteredEmployees = employees.filter(emp => {
+        if (!emp) return false;
         const profile = emp.employeeProfile || {};
-
-        // if (user?.role === 'MANAGER' && !teamMemberIds.includes(emp.id)) {
-        //     return false;
-        // }
+        const empName = String(emp.name || '').toLowerCase();
+        const empEmail = String(emp.email || '').toLowerCase();
+        const profileTitle = String(profile.title || '').toLowerCase();
+        const profileLocation = String(profile.location || '').toLowerCase();
+        const filterName = String(appliedFilters.name || '').trim().toLowerCase();
+        const filterEmail = String(appliedFilters.email || '').trim().toLowerCase();
+        const filterRole = String(appliedFilters.role || '').trim().toLowerCase();
+        const filterLocation = String(appliedFilters.location || '').trim().toLowerCase();
 
         return (
-            (!appliedFilters.name ||
-                emp.name.toLowerCase().includes(appliedFilters.name.toLowerCase()) ||
-                emp.email.toLowerCase().includes(appliedFilters.name.toLowerCase()) ||
-                (profile.title || '').toLowerCase().includes(appliedFilters.name.toLowerCase())) &&
-            (!appliedFilters.email || emp.email.toLowerCase().includes(appliedFilters.email.toLowerCase())) &&
-            (!appliedFilters.role || (profile.title || '').toLowerCase().includes(appliedFilters.role.toLowerCase())) &&
-            (!appliedFilters.location || (profile.location || '').toLowerCase().includes(appliedFilters.location.toLowerCase())) &&
-            (appliedFilters.status === 'All' || (profile.status || 'Active') === appliedFilters.status)
+            (!filterName ||
+                empName.includes(filterName) ||
+                empEmail.includes(filterName) ||
+                profileTitle.includes(filterName)) &&
+            (!filterEmail || empEmail.includes(filterEmail)) &&
+            (!filterRole || profileTitle.includes(filterRole)) &&
+            (!filterLocation || profileLocation.includes(filterLocation)) &&
+            (appliedFilters.status === 'All' || String(profile.status || 'Active').toLowerCase() === appliedFilters.status.toLowerCase())
         );
     });
     const totalPages = Math.ceil(filteredEmployees.length / rowsPerPage);
@@ -138,14 +143,14 @@ export default function EmployeeList() {
         navigate(`/employee-attendance/${id}`);
     };
 
-    const isAllSelected = paginatedEmployees.length > 0 && paginatedEmployees.every(emp => selectedEmployeeIds.includes(emp.id));
+    const isAllSelected = paginatedEmployees.length > 0 && paginatedEmployees.every(emp => emp?.id && selectedEmployeeIds.includes(emp.id));
 
     const handleToggleSelectAll = () => {
         if (isAllSelected) {
-            const pageIds = new Set(paginatedEmployees.map(emp => emp.id));
+            const pageIds = new Set(paginatedEmployees.map(emp => emp?.id).filter(Boolean));
             setSelectedEmployeeIds(prev => prev.filter(id => !pageIds.has(id)));
         } else {
-            const pageIds = paginatedEmployees.map(emp => emp.id);
+            const pageIds = paginatedEmployees.map(emp => emp?.id).filter(Boolean);
             setSelectedEmployeeIds(prev => Array.from(new Set([...prev, ...pageIds])));
         }
     };
@@ -193,7 +198,7 @@ export default function EmployeeList() {
             return;
         }
 
-        if (newEmployee.phone && !/^\d{10}$/.test(newEmployee.phone.replace(/\D/g, ''))) {
+        if (newEmployee.phone && !/^\d{10}$/.test(String(newEmployee.phone).replace(/\D/g, ''))) {
             toast.error('Phone number must be 10 digits');
             return;
         }
@@ -232,22 +237,24 @@ export default function EmployeeList() {
             ["ID", "Name", "Email", "Phone", "Role", "Department", "Location", "Status", "Profile Completion"],
         ];
 
-        const sortedForExport = [...filteredEmployees].sort((a, b) => Number(a.id) - Number(b.id));
+        const sortedForExport = [...filteredEmployees].sort((a, b) => Number(a?.id || 0) - Number(b?.id || 0));
 
         sortedForExport.forEach((emp) => {
+            if (!emp) return;
             const profile = emp.employeeProfile || {};
             const comp = emp.profileCompletion || calculateProfileCompletion(emp);
+            const sanitize = (val: any) => `"${String(val ?? '').replace(/"/g, '""')}"`;
 
             csvRows.push([
-                emp.id,
-                emp.name,
-                emp.email,
-                profile.phone ? `="${profile.phone}"` : "",
-                profile.title || "",
-                profile.department || "",
-                profile.location || "",
-                profile.status || "Active",
-                `${comp?.percentage ?? 0}%`,
+                emp.id ?? "",
+                sanitize(emp.name),
+                sanitize(emp.email),
+                profile.phone ? `="${String(profile.phone).replace(/"/g, '')}"` : '""',
+                sanitize(profile.title),
+                sanitize(profile.department),
+                sanitize(profile.location),
+                sanitize(profile.status || "Active"),
+                `"${comp?.percentage ?? 0}%"`,
             ]);
         });
 
@@ -292,7 +299,7 @@ export default function EmployeeList() {
 
             {/* Filters & Search */}
             <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 mb-6">
-                <div className="relative w-full max-w-[340px] group">
+                <div className="relative w-full sm:max-w-[340px] group">
                     <div className="relative flex items-center search">
                         <Search size={15} className="absolute left-3 text-[#9AA3B1] group-focus-within:text-[#2C4FD6] transition-colors" />
                         <input
@@ -308,9 +315,9 @@ export default function EmployeeList() {
                         />
                     </div>
                 </div>
-                <div className="flex items-center gap-2 justify-end">
+                <div className="flex items-center gap-2 justify-between sm:justify-end w-full sm:w-auto">
                     {/* Status Dropdown */}
-                    <div className="relative group/dropdown">
+                    <div className="relative group/dropdown flex-1 sm:flex-initial">
                         <select
                             value={appliedFilters.status}
                             onChange={(e) => {
@@ -318,7 +325,7 @@ export default function EmployeeList() {
                                 setAppliedFilters({ ...appliedFilters, status: val });
                                 setCurrentPage(1);
                             }}
-                            className="appearance-none flex items-center gap-2 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] px-3 py-[9px] text-[13px] font-semibold text-[#5B6472] dark:text-gray-300 bg-white dark:bg-[#12151C] cursor-pointer transition-all hover:border-[#2C4FD6] focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none pr-8"
+                            className="w-full sm:w-auto appearance-none flex items-center gap-2 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] px-3 py-[9px] text-[13px] font-semibold text-[#5B6472] dark:text-gray-300 bg-white dark:bg-[#12151C] cursor-pointer transition-all hover:border-[#2C4FD6] focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none pr-8"
                         >
                             <option value="All">All Status</option>
                             <option value="Active">Active</option>
@@ -379,7 +386,151 @@ export default function EmployeeList() {
                 </div>
             ) : (
                 <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden animate-fade-in-up">
-                    <div className="overflow-x-auto custom-scrollbar">
+                    {/* Mobile Select-All Header (<640px) */}
+                    <div className="sm:hidden flex items-center justify-between px-4 py-3 bg-[#EEF1F5] dark:bg-gray-800/60 border-b border-[#E2E6ED] dark:border-gray-800 text-xs font-semibold text-[#5B6472] dark:text-gray-300">
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                            <input
+                                type="checkbox"
+                                checked={isAllSelected}
+                                onChange={handleToggleSelectAll}
+                                className="w-4 h-4 rounded border-[#D0D5DD] text-[#2C4FD6] focus:ring-[#2C4FD6] cursor-pointer accent-[#2C4FD6]"
+                            />
+                            <span>Select All ({paginatedEmployees.length})</span>
+                        </label>
+                        {selectedEmployeeIds.length > 0 && (
+                            <span className="text-[#2C4FD6] dark:text-blue-400 font-bold">
+                                {selectedEmployeeIds.length} selected
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Mobile Card List (<640px) */}
+                    <div className="sm:hidden divide-y divide-[#E2E6ED] dark:divide-gray-800">
+                        {paginatedEmployees.map((emp) => {
+                            if (!emp) return null;
+                            const profile = emp.employeeProfile || {};
+                            const status = profile.status || 'Active';
+                            const statusLower = String(status).toLowerCase();
+                            const rawName = String(emp.name || emp.email || '?').trim();
+                            const initials = rawName
+                                .split(/\s+/)
+                                .filter(Boolean)
+                                .slice(0, 2)
+                                .map((n: string) => n[0] || '')
+                                .join('')
+                                .toUpperCase() || 'U';
+                            const comp = emp.profileCompletion || calculateProfileCompletion(emp);
+                            const pct = typeof comp?.percentage === 'number' ? comp.percentage : 0;
+                            const isSelected = selectedEmployeeIds.includes(emp.id);
+
+                            return (
+                                <div
+                                    key={emp.id}
+                                    onClick={() => handleViewProfile(emp.id)}
+                                    className={`p-4 transition-colors cursor-pointer hover:bg-[#F7F8FA] dark:hover:bg-white/5 ${
+                                        isSelected ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
+                                    }`}
+                                >
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                                            <div
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="shrink-0 flex items-center"
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isSelected}
+                                                    onChange={() => toggleSelectEmployee(emp.id)}
+                                                    className="w-4 h-4 rounded border-[#D0D5DD] text-[#2C4FD6] focus:ring-[#2C4FD6] cursor-pointer accent-[#2C4FD6]"
+                                                />
+                                            </div>
+                                            <div className="w-10 h-10 rounded-full bg-[#EEF1F5] dark:bg-gray-700 text-[#5B6472] dark:text-white font-mono-numbers font-bold text-xs flex items-center justify-center shrink-0 uppercase">
+                                                {initials}
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <div className="font-semibold text-[#12151C] dark:text-white text-[14px] truncate capitalize">
+                                                    {emp.name || 'Unnamed Employee'}
+                                                </div>
+                                                <div className="text-[12px] text-[#717E95] dark:text-gray-400 truncate">
+                                                    {emp.email || 'No email'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <span className={`pill inline-block px-2.5 py-1 rounded-[3px] text-[11px] font-semibold tracking-wide shrink-0 ${
+                                            statusLower === 'active'
+                                                ? 'bg-[#E4F5EC] text-[#1F8A5A]'
+                                                : statusLower === 'on leave'
+                                                    ? 'bg-[#F1F3F7] text-[#5B6472]'
+                                                    : 'bg-[#FBE7E7] text-[#DE350B]'
+                                        }`}>
+                                            {status}
+                                        </span>
+                                    </div>
+
+                                    {/* Sub details: Role, Department, Completion */}
+                                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs bg-gray-50 dark:bg-white/[0.03] p-2.5 rounded-[6px]">
+                                        <div>
+                                            <span className="text-[#9AA3B1] dark:text-gray-400 block text-[10px] uppercase font-semibold">Role / Title</span>
+                                            <span className="font-medium text-[#12151C] dark:text-gray-200 capitalize truncate block">
+                                                {profile.title || 'Employee'}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <span className="text-[#9AA3B1] dark:text-gray-400 block text-[10px] uppercase font-semibold">Department</span>
+                                            <span className="font-medium text-[#12151C] dark:text-gray-200 capitalize truncate block">
+                                                {profile.department || 'General'}
+                                            </span>
+                                        </div>
+                                        <div className="col-span-2 pt-1 border-t border-gray-200/60 dark:border-white/5 flex items-center justify-between">
+                                            <span className="text-[#9AA3B1] dark:text-gray-400 text-[11px] font-medium">Profile Completion</span>
+                                            <span className={`font-semibold font-mono-numbers text-[12px] ${
+                                                pct === 100
+                                                    ? 'text-[#1F8A5A] dark:text-emerald-400'
+                                                    : pct >= 50
+                                                        ? 'text-[#2C4FD6] dark:text-blue-400'
+                                                        : 'text-[#D97706] dark:text-amber-400'
+                                            }`}>
+                                                {pct}%
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    <div
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="mt-3 pt-2.5 flex items-center justify-end gap-2 border-t border-[#E2E6ED]/60 dark:border-gray-800"
+                                    >
+                                        <button
+                                            onClick={() => handleViewAttendance(emp.id)}
+                                            className="inline-flex items-center gap-1 border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#5B6472] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 text-[11.5px] font-semibold rounded-[6px] px-2.5 py-1.5 cursor-pointer"
+                                        >
+                                            <Eye size={13} />
+                                            <span>Attendance</span>
+                                        </button>
+                                        <button
+                                            onClick={() => navigate(`/employee/${emp.id}?edit=true`)}
+                                            className="inline-flex items-center gap-1 border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#5B6472] text-[11.5px] hover:bg-gray-50 dark:hover:bg-white/5 font-semibold rounded-[6px] px-2.5 py-1.5 cursor-pointer"
+                                            title="Edit Profile"
+                                        >
+                                            <Edit size={13} />
+                                            <span>Edit</span>
+                                        </button>
+                                        <button
+                                            onClick={() => setEmployeeToDelete(emp)}
+                                            className="inline-flex items-center gap-1 border border-red-200 dark:border-red-900/40 bg-white dark:bg-[#12151C] text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 text-[11.5px] font-semibold rounded-[6px] px-2.5 py-1.5 cursor-pointer"
+                                            title="Delete Employee"
+                                        >
+                                            <Trash2 size={13} />
+                                            <span>Delete</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Desktop Table View (>=640px) */}
+                    <div className="hidden sm:block overflow-x-auto custom-scrollbar">
                         <table className="w-full text-left border-collapse min-w-[900px]">
                             <thead>
                                 <tr className="bg-[#EEF1F5] dark:bg-gray-800/60 text-[#9AA3B1] dark:text-gray-400 text-[11px] font-semibold uppercase tracking-[.05em]">
@@ -402,9 +553,18 @@ export default function EmployeeList() {
                             </thead>
                             <tbody className="divide-y divide-[#E2E6ED] dark:divide-gray-800 text-xs">
                                 {paginatedEmployees.map((emp) => {
+                                    if (!emp) return null;
                                     const profile = emp.employeeProfile || {};
                                     const status = profile.status || 'Active';
-                                    const initials = emp.name.trim().split(/\s+/).slice(0, 2).map((n: string) => n[0]).join('').toUpperCase();
+                                    const statusLower = String(status).toLowerCase();
+                                    const rawName = String(emp.name || emp.email || '?').trim();
+                                    const initials = rawName
+                                        .split(/\s+/)
+                                        .filter(Boolean)
+                                        .slice(0, 2)
+                                        .map((n: string) => n[0] || '')
+                                        .join('')
+                                        .toUpperCase() || 'U';
 
                                     return (
                                         <tr
@@ -427,10 +587,10 @@ export default function EmployeeList() {
                                                     </div>
                                                     <div>
                                                         <div className="emp-name font-semibold text-[#12151C] dark:text-white text-[13.5px] hover:text-[#2C4FD6] dark:hover:text-blue-400 transition-colors capitalize">
-                                                            {emp.name}
+                                                            {emp.name || 'Unnamed Employee'}
                                                         </div>
                                                         <div className="emp-email text-[11.5px] text-[#717E95] dark:text-gray-400">
-                                                            {emp.email}
+                                                            {emp.email || 'No email'}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -441,9 +601,9 @@ export default function EmployeeList() {
                                                 <div className="text-[11.5px] text-[#717E95] dark:text-gray-400 capitalize">{profile.department || 'General'}</div>
                                             </td>
                                             <td className="py-[13px] px-[20px]">
-                                                <span className={`pill inline-block px-[10px] py-[3px] rounded-[3px] text-[11.5px] font-semibold tracking-wide ${status.toLowerCase() === 'active'
+                                                <span className={`pill inline-block px-[10px] py-[3px] rounded-[3px] text-[11.5px] font-semibold tracking-wide ${statusLower === 'active'
                                                     ? 'bg-[#E4F5EC] text-[#1F8A5A]'
-                                                    : status.toLowerCase() === 'on leave'
+                                                    : statusLower === 'on leave'
                                                         ? 'bg-[#F1F3F7] text-[#5B6472]'
                                                         : 'bg-[#FBE7E7] text-[#DE350B]'
                                                     }`}>
@@ -504,8 +664,8 @@ export default function EmployeeList() {
                         </table>
                     </div>
                     {filteredEmployees.length > 0 && (
-                        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-6 py-4 border-t border-[#E2E6ED] dark:border-gray-800 text-xs">
-                            <div className="flex items-center gap-2">
+                        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-4 sm:px-6 py-4 border-t border-[#E2E6ED] dark:border-gray-800 text-xs">
+                            <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto gap-2">
                                 <span className="text-[#9AA3B1] font-semibold text-xs uppercase">
                                     Rows per page
                                 </span>
@@ -525,7 +685,7 @@ export default function EmployeeList() {
                                 </select>
                             </div>
 
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-3">
                                 <span className="text-xs font-bold text-[#5B6472] dark:text-gray-300 font-mono-numbers">
                                     Page {currentPage} of {totalPages || 1}
                                 </span>
@@ -588,7 +748,7 @@ export default function EmployeeList() {
                         </div>
                         <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Delete Employee?</h3>
                         <p className="text-gray-500 dark:text-gray-400 mb-8">
-                            Are you sure you want to delete <span className="font-bold text-gray-700 dark:text-gray-200">{employeeToDelete.name}</span>? This action cannot be undone and will permanently remove all associated data.
+                            Are you sure you want to delete <span className="font-bold text-gray-700 dark:text-gray-200">{employeeToDelete?.name || 'this employee'}</span>? This action cannot be undone and will permanently remove all associated data.
                         </p>
                         <div className="flex gap-4">
                             <button
@@ -602,11 +762,11 @@ export default function EmployeeList() {
                                     try {
                                         // Attempt to delete from backend database
                                         await api.delete(`/employee/${employeeToDelete.id}`);
-                                        toast.success(`${employeeToDelete.name} deleted successfully!`);
+                                        toast.success(`${employeeToDelete?.name || 'Employee'} deleted successfully!`);
                                     } catch (error) {
                                         console.error('Delete error:', error);
                                         // Still remove from UI so it "works" for the user even if backend is not ready
-                                        toast.success(`${employeeToDelete.name} deleted from UI (Backend Pending)`);
+                                        toast.success(`${employeeToDelete?.name || 'Employee'} deleted from UI (Backend Pending)`);
                                     } finally {
                                         // Instantly remove from screen
                                         setEmployees(employees.filter(e => e.id !== employeeToDelete.id));
@@ -724,7 +884,7 @@ export default function EmployeeList() {
                                                 value={newEmployee.designationId}
                                                 onChange={(e) => {
                                                     const id = e.target.value;
-                                                    const name = masters.designations.find(d => d.id === id)?.name || '';
+                                                    const name = masters.designations.find(d => String(d.id) === String(id))?.name || '';
                                                     setNewEmployee({ ...newEmployee, designationId: id, title: name });
                                                 }}
                                                 className="appearance-none w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all cursor-pointer"
@@ -1015,7 +1175,14 @@ export default function EmployeeList() {
                                 <div className="p-8 border-b border-gray-100 dark:border-white/5 bg-gradient-to-br from-brand-500/5 to-transparent">
                                     <div className="flex justify-between items-start mb-6">
                                         <div className="w-16 h-16 rounded-[6px] flex items-center justify-center text-white font-bold text-2xl shadow-xl bg-brand-500">
-                                            {selectedEmployeeForActions.name.split(' ').map((n: string) => n[0]).join('')}
+                                            {String(selectedEmployeeForActions.name || selectedEmployeeForActions.email || '?')
+                                                .trim()
+                                                .split(/\s+/)
+                                                .filter(Boolean)
+                                                .slice(0, 2)
+                                                .map((n: string) => n[0] || '')
+                                                .join('')
+                                                .toUpperCase() || 'U'}
                                         </div>
                                         <button
                                             onClick={() => setSelectedEmployeeForActions(null)}
@@ -1024,7 +1191,7 @@ export default function EmployeeList() {
                                             <Plus size={24} className="rotate-45" />
                                         </button>
                                     </div>
-                                    <h3 className="text-2xl font-black text-gray-800 dark:text-white tracking-tight">{selectedEmployeeForActions.name}</h3>
+                                    <h3 className="text-2xl font-black text-gray-800 dark:text-white tracking-tight">{selectedEmployeeForActions.name || 'Employee Details'}</h3>
                                     <p className="text-brand-500 dark:text-brand-400 font-bold uppercase text-xs tracking-widest mt-1">
                                         {selectedEmployeeForActions.employeeProfile?.title || 'Employee'}
                                     </p>
@@ -1032,36 +1199,38 @@ export default function EmployeeList() {
                                     {/* Mini Profile Completion Status */}
                                     {(() => {
                                         const comp = selectedEmployeeForActions.profileCompletion || calculateProfileCompletion(selectedEmployeeForActions);
+                                        const percentage = typeof comp?.percentage === 'number' ? comp.percentage : 0;
+                                        const missingFields = Array.isArray(comp?.missingFields) ? comp.missingFields : [];
                                         return (
                                             <div className="mt-5 p-4 rounded-2xl bg-white dark:bg-brand-950/60 border border-gray-100 dark:border-white/10">
                                                 <div className="flex items-center justify-between text-xs font-bold mb-2">
                                                     <span className="text-gray-700 dark:text-gray-300">Profile completion</span>
-                                                    <span className={comp.percentage === 100 ? 'text-emerald-500 font-bold' : 'text-amber-500 font-bold'}>
-                                                        {comp.percentage}%
+                                                    <span className={percentage === 100 ? 'text-emerald-500 font-bold' : 'text-amber-500 font-bold'}>
+                                                        {percentage}%
                                                     </span>
                                                 </div>
                                                 <div className="w-full bg-gray-100 dark:bg-white/10 h-2 rounded-full overflow-hidden mb-2">
                                                     <div
-                                                        className={`h-full rounded-full transition-all duration-300 ${comp.percentage === 100 ? 'bg-emerald-500' : 'bg-amber-400'
+                                                        className={`h-full rounded-full transition-all duration-300 ${percentage === 100 ? 'bg-emerald-500' : 'bg-amber-400'
                                                             }`}
-                                                        style={{ width: `${comp.percentage}%` }}
+                                                        style={{ width: `${percentage}%` }}
                                                     />
                                                 </div>
-                                                {comp.missingFields && comp.missingFields.length > 0 ? (
+                                                {missingFields.length > 0 ? (
                                                     <div className="mt-2">
                                                         <p className="text-[10px] font-black uppercase tracking-wider text-amber-500 dark:text-amber-400 mb-1">
                                                             MISSING
                                                         </p>
                                                         <ul className="space-y-1">
-                                                            {comp.missingFields.slice(0, 3).map((f: string, i: number) => (
+                                                            {missingFields.slice(0, 3).map((f: string, i: number) => (
                                                                 <li key={i} className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
                                                                     <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
                                                                     <span>{f}</span>
                                                                 </li>
                                                             ))}
-                                                            {comp.missingFields.length > 3 && (
+                                                            {missingFields.length > 3 && (
                                                                 <li className="text-[11px] text-gray-400 dark:text-gray-500 italic pl-3">
-                                                                    +{comp.missingFields.length - 3} more remaining
+                                                                    +{missingFields.length - 3} more remaining
                                                                 </li>
                                                             )}
                                                         </ul>

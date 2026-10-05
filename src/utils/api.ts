@@ -35,6 +35,7 @@ const api = axios.create({
     baseURL: getBaseURL(),
 });
 let isRefreshing = false;
+let isRedirecting = false;
 let failedQueue: Array<{
     resolve: (token: string) => void;
     reject: (error: any) => void;
@@ -54,12 +55,12 @@ const processQueue = (error: any, token: string | null = null) => {
 // Add a request interceptor to inject the auth token
 api.interceptors.request.use(
     (config) => {
-        const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
         // TENANT ID
-        const tenantId = sessionStorage.getItem('tenantId') || localStorage.getItem('tenantId');
+        const tenantId = localStorage.getItem('tenantId') || sessionStorage.getItem('tenantId');
 
         if (tenantId) {
             config.headers['x-tenant-id'] = tenantId;
@@ -105,7 +106,7 @@ api.interceptors.response.use(
 
             try {
                 const refreshToken =
-                    sessionStorage.getItem('refreshToken') || localStorage.getItem('refreshToken');
+                    localStorage.getItem('refreshToken') || sessionStorage.getItem('refreshToken');
 
                 if (!refreshToken) {
                     throw new Error('No refresh token found');
@@ -118,16 +119,13 @@ api.interceptors.response.use(
 
                 const newToken = res.data.token;
 
-                if (localStorage.getItem('token')) {
-                    localStorage.setItem('token', newToken);
-                }
-                if (sessionStorage.getItem('token')) {
-                    sessionStorage.setItem('token', newToken);
-                }
+                localStorage.setItem('token', newToken);
+                sessionStorage.setItem('token', newToken);
+                localStorage.setItem('auth_sync_time', Date.now().toString());
 
                 originalRequest.headers.Authorization = `Bearer ${newToken}`;
                 const tenantId =
-                    sessionStorage.getItem('tenantId') || localStorage.getItem('tenantId');
+                    localStorage.getItem('tenantId') || sessionStorage.getItem('tenantId');
 
                 if (tenantId) {
                     originalRequest.headers['x-tenant-id'] = tenantId;
@@ -141,15 +139,32 @@ api.interceptors.response.use(
                 // Reject all queued requests and wipe session
                 processQueue(refreshError, null);
 
-                sessionStorage.removeItem('token');
-                sessionStorage.removeItem('refreshToken');
-                sessionStorage.removeItem('tenantId');
-                localStorage.removeItem('token');
-                localStorage.removeItem('refreshToken');
-                localStorage.removeItem('tenantId');
-                localStorage.removeItem('encalm_remember_me');
+                const keysToRemove = [
+                    'token',
+                    'refreshToken',
+                    'tenantId',
+                    'encalm_user',
+                    'superadmin_token',
+                    'superadmin_refresh_token',
+                    'superadmin_user',
+                    'encalm_remember_me',
+                ];
 
-                window.location.href = '/signin';
+                keysToRemove.forEach((key) => {
+                    sessionStorage.removeItem(key);
+                    localStorage.removeItem(key);
+                });
+
+                localStorage.setItem('auth_logout_time', Date.now().toString());
+
+                if (
+                    !isRedirecting &&
+                    window.location.pathname !== '/signin' &&
+                    window.location.pathname !== '/login'
+                ) {
+                    isRedirecting = true;
+                    window.location.replace('/signin');
+                }
 
                 return Promise.reject(refreshError);
             } finally {

@@ -4,7 +4,7 @@ import {
     LayoutDashboard, Users, UsersRound, LogOut,
     AlertCircle, ChevronDown, ChevronLeft, ChevronRight,
     Fingerprint, UserCog, FileCheck, BarChart3, Settings2,
-    CheckSquare, UserCircle, CalendarRange, FileText
+    CheckSquare, UserCircle, CalendarRange, FileText, MessageSquare
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -35,6 +35,7 @@ const menuItems: MenuItem[] = [
         ]
     },
     { icon: UsersRound, label: 'Team', path: '/team', module: 'TEAM' },
+    { icon: MessageSquare, label: 'Chat', path: '/chat', module: 'CHAT' },
     { icon: CalendarRange, label: 'Leave', path: '/leave', module: 'LEAVE', state: { activeTab: 'MY_LEAVE' } },
     { icon: BarChart3, label: 'Reports', path: '/reports', module: 'REPORTS' },
     { icon: Settings2, label: 'Masters', path: '/masters', module: 'MASTERS' },
@@ -130,6 +131,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
     // Normalize LOG and TASK keys so both work identically
     if (userModules.includes('TASK') && !userModules.includes('LOG')) userModules.push('LOG');
     if (userModules.includes('LOG') && !userModules.includes('TASK')) userModules.push('TASK');
+    if (!userModules.includes('CHAT')) userModules.push('CHAT');
 
     // If employee is team manager, grant team management modules if allowed
     if (managerAccess.isTeamManager) {
