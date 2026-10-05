@@ -244,8 +244,8 @@ export default function AdminDashboard({
                             <button
                                 onClick={() => setFilterTab('ALL')}
                                 className={`px-2 py-0.5 rounded-[4px] text-[10.5px] font-semibold transition-colors cursor-pointer ${filterTab === 'ALL'
-                                        ? 'bg-[#2C4FD6] text-white'
-                                        : 'bg-[#EEF1F5] dark:bg-gray-800 text-[#5B6472] dark:text-gray-400 hover:text-[#12151C]'
+                                    ? 'bg-[#2C4FD6] text-white'
+                                    : 'bg-[#EEF1F5] dark:bg-gray-800 text-[#5B6472] dark:text-gray-400 hover:text-[#12151C]'
                                     }`}
                             >
                                 All ({totalPending})
@@ -253,8 +253,8 @@ export default function AdminDashboard({
                             <button
                                 onClick={() => setFilterTab('LEAVE')}
                                 className={`px-2 py-0.5 rounded-[4px] text-[10.5px] font-semibold transition-colors cursor-pointer ${filterTab === 'LEAVE'
-                                        ? 'bg-[#2C4FD6] text-white'
-                                        : 'bg-[#EEF1F5] dark:bg-gray-800 text-[#5B6472] dark:text-gray-400 hover:text-[#12151C]'
+                                    ? 'bg-[#2C4FD6] text-white'
+                                    : 'bg-[#EEF1F5] dark:bg-gray-800 text-[#5B6472] dark:text-gray-400 hover:text-[#12151C]'
                                     }`}
                             >
                                 Leaves ({approvalsList.length})
@@ -262,8 +262,8 @@ export default function AdminDashboard({
                             <button
                                 onClick={() => setFilterTab('REGULARIZATION')}
                                 className={`px-2 py-0.5 rounded-[4px] text-[10.5px] font-semibold transition-colors cursor-pointer ${filterTab === 'REGULARIZATION'
-                                        ? 'bg-[#2C4FD6] text-white'
-                                        : 'bg-[#EEF1F5] dark:bg-gray-800 text-[#5B6472] dark:text-gray-400 hover:text-[#12151C]'
+                                    ? 'bg-[#2C4FD6] text-white'
+                                    : 'bg-[#EEF1F5] dark:bg-gray-800 text-[#5B6472] dark:text-gray-400 hover:text-[#12151C]'
                                     }`}
                             >
                                 Corrections ({regList.length})
@@ -286,8 +286,8 @@ export default function AdminDashboard({
                                 >
                                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
                                         <div className={`w-8 h-8 rounded-full ${item.category === 'LEAVE'
-                                                ? 'bg-[#EEF1F5] dark:bg-gray-700 text-[#5B6472] dark:text-white'
-                                                : 'bg-[#FFF7ED] dark:bg-orange-950/40 text-[#EA580C]'
+                                            ? 'bg-[#EEF1F5] dark:bg-gray-700 text-[#5B6472] dark:text-white'
+                                            : 'bg-[#FFF7ED] dark:bg-orange-950/40 text-[#EA580C]'
                                             } flex items-center justify-center font-mono-numbers font-bold text-xs shrink-0`}>
                                             {getInitials(item.userName)}
                                         </div>
@@ -295,8 +295,8 @@ export default function AdminDashboard({
                                             <div className="flex items-center gap-1.5">
                                                 <h4 className="text-[13px] font-semibold text-[#12151C] dark:text-white truncate">{item.userName}</h4>
                                                 <span className={`text-[9px] font-semibold px-1 py-0.2 rounded-[3px] ${item.category === 'LEAVE'
-                                                        ? 'bg-[#E8ECFC] text-[#2C4FD6]'
-                                                        : 'bg-[#FFF7ED] text-[#EA580C]'
+                                                    ? 'bg-[#E8ECFC] text-[#2C4FD6]'
+                                                    : 'bg-[#FFF7ED] text-[#EA580C]'
                                                     }`}>
                                                     {item.tag}
                                                 </span>

@@ -47,14 +47,14 @@ export function calculateProfileCompletion(employee: any): ProfileCompletionResu
             label: 'Account name & email',
             tabKey: 'personal',
             weight: 15,
-            check: () => !!(employee.name?.trim() && employee.email?.trim())
+            check: () => !!(String(employee?.name || '').trim() && String(employee?.email || '').trim())
         },
         {
             name: 'Designation & Department',
             label: 'Designation & Department',
             tabKey: 'personal',
             weight: 10,
-            check: () => !!((profile.title || profile.designationId) && (profile.department || profile.departmentId))
+            check: () => !!((profile?.title || profile?.designationId) && (profile?.department || profile?.departmentId))
         },
         {
             name: 'Bank Account Details',
@@ -62,9 +62,9 @@ export function calculateProfileCompletion(employee: any): ProfileCompletionResu
             tabKey: 'statutory',
             weight: 15,
             check: () => {
-                const bankName = bank.bankName?.trim();
-                const acc = bank.accountNumber?.trim();
-                const ifsc = bank.ifsc?.trim();
+                const bankName = String(bank?.bankName || '').trim();
+                const acc = String(bank?.accountNumber || '').trim();
+                const ifsc = String(bank?.ifsc || '').trim();
                 return !!(bankName && bankName !== 'Not Provided' && 
                           acc && acc !== 'Not Provided' && 
                           ifsc && ifsc !== 'Not Provided');
@@ -76,8 +76,8 @@ export function calculateProfileCompletion(employee: any): ProfileCompletionResu
             tabKey: 'statutory',
             weight: 15,
             check: () => {
-                const pan = statutory.pan?.trim();
-                const aadhaar = statutory.aadhaar?.trim();
+                const pan = String(statutory?.pan || '').trim();
+                const aadhaar = String(statutory?.aadhaar || '').trim();
                 return !!(pan && pan !== 'Not Provided' && aadhaar && aadhaar !== 'Not Provided');
             }
         },
@@ -87,7 +87,7 @@ export function calculateProfileCompletion(employee: any): ProfileCompletionResu
             tabKey: 'personal',
             weight: 15,
             check: () => {
-                const phone = (profile.phone || '').trim();
+                const phone = String(profile?.phone || '').trim();
                 let cleaned = phone;
                 while (cleaned.startsWith('+91')) {
                     cleaned = cleaned.slice(3).trim();

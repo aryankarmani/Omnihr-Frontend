@@ -1,45 +1,58 @@
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import LogFile from "./pages/LogFile";
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import Layout from './components/Layout';
+
+// Eager load core entry points so login screen renders instantly
 import SignIn from './pages/SignIn';
 import ForgotPassword from './pages/ForgotPassword';
-import Layout from './components/Layout';
-import DashboardHome from './pages/DashboardHome';
-import EmployeeList from './pages/EmployeeList';
-import AddEmployee from './pages/AddEmployee';
-import EmployeeProfile from './pages/EmployeeProfile';
-import Attendance from './pages/Attendance';
-import Leave from './pages/Leave';
-import Team from './pages/Team';
-import Reports from './pages/Reports';
-import LeaveToday from './pages/LeaveToday';
-import NewJoiners from './pages/NewJoiners';
-import MastersLayout from './pages/masters/MastersLayout';
-import OrgMasters from './pages/masters/OrgMasters';
-import StatutoryMasters from './pages/masters/StatutoryMasters';
-import AttendanceMasters from './pages/masters/AttendanceMasters';
-import AccessMasters from './pages/masters/AccessMasters';
-import CustomFieldsMasters from './pages/masters/CustomFieldsMasters';
 
-import EmployeeAttendanceView from './pages/EmployeeAttendanceView';
-import Notifications from './pages/Notifications';
-import Regularizations from './pages/Regularizations';
+// Lazy-loaded application pages
+const DashboardHome = lazy(() => import('./pages/DashboardHome'));
+const EmployeeList = lazy(() => import('./pages/EmployeeList'));
+const AddEmployee = lazy(() => import('./pages/AddEmployee'));
+const EmployeeProfile = lazy(() => import('./pages/EmployeeProfile'));
+const Attendance = lazy(() => import('./pages/Attendance'));
+const Leave = lazy(() => import('./pages/Leave'));
+const Team = lazy(() => import('./pages/Team'));
+const Reports = lazy(() => import('./pages/Reports'));
+const LeaveToday = lazy(() => import('./pages/LeaveToday'));
+const NewJoiners = lazy(() => import('./pages/NewJoiners'));
+const LogFile = lazy(() => import('./pages/LogFile'));
+const EmployeeAttendanceView = lazy(() => import('./pages/EmployeeAttendanceView'));
+const Notifications = lazy(() => import('./pages/Notifications'));
+const Regularizations = lazy(() => import('./pages/Regularizations'));
+const ChatHub = lazy(() => import('./pages/chat/ChatHub'));
+import { CallProvider } from './context/CallContext';
 
-// Super Admin Imports
+// Masters Pages
+const MastersLayout = lazy(() => import('./pages/masters/MastersLayout'));
+const OrgMasters = lazy(() => import('./pages/masters/OrgMasters'));
+const StatutoryMasters = lazy(() => import('./pages/masters/StatutoryMasters'));
+const AttendanceMasters = lazy(() => import('./pages/masters/AttendanceMasters'));
+const AccessMasters = lazy(() => import('./pages/masters/AccessMasters'));
+const CustomFieldsMasters = lazy(() => import('./pages/masters/CustomFieldsMasters'));
+
+// Super Admin Pages
 import { SuperAdminAuthProvider } from './context/SuperAdminAuthContext';
 import { SuperAdminProtectedRoute } from './components/superadmin/SuperAdminProtectedRoute';
-import SuperAdminLogin from './pages/superadmin/SuperAdminLogin';
-import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard';
-import Companies from './pages/superadmin/Companies';
-import CompanyDetails from './pages/superadmin/CompanyDetails';
-import Subscriptions from './pages/superadmin/Subscriptions';
-import Payments from './pages/superadmin/Payments';
-import Plans from './pages/superadmin/Plans';
-import SuperAdminNotifications from './pages/superadmin/Notifications';
-import SuperAdminSettings from './pages/superadmin/SuperAdminSettings';
-import DemoRequests from './pages/superadmin/DemoRequests';
+const SuperAdminDashboard = lazy(() => import('./pages/superadmin/SuperAdminDashboard'));
+const Companies = lazy(() => import('./pages/superadmin/Companies'));
+const CompanyDetails = lazy(() => import('./pages/superadmin/CompanyDetails'));
+const Subscriptions = lazy(() => import('./pages/superadmin/Subscriptions'));
+const Payments = lazy(() => import('./pages/superadmin/Payments'));
+const Plans = lazy(() => import('./pages/superadmin/Plans'));
+const SuperAdminNotifications = lazy(() => import('./pages/superadmin/Notifications'));
+const SuperAdminSettings = lazy(() => import('./pages/superadmin/SuperAdminSettings'));
+const DemoRequests = lazy(() => import('./pages/superadmin/DemoRequests'));
+
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-[50vh] w-full">
+    <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+  </div>
+);
 
 
 
@@ -64,70 +77,75 @@ function AppContent() {
       ) : (
         <ThemeProvider>
           <SuperAdminAuthProvider>
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Navigate to="/signin" replace />} />
-                <Route
-                  path="/signin"
-                  element={
-                    isAuthenticated ? (
-                      user?.role === 'SUPER_ADMIN' ? (
-                        <Navigate to="/superadmin/dashboard" replace />
+            <CallProvider>
+              <BrowserRouter>
+                <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  <Route path="/" element={<Navigate to="/signin" replace />} />
+                  <Route
+                    path="/signin"
+                    element={
+                      isAuthenticated ? (
+                        user?.role === 'SUPER_ADMIN' ? (
+                          <Navigate to="/superadmin/dashboard" replace />
+                        ) : (
+                          <Navigate to="/dashboard" replace />
+                        )
                       ) : (
-                        <Navigate to="/dashboard" replace />
+                        <SignIn />
                       )
-                    ) : (
-                      <SignIn />
-                    )
-                  }
-                />
-                <Route path="/login" element={<Navigate to="/signin" replace />} />
-                <Route path="/signup" element={<Navigate to="/signin" replace />} />
-                <Route path="/forgot-password" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <ForgotPassword />} />
+                    }
+                  />
+                  <Route path="/login" element={<Navigate to="/signin" replace />} />
+                  <Route path="/signup" element={<Navigate to="/signin" replace />} />
+                  <Route path="/forgot-password" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <ForgotPassword />} />
 
-                {/* Super Admin Routes (Unified Login, redirects old login to /signin) */}
-                <Route path="/superadmin/login" element={<Navigate to="/signin" replace />} />
-                <Route path="/superadmin/dashboard" element={<SuperAdminProtectedRoute><SuperAdminDashboard /></SuperAdminProtectedRoute>} />
-                <Route path="/superadmin/companies" element={<SuperAdminProtectedRoute><Companies /></SuperAdminProtectedRoute>} />
-                <Route path="/superadmin/companies/:id" element={<SuperAdminProtectedRoute><CompanyDetails /></SuperAdminProtectedRoute>} />
-                <Route path="/superadmin/subscriptions" element={<SuperAdminProtectedRoute><Subscriptions /></SuperAdminProtectedRoute>} />
-                <Route path="/superadmin/payments" element={<SuperAdminProtectedRoute><Payments /></SuperAdminProtectedRoute>} />
-                <Route path="/superadmin/plans" element={<SuperAdminProtectedRoute><Plans /></SuperAdminProtectedRoute>} />
-                <Route path="/superadmin/notifications" element={<SuperAdminProtectedRoute><SuperAdminNotifications /></SuperAdminProtectedRoute>} />
-                <Route path="/superadmin/demo-requests" element={<SuperAdminProtectedRoute><DemoRequests /></SuperAdminProtectedRoute>} />
-                <Route path="/superadmin/settings" element={<SuperAdminProtectedRoute><SuperAdminSettings /></SuperAdminProtectedRoute>} />
-                <Route path="/superadmin" element={<Navigate to="/superadmin/dashboard" replace />} />
+                  {/* Super Admin Routes (Unified Login, redirects old login to /signin) */}
+                  <Route path="/superadmin/login" element={<Navigate to="/signin" replace />} />
+                  <Route path="/superadmin/dashboard" element={<SuperAdminProtectedRoute><SuperAdminDashboard /></SuperAdminProtectedRoute>} />
+                  <Route path="/superadmin/companies" element={<SuperAdminProtectedRoute><Companies /></SuperAdminProtectedRoute>} />
+                  <Route path="/superadmin/companies/:id" element={<SuperAdminProtectedRoute><CompanyDetails /></SuperAdminProtectedRoute>} />
+                  <Route path="/superadmin/subscriptions" element={<SuperAdminProtectedRoute><Subscriptions /></SuperAdminProtectedRoute>} />
+                  <Route path="/superadmin/payments" element={<SuperAdminProtectedRoute><Payments /></SuperAdminProtectedRoute>} />
+                  <Route path="/superadmin/plans" element={<SuperAdminProtectedRoute><Plans /></SuperAdminProtectedRoute>} />
+                  <Route path="/superadmin/notifications" element={<SuperAdminProtectedRoute><SuperAdminNotifications /></SuperAdminProtectedRoute>} />
+                  <Route path="/superadmin/demo-requests" element={<SuperAdminProtectedRoute><DemoRequests /></SuperAdminProtectedRoute>} />
+                  <Route path="/superadmin/settings" element={<SuperAdminProtectedRoute><SuperAdminSettings /></SuperAdminProtectedRoute>} />
+                  <Route path="/superadmin" element={<Navigate to="/superadmin/dashboard" replace />} />
 
-                {/* Protected Routes */}
-                <Route path="/dashboard" element={<ProtectedRoute><DashboardHome /></ProtectedRoute>} />
-                <Route path="/employee" element={<ProtectedRoute><EmployeeList /></ProtectedRoute>} />
-                <Route path="/employee/add" element={<ProtectedRoute><AddEmployee /></ProtectedRoute>} />
-                <Route path="/employee/:id" element={<ProtectedRoute><EmployeeProfile /></ProtectedRoute>} />
-                <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
-                <Route path="/employee-attendance/:id" element={<ProtectedRoute><EmployeeAttendanceView /></ProtectedRoute>} />
-                <Route path="/regularizations" element={<ProtectedRoute><Regularizations /></ProtectedRoute>} />
-                <Route path="/leave" element={<ProtectedRoute><Leave /></ProtectedRoute>} />
-                <Route path="/profile" element={<ProtectedRoute><EmployeeProfile /></ProtectedRoute>} />
-                <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-                <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
-                <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-                <Route path="/leave-today" element={<ProtectedRoute><LeaveToday /></ProtectedRoute>} />
-                <Route path="/new-joiners" element={<ProtectedRoute><NewJoiners /></ProtectedRoute>} />
-                <Route path="/log-file" element={<ProtectedRoute><LogFile /></ProtectedRoute>} />
+                  {/* Protected Routes */}
+                  <Route path="/dashboard" element={<ProtectedRoute><DashboardHome /></ProtectedRoute>} />
+                  <Route path="/employee" element={<ProtectedRoute><EmployeeList /></ProtectedRoute>} />
+                  <Route path="/employee/add" element={<ProtectedRoute><AddEmployee /></ProtectedRoute>} />
+                  <Route path="/employee/:id" element={<ProtectedRoute><EmployeeProfile /></ProtectedRoute>} />
+                  <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
+                  <Route path="/employee-attendance/:id" element={<ProtectedRoute><EmployeeAttendanceView /></ProtectedRoute>} />
+                  <Route path="/regularizations" element={<ProtectedRoute><Regularizations /></ProtectedRoute>} />
+                  <Route path="/leave" element={<ProtectedRoute><Leave /></ProtectedRoute>} />
+                  <Route path="/profile" element={<ProtectedRoute><EmployeeProfile /></ProtectedRoute>} />
+                  <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+                  <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
+                  <Route path="/chat" element={<ProtectedRoute><ChatHub /></ProtectedRoute>} />
+                  <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+                  <Route path="/leave-today" element={<ProtectedRoute><LeaveToday /></ProtectedRoute>} />
+                  <Route path="/new-joiners" element={<ProtectedRoute><NewJoiners /></ProtectedRoute>} />
+                  <Route path="/log-file" element={<ProtectedRoute><LogFile /></ProtectedRoute>} />
 
-                {/* Masters Route */}
-                <Route path="/masters" element={<ProtectedRoute><MastersLayout /></ProtectedRoute>}>
-                  <Route index element={<Navigate to="org" replace />} />
-                  <Route path="org" element={<OrgMasters />} />
-                  <Route path="statutory" element={<StatutoryMasters />} />
-                  <Route path="attendance" element={<AttendanceMasters />} />
-                  <Route path="access" element={<AccessMasters />} />
-                  <Route path="custom-fields" element={<CustomFieldsMasters />} />
-                </Route>
+                  {/* Masters Route */}
+                  <Route path="/masters" element={<ProtectedRoute><MastersLayout /></ProtectedRoute>}>
+                    <Route index element={<Navigate to="org" replace />} />
+                    <Route path="org" element={<OrgMasters />} />
+                    <Route path="statutory" element={<StatutoryMasters />} />
+                    <Route path="attendance" element={<AttendanceMasters />} />
+                    <Route path="access" element={<AccessMasters />} />
+                    <Route path="custom-fields" element={<CustomFieldsMasters />} />
+                  </Route>
 
-              </Routes>
+                </Routes>
+              </Suspense>
             </BrowserRouter>
-          </SuperAdminAuthProvider>
+          </CallProvider>
+        </SuperAdminAuthProvider>
           <Toaster
             position="top-right"
             containerStyle={{ zIndex: 99999999 }}

@@ -116,6 +116,7 @@ export default function Leave() {
     const [rejectingLeaveId, setRejectingLeaveId] = useState<number | null>(null);
     const [leaveRejectComment, setLeaveRejectComment] = useState('');
     const [submittingLeaveReject, setSubmittingLeaveReject] = useState(false);
+    const [processingLeaveId, setProcessingLeaveId] = useState<number | null>(null);
 
     // const [teamMemberIds, setTeamMemberIds] = useState<number[]>([]);
     const isHrAdmin = user?.role === 'HR_ADMIN';
@@ -341,12 +342,16 @@ export default function Leave() {
     };
 
     const handleUpdateStatus = async (leaveId: number, status: 'APPROVED' | 'REJECTED', rejectionReason?: string) => {
+        if (processingLeaveId) return;
+        setProcessingLeaveId(leaveId);
         try {
             await api.put(`/leave/${leaveId}/status`, { status, rejectionReason });
             toast.success(`Leave ${status.toLowerCase()} successfully`);
             fetchData();
         } catch (error: any) {
             toast.error(error.response?.data?.message || `Failed to ${status.toLowerCase()} leave`);
+        } finally {
+            setProcessingLeaveId(null);
         }
     };
 
@@ -859,16 +864,28 @@ export default function Leave() {
                                                     <div className="flex items-center justify-end gap-2">
                                                         <button
                                                             onClick={() => handleUpdateStatus(l.id, 'APPROVED')}
-                                                            className="px-3.5 py-1.5 rounded-[3px] bg-[#E4F5EC] text-[#00875A] hover:bg-[#d5f0e1] text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer"
+                                                            disabled={processingLeaveId === l.id || submittingLeaveReject}
+                                                            className={`px-3.5 py-1.5 rounded-[3px] bg-[#E4F5EC] text-[#00875A] hover:bg-[#d5f0e1] text-xs font-semibold transition-all flex items-center gap-1 ${
+                                                                processingLeaveId === l.id ? 'opacity-60 cursor-not-allowed pointer-events-none' : 'cursor-pointer'
+                                                            }`}
                                                         >
-                                                            <CheckCircle size={14} /> Approve
+                                                            {processingLeaveId === l.id ? (
+                                                                <>
+                                                                    <Loader2 size={13} className="animate-spin" /> Approving...
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <CheckCircle size={14} /> Approve
+                                                                </>
+                                                            )}
                                                         </button>
                                                         <button
                                                             onClick={() => {
                                                                 setRejectingLeaveId(l.id);
                                                                 setLeaveRejectComment('');
                                                             }}
-                                                            className="px-3.5 py-1.5 rounded-[3px] bg-[#FBE7E7] text-[#DE350B] hover:bg-[#f7d6d6] text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer"
+                                                            disabled={processingLeaveId === l.id || submittingLeaveReject}
+                                                            className="px-3.5 py-1.5 rounded-[3px] bg-[#FBE7E7] text-[#DE350B] hover:bg-[#f7d6d6] text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                                         >
                                                             <XIcon size={14} /> Reject
                                                         </button>

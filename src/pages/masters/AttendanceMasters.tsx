@@ -164,7 +164,6 @@ export default function AttendanceMasters() {
                                     <div className="grid grid-cols-2 gap-2 text-xs text-[#5B6472] dark:text-gray-400 border-t border-[#E2E6ED] dark:border-gray-800 pt-3">
                                         <div>Break: <span className="font-semibold text-[#12151C] dark:text-gray-200">{shift.breakDuration}m</span></div>
                                         <div>Grace In: <span className="font-semibold text-[#12151C] dark:text-gray-200">{shift.graceTime}m</span></div>
-                                        <div>Night Shift: <span className="font-semibold text-[#12151C] dark:text-gray-200">{shift.isNightShift ? 'Yes' : 'No'}</span></div>
                                     </div>
                                 </div>
                             ))}

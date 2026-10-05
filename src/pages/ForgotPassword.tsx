@@ -32,7 +32,7 @@ export default function ForgotPassword() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const [generatedCaptcha, setGeneratedCaptcha] = useState('');
+    const [captchaToken, setCaptchaToken] = useState('');
     const [captchaInput, setCaptchaInput] = useState('');
     const [otp, setOtp] = useState('');
 
@@ -79,12 +79,10 @@ export default function ForgotPassword() {
         return "";
     };
 
-    const validateCaptcha = (val: string, targetCaptcha: string): string => {
+    const validateCaptcha = (val: string): string => {
         const trimmed = val.trim();
         if (!trimmed) return "Please enter the captcha code";
-        if (trimmed.toUpperCase() !== targetCaptcha.trim().toUpperCase()) {
-            return "Incorrect Captcha code. Please check and re-enter.";
-        }
+        if (trimmed.length < 4) return "Please enter a valid 5-character captcha code";
         return "";
     };
 
@@ -126,7 +124,7 @@ export default function ForgotPassword() {
         setCaptchaInput(val);
         setError('');
         if (touched.captchaInput) {
-            setFieldErrors(prev => ({ ...prev, captchaInput: validateCaptcha(val, generatedCaptcha) }));
+            setFieldErrors(prev => ({ ...prev, captchaInput: validateCaptcha(val) }));
         }
     };
 
@@ -139,7 +137,7 @@ export default function ForgotPassword() {
         } else if (field === 'confirmPassword') {
             setFieldErrors(prev => ({ ...prev, confirmPassword: validateConfirmPassword(confirmPassword, password) }));
         } else if (field === 'captchaInput') {
-            setFieldErrors(prev => ({ ...prev, captchaInput: validateCaptcha(captchaInput, generatedCaptcha) }));
+            setFieldErrors(prev => ({ ...prev, captchaInput: validateCaptcha(captchaInput) }));
         }
     };
 
@@ -150,7 +148,7 @@ export default function ForgotPassword() {
         const emailErr = validateEmail(email);
         const passErr = validatePassword(password);
         const confirmErr = validateConfirmPassword(confirmPassword, password);
-        const captchaErr = validateCaptcha(captchaInput, generatedCaptcha);
+        const captchaErr = validateCaptcha(captchaInput);
 
         setTouched({
             email: true,
@@ -172,7 +170,12 @@ export default function ForgotPassword() {
 
         setLoading(true);
         try {
-            await api.post('/auth/send-otp', { email: email.trim(), mode: 'FORGOT_PASSWORD' });
+            await api.post('/auth/send-otp', {
+                email: email.trim(),
+                captchaInput: captchaInput.trim(),
+                captchaToken,
+                mode: 'FORGOT_PASSWORD'
+            });
             setStep('OTP_VERIFICATION');
             setFieldErrors({});
             setTouched({});
@@ -342,7 +345,7 @@ export default function ForgotPassword() {
 
             {/* Captcha */}
             <div className="space-y-1">
-                <Captcha onVerify={setGeneratedCaptcha} className="pt-1">
+                <Captcha onVerify={setCaptchaToken} className="pt-1">
                     <input
                         type="text"
                         value={captchaInput}

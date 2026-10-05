@@ -96,7 +96,13 @@ export default function SignIn() {
             }
 
             if (loggedInUser?.role === 'SUPER_ADMIN') {
-                navigate('/superadmin/dashboard');
+                const superAdminRedirect = sessionStorage.getItem('superadmin_redirect');
+                if (superAdminRedirect) {
+                    sessionStorage.removeItem('superadmin_redirect');
+                    navigate(superAdminRedirect);
+                } else {
+                    navigate('/superadmin/dashboard');
+                }
             } else {
                 navigate('/dashboard');
             }
@@ -274,8 +280,7 @@ export default function SignIn() {
                                         value={email}
                                         onChange={(e) => handleEmailChange(e.target.value)}
                                         onBlur={() => handleBlur('email')}
-                                        placeholder="admin@encalm.com"
-                                        className={`login-input w-full pl-10 pr-4 py-2.5 sm:py-3 rounded-[6px] text-sm text-[#12151C] placeholder-[#64748B] placeholder:opacity-100 transition-all font-medium border ${touched.email && errors.email
+                                        className={`login-input w-full pl-10 pr-4 py-2.5 sm:py-3 rounded-[6px] text-sm text-[#12151C] transition-all font-medium border ${touched.email && errors.email
                                                 ? 'border-rose-500 bg-rose-50/20 focus:outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/15'
                                                 : 'border-[#E2E6ED] bg-[#F8F9FA] focus:outline-none focus:border-[#2C4FD6] focus:bg-white focus:ring-2 focus:ring-[#2C4FD6]/15'
                                             }`}
@@ -304,8 +309,7 @@ export default function SignIn() {
                                         value={password}
                                         onChange={(e) => handlePasswordChange(e.target.value)}
                                         onBlur={() => handleBlur('password')}
-                                        placeholder="••••••••••••"
-                                        className={`login-input w-full pl-10 pr-11 py-2.5 sm:py-3 rounded-[6px] text-sm text-[#12151C] placeholder-[#64748B] placeholder:opacity-100 transition-all font-medium border ${touched.password && errors.password
+                                        className={`login-input w-full pl-10 pr-11 py-2.5 sm:py-3 rounded-[6px] text-sm text-[#12151C] transition-all font-medium border ${touched.password && errors.password
                                                 ? 'border-rose-500 bg-rose-50/20 focus:outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/15'
                                                 : 'border-[#E2E6ED] bg-[#F8F9FA] focus:outline-none focus:border-[#2C4FD6] focus:bg-white focus:ring-2 focus:ring-[#2C4FD6]/15'
                                             }`}

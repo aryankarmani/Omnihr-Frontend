@@ -35,16 +35,32 @@ const api = axios.create({
     baseURL: getBaseURL(),
 });
 let isRefreshing = false;
+let isRedirecting = false;
+let failedQueue: Array<{
+    resolve: (token: string) => void;
+    reject: (error: any) => void;
+}> = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+    failedQueue.forEach((prom) => {
+        if (error) {
+            prom.reject(error);
+        } else {
+            prom.resolve(token!);
+        }
+    });
+    failedQueue = [];
+};
 
 // Add a request interceptor to inject the auth token
 api.interceptors.request.use(
     (config) => {
-        const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
         // TENANT ID
-        const tenantId = sessionStorage.getItem('tenantId') || localStorage.getItem('tenantId');
+        const tenantId = localStorage.getItem('tenantId') || sessionStorage.getItem('tenantId');
 
         if (tenantId) {
             config.headers['x-tenant-id'] = tenantId;
@@ -66,14 +82,31 @@ api.interceptors.response.use(
         if (
             error.response?.status === 401 &&
             !originalRequest.url?.includes('/auth/login') &&
-            !originalRequest._retry &&
-            !isRefreshing
+            !originalRequest._retry
         ) {
+            // If another request is currently refreshing the token, queue this request
+            if (isRefreshing) {
+                return new Promise<string>((resolve, reject) => {
+                    failedQueue.push({ resolve, reject });
+                })
+                    .then((token) => {
+                        originalRequest.headers.Authorization = `Bearer ${token}`;
+                        const tenantId =
+                            sessionStorage.getItem('tenantId') || localStorage.getItem('tenantId');
+                        if (tenantId) {
+                            originalRequest.headers['x-tenant-id'] = tenantId;
+                        }
+                        return api(originalRequest);
+                    })
+                    .catch((err) => Promise.reject(err));
+            }
+
             originalRequest._retry = true;
             isRefreshing = true;
 
             try {
-                const refreshToken = sessionStorage.getItem('refreshToken') || localStorage.getItem('refreshToken');
+                const refreshToken =
+                    localStorage.getItem('refreshToken') || sessionStorage.getItem('refreshToken');
 
                 if (!refreshToken) {
                     throw new Error('No refresh token found');
@@ -86,34 +119,52 @@ api.interceptors.response.use(
 
                 const newToken = res.data.token;
 
-                if (localStorage.getItem('token')) {
-                    localStorage.setItem('token', newToken);
-                }
-                if (sessionStorage.getItem('token')) {
-                    sessionStorage.setItem('token', newToken);
-                }
+                localStorage.setItem('token', newToken);
+                sessionStorage.setItem('token', newToken);
+                localStorage.setItem('auth_sync_time', Date.now().toString());
 
                 originalRequest.headers.Authorization = `Bearer ${newToken}`;
-                // IMPORTANT FIX
                 const tenantId =
-                    sessionStorage.getItem('tenantId') || localStorage.getItem('tenantId');
+                    localStorage.getItem('tenantId') || sessionStorage.getItem('tenantId');
 
                 if (tenantId) {
-                    originalRequest.headers['x-tenant-id'] =
-                        tenantId;
+                    originalRequest.headers['x-tenant-id'] = tenantId;
                 }
+
+                // Resolve all paused requests in the queue with the new token
+                processQueue(null, newToken);
 
                 return api(originalRequest);
             } catch (refreshError) {
-                sessionStorage.removeItem('token');
-                sessionStorage.removeItem('refreshToken');
-                sessionStorage.removeItem('tenantId');
-                localStorage.removeItem('token');
-                localStorage.removeItem('refreshToken');
-                localStorage.removeItem('tenantId');
-                localStorage.removeItem('encalm_remember_me');
+                // Reject all queued requests and wipe session
+                processQueue(refreshError, null);
 
-                window.location.href = '/signin';
+                const keysToRemove = [
+                    'token',
+                    'refreshToken',
+                    'tenantId',
+                    'encalm_user',
+                    'superadmin_token',
+                    'superadmin_refresh_token',
+                    'superadmin_user',
+                    'encalm_remember_me',
+                ];
+
+                keysToRemove.forEach((key) => {
+                    sessionStorage.removeItem(key);
+                    localStorage.removeItem(key);
+                });
+
+                localStorage.setItem('auth_logout_time', Date.now().toString());
+
+                if (
+                    !isRedirecting &&
+                    window.location.pathname !== '/signin' &&
+                    window.location.pathname !== '/login'
+                ) {
+                    isRedirecting = true;
+                    window.location.replace('/signin');
+                }
 
                 return Promise.reject(refreshError);
             } finally {

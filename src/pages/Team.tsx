@@ -160,6 +160,10 @@ export default function Team() {
     }, []);
     const handleCreateTeam = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!newTeamName.trim()) {
+            toast.error('Please enter a team name');
+            return;
+        }
         setShowCreateModal(false);
         setShowAddMemberModal(true);
     };
@@ -480,15 +484,13 @@ export default function Team() {
                                     <X size={18} />
                                 </button>
                             </div>
-                            <form onSubmit={handleCreateTeam} className="p-6 space-y-4">
+                            <form onSubmit={handleCreateTeam} noValidate className="p-6 space-y-4">
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">Team Name</label>
                                     <input
                                         type="text"
-                                        required
                                         value={newTeamName}
                                         onChange={(e) => setNewTeamName(e.target.value)}
-                                        placeholder="e.g. Quality Assurance"
                                         className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
                                     />
                                 </div>

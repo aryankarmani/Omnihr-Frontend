@@ -105,54 +105,55 @@ const LogFile = () => {
   const [status, setStatus] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [selectedDescription, setSelectedDescription] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchLogs = async () => {
+    let isCancelled = false;
+    const handler = setTimeout(async () => {
       try {
         setLoading(true);
-        const res = await api.get("/audit-logs");
-        setLogs(res.data || []);
+        const res = await api.get("/audit-logs", {
+          params: {
+            page: currentPage,
+            limit: rowsPerPage,
+            search: search.trim() || undefined,
+            actionType: actionType !== "All" ? actionType : undefined,
+            status: status !== "All" ? status : undefined,
+          },
+        });
+
+        if (isCancelled) return;
+
+        if (res.data?.pagination) {
+          setLogs(res.data.data || []);
+          setTotalPages(res.data.pagination.totalPages || 1);
+          setTotalRecords(res.data.pagination.total || 0);
+        } else if (Array.isArray(res.data)) {
+          setLogs(res.data);
+          setTotalPages(Math.ceil(res.data.length / rowsPerPage) || 1);
+          setTotalRecords(res.data.length);
+        }
       } catch (error) {
-        console.error("Failed to fetch audit logs", error);
-        setLogs([]);
+        if (!isCancelled) {
+          console.error("Failed to fetch audit logs", error);
+          setLogs([]);
+          setTotalPages(1);
+          setTotalRecords(0);
+        }
       } finally {
-        setLoading(false);
+        if (!isCancelled) {
+          setLoading(false);
+        }
       }
+    }, 250);
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(handler);
     };
-
-    fetchLogs();
-  }, []);
-
-  const filteredLogs = useMemo(() => {
-    return logs.filter((log) => {
-      const searchText = search.toLowerCase();
-
-      const matchesSearch =
-        (log.module || "").toLowerCase().includes(searchText) ||
-        (log.action || "").toLowerCase().includes(searchText) ||
-        (log.description || "").toLowerCase().includes(searchText) ||
-        (log.performedBy || "").toLowerCase().includes(searchText) ||
-        (log.targetUser || "").toLowerCase().includes(searchText);
-
-      const matchesAction =
-        actionType === "All" ||
-        (log.module || "").toLowerCase().includes(actionType.toLowerCase());
-
-      const matchesStatus =
-        status === "All" ||
-        (log.action || "").toLowerCase().includes(status.toLowerCase());
-
-      return matchesSearch && matchesAction && matchesStatus;
-    });
-  }, [logs, search, actionType, status]);
-
-  const totalPages = Math.ceil(filteredLogs.length / rowsPerPage);
-
-  const paginatedLogs = filteredLogs.slice(
-    (currentPage - 1) * rowsPerPage,
-    currentPage * rowsPerPage
-  );
+  }, [currentPage, rowsPerPage, search, actionType, status]);
 
   const resetFilters = () => {
     setSearch("");
@@ -304,8 +305,8 @@ const LogFile = () => {
                     Loading logs...
                   </td>
                 </tr>
-              ) : filteredLogs.length > 0 ? (
-                paginatedLogs.map((log) => (
+              ) : logs.length > 0 ? (
+                logs.map((log) => (
                   <tr
                     key={log.id}
                     className="hover:bg-[#F7F8FA]/60 dark:hover:bg-white/5 transition-colors"
@@ -398,7 +399,7 @@ const LogFile = () => {
 
           <div className="flex items-center gap-3">
             <span className="text-xs font-semibold text-[#5B6472] dark:text-gray-400">
-              Page {currentPage} of {totalPages || 1}
+              Showing {totalRecords > 0 ? (currentPage - 1) * rowsPerPage + 1 : 0}–{Math.min(currentPage * rowsPerPage, totalRecords)} of {totalRecords} logs (Page {currentPage} of {totalPages || 1})
             </span>
 
             <div className="flex items-center gap-1">

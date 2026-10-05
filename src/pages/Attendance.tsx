@@ -43,6 +43,15 @@ export default function Attendance() {
     const [customReason, setCustomReason] = useState('');
     const [submittingRequest, setSubmittingRequest] = useState(false);
     const [attendancePolicy, setAttendancePolicy] = useState<any>(null);
+    const [currentShift, setCurrentShift] = useState<{
+        id?: string;
+        name: string;
+        startTime: string;
+        endTime: string;
+        breakDuration: number;
+        graceTime: number;
+        isNightShift: boolean;
+    } | null>(null);
 
     // Text field state representations for 12-hour format display and direct editing
     const [inInputText, setInInputText] = useState('09:00 AM');
@@ -111,6 +120,7 @@ export default function Attendance() {
             const res = await api.get('/attendance/status');
             setIsPunchedIn(res.data.isPunchedIn);
             if (res.data.punchInTime) setPunchInTime(new Date(res.data.punchInTime));
+            if (res.data.shift) setCurrentShift(res.data.shift);
 
 
             const empRes = await api.get('/employee/me');
@@ -199,6 +209,7 @@ export default function Attendance() {
         },
         onSuccess: (data) => {
             toast.success(data.message);
+            if (data.shift) setCurrentShift(data.shift);
             fetchStatusAndPolicy();
             fetchHistoryAndRequests();
         },
@@ -252,8 +263,8 @@ export default function Attendance() {
             return;
         }
 
-        if (diffDays < 1) {
-            toast.error('You can only correct attendance for past dates.');
+        if (diffDays < 0) {
+            toast.error('Cannot apply for correction on future dates.');
             return;
         }
 
@@ -306,11 +317,15 @@ export default function Attendance() {
         setCustomReason('');
         if (log?.inTime) {
             setInInputText(formatTime12h(log.inTime));
+        } else if (currentShift?.startTime) {
+            setInInputText(format24to12(currentShift.startTime));
         } else {
             setInInputText('09:00 AM');
         }
         if (log?.outTime) {
             setOutInputText(formatTime12h(log.outTime));
+        } else if (currentShift?.endTime) {
+            setOutInputText(format24to12(currentShift.endTime));
         } else {
             setOutInputText('06:00 PM');
         }
@@ -362,7 +377,7 @@ export default function Attendance() {
             const diffDays = Math.round((todayMidnight.getTime() - targetDate.getTime()) / (1000 * 60 * 60 * 24));
             const lookbackDays = attendancePolicy?.regularizationDays ?? 3;
 
-            const isPastEligible = diffDays >= 1 && diffDays <= lookbackDays;
+            const isTargetDayEligible = diffDays > 0 ? (diffDays <= lookbackDays) : (diffDays === 0 && Boolean(log?.inTime));
             const isPastDay = targetDate < todayMidnight;
             const isApprovedLeave = !isBeforeJoining && leave && leave.status === 'APPROVED';
 
@@ -374,10 +389,13 @@ export default function Attendance() {
             const isCleanPresent = log && log.status === 'Present' && log.inTime && log.outTime;
             const needsRegularization = !isCleanPresent;
 
-            const isEligibleForRegularize = isPastEligible &&
+            // Allow correction on holidays if the employee actually worked / punched on the holiday
+            const isHolidayEligible = holiday ? Boolean(log?.inTime && needsRegularization) : true;
+
+            const isEligibleForRegularize = isTargetDayEligible &&
                 !isWeekend &&
                 !isBeforeJoining &&
-                !holiday &&
+                isHolidayEligible &&
                 !isApprovedLeave &&
                 !hasPendingRequest &&
                 needsRegularization;
@@ -502,13 +520,8 @@ export default function Attendance() {
                         ) : null}
                     </div>
 
-                    {/* Bottom: Regularize button directly in card (Web UI blue, NOT purple) - fixed height container */}
+                    {/* Bottom: Regularize button directly in card - fixed height container */}
                     <div className="flex justify-end items-center h-5 shrink-0">
-                        {holiday && log?.inTime ? (
-                            <span className="text-[8.5px] sm:text-[9.5px] text-purple-700 dark:text-purple-300 font-medium truncate max-w-full" title={holiday.name}>
-                                {holiday.name}
-                            </span>
-                        ) : null}
                         {isEligibleForRegularize ? (
                             <button
                                 type="button"
@@ -520,6 +533,10 @@ export default function Attendance() {
                             >
                                 Correction
                             </button>
+                        ) : holiday && log?.inTime ? (
+                            <span className="text-[8.5px] sm:text-[9.5px] text-purple-700 dark:text-purple-300 font-medium truncate max-w-full" title={holiday.name}>
+                                {holiday.name}
+                            </span>
                         ) : null}
                     </div>
                 </div>
@@ -553,11 +570,16 @@ export default function Attendance() {
                                 <span>{String(currentTime.getHours()).padStart(2, '0')}:{String(currentTime.getMinutes()).padStart(2, '0')}</span>
                                 <span className="text-[13px] sm:text-[14px] font-semibold text-[#5B6472] dark:text-gray-400">{currentTime.getHours() >= 12 ? 'PM' : 'AM'}</span>
                             </div>
-                            <div className="mt-1.5 flex items-center gap-1.5">
+                            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                                 <span className={`w-2 h-2 rounded-full ${isPunchedIn ? 'bg-[#1F8A5A] animate-pulse' : 'bg-gray-400'}`}></span>
                                 <span className="text-[11.5px] font-medium text-[#5B6472] dark:text-gray-400">
                                     {isPunchedIn ? 'Working' : 'Not Clocked In'}
                                 </span>
+                                {currentShift && (
+                                    <span className="text-[10.5px] px-1.5 py-0.5 rounded-[4px] bg-[#EEF1F5] dark:bg-gray-800 text-[#2C4FD6] dark:text-blue-400 font-mono font-semibold" title={`${currentShift.name} (Grace: ${currentShift.graceTime}m)`}>
+                                        {currentShift.startTime} - {currentShift.endTime}{currentShift.isNightShift ? ' (Night)' : ''}
+                                    </span>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -565,14 +587,18 @@ export default function Attendance() {
                     <button
                         onClick={handlePunch}
                         disabled={punchMutation.isPending}
-                        className={`w-[78px] h-[78px] sm:w-[84px] sm:h-[84px] rounded-[6px] border-2 flex flex-col items-center justify-center transition-all transform active:scale-95 cursor-pointer shrink-0 ${isPunchedIn
+                        className={`w-[78px] h-[78px] sm:w-[84px] sm:h-[84px] rounded-[6px] border-2 flex flex-col items-center justify-center transition-all transform active:scale-95 shrink-0 ${isPunchedIn
                             ? 'border-[#C13A3A] bg-[#FBE7E7] text-[#C13A3A] hover:bg-[#F9D5D5]'
                             : 'border-[#1F8A5A] bg-[#E4F5EC] text-[#1F8A5A] hover:bg-[#D5EFE2]'
-                            }`}
+                            } ${punchMutation.isPending ? 'opacity-60 cursor-not-allowed pointer-events-none' : 'cursor-pointer'}`}
                     >
-                        <MapPin size={20} className="mb-1 shrink-0" />
-                        <span className="lbl text-[10.5px] font-extrabold uppercase tracking-wider leading-none text-center">
-                            {isPunchedIn ? 'PUNCH OUT' : 'PUNCH IN'}
+                        {punchMutation.isPending ? (
+                            <Loader2 size={20} className="mb-1 shrink-0 animate-spin" />
+                        ) : (
+                            <MapPin size={20} className="mb-1 shrink-0" />
+                        )}
+                        <span className="lbl text-[10px] font-extrabold uppercase tracking-wider leading-none text-center">
+                            {punchMutation.isPending ? 'WAIT...' : isPunchedIn ? 'PUNCH OUT' : 'PUNCH IN'}
                         </span>
                     </button>
                 </div>
