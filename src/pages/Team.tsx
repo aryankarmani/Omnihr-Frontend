@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { useEffect } from 'react';
-import { Plus, MoreVertical, Briefcase, UserPlus, X, Trash2, Users, Loader2 } from 'lucide-react';
+import { Plus, MoreVertical, Briefcase, UserPlus, X, Trash2, Users, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useRBAC } from '../hooks/useRBAC';
 import api from '../utils/api';
@@ -26,6 +26,10 @@ export default function Team() {
     const canManageTeams = user?.role === 'HR_ADMIN';
     const [teams, setTeams] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState<number>(1);
+    const [teamsPerPage, setTeamsPerPage] = useState<number>(5);
+    const [totalRecords, setTotalRecords] = useState<number>(0);
+    const [totalPages, setTotalPages] = useState<number>(1);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
     const [menuOpen, setMenuOpen] = useState<number | null>(null);
@@ -37,6 +41,7 @@ export default function Team() {
     const [confirmRemove, setConfirmRemove] = useState<any>(null);
     const [newTeamName, setNewTeamName] = useState('');
     const [newTeamDesc, setNewTeamDesc] = useState('');
+    const [isSubmittingTeam, setIsSubmittingTeam] = useState(false);
 
     const [accessControlTeam, setAccessControlTeam] = useState<any>(null);
     const [permissions, setPermissions] = useState({
@@ -116,14 +121,28 @@ export default function Team() {
             setEmployees([]);
         }
     };
-    const fetchTeams = async () => {
+    const fetchTeams = async (page = currentPage, limit = teamsPerPage) => {
         setLoading(true);
         try {
-            const res = await getTeams();
-            setTeams(Array.isArray(res.data) ? res.data : []);
+            const res = await getTeams({ page, limit });
+            if (res.data?.pagination) {
+                setTeams(res.data.data || []);
+                setTotalPages(res.data.pagination.totalPages || 1);
+                setTotalRecords(res.data.pagination.total || 0);
+            } else if (Array.isArray(res.data)) {
+                setTeams(res.data);
+                setTotalPages(Math.ceil(res.data.length / limit) || 1);
+                setTotalRecords(res.data.length);
+            } else {
+                setTeams([]);
+                setTotalPages(1);
+                setTotalRecords(0);
+            }
         } catch (err) {
-            console.log(err);
+            console.error('Failed to fetch teams:', err);
             setTeams([]);
+            setTotalPages(1);
+            setTotalRecords(0);
         } finally {
             setLoading(false);
         }
@@ -155,17 +174,88 @@ export default function Team() {
         }
     };
     useEffect(() => {
-        fetchTeams();
+        fetchTeams(currentPage, teamsPerPage);
+    }, [currentPage, teamsPerPage]);
+
+    useEffect(() => {
         fetchEmployees();
     }, []);
     const handleCreateTeam = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newTeamName.trim()) {
+        const trimmed = newTeamName.trim();
+        if (!trimmed) {
             toast.error('Please enter a team name');
+            return;
+        }
+        const exists = teams.some(t => t.name?.toLowerCase() === trimmed.toLowerCase());
+        if (exists) {
+            toast.error(`A team named "${trimmed}" already exists.`);
             return;
         }
         setShowCreateModal(false);
         setShowAddMemberModal(true);
+    };
+
+    const handleFinalSubmitTeam = async () => {
+        if (isSubmittingTeam) return;
+
+        if (!selectedTeam) {
+            const trimmed = newTeamName.trim();
+            if (!trimmed) {
+                toast.error('Please enter a team name');
+                return;
+            }
+            const exists = teams.some(t => t.name?.toLowerCase() === trimmed.toLowerCase());
+            if (exists) {
+                toast.error(`A team named "${trimmed}" already exists.`);
+                return;
+            }
+        }
+
+        setIsSubmittingTeam(true);
+        try {
+            if (selectedTeam) {
+                await addMembers(selectedTeam, {
+                    members: selectedEmployees,
+                    managerId: selectedManager
+                });
+                toast.success('Members updated successfully');
+            } else {
+                const trimmedName = newTeamName.trim();
+                const res = await createTeamApi({
+                    name: trimmedName,
+                    description: newTeamDesc?.trim() || ''
+                });
+                if (res.data && res.data.id) {
+                    if (selectedEmployees.length > 0 || selectedManager) {
+                        await addMembers(res.data.id, {
+                            members: selectedEmployees,
+                            managerId: selectedManager
+                        });
+                    }
+                }
+                await saveTeamLog(
+                    'Created',
+                    `Team "${trimmedName}" created`,
+                    trimmedName
+                );
+                toast.success(`Team "${trimmedName}" created successfully`);
+                setNewTeamName('');
+                setNewTeamDesc('');
+            }
+
+            setCurrentPage(1);
+            await fetchTeams(1, teamsPerPage);
+            setShowAddMemberModal(false);
+            setSelectedEmployees([]);
+            setSelectedManager(null);
+        } catch (error: any) {
+            console.error('Failed to submit team:', error);
+            const errMsg = error?.response?.data?.message || 'Failed to process team. Please try again.';
+            toast.error(errMsg);
+        } finally {
+            setIsSubmittingTeam(false);
+        }
     };
     useEffect(() => {
         const closeMenu = () => setMenuOpen(null);
@@ -198,116 +288,178 @@ export default function Team() {
                     <p className="text-xs text-[#9AA3B1] font-medium">Loading teams...</p>
                 </div>
             ) : (() => {
-                const displayTeams = canManageTeams
-                    ? teams
-                    : teams.filter((team) => {
-                        const isManager = team.managerId === user?.id || team.manager?.id === user?.id;
-                        const isMember = team.members?.some((m: any) => m.id === user?.id);
-                        return isManager || isMember;
-                    });
+                const safeCurrentPage = Math.min(Math.max(currentPage, 1), Math.max(totalPages, 1));
 
-                return displayTeams.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                        {displayTeams.map((team) => {
-                            const managerName = team.manager ? (typeof team.manager === 'object' ? team.manager.name : team.manager) : 'Unassigned';
-                            const initials = managerName.split(' ').map((n: string) => n[0]).join('').substring(0, 2);
+                return teams.length > 0 ? (
+                    <div className="space-y-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                            {teams.map((team) => {
+                                const managerName = team.manager ? (typeof team.manager === 'object' ? team.manager.name : team.manager) : 'Unassigned';
+                                const initials = managerName.split(' ').map((n: string) => n[0]).join('').substring(0, 2);
 
-                            return (
-                                <div key={team.id} className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 p-6 hover:border-[#2C4FD6]/40 transition-all flex flex-col justify-between min-h-[230px] relative">
-                                    <div>
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div className="w-[36px] h-[36px] rounded-[6px] bg-[#E8ECFC] text-[#2C4FD6] dark:bg-blue-950/40 dark:text-blue-400 flex items-center justify-center mb-[14px]">
-                                                <Briefcase size={16} />
-                                            </div>
-                                            {canManageTeams && (
-                                                <div className="relative">
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setMenuOpen(prev => prev === team.id ? null : team.id);
-                                                        }}
-                                                        className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors p-1 cursor-pointer"
-                                                    >
-                                                        <MoreVertical size={16} />
-                                                    </button>
-                                                    {menuOpen === team.id && (
-                                                        <div
-                                                            onClick={(e) => e.stopPropagation()}
-                                                            className="absolute right-0 mt-1 w-36 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] overflow-hidden z-50">
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setMenuOpen(null);
-                                                                    setEditTeam(team);
-                                                                }}
-                                                                className="w-full text-left px-4 py-2 text-xs text-[#12151C] dark:text-gray-200 hover:bg-[#EEF1F5] dark:hover:bg-white/10 transition-all font-semibold cursor-pointer"
-                                                            >
-                                                                Edit
-                                                            </button>
-                                                            <button
-                                                                onClick={async () => {
-                                                                    setMenuOpen(null);
-                                                                    setConfirmDelete(team.id);
-                                                                }}
-                                                                className="w-full text-left px-4 py-2 text-xs text-[#DE350B] dark:text-rose-400 hover:bg-[#FBE7E7] dark:hover:bg-rose-500/10 transition-all font-semibold border-b border-[#E2E6ED] dark:border-gray-800 cursor-pointer"
-                                                            >
-                                                                Delete
-                                                            </button>
-                                                            {isAdmin && (
+                                return (
+                                    <div key={team.id} className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 p-6 hover:border-[#2C4FD6]/40 transition-all flex flex-col justify-between min-h-[230px] relative">
+                                        <div>
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div className="w-[36px] h-[36px] rounded-[6px] bg-[#E8ECFC] text-[#2C4FD6] dark:bg-blue-950/40 dark:text-blue-400 flex items-center justify-center mb-[14px]">
+                                                    <Briefcase size={16} />
+                                                </div>
+                                                {canManageTeams && (
+                                                    <div className="relative">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setMenuOpen(prev => prev === team.id ? null : team.id);
+                                                            }}
+                                                            className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors p-1 cursor-pointer"
+                                                        >
+                                                            <MoreVertical size={16} />
+                                                        </button>
+                                                        {menuOpen === team.id && (
+                                                            <div
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                className="absolute right-0 mt-1 w-36 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] overflow-hidden z-50">
                                                                 <button
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
                                                                         setMenuOpen(null);
-                                                                        handleOpenAccessControl(team);
+                                                                        setEditTeam(team);
                                                                     }}
-                                                                    className="w-full text-left px-4 py-2 text-xs text-[#2C4FD6] dark:text-blue-400 hover:bg-[#E8ECFC] dark:hover:bg-blue-500/10 transition-all font-semibold cursor-pointer"
+                                                                    className="w-full text-left px-4 py-2 text-xs text-[#12151C] dark:text-gray-200 hover:bg-[#EEF1F5] dark:hover:bg-white/10 transition-all font-semibold cursor-pointer"
                                                                 >
-                                                                    Access Control
+                                                                    Edit
                                                                 </button>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <h3 className="text-base font-semibold text-[#12151C] dark:text-white mb-0.5">{team.name}</h3>
-                                        <p className="text-xs text-[#9AA3B1] dark:text-gray-400">
-                                            {team.description || 'No description provided'}
-                                        </p>
-
-                                        <div className="border-t border-[#E2E6ED] dark:border-gray-800 my-4"></div>
-
-                                        <div className="flex items-center gap-2.5 mb-4">
-                                            <div className="w-7 h-7 rounded-full bg-[#EEF1F5] dark:bg-gray-700 text-[#5B6472] dark:text-white font-mono-numbers font-bold text-[10px] flex items-center justify-center shrink-0 uppercase">
-                                                {initials}
+                                                                <button
+                                                                    onClick={async () => {
+                                                                        setMenuOpen(null);
+                                                                        setConfirmDelete(team.id);
+                                                                    }}
+                                                                    className="w-full text-left px-4 py-2 text-xs text-[#DE350B] dark:text-rose-400 hover:bg-[#FBE7E7] dark:hover:bg-rose-500/10 transition-all font-semibold border-b border-[#E2E6ED] dark:border-gray-800 cursor-pointer"
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                                {isAdmin && (
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setMenuOpen(null);
+                                                                            handleOpenAccessControl(team);
+                                                                        }}
+                                                                        className="w-full text-left px-4 py-2 text-xs text-[#2C4FD6] dark:text-blue-400 hover:bg-[#E8ECFC] dark:hover:bg-blue-500/10 transition-all font-semibold cursor-pointer"
+                                                                    >
+                                                                        Access Control
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
-                                            <div>
-                                                <div className="manager-role text-[10.5px] text-[#9AA3B1] dark:text-gray-400 uppercase tracking-[0.04em] leading-none mb-1">MANAGER</div>
-                                                <div className="manager-name text-[13px] font-semibold text-[#12151C] dark:text-white leading-none">
-                                                    {managerName}
+
+                                            <h3 className="text-base font-semibold text-[#12151C] dark:text-white mb-0.5">{team.name}</h3>
+                                            <p className="text-xs text-[#9AA3B1] dark:text-gray-400">
+                                                {team.description || 'No description provided'}
+                                            </p>
+
+                                            <div className="border-t border-[#E2E6ED] dark:border-gray-800 my-4"></div>
+
+                                            <div className="flex items-center gap-2.5 mb-4">
+                                                <div className="w-7 h-7 rounded-full bg-[#EEF1F5] dark:bg-gray-700 text-[#5B6472] dark:text-white font-mono-numbers font-bold text-[10px] flex items-center justify-center shrink-0 uppercase">
+                                                    {initials}
+                                                </div>
+                                                <div>
+                                                    <div className="manager-role text-[10.5px] text-[#9AA3B1] dark:text-gray-400 uppercase tracking-[0.04em] leading-none mb-1">MANAGER</div>
+                                                    <div className="manager-name text-[13px] font-semibold text-[#12151C] dark:text-white leading-none">
+                                                        {managerName}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
 
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-[12.5px] text-[#5B6472] dark:text-gray-300">
-                                                {team.members ? team.members.length : 0} Members
-                                            </span>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setSelectedTeam(team.id);
-                                                }}
-                                                className="text-[12.5px] font-semibold text-[#2C4FD6] dark:text-blue-400 hover:underline cursor-pointer"
-                                            >
-                                                View Members
-                                            </button>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[12.5px] text-[#5B6472] dark:text-gray-300">
+                                                    {team.members ? team.members.length : 0} Members
+                                                </span>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedTeam(team.id);
+                                                    }}
+                                                    className="text-[12.5px] font-semibold text-[#2C4FD6] dark:text-blue-400 hover:underline cursor-pointer"
+                                                >
+                                                    View Members
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* Pagination Controls */}
+                        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-4 sm:px-6 py-4 border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] rounded-[6px] text-xs shadow-sm">
+                            <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto gap-2">
+                                <span className="text-[#9AA3B1] font-semibold text-xs uppercase">
+                                    Teams per page
+                                </span>
+                                <select
+                                    value={teamsPerPage}
+                                    onChange={(e) => {
+                                        setTeamsPerPage(Number(e.target.value));
+                                        setCurrentPage(1);
+                                    }}
+                                    className="px-3 py-1 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[#12151C] dark:text-white text-xs font-semibold cursor-pointer outline-none focus:border-[#2C4FD6]"
+                                >
+                                    <option value={5}>5</option>
+                                    <option value={10}>10</option>
+                                    <option value={15}>15</option>
+                                    <option value={20}>20</option>
+                                </select>
+                            </div>
+
+                            <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-3">
+                                <span className="text-xs font-bold text-[#5B6472] dark:text-gray-300 font-mono-numbers">
+                                    Page {safeCurrentPage} of {totalPages}
+                                </span>
+
+                                <div className="flex items-center gap-1.5">
+                                    <button
+                                        onClick={() => setCurrentPage(1)}
+                                        disabled={safeCurrentPage === 1}
+                                        className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
+                                        title="First Page"
+                                    >
+                                        <ChevronsLeft size={16} className="stroke-[2.5]" />
+                                    </button>
+
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                        disabled={safeCurrentPage === 1}
+                                        className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
+                                        title="Previous Page"
+                                    >
+                                        <ChevronLeft size={16} className="stroke-[2.5]" />
+                                    </button>
+
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                        disabled={safeCurrentPage >= totalPages}
+                                        className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
+                                        title="Next Page"
+                                    >
+                                        <ChevronRight size={16} className="stroke-[2.5]" />
+                                    </button>
+
+                                    <button
+                                        onClick={() => setCurrentPage(totalPages)}
+                                        disabled={safeCurrentPage >= totalPages}
+                                        className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
+                                        title="Last Page"
+                                    >
+                                        <ChevronsRight size={16} className="stroke-[2.5]" />
+                                    </button>
                                 </div>
-                            );
-                        })}
+                            </div>
+                        </div>
                     </div>
                 ) : (
                     <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 p-8 sm:p-12 text-center flex flex-col items-center justify-center max-w-lg mx-auto my-10 shadow-sm">
@@ -340,8 +492,12 @@ export default function Team() {
                         <div className="p-5 border-b border-[#E2E6ED] dark:border-gray-800 flex justify-between items-center bg-[#F7F8FA] dark:bg-white/5">
                             <h3 className="text-base font-bold text-[#12151C] dark:text-white">Add Members</h3>
                             <button
-                                onClick={() => setShowAddMemberModal(false)}
-                                className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer"
+                                disabled={isSubmittingTeam}
+                                onClick={() => {
+                                    if (isSubmittingTeam) return;
+                                    setShowAddMemberModal(false);
+                                }}
+                                className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white disabled:opacity-40 transition-colors cursor-pointer"
                             >
                                 <X size={18} />
                             </button>
@@ -421,53 +577,33 @@ export default function Team() {
                         </div>
                         <div className="p-5 border-t border-[#E2E6ED] dark:border-gray-800 flex gap-3">
                             <button
+                                disabled={isSubmittingTeam}
                                 onClick={() => {
+                                    if (isSubmittingTeam) return;
                                     setShowAddMemberModal(false);
                                     if (!selectedTeam) {
                                         setNewTeamName('');
                                         setNewTeamDesc('');
                                     }
                                 }}
-                                className="flex-1 py-2.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#5B6472] dark:text-gray-300 font-semibold text-[13.5px] hover:bg-gray-50 dark:hover:bg-white/5 transition-all cursor-pointer"
+                                className="flex-1 py-2.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#5B6472] dark:text-gray-300 font-semibold text-[13.5px] hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
                             >
                                 Cancel
                             </button>
 
                             <button
-                                onClick={async () => {
-                                    if (selectedTeam) {
-                                        await addMembers(selectedTeam, {
-                                            members: selectedEmployees,
-                                            managerId: selectedManager
-                                        });
-                                    } else {
-                                        const res = await createTeamApi({
-                                            name: newTeamName,
-                                            description: newTeamDesc
-                                        });
-                                        if (res.data && res.data.id) {
-                                            await addMembers(res.data.id, {
-                                                members: selectedEmployees,
-                                                managerId: selectedManager
-                                            });
-                                        } await saveTeamLog(
-                                            'Created',
-                                            `Team "${newTeamName}" created`,
-                                            newTeamName
-                                        );
-                                        setNewTeamName('');
-                                        setNewTeamDesc('');
-                                    }
-
-                                    fetchTeams();
-                                    setShowAddMemberModal(false);
-                                    setSelectedEmployees([]);
-                                    setSelectedManager(null);
-
-                                }}
-                                className="flex-1 py-2.5 rounded-[6px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold text-[13.5px] transition-all cursor-pointer"
+                                disabled={isSubmittingTeam}
+                                onClick={handleFinalSubmitTeam}
+                                className="flex-1 py-2.5 rounded-[6px] bg-[#2C4FD6] hover:bg-[#203FB4] disabled:opacity-70 disabled:cursor-not-allowed text-white font-semibold text-[13.5px] transition-all cursor-pointer flex items-center justify-center gap-2"
                             >
-                                {selectedTeam ? 'Add' : 'Create Team'}
+                                {isSubmittingTeam ? (
+                                    <>
+                                        <Loader2 size={16} className="animate-spin" />
+                                        <span>Processing...</span>
+                                    </>
+                                ) : (
+                                    selectedTeam ? 'Add' : 'Create Team'
+                                )}
                             </button>
                         </div>
 
@@ -556,7 +692,7 @@ export default function Team() {
                                         `Team "${editTeam.name}" updated`,
                                         editTeam.name
                                     );
-                                    fetchTeams();
+                                    await fetchTeams(currentPage, teamsPerPage);
                                     setEditTeam(null);
                                 }}
                                 className="w-full py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold text-[13.5px] rounded-[6px] transition-all cursor-pointer mt-2"
@@ -686,7 +822,7 @@ export default function Team() {
                                                                 if (!selectedTeam) return;
 
                                                                 await removeMember(selectedTeam, emp.id);
-                                                                fetchTeams();
+                                                                await fetchTeams(currentPage, teamsPerPage);
 
                                                                 setConfirmRemove(null);
                                                             }}
@@ -739,7 +875,11 @@ export default function Team() {
                                         deletedTeam?.name || 'Team'
                                     );
 
-                                    fetchTeams();
+                                    if (teams.length === 1 && currentPage > 1) {
+                                        setCurrentPage(prev => prev - 1);
+                                    } else {
+                                        await fetchTeams(currentPage, teamsPerPage);
+                                    }
                                     setConfirmDelete(null);
                                 }}
                                 className="flex-1 py-2.5 rounded-[6px] bg-[#DE350B] hover:bg-[#b02a08] text-white font-semibold text-[13.5px] transition-all cursor-pointer"

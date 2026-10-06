@@ -4,7 +4,7 @@ import {
     Shield, Plus, Edit2, Check, Lock, Trash2, X, Loader2,
     LayoutDashboard, Fingerprint, Users, UsersRound, CalendarRange,
     BarChart3, Settings2, CheckSquare, UserCircle, Calendar, FileSpreadsheet, FileText,
-    ChevronDown, ChevronUp, CheckCheck, Info, Sparkles, RefreshCw
+    ChevronDown, ChevronUp, CheckCheck, Info, Sparkles, RefreshCw, MessageSquare
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
@@ -23,6 +23,7 @@ const ALL_MODULES: ModuleDef[] = [
     { key: 'EMPLOYEE_ATTENDANCE', label: 'Employee Attendance', icon: Calendar, description: 'Organization-wide attendance & shift tracking' },
     { key: 'EMPLOYEE', label: 'Employee List', icon: Users, description: 'Staff directory, onboarding & employee profiles' },
     { key: 'TEAM', label: 'Team', icon: UsersRound, description: 'Department hierarchies & team leadership' },
+    { key: 'CHAT', label: 'Chat', icon: MessageSquare, description: 'Direct messaging, group conversations & team calls' },
     { key: 'LEAVE', label: 'Leave', icon: CalendarRange, description: 'Leave requests, quota balances & approvals' },
     { key: 'PAYROLL', label: 'Payroll', icon: FileSpreadsheet, description: 'Salary calculations, payslips & tax deductions' },
     { key: 'REPORTS', label: 'Reports', icon: BarChart3, description: 'HR analytics, attendance & payroll reports' },

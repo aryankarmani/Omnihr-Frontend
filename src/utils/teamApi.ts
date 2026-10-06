@@ -1,6 +1,7 @@
 import api from './api';
 
-export const getTeams = () => api.get('/teams');
+export const getTeams = (params?: { page?: number; limit?: number }) =>
+  api.get('/teams', { params });
 
 export const createTeam = (data: any) =>
   api.post('/teams', data);
