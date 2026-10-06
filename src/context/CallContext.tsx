@@ -2,9 +2,10 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { useAuth } from './AuthContext';
 import { initSocketClient, getSocket } from '../services/socket';
 import { webrtcService } from '../services/webrtc';
-import type { IncomingCallData, ActiveCallState, InCallMessage, CallParticipant } from '../types/chat';
+import type { IncomingCallData, ActiveCallState, InCallMessage, CallParticipant, RejoinCallData } from '../types/chat';
 import IncomingCallModal from '../components/chat/calling/IncomingCallModal';
 import ActiveCallWindow from '../components/chat/calling/ActiveCallWindow';
+import { Video, Phone, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface CallContextType {
@@ -12,13 +13,20 @@ interface CallContextType {
     activeCall: ActiveCallState | null;
     localStream: MediaStream | null;
     remoteStream: MediaStream | null;
+    remoteStreams: Map<number, MediaStream>;
+    screenStream: MediaStream | null;
+    screenSharingUserId: number | null;
+    activeSpeakerId: number | null;
     isMicMuted: boolean;
     isCameraOff: boolean;
     isScreenSharing: boolean;
     isMinimized: boolean;
     inCallMessages: InCallMessage[];
+    isMyHandRaised: boolean;
+    raisedHandUserIds: Set<number>;
+    lastLeftCall: RejoinCallData | null;
     startCall: (targetUserId: number, targetUserName: string, targetUserAvatar?: string | null, callType?: 'VOICE' | 'VIDEO') => Promise<void>;
-    startGroupCall: (groupTitle: string, participants: CallParticipant[], callType?: 'VOICE' | 'VIDEO') => Promise<void>;
+    startGroupCall: (groupTitle: string, participants: CallParticipant[], callType?: 'VOICE' | 'VIDEO', conversationId?: number) => Promise<void>;
     inviteToCall: (targetUserId: number, targetUserName: string, targetUserAvatar?: string | null) => Promise<void>;
     sendInCallMessage: (text: string) => void;
     acceptCall: () => Promise<void>;
@@ -27,7 +35,10 @@ interface CallContextType {
     toggleMic: () => void;
     toggleCamera: () => Promise<void>;
     toggleScreenShare: () => Promise<void>;
+    toggleRaiseHand: () => void;
     setIsMinimized: (val: boolean) => void;
+    rejoinGroupCall: (callData?: RejoinCallData) => Promise<void>;
+    dismissRejoin: () => void;
 }
 
 const CallContext = createContext<CallContextType | undefined>(undefined);
@@ -38,14 +49,22 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     const [activeCall, setActiveCall] = useState<ActiveCallState | null>(null);
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
     const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+    const [remoteStreams, setRemoteStreams] = useState<Map<number, MediaStream>>(new Map());
+    const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
+    const [screenSharingUserId, setScreenSharingUserId] = useState<number | null>(null);
+    const [activeSpeakerId, setActiveSpeakerId] = useState<number | null>(null);
+
     const [isMicMuted, setIsMicMuted] = useState(false);
     const [isCameraOff, setIsCameraOff] = useState(false);
     const [isScreenSharing, setIsScreenSharing] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
     const [inCallMessages, setInCallMessages] = useState<InCallMessage[]>([]);
+    const [raisedHandUserIds, setRaisedHandUserIds] = useState<Set<number>>(new Set());
+    const [lastLeftCall, setLastLeftCall] = useState<RejoinCallData | null>(null);
 
     const callTimerRef = useRef<number | null>(null);
     const callDurationRef = useRef<number>(0);
+    const speakerTimeoutRef = useRef<number | null>(null);
 
     // Initialize socket connection whenever user is authenticated
     useEffect(() => {
@@ -64,54 +83,137 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
             setActiveCall(prev => prev ? { ...prev, callId, status: 'RINGING' } : null);
         });
 
-        // 3. Call Accepted by receiver
+        // 3. Call Accepted (1:1 or receiver acknowledgment)
         socket.on('call_accepted', async ({ callId, receiverId }) => {
-            setActiveCall(prev => prev ? { ...prev, callId, status: 'CONNECTING' } : null);
-            // Initiate WebRTC offer as the caller
-            await webrtcService.createAndSendOffer();
+            setActiveCall(prev => prev ? { ...prev, callId, status: 'CONNECTED' } : null);
+            if (receiverId) {
+                await webrtcService.createAndSendOffer(receiverId);
+            }
         });
 
-        // 4. Call Rejected
+        // 4. Participant Joined (Group Call event)
+        socket.on('participant_joined', async ({ callId, userId, userName, userAvatar }: { callId: number; userId: number; userName: string; userAvatar?: string }) => {
+            if (userId === user.id) return;
+
+            toast.success(`${userName} joined the call`, { icon: '👋' });
+
+            setActiveCall(prev => {
+                if (!prev) return null;
+                const existing = prev.participants || [];
+                const updated = existing.some(p => p.id === userId)
+                    ? existing
+                    : [...existing, { id: userId, name: userName, avatar: userAvatar || null }];
+                return {
+                    ...prev,
+                    callId,
+                    status: 'CONNECTED',
+                    isGroup: true,
+                    participants: updated,
+                };
+            });
+
+            // As an existing participant, send offer to the newcomer
+            await webrtcService.createAndSendOffer(userId);
+        });
+
+        // 5. Participant Left (Group Call event - WhatsApp style: call continues!)
+        socket.on('participant_left', ({ userId, userName }: { callId: number; userId: number; userName: string }) => {
+            toast(`${userName} left the call`, { icon: '📞' });
+            webrtcService.removePeer(userId);
+
+            setScreenSharingUserId(prev => prev === userId ? null : prev);
+
+            setActiveCall(prev => {
+                if (!prev) return null;
+                const updated = (prev.participants || []).filter(p => p.id !== userId);
+                return {
+                    ...prev,
+                    participants: updated,
+                };
+            });
+        });
+
+        // 6. Participant Declined (Invited user declined, call continues for others)
+        socket.on('participant_declined', ({ userName, reason }: { userId: number; userName: string; reason?: string }) => {
+            toast(`${userName} is unavailable (${reason || 'busy'})`, { icon: 'ℹ️' });
+        });
+
+        // 7. Call Rejected (1:1 call declined by receiver)
         socket.on('call_rejected', ({ reason }) => {
             toast.error(reason || 'Call declined');
             cleanupCall();
         });
 
-        // 5. Call Cancelled by caller
+        // 8. Call Cancelled by caller
         socket.on('call_cancelled', () => {
             setIncomingCall(null);
             toast('Call cancelled by caller', { icon: '📞' });
         });
 
-        // 6. Call Ended
-        socket.on('call_ended', () => {
+        // 9. Call Ended globally (host ended for everyone or 1:1 call completed)
+        socket.on('call_ended', (data?: { callId?: number }) => {
             toast('Call ended', { icon: '📞' });
+            if (data?.callId) {
+                setLastLeftCall(prev => prev?.callId === data.callId ? null : prev);
+            } else {
+                setLastLeftCall(null);
+            }
             cleanupCall();
         });
 
-        // 7. Call Failed
+        // 10. Call Failed
         socket.on('call_failed', ({ reason }) => {
             toast.error(reason || 'Call failed');
+            if (reason && reason.toLowerCase().includes('ended')) {
+                setLastLeftCall(null);
+            }
             cleanupCall();
         });
 
-        // 8. WebRTC Signaling Listeners
-        socket.on('webrtc_offer', async ({ offer }) => {
-            await webrtcService.handleOffer(offer);
+        // Hand Raise listener (Google Meet style)
+        socket.on('call_hand_raise', ({ userId, userName, isRaised }: { callId?: number; userId: number; userName: string; isRaised: boolean }) => {
+            setRaisedHandUserIds(prev => {
+                const next = new Set(prev);
+                if (isRaised) {
+                    next.add(userId);
+                    if (Number(userId) !== Number(user?.id)) {
+                        toast(`${userName} raised their hand`, { icon: '✋' });
+                    }
+                } else {
+                    next.delete(userId);
+                }
+                return next;
+            });
         });
 
-        socket.on('webrtc_answer', async ({ answer }) => {
-            await webrtcService.handleAnswer(answer);
-            setActiveCall(prev => prev ? { ...prev, status: 'CONNECTED' } : null);
+        // 11. WebRTC Signaling Listeners
+        socket.on('webrtc_offer', async ({ senderId, offer }: { senderId: number; offer: RTCSessionDescriptionInit }) => {
+            if (senderId) {
+                await webrtcService.handleOffer(senderId, offer);
+                setActiveCall(prev => prev ? { ...prev, status: 'CONNECTED' } : null);
+            }
         });
 
-        socket.on('webrtc_ice_candidate', async ({ candidate }) => {
-            await webrtcService.handleIceCandidate(candidate);
+        socket.on('webrtc_answer', async ({ senderId, answer }: { senderId: number; answer: RTCSessionDescriptionInit }) => {
+            if (senderId) {
+                await webrtcService.handleAnswer(senderId, answer);
+                setActiveCall(prev => prev ? { ...prev, status: 'CONNECTED' } : null);
+            }
         });
 
-        socket.on('screen_share_status', ({ isSharing }) => {
+        socket.on('webrtc_ice_candidate', async ({ senderId, candidate }: { senderId: number; candidate: RTCIceCandidateInit }) => {
+            if (senderId && candidate) {
+                await webrtcService.handleIceCandidate(senderId, candidate);
+            }
+        });
+
+        // 12. Screen share toggle notification from peers
+        socket.on('screen_share_status', ({ senderId, isSharing }: { senderId: number; isSharing: boolean }) => {
             if (isSharing) {
-                toast('Remote user started sharing screen', { icon: '🖥️' });
+                setScreenSharingUserId(senderId);
+                toast('A participant started sharing their screen', { icon: '🖥️' });
+            } else {
+                setScreenSharingUserId(prev => prev === senderId ? null : prev);
             }
         });
 
@@ -123,24 +225,40 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
             });
         });
 
-        // Setup remote stream hook
+        // Setup remote stream hooks
+        webrtcService.onRemoteStreamsChange = (streams) => {
+            setRemoteStreams(new Map(streams));
+            if (streams.size > 0) {
+                const firstStream = Array.from(streams.values())[0];
+                setRemoteStream(firstStream);
+                setActiveCall(prev => prev ? { ...prev, status: 'CONNECTED' } : null);
+            }
+        };
+
         webrtcService.onRemoteStream = (stream) => {
-            setRemoteStream(new MediaStream(stream.getTracks()));
+            setRemoteStream(stream);
             setActiveCall(prev => prev ? { ...prev, status: 'CONNECTED' } : null);
         };
 
         webrtcService.onConnectionStateChange = (state) => {
             if (state === 'connected') {
                 setActiveCall(prev => prev ? { ...prev, status: 'CONNECTED' } : null);
-            } else if (state === 'failed' || state === 'disconnected' || state === 'closed') {
-                cleanupCall();
             }
+        };
+
+        webrtcService.onScreenShareEnded = () => {
+            setIsScreenSharing(false);
+            setScreenStream(null);
+            setScreenSharingUserId(null);
         };
 
         return () => {
             socket.off('incoming_call');
             socket.off('call_ringing');
             socket.off('call_accepted');
+            socket.off('participant_joined');
+            socket.off('participant_left');
+            socket.off('participant_declined');
             socket.off('call_rejected');
             socket.off('call_cancelled');
             socket.off('call_ended');
@@ -171,24 +289,114 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         };
     }, [activeCall?.status]);
 
+    // Active speaker detection via Web Audio Analyser
+    useEffect(() => {
+        if (activeCall?.status !== 'CONNECTED') return;
+
+        let audioCtx: AudioContext | null = null;
+        let isCancelled = false;
+
+        try {
+            audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        } catch (_) {
+            return;
+        }
+
+        const analysers: { id: number; analyser: AnalyserNode; dataArray: Uint8Array<ArrayBuffer> }[] = [];
+
+        // Local analyser
+        if (localStream && !isMicMuted && user?.id) {
+            try {
+                const source = audioCtx.createMediaStreamSource(localStream);
+                const analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 256;
+                source.connect(analyser);
+                analysers.push({
+                    id: Number(user.id),
+                    analyser,
+                    dataArray: new Uint8Array(new ArrayBuffer(analyser.frequencyBinCount)),
+                });
+            } catch (_) {}
+        }
+
+        // Remote analysers
+        remoteStreams.forEach((stream, pId) => {
+            try {
+                if (stream.getAudioTracks().length > 0 && audioCtx) {
+                    const source = audioCtx.createMediaStreamSource(stream);
+                    const analyser = audioCtx.createAnalyser();
+                    analyser.fftSize = 256;
+                    source.connect(analyser);
+                    analysers.push({
+                        id: pId,
+                        analyser,
+                        dataArray: new Uint8Array(new ArrayBuffer(analyser.frequencyBinCount)),
+                    });
+                }
+            } catch (_) {}
+        });
+
+        const checkSpeaker = () => {
+            if (isCancelled) return;
+
+            let highestVol = 0;
+            let currentSpeaker: number | null = null;
+
+            analysers.forEach(({ id, analyser, dataArray }) => {
+                analyser.getByteFrequencyData(dataArray);
+                let sum = 0;
+                for (let i = 0; i < dataArray.length; i++) {
+                    sum += dataArray[i];
+                }
+                const avg = sum / dataArray.length;
+                if (avg > 18 && avg > highestVol) {
+                    highestVol = avg;
+                    currentSpeaker = id;
+                }
+            });
+
+            if (currentSpeaker !== null) {
+                setActiveSpeakerId(currentSpeaker);
+                if (speakerTimeoutRef.current) clearTimeout(speakerTimeoutRef.current);
+                speakerTimeoutRef.current = window.setTimeout(() => {
+                    setActiveSpeakerId(null);
+                }, 1500);
+            }
+        };
+
+        const interval = window.setInterval(checkSpeaker, 300);
+
+        return () => {
+            isCancelled = true;
+            clearInterval(interval);
+            if (speakerTimeoutRef.current) clearTimeout(speakerTimeoutRef.current);
+            if (audioCtx) audioCtx.close().catch(() => {});
+        };
+    }, [activeCall?.status, localStream, remoteStreams, isMicMuted, user?.id]);
+
     const cleanupCall = () => {
         webrtcService.cleanup();
         setIncomingCall(null);
         setActiveCall(null);
         setLocalStream(null);
         setRemoteStream(null);
+        setRemoteStreams(new Map());
+        setScreenStream(null);
+        setScreenSharingUserId(null);
+        setActiveSpeakerId(null);
         setIsMicMuted(false);
         setIsCameraOff(false);
         setIsScreenSharing(false);
         setIsMinimized(false);
         setInCallMessages([]);
+        setRaisedHandUserIds(new Set());
         if (callTimerRef.current) {
             clearInterval(callTimerRef.current);
             callTimerRef.current = null;
         }
     };
 
-    // Caller initiates call (1-on-1)
+    // Caller initiates 1-on-1 call
     const startCall = async (
         targetUserId: number,
         targetUserName: string,
@@ -234,7 +442,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     const startGroupCall = async (
         groupTitle: string,
         participants: CallParticipant[],
-        callType: 'VOICE' | 'VIDEO' = 'VIDEO'
+        callType: 'VOICE' | 'VIDEO' = 'VIDEO',
+        conversationId?: number
     ) => {
         try {
             const socket = getSocket();
@@ -252,6 +461,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
                 isInitiator: true,
                 status: 'RINGING',
                 isGroup: true,
+                conversationId,
                 participants,
             });
 
@@ -264,6 +474,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
                 participantIds: participants.map(p => p.id),
                 callType,
                 callerAvatar: user?.avatar || null,
+                conversationId,
             });
         } catch (err: any) {
             console.error('[Call] Start group call failed:', err);
@@ -351,6 +562,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
                 isInitiator: false,
                 status: 'CONNECTING',
                 isGroup: call.isGroup,
+                conversationId: call.conversationId,
+                participants: call.isGroup ? [{ id: call.callerId, name: call.callerName, avatar: call.callerAvatar }] : undefined,
             });
 
             const stream = await webrtcService.initializeCall(call.callerId, call.callId, call.callType);
@@ -359,6 +572,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
             socket?.emit('accept_call', {
                 callId: call.callId,
                 callerId: call.callerId,
+                isGroup: call.isGroup,
             });
         } catch (err: any) {
             console.error('[Call] Accept call failed:', err);
@@ -375,24 +589,40 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
             callId: incomingCall.callId,
             callerId: incomingCall.callerId,
             reason,
+            isGroup: incomingCall.isGroup,
         });
         setIncomingCall(null);
     };
 
-    // End active call
+    // End active call (Google Meet / WhatsApp style: group call allows leaving & rejoining)
     const endCall = () => {
         const socket = getSocket();
         if (activeCall) {
-            if (activeCall.status === 'RINGING' && activeCall.isInitiator) {
+            if (activeCall.status === 'RINGING' && activeCall.isInitiator && !activeCall.isGroup) {
                 socket?.emit('cancel_call', {
                     callId: activeCall.callId,
                     receiverId: activeCall.partnerId,
                 });
+            } else if (activeCall.isGroup) {
+                // In group call, this user leaves the call room
+                socket?.emit('leave_group_call', {
+                    callId: activeCall.callId,
+                });
+                // Save rejoin data so user can re-enter Google Meet style
+                setLastLeftCall({
+                    callId: activeCall.callId,
+                    conversationId: activeCall.conversationId,
+                    groupTitle: activeCall.partnerName,
+                    callType: activeCall.callType,
+                    participants: activeCall.participants || [],
+                });
             } else {
+                // 1:1 call end
                 socket?.emit('end_call', {
                     callId: activeCall.callId,
                     targetUserId: activeCall.partnerId,
                     duration: callDurationRef.current,
+                    isGroup: false,
                 });
             }
         }
@@ -413,11 +643,76 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         if (isScreenSharing) {
             await webrtcService.stopScreenShare();
             setIsScreenSharing(false);
+            setScreenStream(null);
+            setScreenSharingUserId(null);
         } else {
             const success = await webrtcService.startScreenShare();
             if (success) {
                 setIsScreenSharing(true);
+                setScreenStream(webrtcService.getScreenStream());
+                setScreenSharingUserId(user?.id ? Number(user.id) : null);
             }
+        }
+    };
+
+    // Toggle Raise Hand (Google Meet Style)
+    const isMyHandRaised = user?.id ? raisedHandUserIds.has(Number(user.id)) : false;
+
+    const toggleRaiseHand = () => {
+        const socket = getSocket();
+        if (!socket || !activeCall) return;
+        const nextState = !isMyHandRaised;
+        socket.emit('call_hand_raise', {
+            callId: activeCall.callId,
+            targetUserId: activeCall.partnerId,
+            isRaised: nextState,
+        });
+    };
+
+    // Rejoin Group Call (Google Meet Style)
+    const dismissRejoin = () => {
+        setLastLeftCall(null);
+    };
+
+    const rejoinGroupCall = async (callData?: RejoinCallData) => {
+        const target = callData || lastLeftCall;
+        if (!target) return;
+
+        try {
+            const socket = getSocket();
+            if (!socket || !socket.connected) {
+                toast.error('Not connected to communication server');
+                return;
+            }
+
+            setActiveCall({
+                callId: target.callId,
+                partnerId: 0,
+                partnerName: target.groupTitle,
+                partnerAvatar: null,
+                callType: target.callType,
+                isInitiator: false,
+                status: 'CONNECTED',
+                isGroup: true,
+                conversationId: target.conversationId,
+                participants: target.participants || [],
+            });
+
+            // Initialize local camera/mic stream
+            const stream = await webrtcService.initializeCall(0, target.callId, target.callType);
+            setLocalStream(stream);
+
+            // Notify backend room to re-join and alert peers to send WebRTC offer
+            socket.emit('rejoin_group_call', {
+                callId: target.callId,
+            });
+
+            setLastLeftCall(null);
+            toast.success(`Rejoined ${target.groupTitle}`);
+        } catch (err: any) {
+            console.error('[Call] Rejoin call failed:', err);
+            toast.error(err.message || 'Could not rejoin call');
+            cleanupCall();
         }
     };
 
@@ -428,11 +723,18 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
                 activeCall,
                 localStream,
                 remoteStream,
+                remoteStreams,
+                screenStream,
+                screenSharingUserId,
+                activeSpeakerId,
                 isMicMuted,
                 isCameraOff,
                 isScreenSharing,
                 isMinimized,
                 inCallMessages,
+                isMyHandRaised,
+                raisedHandUserIds,
+                lastLeftCall,
                 startCall,
                 startGroupCall,
                 inviteToCall,
@@ -443,12 +745,15 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
                 toggleMic,
                 toggleCamera,
                 toggleScreenShare,
+                toggleRaiseHand,
                 setIsMinimized,
+                rejoinGroupCall,
+                dismissRejoin,
             }}
         >
             {children}
 
-            {/* Global Incoming Call Popup */}
+            {/* Global Incoming Call Modal */}
             {incomingCall && (
                 <IncomingCallModal
                     call={incomingCall}
@@ -457,18 +762,57 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
                 />
             )}
 
-            {/* Global Active Call Window */}
+            {/* Global Active Call Window (1-on-1 or Group) */}
             {activeCall && (
                 <ActiveCallWindow />
+            )}
+
+            {/* Google Meet Style "You left the meeting" Rejoin Prompt */}
+            {lastLeftCall && !activeCall && (
+                <div className="fixed bottom-6 right-6 z-[999999] max-w-sm w-full bg-[#121620] border border-white/15 rounded-[6px] shadow-2xl p-4 text-white animate-fade-in">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                        <div className="flex items-center gap-2.5">
+                            <div className="w-9 h-9 rounded-[6px] bg-blue-600/20 text-blue-400 flex items-center justify-center font-bold">
+                                {lastLeftCall.callType === 'VIDEO' ? <Video size={18} /> : <Phone size={18} />}
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-bold text-white">You left the meeting</h4>
+                                <p className="text-[11px] text-gray-400 truncate max-w-[190px]">{lastLeftCall.groupTitle}</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={dismissRejoin}
+                            className="text-gray-400 hover:text-white p-1 rounded transition-colors cursor-pointer"
+                            title="Dismiss"
+                        >
+                            <X size={15} />
+                        </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => rejoinGroupCall()}
+                            className="flex-1 py-2 bg-[#2C4FD6] hover:bg-blue-600 text-white font-semibold text-xs rounded-[6px] transition-all flex items-center justify-center gap-1.5 shadow-md shadow-blue-600/20 active:scale-95 cursor-pointer"
+                        >
+                            {lastLeftCall.callType === 'VIDEO' ? <Video size={14} /> : <Phone size={14} />}
+                            Rejoin Call
+                        </button>
+                        <button
+                            onClick={dismissRejoin}
+                            className="px-3 py-2 bg-white/10 hover:bg-white/15 text-gray-300 font-semibold text-xs rounded-[6px] transition-all cursor-pointer"
+                        >
+                            Dismiss
+                        </button>
+                    </div>
+                </div>
             )}
         </CallContext.Provider>
     );
 }
 
-export const useCall = () => {
+export function useCall() {
     const context = useContext(CallContext);
     if (!context) {
         throw new Error('useCall must be used within a CallProvider');
     }
     return context;
-};
+}
