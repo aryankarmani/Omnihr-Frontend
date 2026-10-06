@@ -315,10 +315,15 @@ export default function ChatHub() {
         }
     };
 
-    const scrollToBottom = () => {
+    const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
         setTimeout(() => {
-            messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
+            if (messageContainerRef.current) {
+                messageContainerRef.current.scrollTo({
+                    top: messageContainerRef.current.scrollHeight,
+                    behavior,
+                });
+            }
+        }, 80);
     };
 
     // 4. Typing Indicator Handlers
@@ -534,7 +539,7 @@ export default function ChatHub() {
     }
 
     return (
-        <div className="flex h-[calc(100vh-100px)] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] overflow-hidden shadow-sm animate-fade-in relative">
+        <div className="flex flex-1 h-full max-h-full min-h-0 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] overflow-hidden shadow-sm animate-fade-in relative">
             {/* 1. LEFT PANE: Groups & Direct Chats Sidebar */}
             <div className={`w-full sm:w-80 border-r border-[#E2E6ED] dark:border-gray-800 flex-col bg-[#F7F8FA] dark:bg-[#0E1118] shrink-0 ${mobileView === 'CHAT' ? 'hidden sm:flex' : 'flex'}`}>
                 {/* Search & New Action Header */}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import PunchInPromptModal from './PunchInPromptModal';
@@ -15,6 +16,8 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
     const { logout } = useAuth();
+    const location = useLocation();
+    const isChatRoute = location.pathname.startsWith('/chat');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
         return localStorage.getItem('omnihr_sidebar_collapsed') === 'true';
@@ -90,27 +93,29 @@ export default function Layout({ children }: LayoutProps) {
                 {/* Header with toggle callback */}
                 <Header onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
 
-                <div className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 py-4 sm:py-6 pb-6 flex flex-col justify-between">
-                    <div className="w-full flex-1">
+                <div className={`flex-1 ${isChatRoute ? 'overflow-hidden p-3 sm:p-4 pb-3 flex flex-col min-h-0' : 'overflow-y-auto px-4 sm:px-6 md:px-8 py-4 sm:py-6 pb-6 flex flex-col justify-between'}`}>
+                    <div className={`w-full ${isChatRoute ? 'h-full flex-1 min-h-0 flex flex-col' : 'flex-1'}`}>
                         {children}
                     </div>
 
                     {/* Footer with BlockCoders reference */}
-                    <footer className="mt-8 pt-4 border-t border-gray-200/60 dark:border-gray-800/60 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-400 dark:text-gray-500 font-medium">
-                        <span>© {new Date().getFullYear()} OmniHR.</span>
-                        <span>
-                            Developed &amp; Operated by{' '}
-                            <a
-                                href="https://theblockcoders.co"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-gray-700 dark:text-gray-300 font-semibold hover:text-[#2C4FD6] dark:hover:text-[#2C4FD6] underline underline-offset-2 transition-colors cursor-pointer"
-                            >
-                                BlockCoders
-                            </a>
-                            . All rights reserved.
-                        </span>
-                    </footer>
+                    {!isChatRoute && (
+                        <footer className="mt-8 pt-4 border-t border-gray-200/60 dark:border-gray-800/60 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-400 dark:text-gray-500 font-medium">
+                            <span>© {new Date().getFullYear()} OmniHR.</span>
+                            <span>
+                                Developed &amp; Operated by{' '}
+                                <a
+                                    href="https://theblockcoders.co"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-gray-700 dark:text-gray-300 font-semibold hover:text-[#2C4FD6] dark:hover:text-[#2C4FD6] underline underline-offset-2 transition-colors cursor-pointer"
+                                >
+                                    BlockCoders
+                                </a>
+                                . All rights reserved.
+                            </span>
+                        </footer>
+                    )}
                 </div>
                 {/* <ChatWidget /> */}
             </main>

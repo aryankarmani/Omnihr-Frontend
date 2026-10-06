@@ -107,6 +107,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
         'ATTENDANCE',
         'LEAVE',
         'MY_PROFILE',
+        'CHAT',
     ];
 
     const adminDefaultModules = [
@@ -120,6 +121,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
         'LOG',
         'MY_PROFILE',
         'EMPLOYEE_ATTENDANCE',
+        'CHAT',
     ];
 
     // Strictly prioritize accessibleModules saved in database. Only fallback to defaults if not defined.
@@ -131,7 +133,6 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
     // Normalize LOG and TASK keys so both work identically
     if (userModules.includes('TASK') && !userModules.includes('LOG')) userModules.push('LOG');
     if (userModules.includes('LOG') && !userModules.includes('TASK')) userModules.push('TASK');
-    if (!userModules.includes('CHAT')) userModules.push('CHAT');
 
     // If employee is team manager, grant team management modules if allowed
     if (managerAccess.isTeamManager) {

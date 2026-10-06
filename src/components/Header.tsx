@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { Search, Bell, Menu, User, LayoutGrid, Calendar, Users, FileText, Settings, Sun, Moon } from 'lucide-react';
+import { Search, Bell, Menu, User, LayoutGrid, Calendar, Users, FileText, Settings, Sun, Moon, MessageSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import api, { getMediaUrl } from '../utils/api';
@@ -73,6 +73,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
         { name: 'Leave', path: '/leave', icon: <FileText size={16} />, module: 'LEAVE', state: { activeTab: 'MY_LEAVE' } },
         { name: 'My Profile', path: '/profile', icon: <User size={16} />, module: 'MY_PROFILE' },
         { name: 'Team', path: '/team', icon: <Users size={16} />, module: 'TEAM' },
+        { name: 'Chat', path: '/chat', icon: <MessageSquare size={16} />, module: 'CHAT' },
         { name: 'Reports', path: '/reports', icon: <FileText size={16} />, module: 'REPORTS' },
         { name: 'Masters', path: '/masters', icon: <Settings size={16} />, module: 'MASTERS' },
         { name: 'Organization Master', path: '/masters/org', icon: <Settings size={16} />, module: 'MASTERS' },
@@ -88,8 +89,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
     ];
 
 
-    const adminDefaultModules = ['DASHBOARD', 'ATTENDANCE', 'EMPLOYEE', 'EMPLOYEE_ATTENDANCE', 'TEAM', 'LEAVE', 'REPORTS', 'MASTERS', 'LOG', 'MY_PROFILE'];
-    const employeeDefaultModules = ['DASHBOARD', 'ATTENDANCE', 'LEAVE', 'MY_PROFILE'];
+    const adminDefaultModules = ['DASHBOARD', 'ATTENDANCE', 'EMPLOYEE', 'EMPLOYEE_ATTENDANCE', 'TEAM', 'CHAT', 'LEAVE', 'REPORTS', 'MASTERS', 'LOG', 'MY_PROFILE'];
+    const employeeDefaultModules = ['DASHBOARD', 'ATTENDANCE', 'LEAVE', 'MY_PROFILE', 'CHAT'];
     const hasCustomModules = Array.isArray(user?.accessibleModules) && user.accessibleModules.length > 0;
 
     let userModules: string[] = hasCustomModules

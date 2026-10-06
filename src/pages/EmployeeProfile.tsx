@@ -1479,7 +1479,7 @@ export default function EmployeeProfile() {
                                             </>
                                         ) : (
                                             <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
-                                                {(statutory as any).uan && (statutory as any).uan !== 'Not Provided' ? (statutory as any).uan : 'Not Provided'}
+                                                {(statutory as any).uan && (statutory as any).uan !== 'Not Provided' ? (statutory as any).uan : '-'}
                                             </div>
                                         )}
                                     </div>
@@ -1498,7 +1498,7 @@ export default function EmployeeProfile() {
                                             </>
                                         ) : (
                                             <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
-                                                {(statutory as any).pfNumber && (statutory as any).pfNumber !== 'Not Provided' ? (statutory as any).pfNumber : 'Not Provided'}
+                                                {(statutory as any).pfNumber && (statutory as any).pfNumber !== 'Not Provided' ? (statutory as any).pfNumber : '-'}
                                             </div>
                                         )}
                                     </div>
@@ -1517,7 +1517,7 @@ export default function EmployeeProfile() {
                                             </>
                                         ) : (
                                             <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
-                                                {(statutory as any).esic && (statutory as any).esic !== 'Not Provided' ? (statutory as any).esic : 'Not Provided'}
+                                                {(statutory as any).esic && (statutory as any).esic !== 'Not Provided' ? (statutory as any).esic : '-'}
                                             </div>
                                         )}
                                     </div>
@@ -1536,7 +1536,7 @@ export default function EmployeeProfile() {
                                             </>
                                         ) : (
                                             <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
-                                                {(statutory as any).pan && (statutory as any).pan !== 'Not Provided' ? (statutory as any).pan : 'Not Provided'}
+                                                {(statutory as any).pan && (statutory as any).pan !== 'Not Provided' ? (statutory as any).pan : '-'}
                                             </div>
                                         )}
                                     </div>
@@ -1559,7 +1559,7 @@ export default function EmployeeProfile() {
                                                     ? ((statutory as any).aadhaar.length === 12
                                                         ? (statutory as any).aadhaar.replace(/(\d{4})(\d{4})(\d{4})/, '$1 $2 $3')
                                                         : (statutory as any).aadhaar)
-                                                    : 'Not Provided'}
+                                                    : '-'}
                                             </div>
                                         )}
                                     </div>
@@ -1587,7 +1587,7 @@ export default function EmployeeProfile() {
                                             </>
                                         ) : (
                                             <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
-                                                {bank.bankName && bank.bankName !== 'Not Provided' ? bank.bankName : 'Not Provided'}
+                                                {bank.bankName && bank.bankName !== 'Not Provided' ? bank.bankName : '-'}
                                             </div>
                                         )}
                                     </div>
@@ -1606,7 +1606,7 @@ export default function EmployeeProfile() {
                                             </>
                                         ) : (
                                             <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
-                                                {bank.ifsc && bank.ifsc !== 'Not Provided' ? bank.ifsc : 'Not Provided'}
+                                                {bank.ifsc && bank.ifsc !== 'Not Provided' ? bank.ifsc : '-'}
                                             </div>
                                         )}
                                     </div>
@@ -1627,7 +1627,7 @@ export default function EmployeeProfile() {
                                             <div className="val bg-[#EEF1F5] dark:bg-gray-800/50 rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium text-[#12151C] dark:text-white font-mono">
                                                 {bank.accountNumber && bank.accountNumber !== 'Not Provided'
                                                     ? (bank.accountNumber.length > 4 ? `XXXX${bank.accountNumber.slice(-4)}` : bank.accountNumber)
-                                                    : 'Not Provided'}
+                                                    : '-'}
                                             </div>
                                         )}
                                     </div>

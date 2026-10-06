@@ -56,9 +56,25 @@ const PageLoader = () => (
 
 
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuth();
-  return isAuthenticated ? <Layout>{children}</Layout> : <Navigate to="/signin" replace />;
+function ProtectedRoute({ children, module }: { children: React.ReactNode; module?: string }) {
+  const { isAuthenticated, user } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/signin" replace />;
+
+  if (module) {
+    const isHrAdmin = user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN' || user?.role === 'SUPER_ADMIN';
+    const adminDefaultModules = ['DASHBOARD', 'ATTENDANCE', 'EMPLOYEE', 'EMPLOYEE_ATTENDANCE', 'TEAM', 'LEAVE', 'REPORTS', 'MASTERS', 'LOG', 'MY_PROFILE', 'CHAT'];
+    const employeeDefaultModules = ['DASHBOARD', 'ATTENDANCE', 'LEAVE', 'MY_PROFILE', 'CHAT'];
+    const hasCustomModules = Array.isArray(user?.accessibleModules) && user.accessibleModules.length > 0;
+    const userModules = hasCustomModules
+      ? user!.accessibleModules!
+      : (isHrAdmin ? adminDefaultModules : employeeDefaultModules);
+
+    if (!userModules.includes(module) && !isHrAdmin) {
+      return <Navigate to="/dashboard" replace />;
+    }
+  }
+
+  return <Layout>{children}</Layout>;
 }
 
 function AppContent() {
@@ -125,7 +141,7 @@ function AppContent() {
                   <Route path="/profile" element={<ProtectedRoute><EmployeeProfile /></ProtectedRoute>} />
                   <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
                   <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
-                  <Route path="/chat" element={<ProtectedRoute><ChatHub /></ProtectedRoute>} />
+                  <Route path="/chat" element={<ProtectedRoute module="CHAT"><ChatHub /></ProtectedRoute>} />
                   <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
                   <Route path="/leave-today" element={<ProtectedRoute><LeaveToday /></ProtectedRoute>} />
                   <Route path="/new-joiners" element={<ProtectedRoute><NewJoiners /></ProtectedRoute>} />
