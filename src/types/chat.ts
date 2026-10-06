@@ -103,12 +103,28 @@ export interface CallRecord {
     }[];
 }
 
+export interface InCallMessage {
+    id: string;
+    senderId: number;
+    senderName: string;
+    senderAvatar?: string | null;
+    text: string;
+    time: string;
+}
+
+export interface CallParticipant {
+    id: number;
+    name: string;
+    avatar?: string | null;
+}
+
 export interface IncomingCallData {
     callId: number;
     callerId: number;
     callerName: string;
     callerAvatar?: string | null;
     callType: 'VOICE' | 'VIDEO';
+    isGroup?: boolean;
 }
 
 export interface ActiveCallState {
@@ -119,4 +135,6 @@ export interface ActiveCallState {
     callType: 'VOICE' | 'VIDEO';
     isInitiator: boolean;
     status: 'RINGING' | 'CONNECTING' | 'CONNECTED' | 'ENDED';
+    isGroup?: boolean;
+    participants?: CallParticipant[];
 }

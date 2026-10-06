@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { useAuth } from './AuthContext';
 import { initSocketClient, getSocket } from '../services/socket';
 import { webrtcService } from '../services/webrtc';
-import type { IncomingCallData, ActiveCallState } from '../types/chat';
+import type { IncomingCallData, ActiveCallState, InCallMessage, CallParticipant } from '../types/chat';
 import IncomingCallModal from '../components/chat/calling/IncomingCallModal';
 import ActiveCallWindow from '../components/chat/calling/ActiveCallWindow';
 import toast from 'react-hot-toast';
@@ -16,7 +16,11 @@ interface CallContextType {
     isCameraOff: boolean;
     isScreenSharing: boolean;
     isMinimized: boolean;
+    inCallMessages: InCallMessage[];
     startCall: (targetUserId: number, targetUserName: string, targetUserAvatar?: string | null, callType?: 'VOICE' | 'VIDEO') => Promise<void>;
+    startGroupCall: (groupTitle: string, participants: CallParticipant[], callType?: 'VOICE' | 'VIDEO') => Promise<void>;
+    inviteToCall: (targetUserId: number, targetUserName: string, targetUserAvatar?: string | null) => Promise<void>;
+    sendInCallMessage: (text: string) => void;
     acceptCall: () => Promise<void>;
     rejectCall: (reason?: string) => void;
     endCall: () => void;
@@ -38,6 +42,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     const [isCameraOff, setIsCameraOff] = useState(false);
     const [isScreenSharing, setIsScreenSharing] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
+    const [inCallMessages, setInCallMessages] = useState<InCallMessage[]>([]);
 
     const callTimerRef = useRef<number | null>(null);
     const callDurationRef = useRef<number>(0);
@@ -110,6 +115,14 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
             }
         });
 
+        // In-call chat message
+        socket.on('call_chat_message', (msg: InCallMessage) => {
+            setInCallMessages(prev => {
+                if (prev.some(m => m.id === msg.id)) return prev;
+                return [...prev, msg];
+            });
+        });
+
         // Setup remote stream hook
         webrtcService.onRemoteStream = (stream) => {
             setRemoteStream(new MediaStream(stream.getTracks()));
@@ -136,6 +149,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
             socket.off('webrtc_answer');
             socket.off('webrtc_ice_candidate');
             socket.off('screen_share_status');
+            socket.off('call_chat_message');
         };
     }, [isAuthenticated, user?.id]);
 
@@ -167,13 +181,14 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         setIsCameraOff(false);
         setIsScreenSharing(false);
         setIsMinimized(false);
+        setInCallMessages([]);
         if (callTimerRef.current) {
             clearInterval(callTimerRef.current);
             callTimerRef.current = null;
         }
     };
 
-    // Caller initiates call
+    // Caller initiates call (1-on-1)
     const startCall = async (
         targetUserId: number,
         targetUserName: string,
@@ -195,6 +210,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
                 callType,
                 isInitiator: true,
                 status: 'RINGING',
+                isGroup: false,
+                participants: [{ id: targetUserId, name: targetUserName, avatar: targetUserAvatar || null }],
             });
 
             const stream = await webrtcService.initializeCall(targetUserId, 0, callType);
@@ -211,6 +228,109 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
             toast.error(err.message || 'Could not access camera/microphone');
             cleanupCall();
         }
+    };
+
+    // Group call initiation
+    const startGroupCall = async (
+        groupTitle: string,
+        participants: CallParticipant[],
+        callType: 'VOICE' | 'VIDEO' = 'VIDEO'
+    ) => {
+        try {
+            const socket = getSocket();
+            if (!socket || !socket.connected) {
+                toast.error('Not connected to communication server');
+                return;
+            }
+
+            setActiveCall({
+                callId: 0,
+                partnerId: 0,
+                partnerName: groupTitle,
+                partnerAvatar: null,
+                callType,
+                isInitiator: true,
+                status: 'RINGING',
+                isGroup: true,
+                participants,
+            });
+
+            // Initialize local stream
+            const stream = await webrtcService.initializeCall(0, 0, callType);
+            setLocalStream(stream);
+
+            socket.emit('group_call_user', {
+                groupTitle,
+                participantIds: participants.map(p => p.id),
+                callType,
+                callerAvatar: user?.avatar || null,
+            });
+        } catch (err: any) {
+            console.error('[Call] Start group call failed:', err);
+            toast.error(err.message || 'Could not access camera/microphone');
+            cleanupCall();
+        }
+    };
+
+    // Invite user to active call
+    const inviteToCall = async (
+        targetUserId: number,
+        targetUserName: string,
+        targetUserAvatar?: string | null
+    ) => {
+        try {
+            const socket = getSocket();
+            if (!socket || !socket.connected) {
+                toast.error('Not connected to communication server');
+                return;
+            }
+
+            socket.emit('invite_to_call', {
+                callId: activeCall?.callId || 0,
+                targetUserId,
+                callType: activeCall?.callType || 'VIDEO',
+                callerAvatar: user?.avatar || null,
+                callTitle: activeCall?.isGroup ? activeCall.partnerName : undefined,
+            });
+
+            // Update participant list in active call
+            setActiveCall(prev => {
+                if (!prev) return null;
+                const existing = prev.participants || [];
+                if (existing.some(p => p.id === targetUserId)) return prev;
+                return {
+                    ...prev,
+                    isGroup: true,
+                    participants: [...existing, { id: targetUserId, name: targetUserName, avatar: targetUserAvatar || null }],
+                };
+            });
+
+            toast.success(`Invited ${targetUserName} to call`);
+        } catch (err: any) {
+            console.error('[Call] Invite to call error:', err);
+            toast.error('Failed to invite user');
+        }
+    };
+
+    // Send in-call chat message
+    const sendInCallMessage = (text: string) => {
+        if (!text.trim() || !activeCall) return;
+        const socket = getSocket();
+        if (!socket || !socket.connected) {
+            toast.error('Chat not connected');
+            return;
+        }
+
+        const targetUserIds = activeCall.isGroup
+            ? (activeCall.participants || []).map(p => p.id)
+            : [activeCall.partnerId];
+
+        socket.emit('call_chat_message', {
+            targetUserIds,
+            text: text.trim(),
+            senderName: user?.name,
+            senderAvatar: user?.avatar || null,
+        });
     };
 
     // Receiver accepts incoming call
@@ -230,6 +350,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
                 callType: call.callType,
                 isInitiator: false,
                 status: 'CONNECTING',
+                isGroup: call.isGroup,
             });
 
             const stream = await webrtcService.initializeCall(call.callerId, call.callId, call.callType);
@@ -311,7 +432,11 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
                 isCameraOff,
                 isScreenSharing,
                 isMinimized,
+                inCallMessages,
                 startCall,
+                startGroupCall,
+                inviteToCall,
+                sendInCallMessage,
                 acceptCall,
                 rejectCall,
                 endCall,
