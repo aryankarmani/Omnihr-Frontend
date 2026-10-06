@@ -45,8 +45,11 @@ export default function IncomingCallModal({ call, onAccept, onReject }: Incoming
     }, []);
 
     return createPortal(
-        <div className="fixed inset-0 z-[9999999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-fade-in">
-            <div className="bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8 max-w-sm w-full text-center relative overflow-hidden">
+        <div className="fixed inset-0 z-[9999999] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-slate-900/30 dark:bg-black/60 backdrop-blur-md animate-fade-in" />
+
+            <div className="relative bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] shadow-2xl p-6 sm:p-8 max-w-sm w-full text-center overflow-hidden">
                 {/* Ambient glow */}
                 <div className="absolute -top-12 -left-12 w-32 h-32 bg-blue-500/15 rounded-full blur-2xl pointer-events-none" />
                 <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-indigo-500/15 rounded-full blur-2xl pointer-events-none" />

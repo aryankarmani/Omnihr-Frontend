@@ -107,8 +107,13 @@ export default function CreateTeamChannelModal({
     };
 
     return createPortal(
-        <div className="fixed inset-0 z-[999999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-scale-in">
+        <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <div
+                className="absolute inset-0 bg-slate-900/30 dark:bg-black/60 backdrop-blur-md animate-fade-in"
+                onClick={onClose}
+            />
+            <div className="relative bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] shadow-2xl w-full max-w-lg overflow-hidden animate-scale-in">
                 {/* Header */}
                 <div className="p-5 border-b border-[#E2E6ED] dark:border-gray-800 flex items-center justify-between bg-[#F7F8FA] dark:bg-white/5">
                     <h3 className="text-base font-bold text-[#12151C] dark:text-white">
@@ -165,7 +170,7 @@ export default function CreateTeamChannelModal({
                                         if (titleError) setTitleError('');
                                     }}
                                     placeholder="e.g. Engineering Team, Design Sprint, Project Alpha"
-                                    className={`w-full px-3 py-2 bg-white dark:bg-[#1A1F2B] border rounded-lg text-sm text-[#12151C] dark:text-white outline-none transition-all ${
+                                    className={`w-full px-3 py-2 bg-white dark:bg-[#1A1F2B] border rounded-[6px] text-sm text-[#12151C] dark:text-white outline-none transition-all ${
                                         titleError
                                             ? 'border-rose-500 focus:border-rose-500 ring-1 ring-rose-500/20'
                                             : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
@@ -191,10 +196,10 @@ export default function CreateTeamChannelModal({
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                         placeholder="Search members..."
-                                        className="w-full pl-8 pr-3 py-1.5 bg-white dark:bg-[#1A1F2B] border border-[#E2E6ED] dark:border-gray-700 rounded-lg text-xs text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
+                                        className="w-full pl-8 pr-3 py-1.5 bg-white dark:bg-[#1A1F2B] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-xs text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
                                     />
                                 </div>
-                                <div className="border border-[#E2E6ED] dark:border-gray-800 rounded-lg max-h-52 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
+                                <div className="border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] max-h-52 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
                                     {filteredEmployees.length === 0 ? (
                                         <div className="p-4 text-center text-xs text-gray-400">No members found</div>
                                     ) : (
@@ -213,6 +218,7 @@ export default function CreateTeamChannelModal({
                                                                 <img
                                                                     src={avatar}
                                                                     alt={emp.name}
+                                                                    loading="lazy"
                                                                     className="w-full h-full object-cover"
                                                                     onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
                                                                 />
@@ -225,7 +231,7 @@ export default function CreateTeamChannelModal({
                                                             <span className="text-[10px] text-gray-400">{emp.employeeProfile?.title || emp.email}</span>
                                                         </div>
                                                     </div>
-                                                    <div className={`w-4 h-4 rounded border flex items-center justify-center ${isChecked ? 'bg-[#2C4FD6] border-[#2C4FD6] text-white' : 'border-gray-300 dark:border-gray-600'}`}>
+                                                    <div className={`w-4 h-4 rounded-[4px] border flex items-center justify-center ${isChecked ? 'bg-[#2C4FD6] border-[#2C4FD6] text-white' : 'border-gray-300 dark:border-gray-600'}`}>
                                                         {isChecked && <Check size={10} />}
                                                     </div>
                                                 </div>
@@ -238,7 +244,7 @@ export default function CreateTeamChannelModal({
                             <button
                                 type="submit"
                                 disabled={loading || groupMembers.length === 0}
-                                className="w-full py-2.5 rounded-lg bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold text-xs transition-all cursor-pointer disabled:opacity-50 mt-2"
+                                className="w-full py-2.5 rounded-[6px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold text-xs transition-all cursor-pointer disabled:opacity-50 mt-2"
                             >
                                 {loading ? 'Creating Group...' : 'Create Group Chat'}
                             </button>
@@ -255,11 +261,11 @@ export default function CreateTeamChannelModal({
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     placeholder="Search colleague by name or email..."
-                                    className="w-full pl-9 pr-3 py-2 bg-white dark:bg-[#1A1F2B] border border-[#E2E6ED] dark:border-gray-700 rounded-lg text-sm text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
+                                    className="w-full pl-9 pr-3 py-2 bg-white dark:bg-[#1A1F2B] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-sm text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
                                 />
                             </div>
 
-                            <div className="border border-[#E2E6ED] dark:border-gray-800 rounded-lg max-h-64 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
+                            <div className="border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] max-h-64 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
                                 {filteredEmployees.length === 0 ? (
                                     <div className="p-6 text-center text-xs text-gray-400">No employees found</div>
                                 ) : (

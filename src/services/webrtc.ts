@@ -11,26 +11,45 @@ const RTC_CONFIG: RTCConfiguration = {
 };
 
 export class WebRTCService {
-    private peerConnection: RTCPeerConnection | null = null;
-    private localStream: MediaStream | null = null;
-    private remoteStream: MediaStream | null = null;
-    private screenStream: MediaStream | null = null;
-    private targetUserId: number | null = null;
-    private callId: number | null = null;
-    private iceCandidatesQueue: RTCIceCandidateInit[] = [];
+    // Multi-peer map for group & 1:1 calling
+    private peers: Map<number, RTCPeerConnection> = new Map();
+    private remoteStreams: Map<number, MediaStream> = new Map();
+    private iceCandidatesQueues: Map<number, RTCIceCandidateInit[]> = new Map();
 
-    public onRemoteStream?: (stream: MediaStream) => void;
-    public onConnectionStateChange?: (state: RTCPeerConnectionState) => void;
+    private localStream: MediaStream | null = null;
+    private screenStream: MediaStream | null = null;
+    private defaultTargetUserId: number | null = null;
+    private callId: number | null = null;
+
+    // Callbacks
+    public onRemoteStream?: (stream: MediaStream, userId?: number) => void;
+    public onRemoteStreamsChange?: (streams: Map<number, MediaStream>) => void;
+    public onConnectionStateChange?: (state: RTCPeerConnectionState, userId?: number) => void;
+    public onParticipantDisconnected?: (userId: number) => void;
+    public onScreenShareEnded?: () => void;
 
     constructor() {}
+
+    public getLocalStream(): MediaStream | null {
+        return this.localStream;
+    }
+
+    public getScreenStream(): MediaStream | null {
+        return this.screenStream;
+    }
+
+    public getRemoteStreams(): Map<number, MediaStream> {
+        return new Map(this.remoteStreams);
+    }
 
     public async initializeCall(
         targetUserId: number,
         callId: number,
         callType: 'VOICE' | 'VIDEO'
     ): Promise<MediaStream> {
-        this.targetUserId = targetUserId;
-        this.callId = callId;
+        this.cleanup();
+        this.defaultTargetUserId = targetUserId > 0 ? targetUserId : null;
+        this.callId = callId > 0 ? callId : null;
 
         // 1. Get user media (microphone + optional camera)
         this.localStream = await navigator.mediaDevices.getUserMedia({
@@ -38,121 +57,193 @@ export class WebRTCService {
             video: callType === 'VIDEO' ? { width: { ideal: 1280 }, height: { ideal: 720 } } : false
         });
 
-        // 2. Setup RTCPeerConnection
-        this.setupPeerConnection();
-
-        // 3. Add local tracks to peer connection
-        this.localStream.getTracks().forEach((track) => {
-            if (this.peerConnection && this.localStream) {
-                this.peerConnection.addTrack(track, this.localStream);
-            }
-        });
+        // 2. In 1:1 call, pre-create the peer connection
+        if (targetUserId > 0) {
+            this.getOrCreatePeer(targetUserId);
+        }
 
         return this.localStream;
     }
 
-    private setupPeerConnection() {
-        this.peerConnection = new RTCPeerConnection(RTC_CONFIG);
-        this.remoteStream = new MediaStream();
+    public getOrCreatePeer(remoteUserId: number): RTCPeerConnection {
+        if (this.peers.has(remoteUserId)) {
+            return this.peers.get(remoteUserId)!;
+        }
 
-        // Remote track received
-        this.peerConnection.ontrack = (event) => {
-            if (event.streams && event.streams[0]) {
-                this.remoteStream = event.streams[0];
-            } else {
-                this.remoteStream?.addTrack(event.track);
+        const pc = new RTCPeerConnection(RTC_CONFIG);
+        const remoteMediaStream = new MediaStream();
+        this.remoteStreams.set(remoteUserId, remoteMediaStream);
+
+        // Add local tracks to this peer
+        if (this.localStream) {
+            this.localStream.getTracks().forEach((track) => {
+                try {
+                    pc.addTrack(track, this.localStream!);
+                } catch (e) {
+                    console.warn(`[WebRTC] Could not add track to peer ${remoteUserId}:`, e);
+                }
+            });
+        }
+
+        // Handle remote tracks
+        pc.ontrack = (event) => {
+            let stream = this.remoteStreams.get(remoteUserId);
+            if (!stream) {
+                stream = new MediaStream();
+                this.remoteStreams.set(remoteUserId, stream);
             }
-            if (this.onRemoteStream && this.remoteStream) {
-                this.onRemoteStream(this.remoteStream);
+
+            if (event.streams && event.streams[0]) {
+                this.remoteStreams.set(remoteUserId, event.streams[0]);
+                stream = event.streams[0];
+            } else {
+                stream.addTrack(event.track);
+            }
+
+            if (this.onRemoteStreamsChange) {
+                this.onRemoteStreamsChange(new Map(this.remoteStreams));
+            }
+            if (this.onRemoteStream && stream) {
+                this.onRemoteStream(stream, remoteUserId);
             }
         };
 
-        // ICE candidate generated locally -> send to peer via socket
-        this.peerConnection.onicecandidate = (event) => {
-            if (event.candidate && this.targetUserId) {
+        // ICE candidate generated locally -> send to target peer
+        pc.onicecandidate = (event) => {
+            if (event.candidate) {
                 const socket = getSocket();
                 socket?.emit('webrtc_ice_candidate', {
-                    targetUserId: this.targetUserId,
+                    targetUserId: remoteUserId,
                     candidate: event.candidate,
+                    callId: this.callId,
                 });
             }
         };
 
         // Connection state changes
-        this.peerConnection.onconnectionstatechange = () => {
-            if (this.peerConnection && this.onConnectionStateChange) {
-                this.onConnectionStateChange(this.peerConnection.connectionState);
+        pc.onconnectionstatechange = () => {
+            if (this.onConnectionStateChange) {
+                this.onConnectionStateChange(pc.connectionState, remoteUserId);
+            }
+            if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+                this.removePeer(remoteUserId);
             }
         };
+
+        this.peers.set(remoteUserId, pc);
+        return pc;
     }
 
-    // Called by the caller to create offer
-    public async createAndSendOffer(): Promise<void> {
-        if (!this.peerConnection || !this.targetUserId) return;
+    // Called to create offer to a specific peer (or default 1:1 target)
+    public async createAndSendOffer(targetUserId?: number): Promise<void> {
+        const destUserId = targetUserId || this.defaultTargetUserId;
+        if (!destUserId) return;
 
-        const offer = await this.peerConnection.createOffer({
+        const pc = this.getOrCreatePeer(destUserId);
+
+        const offer = await pc.createOffer({
             offerToReceiveAudio: true,
             offerToReceiveVideo: true,
         });
-        await this.peerConnection.setLocalDescription(offer);
+        await pc.setLocalDescription(offer);
 
         const socket = getSocket();
         socket?.emit('webrtc_offer', {
-            targetUserId: this.targetUserId,
+            targetUserId: destUserId,
             offer,
             callId: this.callId,
         });
     }
 
-    // Called by receiver when receiving offer
-    public async handleOffer(offer: RTCSessionDescriptionInit): Promise<void> {
-        if (!this.peerConnection || !this.targetUserId) return;
+    // Called by receiver when receiving offer from a sender
+    public async handleOffer(senderId: number, offer: RTCSessionDescriptionInit): Promise<void> {
+        const pc = this.getOrCreatePeer(senderId);
 
-        await this.peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+        await pc.setRemoteDescription(new RTCSessionDescription(offer));
 
-        // Process any queued candidates
-        while (this.iceCandidatesQueue.length > 0) {
-            const candidate = this.iceCandidatesQueue.shift();
+        // Process any queued candidates for this sender
+        const queue = this.iceCandidatesQueues.get(senderId) || [];
+        while (queue.length > 0) {
+            const candidate = queue.shift();
             if (candidate) {
-                await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                try {
+                    await pc.addIceCandidate(new RTCIceCandidate(candidate));
+                } catch (e) {
+                    console.warn(`[WebRTC] Error adding queued ICE candidate for ${senderId}:`, e);
+                }
             }
         }
 
-        const answer = await this.peerConnection.createAnswer();
-        await this.peerConnection.setLocalDescription(answer);
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
 
         const socket = getSocket();
         socket?.emit('webrtc_answer', {
-            targetUserId: this.targetUserId,
+            targetUserId: senderId,
             answer,
             callId: this.callId,
         });
     }
 
-    // Called by caller when receiving answer
-    public async handleAnswer(answer: RTCSessionDescriptionInit): Promise<void> {
-        if (!this.peerConnection) return;
-        await this.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+    // Called by caller when receiving answer from a sender
+    public async handleAnswer(senderId: number, answer: RTCSessionDescriptionInit): Promise<void> {
+        const pc = this.peers.get(senderId);
+        if (!pc) return;
 
-        // Process any queued candidates
-        while (this.iceCandidatesQueue.length > 0) {
-            const candidate = this.iceCandidatesQueue.shift();
+        await pc.setRemoteDescription(new RTCSessionDescription(answer));
+
+        // Process any queued candidates for this sender
+        const queue = this.iceCandidatesQueues.get(senderId) || [];
+        while (queue.length > 0) {
+            const candidate = queue.shift();
             if (candidate) {
-                await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                try {
+                    await pc.addIceCandidate(new RTCIceCandidate(candidate));
+                } catch (e) {
+                    console.warn(`[WebRTC] Error adding queued ICE candidate for ${senderId}:`, e);
+                }
             }
         }
     }
 
-    // Handle ICE Candidate
-    public async handleIceCandidate(candidate: RTCIceCandidateInit): Promise<void> {
-        if (this.peerConnection && this.peerConnection.remoteDescription) {
-            await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+    // Handle ICE Candidate from a sender
+    public async handleIceCandidate(senderId: number, candidate: RTCIceCandidateInit): Promise<void> {
+        const pc = this.peers.get(senderId);
+        if (pc && pc.remoteDescription) {
+            try {
+                await pc.addIceCandidate(new RTCIceCandidate(candidate));
+            } catch (e) {
+                console.warn(`[WebRTC] Error adding ICE candidate for ${senderId}:`, e);
+            }
         } else {
-            this.iceCandidatesQueue.push(candidate);
+            if (!this.iceCandidatesQueues.has(senderId)) {
+                this.iceCandidatesQueues.set(senderId, []);
+            }
+            this.iceCandidatesQueues.get(senderId)!.push(candidate);
         }
     }
 
-    // Toggle Microphone
+    // Remove single peer when they leave a group call
+    public removePeer(userId: number): void {
+        const pc = this.peers.get(userId);
+        if (pc) {
+            try {
+                pc.close();
+            } catch (_) {}
+            this.peers.delete(userId);
+        }
+        this.remoteStreams.delete(userId);
+        this.iceCandidatesQueues.delete(userId);
+
+        if (this.onRemoteStreamsChange) {
+            this.onRemoteStreamsChange(new Map(this.remoteStreams));
+        }
+        if (this.onParticipantDisconnected) {
+            this.onParticipantDisconnected(userId);
+        }
+    }
+
+    // Toggle Microphone across local stream
     public toggleAudio(enabled?: boolean): boolean {
         if (!this.localStream) return false;
         const audioTrack = this.localStream.getAudioTracks()[0];
@@ -163,7 +254,7 @@ export class WebRTCService {
         return false;
     }
 
-    // Toggle Camera
+    // Toggle Camera across all connected peers
     public async toggleVideo(enabled?: boolean): Promise<boolean> {
         if (!this.localStream) return false;
         let videoTrack = this.localStream.getVideoTracks()[0];
@@ -180,14 +271,14 @@ export class WebRTCService {
                 videoTrack = stream.getVideoTracks()[0];
                 this.localStream.addTrack(videoTrack);
 
-                const sender = this.peerConnection
-                    ?.getSenders()
-                    .find((s) => s.track?.kind === 'video');
-
-                if (sender) {
-                    await sender.replaceTrack(videoTrack);
-                } else if (this.peerConnection) {
-                    this.peerConnection.addTrack(videoTrack, this.localStream);
+                // Replace/add track to all active peer connections
+                for (const pc of this.peers.values()) {
+                    const sender = pc.getSenders().find((s) => s.track?.kind === 'video');
+                    if (sender) {
+                        await sender.replaceTrack(videoTrack);
+                    } else {
+                        pc.addTrack(videoTrack, this.localStream);
+                    }
                 }
                 return true;
             } catch (e) {
@@ -198,7 +289,7 @@ export class WebRTCService {
         return false;
     }
 
-    // Start Screen Share
+    // Start Screen Share across all connected peers
     public async startScreenShare(): Promise<boolean> {
         try {
             this.screenStream = await navigator.mediaDevices.getDisplayMedia({
@@ -208,23 +299,23 @@ export class WebRTCService {
 
             const screenTrack = this.screenStream.getVideoTracks()[0];
 
-            // When user clicks browser "Stop Sharing"
             screenTrack.onended = () => {
                 this.stopScreenShare();
             };
 
-            const sender = this.peerConnection
-                ?.getSenders()
-                .find((s) => s.track?.kind === 'video');
-
-            if (sender) {
-                await sender.replaceTrack(screenTrack);
+            for (const pc of this.peers.values()) {
+                const sender = pc.getSenders().find((s) => s.track?.kind === 'video');
+                if (sender) {
+                    await sender.replaceTrack(screenTrack);
+                }
             }
 
             const socket = getSocket();
-            if (this.targetUserId) {
-                socket?.emit('screen_share_status', { targetUserId: this.targetUserId, isSharing: true });
-            }
+            socket?.emit('screen_share_status', {
+                targetUserId: this.defaultTargetUserId || 0,
+                isSharing: true,
+                callId: this.callId,
+            });
 
             return true;
         } catch (e) {
@@ -233,25 +324,31 @@ export class WebRTCService {
         }
     }
 
-    // Stop Screen Share & restore camera track
+    // Stop Screen Share & restore camera track across all peers
     public async stopScreenShare(): Promise<void> {
         if (this.screenStream) {
             this.screenStream.getTracks().forEach((t) => t.stop());
             this.screenStream = null;
         }
 
-        const cameraTrack = this.localStream?.getVideoTracks()[0];
-        const sender = this.peerConnection
-            ?.getSenders()
-            .find((s) => s.track?.kind === 'video');
+        const cameraTrack = this.localStream?.getVideoTracks()[0] || null;
 
-        if (sender && cameraTrack) {
-            await sender.replaceTrack(cameraTrack);
+        for (const pc of this.peers.values()) {
+            const sender = pc.getSenders().find((s) => s.track?.kind === 'video');
+            if (sender) {
+                await sender.replaceTrack(cameraTrack);
+            }
         }
 
         const socket = getSocket();
-        if (this.targetUserId) {
-            socket?.emit('screen_share_status', { targetUserId: this.targetUserId, isSharing: false });
+        socket?.emit('screen_share_status', {
+            targetUserId: this.defaultTargetUserId || 0,
+            isSharing: false,
+            callId: this.callId,
+        });
+
+        if (this.onScreenShareEnded) {
+            this.onScreenShareEnded();
         }
     }
 
@@ -265,14 +362,22 @@ export class WebRTCService {
             this.localStream.getTracks().forEach((t) => t.stop());
             this.localStream = null;
         }
-        if (this.peerConnection) {
-            this.peerConnection.close();
-            this.peerConnection = null;
+
+        for (const pc of this.peers.values()) {
+            try {
+                pc.close();
+            } catch (_) {}
         }
-        this.remoteStream = null;
-        this.targetUserId = null;
+        this.peers.clear();
+        this.remoteStreams.clear();
+        this.iceCandidatesQueues.clear();
+
+        this.defaultTargetUserId = null;
         this.callId = null;
-        this.iceCandidatesQueue = [];
+
+        if (this.onRemoteStreamsChange) {
+            this.onRemoteStreamsChange(new Map());
+        }
     }
 }
 

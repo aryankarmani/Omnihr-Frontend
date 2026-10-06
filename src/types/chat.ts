@@ -125,6 +125,7 @@ export interface IncomingCallData {
     callerAvatar?: string | null;
     callType: 'VOICE' | 'VIDEO';
     isGroup?: boolean;
+    conversationId?: number;
 }
 
 export interface ActiveCallState {
@@ -136,5 +137,14 @@ export interface ActiveCallState {
     isInitiator: boolean;
     status: 'RINGING' | 'CONNECTING' | 'CONNECTED' | 'ENDED';
     isGroup?: boolean;
+    conversationId?: number;
+    participants?: CallParticipant[];
+}
+
+export interface RejoinCallData {
+    callId: number;
+    conversationId?: number;
+    groupTitle: string;
+    callType: 'VOICE' | 'VIDEO';
     participants?: CallParticipant[];
 }
