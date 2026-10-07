@@ -19,7 +19,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
     const [notifications, setNotifications] = useState<any[]>([]);
     const [employees, setEmployees] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
-    const { user, updateUser } = useAuth();
+    const { user, updateUser, hasPermission } = useAuth();
     const [userAvatar, setUserAvatar] = useState<string | null>(user?.avatar || (user as any)?.profilePicture || null);
     const [avatarError, setAvatarError] = useState(false);
 
@@ -46,6 +46,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
         }
     };
     const fetchEmployees = async () => {
+        if (!hasPermission('EMPLOYEE_VIEW')) return;
         try {
             const res = await api.get('/employee');
             setEmployees(res.data);
@@ -55,7 +56,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
     };
     useEffect(() => {
         fetchNotifications();
-        fetchEmployees();
+        if (hasPermission('EMPLOYEE_VIEW')) {
+            fetchEmployees();
+        }
 
         const handleNewNotification = () => {
             fetchNotifications(true);

@@ -22,14 +22,13 @@ import toast from 'react-hot-toast';
 const CreateTeamChannelModal = lazy(() => import('../../components/chat/CreateTeamChannelModal'));
 
 export default function ChatHub() {
-    const { user } = useAuth();
-    const { startCall, startGroupCall, lastLeftCall, rejoinGroupCall, dismissRejoin } = useCall();
+    const { user, hasPermission } = useAuth();
+    const { startCall, startGroupCall, lastLeftCall, rejoinGroupCall, dismissRejoin, onlineUserIds, isUserOnline } = useCall();
 
     const [loading, setLoading] = useState(true);
     const [conversations, setConversations] = useState<DirectConversation[]>([]);
     const [employees, setEmployees] = useState<EmployeeSummary[]>([]);
     const [teams, setTeams] = useState<{ id: number; name: string }[]>([]);
-    const [onlineUserIds, setOnlineUserIds] = useState<number[]>([]);
 
     // Active Selection State
     const [activeConvId, setActiveConvId] = useState<number | null>(null);
@@ -112,22 +111,14 @@ export default function ChatHub() {
 
     useEffect(() => {
         fetchBootstrapData();
+        const socket = getSocket();
+        socket?.emit('get_online_users');
     }, []);
 
     // 2. Setup Real-Time Socket Listeners
     useEffect(() => {
         const socket = getSocket();
         if (!socket) return;
-
-        socket.on('online_users_list', (ids: number[]) => {
-            setOnlineUserIds(ids);
-        });
-
-        socket.on('user_status_changed', ({ userId, status }: { userId: number; status: 'ONLINE' | 'OFFLINE' }) => {
-            setOnlineUserIds((prev) =>
-                status === 'ONLINE' ? Array.from(new Set([...prev, userId])) : prev.filter((id) => id !== userId)
-            );
-        });
 
         socket.on('new_message', (message: ChatMessage) => {
             const isCurrentConv = Number(message.conversationId) === Number(activeConvId);
@@ -201,8 +192,6 @@ export default function ChatHub() {
         });
 
         return () => {
-            socket.off('online_users_list');
-            socket.off('user_status_changed');
             socket.off('new_message');
             socket.off('new_conversation_message');
             socket.off('message_edited');
@@ -474,7 +463,7 @@ export default function ChatHub() {
 
     // Direct Partner info for 1:1 chat
     const directPartner = getConversationPartner(currentConversation);
-    const isPartnerOnline = directPartner ? onlineUserIds.includes(directPartner.id) : false;
+    const isPartnerOnline = directPartner ? isUserOnline(directPartner.id) : false;
 
     // Filtered lists for sidebar
     const filteredConversations = conversations
@@ -554,13 +543,15 @@ export default function ChatHub() {
                             className="w-full pl-8 pr-2.5 py-1.5 bg-white dark:bg-[#1A1F2B] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-xs text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
                         />
                     </div>
-                    <button
-                        onClick={() => setShowCreateModal(true)}
-                        className="p-1.5 rounded-[6px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white transition-all cursor-pointer shadow-sm shrink-0"
-                        title="New Group or Chat"
-                    >
-                        <Plus size={16} />
-                    </button>
+                    {hasPermission('CHAT_CREATE') && (
+                        <button
+                            onClick={() => setShowCreateModal(true)}
+                            className="p-1.5 rounded-[6px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white transition-all cursor-pointer shadow-sm shrink-0"
+                            title="New Group or Chat"
+                        >
+                            <Plus size={16} />
+                        </button>
+                    )}
                 </div>
 
                 {/* Sub-tabs: All | Groups | Direct */}
@@ -683,7 +674,7 @@ export default function ChatHub() {
                                     directConversations.map((cv) => {
                                         const isActive = activeConvId === cv.id;
                                         const partner = getConversationPartner(cv);
-                                        const isOnline = partner ? onlineUserIds.includes(partner.id) : false;
+                                        const isOnline = partner ? isUserOnline(partner.id) : false;
                                         const title = partner?.name || 'User';
                                         const avatar = resolveAvatar(partner);
 
@@ -839,22 +830,26 @@ export default function ChatHub() {
                     {/* Action Buttons: Voice Call, Video Call, Delete/Leave, Details */}
                     <div className="flex items-center gap-1.5">
                         {/* Voice Call Button */}
-                        <button
-                            onClick={() => handleStartCall('VOICE')}
-                            className="p-2 rounded-[6px] text-gray-500 hover:text-[#2C4FD6] hover:bg-blue-50 dark:hover:bg-white/5 transition-all cursor-pointer"
-                            title={currentConversation?.isGroup ? 'Start Group Voice Call' : 'Start Voice Call'}
-                        >
-                            <Phone size={17} />
-                        </button>
+                        {hasPermission('CHAT_CALL') && (
+                            <button
+                                onClick={() => handleStartCall('VOICE')}
+                                className="p-2 rounded-[6px] text-gray-500 hover:text-[#2C4FD6] hover:bg-blue-50 dark:hover:bg-white/5 transition-all cursor-pointer"
+                                title={currentConversation?.isGroup ? 'Start Group Voice Call' : 'Start Voice Call'}
+                            >
+                                <Phone size={17} />
+                            </button>
+                        )}
 
                         {/* Video Call Button */}
-                        <button
-                            onClick={() => handleStartCall('VIDEO')}
-                            className="p-2 rounded-[6px] text-gray-500 hover:text-[#2C4FD6] hover:bg-blue-50 dark:hover:bg-white/5 transition-all cursor-pointer"
-                            title={currentConversation?.isGroup ? 'Start Group Video Call' : 'Start Video Call'}
-                        >
-                            <Video size={17} />
-                        </button>
+                        {hasPermission('CHAT_CALL') && (
+                            <button
+                                onClick={() => handleStartCall('VIDEO')}
+                                className="p-2 rounded-[6px] text-gray-500 hover:text-[#2C4FD6] hover:bg-blue-50 dark:hover:bg-white/5 transition-all cursor-pointer"
+                                title={currentConversation?.isGroup ? 'Start Group Video Call' : 'Start Video Call'}
+                            >
+                                <Video size={17} />
+                            </button>
+                        )}
 
                         {/* Leave Group / Delete Chat Button */}
                         {currentConversation?.isGroup ? (
@@ -1342,7 +1337,7 @@ export default function ChatHub() {
                                 {currentConversation?.participants?.map((p) => {
                                     const emp = p.user;
                                     if (!emp) return null;
-                                    const isOnline = onlineUserIds.includes(emp.id);
+                                    const isOnline = isUserOnline(emp.id);
                                     const avatar = resolveAvatar(emp);
 
                                     return (

@@ -42,10 +42,10 @@ export default function PunchInPromptModal() {
                 const statusRes = await api.get('/attendance/status');
                 if (isCancelled) return;
 
-                const { isPunchedIn, punchOutTime } = statusRes.data || {};
+                const { isPunchedIn, punchOutTime, canPunchIn } = statusRes.data || {};
 
-                // If user is already punched in or has already completed shift today, do not prompt
-                if (isPunchedIn || punchOutTime) {
+                // If user is already punched in, already completed shift, or not yet in punch-in window (e.g. morning for night shift), do not prompt
+                if (isPunchedIn || punchOutTime || canPunchIn === false) {
                     return;
                 }
 

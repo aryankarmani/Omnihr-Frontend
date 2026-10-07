@@ -1,4 +1,5 @@
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 const getBaseURL = () => {
     const envUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL;
@@ -172,16 +173,28 @@ api.interceptors.response.use(
             }
         }
 
-        if (
-            error.response?.status === 403 &&
-            (error.response?.data?.code === 'SUBSCRIPTION_SUSPENDED' ||
-             error.response?.data?.code === 'COMPANY_DEACTIVATED')
-        ) {
-            window.dispatchEvent(
-                new CustomEvent('subscription-suspended', {
-                    detail: error.response.data,
-                })
-            );
+        if (error.response?.status === 403) {
+            const data = error.response?.data;
+            if (
+                data?.code === 'SUBSCRIPTION_SUSPENDED' ||
+                data?.code === 'COMPANY_DEACTIVATED'
+            ) {
+                window.dispatchEvent(
+                    new CustomEvent('subscription-suspended', {
+                        detail: data,
+                    })
+                );
+            } else {
+                // Access Control / Permission denied notification
+                if (typeof window !== 'undefined') {
+                    (window as any).__lastPermissionDeniedTime = Date.now();
+                }
+                const msg = data?.message || "You don't have access to this";
+                toast.error(msg, {
+                    id: 'access-control-denied-toast',
+                    duration: 4000,
+                });
+            }
         }
 
         return Promise.reject(error);

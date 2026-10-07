@@ -14,6 +14,7 @@ import {
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { createPortal } from 'react-dom';
+import { useAuth } from '../context/AuthContext';
 
 interface RegularizationRequest {
   id: string;
@@ -41,6 +42,7 @@ interface RegularizationRequest {
 
 export default function Regularizations() {
   const navigate = useNavigate();
+  const { user, hasPermission } = useAuth();
 
   const [requests, setRequests] = useState<RegularizationRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -395,25 +397,36 @@ export default function Regularizations() {
                       </td>
                       <td className="py-[13px] px-[22px] text-right">
                         {isPending ? (
-                          <div className="flex items-center gap-2 justify-end">
-                            <button
-                              onClick={() => handleApprove(req.id)}
-                              disabled={approvingId === req.id}
-                              className="px-3.5 py-1.5 rounded-[3px] bg-[#E4F5EC] text-[#1F8A5A] hover:bg-[#d1f0e0] disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer"
-                              title="Approve Request"
-                            >
-                              <CheckCircle size={14} />
-                              <span>{approvingId === req.id ? 'Approving...' : 'Approve'}</span>
-                            </button>
-                            <button
-                              onClick={() => handleRejectClick(req.id)}
-                              className="px-3.5 py-1.5 rounded-[3px] bg-[#FBE7E7] text-[#DE350B] hover:bg-[#f7d6d6] text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer"
-                              title="Reject Request"
-                            >
-                              <XIcon size={14} />
-                              <span>Reject</span>
-                            </button>
-                          </div>
+                          (user?.role === 'SUPER_ADMIN' || hasPermission('ATTENDANCE_APPROVE')) ? (
+                            <div className="flex items-center gap-2 justify-end">
+                              <button
+                                onClick={() => handleApprove(req.id)}
+                                disabled={approvingId === req.id}
+                                className="px-3.5 py-1.5 rounded-[3px] bg-[#E4F5EC] text-[#1F8A5A] hover:bg-[#d1f0e0] disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer"
+                                title="Approve Request"
+                              >
+                                <CheckCircle size={14} />
+                                <span>{approvingId === req.id ? 'Approving...' : 'Approve'}</span>
+                              </button>
+                              <button
+                                onClick={() => handleRejectClick(req.id)}
+                                className="px-3.5 py-1.5 rounded-[3px] bg-[#FBE7E7] text-[#DE350B] hover:bg-[#f7d6d6] text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer"
+                                title="Reject Request"
+                              >
+                                <XIcon size={14} />
+                                <span>Reject</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-end pr-[53px]">
+                              <button
+                                onClick={() => setSelectedRequestForReason(req)}
+                                className="inline-flex items-center gap-[6px] border border-[#E2E6ED] dark:border-gray-800 rounded-[3px] px-[10px] py-[5px] text-[12px] font-semibold text-[#5B6472] dark:text-gray-300 bg-white dark:bg-[#12151C] hover:bg-gray-50 dark:hover:bg-white/5 transition-all cursor-pointer"
+                              >
+                                <Eye size={13} className="text-[#5B6472] dark:text-gray-300" /> View
+                              </button>
+                            </div>
+                          )
                         ) : (
                           <div className="flex items-center justify-end pr-[53px]">
                             <button

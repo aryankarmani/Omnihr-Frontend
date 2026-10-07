@@ -10,7 +10,7 @@ import { calculateProfileCompletion } from '../utils/profileCompletion';
 
 export default function EmployeeList() {
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { user, hasPermission } = useAuth();
 
     // ✅ Admin role check for HR_ADMIN, ADMIN, or SYSTEM_ADMIN
     const isAdmin = user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN' || user?.role === 'SYSTEM_ADMIN';
@@ -44,9 +44,13 @@ export default function EmployeeList() {
             try {
                 const res = await api.get('/employee');
                 setEmployees(res.data);
-            } catch (error) {
+            } catch (error: any) {
                 console.error('Error fetching employees:', error);
-                toast.error('Failed to load employees');
+                if (error.response?.status === 403 || error.response?.data?.code === 'PERMISSION_DENIED') {
+                    toast.error("You don't have access to this", { id: 'access-control-denied-toast' });
+                } else {
+                    toast.error('Failed to load employees');
+                }
             } finally {
                 setLoading(false);
             }
@@ -285,7 +289,7 @@ export default function EmployeeList() {
                         <Download size={15} />
                         <span>Export</span>
                     </button>
-                    {isAdmin && (
+                    {hasPermission('EMPLOYEE_CREATE') && (
                         <button
                             onClick={() => navigate('/employee/add')}
                             className="btn btn-primary flex-1 sm:flex-initial inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#2442B8] text-white rounded-[8px] px-[15px] py-[9px] text-[13.5px] font-semibold whitespace-nowrap transition-all cursor-pointer"
@@ -639,22 +643,26 @@ export default function EmployeeList() {
                                             </td>
                                             <td className="py-[13px] px-[20px] text-center" onClick={(e) => e.stopPropagation()}>
                                                 <div className="flex items-center justify-center gap-2">
-                                                    <button
-                                                        onClick={() => navigate(`/employee/${emp.id}?edit=true`)}
-                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#5B6472]  text-[12px] hover:bg-gray-50 dark:hover:bg-white/5 font-semibold transition-all cursor-pointer"
-                                                        title="Edit Profile"
-                                                    >
-                                                        <Edit size={13} />
-                                                        <span>Edit Profile</span>
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setEmployeeToDelete(emp)}
-                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[6px] border border-red-200 dark:border-red-900/40 bg-white dark:bg-[#12151C] text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 text-[12px] font-semibold transition-all cursor-pointer"
-                                                        title="Delete Employee"
-                                                    >
-                                                        <Trash2 size={13} />
-                                                        <span>Delete</span>
-                                                    </button>
+                                                    {hasPermission('EMPLOYEE_UPDATE') && (
+                                                        <button
+                                                            onClick={() => navigate(`/employee/${emp.id}?edit=true`)}
+                                                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#5B6472]  text-[12px] hover:bg-gray-50 dark:hover:bg-white/5 font-semibold transition-all cursor-pointer"
+                                                            title="Edit Profile"
+                                                        >
+                                                            <Edit size={13} />
+                                                            <span>Edit Profile</span>
+                                                        </button>
+                                                    )}
+                                                    {hasPermission('EMPLOYEE_DELETE') && (
+                                                        <button
+                                                            onClick={() => setEmployeeToDelete(emp)}
+                                                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[6px] border border-red-200 dark:border-red-900/40 bg-white dark:bg-[#12151C] text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 text-[12px] font-semibold transition-all cursor-pointer"
+                                                            title="Delete Employee"
+                                                        >
+                                                            <Trash2 size={13} />
+                                                            <span>Delete</span>
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
