@@ -306,6 +306,7 @@ export default function ActiveCallWindow() {
 
     const localVideoRef = useRef<HTMLVideoElement | null>(null);
     const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
+    const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
     const callContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -326,10 +327,13 @@ export default function ActiveCallWindow() {
         }
     }, [localStream]);
 
-    // Attach remote stream for 1:1 view
+    // Attach remote stream for 1:1 view (audio and video)
     useEffect(() => {
         if (remoteVideoRef.current && remoteStream) {
             remoteVideoRef.current.srcObject = remoteStream;
+        }
+        if (remoteAudioRef.current && remoteStream) {
+            remoteAudioRef.current.srcObject = remoteStream;
         }
     }, [remoteStream]);
 
@@ -656,6 +660,8 @@ export default function ActiveCallWindow() {
                             ) : (
                                 /* 1:1 Direct Call View */
                                 <div className="relative w-full h-full max-w-5xl flex items-center justify-center">
+                                    {/* Dedicated audio player ensuring 1:1 voice always plays */}
+                                    <audio ref={remoteAudioRef} autoPlay playsInline className="hidden" />
                                     {remoteStream && remoteStream.getVideoTracks().length > 0 && activeCall.status === 'CONNECTED' ? (
                                         <div
                                             className={`relative w-full h-full max-h-[78vh] rounded-[6px] overflow-hidden bg-black shadow-2xl ${

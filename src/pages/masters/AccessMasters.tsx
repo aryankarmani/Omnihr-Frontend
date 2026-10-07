@@ -225,7 +225,7 @@ export default function AccessMasters() {
             setShowModal(false);
             fetchRoles();
         } catch (e: any) {
-            toast.error(e.response?.data?.error || "Failed to save role");
+            toast.error(e.response?.data?.message || e.response?.data?.error || "Failed to save role");
         } finally {
             setLoading(false);
         }

@@ -1,6 +1,7 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast';
+import toast, { Toaster, ToastBar } from 'react-hot-toast';
+import { X, AlertCircle } from 'lucide-react';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './components/Layout';
@@ -8,6 +9,23 @@ import Layout from './components/Layout';
 // Eager load core entry points so login screen renders instantly
 import SignIn from './pages/SignIn';
 import ForgotPassword from './pages/ForgotPassword';
+
+// Global safety: Ensure users see the clear "You don't have access to this" notification
+// and suppress confusing secondary generic messages (like "Failed to load leave records")
+if (typeof window !== 'undefined' && !(window as any).__toastErrorWrapped) {
+  (window as any).__toastErrorWrapped = true;
+  const originalToastError = toast.error;
+  toast.error = (message: any, options?: any) => {
+    const timeSinceDenied = Date.now() - ((window as any).__lastPermissionDeniedTime || 0);
+    if (timeSinceDenied < 1200) {
+      if (options?.id === 'access-control-denied-toast') {
+        return originalToastError(message, options);
+      }
+      return '';
+    }
+    return originalToastError(message, options);
+  };
+}
 
 // Lazy-loaded application pages
 const DashboardHome = lazy(() => import('./pages/DashboardHome'));
@@ -166,23 +184,73 @@ function AppContent() {
             position="top-right"
             containerStyle={{ zIndex: 99999999 }}
             toastOptions={{
+              duration: 4000,
               className: 'dark:bg-brand-900 dark:text-white',
               style: {
-                background: '#333',
+                background: '#1F2937',
                 color: '#fff',
+                borderRadius: '6px',
+                fontSize: '13px',
               },
               success: {
                 style: {
-                  background: 'green',
+                  background: '#15803D',
+                  color: '#fff',
                 },
               },
               error: {
                 style: {
-                  background: 'red',
+                  background: '#DC2626',
+                  color: '#fff',
                 },
               },
             }}
-          />
+          >
+            {(t) => (
+              <ToastBar
+                toast={t}
+                style={{
+                  ...t.style,
+                  cursor: 'pointer',
+                }}
+              >
+                {({ icon, message }) => (
+                  <div
+                    className="flex items-center gap-2.5 w-full select-none cursor-pointer"
+                    onClick={() => toast.dismiss(t.id)}
+                  >
+                    {/* Visual status icon on left: use AlertCircle for errors to avoid duplicate crosses */}
+                    {t.type === 'error' ? (
+                      <span className="shrink-0 text-white/95 flex items-center">
+                        <AlertCircle size={18} />
+                      </span>
+                    ) : (
+                      icon && <span className="shrink-0 flex items-center">{icon}</span>
+                    )}
+
+                    <div className="flex-1 text-[13px] font-medium leading-tight">
+                      {message}
+                    </div>
+
+                    {/* Single clickable cross button on the right */}
+                    {t.type !== 'loading' && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toast.dismiss(t.id);
+                        }}
+                        className="ml-2 shrink-0 p-1 rounded-[4px] hover:bg-black/20 text-white/80 hover:text-white transition-colors cursor-pointer"
+                        title="Close"
+                      >
+                        <X size={15} />
+                      </button>
+                    )}
+                  </div>
+                )}
+              </ToastBar>
+            )}
+          </Toaster>
         </ThemeProvider>
       )}
     </>

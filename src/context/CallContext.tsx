@@ -8,6 +8,23 @@ import ActiveCallWindow from '../components/chat/calling/ActiveCallWindow';
 import { Video, Phone, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+const formatMediaError = (err: any): string => {
+    if (!err) return 'Could not access camera or microphone';
+    const name = err.name || '';
+    const msg = (err.message || '').toLowerCase();
+
+    if (name === 'NotFoundError' || msg.includes('device not found') || msg.includes('not found')) {
+        return 'No microphone or camera found on your device. Please plug in a headset/mic or webcam.';
+    }
+    if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || msg.includes('permission denied')) {
+        return 'Microphone or camera access was blocked. Please allow permissions in your browser address bar.';
+    }
+    if (name === 'NotReadableError' || name === 'TrackStartError' || msg.includes('could not start')) {
+        return 'Microphone or camera is currently in use by another application (e.g., Zoom, Teams).';
+    }
+    return err.message || 'Could not access camera or microphone';
+};
+
 interface CallContextType {
     incomingCall: IncomingCallData | null;
     activeCall: ActiveCallState | null;
@@ -25,6 +42,8 @@ interface CallContextType {
     isMyHandRaised: boolean;
     raisedHandUserIds: Set<number>;
     lastLeftCall: RejoinCallData | null;
+    onlineUserIds: number[];
+    isUserOnline: (userId?: number | string | null) => boolean;
     startCall: (targetUserId: number, targetUserName: string, targetUserAvatar?: string | null, callType?: 'VOICE' | 'VIDEO') => Promise<void>;
     startGroupCall: (groupTitle: string, participants: CallParticipant[], callType?: 'VOICE' | 'VIDEO', conversationId?: number) => Promise<void>;
     inviteToCall: (targetUserId: number, targetUserName: string, targetUserAvatar?: string | null) => Promise<void>;
@@ -44,7 +63,7 @@ interface CallContextType {
 const CallContext = createContext<CallContextType | undefined>(undefined);
 
 export function CallProvider({ children }: { children: React.ReactNode }) {
-    const { user, isAuthenticated } = useAuth();
+    const { user, isAuthenticated, hasPermission } = useAuth();
     const [incomingCall, setIncomingCall] = useState<IncomingCallData | null>(null);
     const [activeCall, setActiveCall] = useState<ActiveCallState | null>(null);
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
@@ -61,6 +80,12 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     const [inCallMessages, setInCallMessages] = useState<InCallMessage[]>([]);
     const [raisedHandUserIds, setRaisedHandUserIds] = useState<Set<number>>(new Set());
     const [lastLeftCall, setLastLeftCall] = useState<RejoinCallData | null>(null);
+    const [onlineUserIds, setOnlineUserIds] = useState<number[]>([]);
+
+    const isUserOnline = (userId?: number | string | null): boolean => {
+        if (userId === undefined || userId === null) return false;
+        return onlineUserIds.includes(Number(userId));
+    };
 
     const callTimerRef = useRef<number | null>(null);
     const callDurationRef = useRef<number>(0);
@@ -71,6 +96,29 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         if (!isAuthenticated || !user) return;
 
         const socket = initSocketClient();
+
+        // 0. Real-time online presence tracking
+        socket.on('online_users_list', (ids: number[]) => {
+            if (Array.isArray(ids)) {
+                setOnlineUserIds(ids.map(Number));
+            }
+        });
+
+        socket.on('user_status_changed', ({ userId, status }: { userId: number | string; status: 'ONLINE' | 'OFFLINE' }) => {
+            const numId = Number(userId);
+            setOnlineUserIds((prev) =>
+                status === 'ONLINE'
+                    ? (prev.includes(numId) ? prev : [...prev, numId])
+                    : prev.filter((id) => id !== numId)
+            );
+        });
+
+        // Request online users on mount & reconnection
+        socket.emit('get_online_users');
+        const handleConnect = () => {
+            socket.emit('get_online_users');
+        };
+        socket.on('connect', handleConnect);
 
         // 1. Incoming Call Event
         socket.on('incoming_call', (data: IncomingCallData) => {
@@ -253,6 +301,9 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         };
 
         return () => {
+            socket.off('connect', handleConnect);
+            socket.off('online_users_list');
+            socket.off('user_status_changed');
             socket.off('incoming_call');
             socket.off('call_ringing');
             socket.off('call_accepted');
@@ -404,6 +455,11 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         callType: 'VOICE' | 'VIDEO' = 'VIDEO'
     ) => {
         try {
+            if (!hasPermission('CHAT_CALL')) {
+                toast.error("You don't have access to this", { id: 'access-control-denied-toast' });
+                return;
+            }
+
             const socket = getSocket();
             if (!socket || !socket.connected) {
                 toast.error('Not connected to communication server');
@@ -422,18 +478,25 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
                 participants: [{ id: targetUserId, name: targetUserName, avatar: targetUserAvatar || null }],
             });
 
-            const stream = await webrtcService.initializeCall(targetUserId, 0, callType);
+            const { stream, fallbackToAudioOnly, listenOnly } = await webrtcService.initializeCall(targetUserId, 0, callType);
             setLocalStream(stream);
+
+            if (fallbackToAudioOnly) {
+                toast('No camera detected. Started call with voice only.', { icon: '📷' });
+            }
+            if (listenOnly) {
+                toast('No microphone detected. You joined in listen-only mode.', { icon: '🎧' });
+            }
 
             socket.emit('call_user', {
                 receiverId: targetUserId,
-                callType,
+                callType: fallbackToAudioOnly ? 'VOICE' : callType,
                 callerName: user?.name,
                 callerAvatar: user?.avatar || null,
             });
         } catch (err: any) {
             console.error('[Call] Start call failed:', err);
-            toast.error(err.message || 'Could not access camera/microphone');
+            toast.error(formatMediaError(err));
             cleanupCall();
         }
     };
@@ -446,6 +509,11 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         conversationId?: number
     ) => {
         try {
+            if (!hasPermission('CHAT_CALL')) {
+                toast.error("You don't have access to this", { id: 'access-control-denied-toast' });
+                return;
+            }
+
             const socket = getSocket();
             if (!socket || !socket.connected) {
                 toast.error('Not connected to communication server');
@@ -465,20 +533,27 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
                 participants,
             });
 
-            // Initialize local stream
-            const stream = await webrtcService.initializeCall(0, 0, callType);
+            // Initialize local stream with fallbacks
+            const { stream, fallbackToAudioOnly, listenOnly } = await webrtcService.initializeCall(0, 0, callType);
             setLocalStream(stream);
+
+            if (fallbackToAudioOnly) {
+                toast('No camera detected. Started call with voice only.', { icon: '📷' });
+            }
+            if (listenOnly) {
+                toast('No microphone detected. You joined in listen-only mode.', { icon: '🎧' });
+            }
 
             socket.emit('group_call_user', {
                 groupTitle,
                 participantIds: participants.map(p => p.id),
-                callType,
+                callType: fallbackToAudioOnly ? 'VOICE' : callType,
                 callerAvatar: user?.avatar || null,
                 conversationId,
             });
         } catch (err: any) {
             console.error('[Call] Start group call failed:', err);
-            toast.error(err.message || 'Could not access camera/microphone');
+            toast.error(formatMediaError(err));
             cleanupCall();
         }
     };
@@ -547,10 +622,10 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     // Receiver accepts incoming call
     const acceptCall = async () => {
         if (!incomingCall) return;
+        const socket = getSocket();
+        const call = incomingCall;
 
         try {
-            const socket = getSocket();
-            const call = incomingCall;
             setIncomingCall(null);
 
             setActiveCall({
@@ -566,8 +641,15 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
                 participants: call.isGroup ? [{ id: call.callerId, name: call.callerName, avatar: call.callerAvatar }] : undefined,
             });
 
-            const stream = await webrtcService.initializeCall(call.callerId, call.callId, call.callType);
+            const { stream, fallbackToAudioOnly, listenOnly } = await webrtcService.initializeCall(call.callerId, call.callId, call.callType);
             setLocalStream(stream);
+
+            if (fallbackToAudioOnly) {
+                toast('No camera detected. Accepted call with voice only.', { icon: '📷' });
+            }
+            if (listenOnly) {
+                toast('No microphone detected. You joined in listen-only mode.', { icon: '🎧' });
+            }
 
             socket?.emit('accept_call', {
                 callId: call.callId,
@@ -576,7 +658,14 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
             });
         } catch (err: any) {
             console.error('[Call] Accept call failed:', err);
-            toast.error(err.message || 'Could not access camera/microphone');
+            const userMsg = formatMediaError(err);
+            toast.error(userMsg);
+            socket?.emit('reject_call', {
+                callId: call.callId,
+                callerId: call.callerId,
+                reason: userMsg,
+                isGroup: call.isGroup,
+            });
             cleanupCall();
         }
     };
@@ -698,9 +787,16 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
                 participants: target.participants || [],
             });
 
-            // Initialize local camera/mic stream
-            const stream = await webrtcService.initializeCall(0, target.callId, target.callType);
+            // Initialize local camera/mic stream with fallbacks
+            const { stream, fallbackToAudioOnly, listenOnly } = await webrtcService.initializeCall(0, target.callId, target.callType);
             setLocalStream(stream);
+
+            if (fallbackToAudioOnly) {
+                toast('No camera detected. Rejoined call with voice only.', { icon: '📷' });
+            }
+            if (listenOnly) {
+                toast('No microphone detected. You joined in listen-only mode.', { icon: '🎧' });
+            }
 
             // Notify backend room to re-join and alert peers to send WebRTC offer
             socket.emit('rejoin_group_call', {
@@ -711,7 +807,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
             toast.success(`Rejoined ${target.groupTitle}`);
         } catch (err: any) {
             console.error('[Call] Rejoin call failed:', err);
-            toast.error(err.message || 'Could not rejoin call');
+            toast.error(formatMediaError(err));
             cleanupCall();
         }
     };
@@ -735,6 +831,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
                 isMyHandRaised,
                 raisedHandUserIds,
                 lastLeftCall,
+                onlineUserIds,
+                isUserOnline,
                 startCall,
                 startGroupCall,
                 inviteToCall,

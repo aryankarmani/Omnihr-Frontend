@@ -19,11 +19,12 @@ import {
 
 export default function Team() {
     const [employees, setEmployees] = useState<any[]>([]);
-    const { user } = useAuth();
+    const { user, hasPermission } = useAuth();
     const { isAdmin } = useRBAC();
     const navigate = useNavigate();
-    // ✅ CHANGED: only HR admin can create/edit teams
-    const canManageTeams = user?.role === 'HR_ADMIN';
+    const canCreateTeams = user?.role === 'SUPER_ADMIN' || hasPermission('TEAM_CREATE');
+    const canManageTeams = user?.role === 'SUPER_ADMIN' || hasPermission('TEAM_UPDATE');
+    const canAccessTeamControl = user?.role === 'SUPER_ADMIN' || hasPermission('TEAM_ACCESS_CONTROL');
     const [teams, setTeams] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState<number>(1);
@@ -41,6 +42,8 @@ export default function Team() {
     const [confirmRemove, setConfirmRemove] = useState<any>(null);
     const [newTeamName, setNewTeamName] = useState('');
     const [newTeamDesc, setNewTeamDesc] = useState('');
+    const [teamErrors, setTeamErrors] = useState<{ name?: string }>({});
+    const [editTeamErrors, setEditTeamErrors] = useState<{ name?: string }>({});
     const [isSubmittingTeam, setIsSubmittingTeam] = useState(false);
 
     const [accessControlTeam, setAccessControlTeam] = useState<any>(null);
@@ -89,8 +92,12 @@ export default function Team() {
                 await api.post(`/teams/${accessControlTeam.id}/access-control`, permissions);
                 toast.success(`Access control updated for team ${accessControlTeam.name}`);
                 setAccessControlTeam(null);
-            } catch (e) {
-                toast.error("Failed to save access control permissions");
+            } catch (e: any) {
+                if (e.response?.status === 403 || e.response?.data?.code === 'PERMISSION_DENIED') {
+                    toast.error("You don't have access to this", { id: 'access-control-denied-toast' });
+                } else {
+                    toast.error("Failed to save access control permissions");
+                }
             }
         }
     };
@@ -178,20 +185,27 @@ export default function Team() {
     }, [currentPage, teamsPerPage]);
 
     useEffect(() => {
-        fetchEmployees();
-    }, []);
+        if ((showAddMemberModal || showCreateModal) && (canCreateTeams || canManageTeams) && hasPermission('EMPLOYEE_VIEW')) {
+            fetchEmployees();
+        }
+    }, [showAddMemberModal, showCreateModal, canCreateTeams, canManageTeams]);
     const handleCreateTeam = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!canCreateTeams) {
+            toast.error('You do not have permission to create teams');
+            return;
+        }
         const trimmed = newTeamName.trim();
         if (!trimmed) {
-            toast.error('Please enter a team name');
+            setTeamErrors({ name: 'Team name is required' });
             return;
         }
         const exists = teams.some(t => t.name?.toLowerCase() === trimmed.toLowerCase());
         if (exists) {
-            toast.error(`A team named "${trimmed}" already exists.`);
+            setTeamErrors({ name: `A team named "${trimmed}" already exists.` });
             return;
         }
+        setTeamErrors({});
         setShowCreateModal(false);
         setShowAddMemberModal(true);
     };
@@ -200,6 +214,10 @@ export default function Team() {
         if (isSubmittingTeam) return;
 
         if (!selectedTeam) {
+            if (!canCreateTeams) {
+                toast.error('You do not have permission to create teams');
+                return;
+            }
             const trimmed = newTeamName.trim();
             if (!trimmed) {
                 toast.error('Please enter a team name');
@@ -210,6 +228,9 @@ export default function Team() {
                 toast.error(`A team named "${trimmed}" already exists.`);
                 return;
             }
+        } else if (!canManageTeams) {
+            toast.error('You do not have permission to update teams');
+            return;
         }
 
         setIsSubmittingTeam(true);
@@ -271,7 +292,7 @@ export default function Team() {
                     <h2 className="text-2xl font-bold text-[#12151C] dark:text-white mb-1">Team Management</h2>
                     <p className="page-sub text-[14px] text-[#5B6472] dark:text-gray-400 mb-[5px]">Organize your workforce into functional units.</p>
                 </div>
-                {canManageTeams && (
+                {canCreateTeams && (
                     <button
                         onClick={() => setShowCreateModal(true)}
                         className="btn btn-primary inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white text-[13.5px] font-semibold rounded-[6px] px-[15px] py-[9px] active:scale-95 transition-all cursor-pointer"
@@ -338,7 +359,7 @@ export default function Team() {
                                                                 >
                                                                     Delete
                                                                 </button>
-                                                                {isAdmin && (
+                                                                 {canAccessTeamControl && (
                                                                     <button
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
@@ -622,13 +643,29 @@ export default function Team() {
                             </div>
                             <form onSubmit={handleCreateTeam} noValidate className="p-6 space-y-4">
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">Team Name</label>
+                                    <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">
+                                        Team Name <span className="text-[#DE350B]">*</span>
+                                    </label>
                                     <input
                                         type="text"
                                         value={newTeamName}
-                                        onChange={(e) => setNewTeamName(e.target.value)}
-                                        className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
+                                        onChange={(e) => {
+                                            setNewTeamName(e.target.value);
+                                            if (teamErrors.name) setTeamErrors({});
+                                        }}
+                                        autoComplete="off"
+                                        autoCorrect="off"
+                                        spellCheck={false}
+                                        placeholder="Enter team name"
+                                        className={`w-full px-3 py-2 bg-white dark:bg-[#12151C] border ${
+                                            teamErrors.name ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20' : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                                        } rounded-[6px] outline-none text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1] transition-all`}
                                     />
+                                    {teamErrors.name && (
+                                        <p className="text-[11.5px] text-red-500 font-medium mt-1 animate-fade-in">
+                                            {teamErrors.name}
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">Description</label>
@@ -636,6 +673,8 @@ export default function Team() {
                                         rows={3}
                                         value={newTeamDesc}
                                         onChange={(e) => setNewTeamDesc(e.target.value)}
+                                        autoComplete="off"
+                                        spellCheck={false}
                                         placeholder="Brief description of the team's responsibilities"
                                         className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
                                     />
@@ -658,19 +697,34 @@ export default function Team() {
                     <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 w-full max-w-md overflow-hidden animate-scale-in">
                         <div className="p-5 border-b border-[#E2E6ED] dark:border-gray-800 flex justify-between items-center bg-[#F7F8FA] dark:bg-white/5">
                             <h3 className="text-base font-bold text-[#12151C] dark:text-white">Edit Team</h3>
-                            <button onClick={() => setEditTeam(null)} className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer">
+                            <button onClick={() => { setEditTeam(null); setEditTeamErrors({}); }} className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer">
                                 <X size={18} />
                             </button>
                         </div>
                         <div className="p-6 space-y-4">
                             <div className="space-y-1.5">
-                                <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">Team Name</label>
+                                <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">
+                                    Team Name <span className="text-[#DE350B]">*</span>
+                                </label>
                                 <input
                                     type="text"
                                     value={editTeam.name}
-                                    onChange={(e) => setEditTeam({ ...editTeam, name: e.target.value })}
-                                    className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
+                                    onChange={(e) => {
+                                        setEditTeam({ ...editTeam, name: e.target.value });
+                                        if (editTeamErrors.name) setEditTeamErrors({});
+                                    }}
+                                    autoComplete="off"
+                                    autoCorrect="off"
+                                    spellCheck={false}
+                                    className={`w-full px-3 py-2 bg-white dark:bg-[#12151C] border ${
+                                        editTeamErrors.name ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20' : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                                    } rounded-[6px] outline-none text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1] transition-all`}
                                 />
+                                {editTeamErrors.name && (
+                                    <p className="text-[11.5px] text-red-500 font-medium mt-1 animate-fade-in">
+                                        {editTeamErrors.name}
+                                    </p>
+                                )}
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">Description</label>
@@ -678,13 +732,19 @@ export default function Team() {
                                     rows={3}
                                     value={editTeam.description}
                                     onChange={(e) => setEditTeam({ ...editTeam, description: e.target.value })}
+                                    autoComplete="off"
+                                    spellCheck={false}
                                     className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
                                 />
                             </div>
                             <button
                                 onClick={async () => {
+                                    if (!editTeam.name?.trim()) {
+                                        setEditTeamErrors({ name: 'Team name is required' });
+                                        return;
+                                    }
                                     await updateTeam(editTeam.id, {
-                                        name: editTeam.name,
+                                        name: editTeam.name.trim(),
                                         description: editTeam.description
                                     });
                                     await saveTeamLog(
@@ -694,6 +754,7 @@ export default function Team() {
                                     );
                                     await fetchTeams(currentPage, teamsPerPage);
                                     setEditTeam(null);
+                                    setEditTeamErrors({});
                                 }}
                                 className="w-full py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold text-[13.5px] rounded-[6px] transition-all cursor-pointer mt-2"
                             >

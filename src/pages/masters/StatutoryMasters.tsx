@@ -76,7 +76,15 @@ export default function StatutoryMasters() {
             setStates(INDIA_STATES);
         }
     };
+    // Component form state & errors
+    const [compErrors, setCompErrors] = useState<{ name?: string }>({});
+
     const saveComponent = async () => {
+        if (!newComp.name?.trim()) {
+            setCompErrors({ name: "Component name is required" });
+            return;
+        }
+        setCompErrors({});
         try {
             setLoading(true);
             if (editingComponentId) {
@@ -93,8 +101,12 @@ export default function StatutoryMasters() {
                 isFBP: false, calculationType: 'FLAT', value: 0, prorationMethod: 'CALENDAR_DAYS'
             });
             setEditingComponentId(null);
-        } catch (e) { toast.error("Failed to save component"); }
-        finally { setLoading(false); }
+            setCompErrors({});
+        } catch (e: any) {
+            toast.error(e.response?.data?.error || e.response?.data?.message || "Failed to save component");
+        } finally {
+            setLoading(false);
+        }
     };
 
     const saveSettings = async () => {
@@ -109,8 +121,37 @@ export default function StatutoryMasters() {
     // PT Form State
     const [showPtModal, setShowPtModal] = useState(false);
     const [newPt, setNewPt] = useState({ stateId: '', minSalary: 0, maxSalary: 0, taxAmount: 0 });
+    const [ptErrors, setPtErrors] = useState<{
+        stateId?: string;
+        minSalary?: string;
+        maxSalary?: string;
+        taxAmount?: string;
+    }>({});
 
     const savePtSlab = async () => {
+        const errors: { stateId?: string; minSalary?: string; maxSalary?: string; taxAmount?: string } = {};
+
+        if (!newPt.stateId) {
+            errors.stateId = "Please select a state";
+        }
+        if (newPt.minSalary === undefined || newPt.minSalary === null || isNaN(Number(newPt.minSalary)) || Number(newPt.minSalary) < 0) {
+            errors.minSalary = "Min salary cannot be negative";
+        }
+        if (newPt.maxSalary === undefined || newPt.maxSalary === null || isNaN(Number(newPt.maxSalary)) || Number(newPt.maxSalary) <= 0) {
+            errors.maxSalary = "Max salary must be greater than 0";
+        } else if (Number(newPt.maxSalary) <= Number(newPt.minSalary)) {
+            errors.maxSalary = "Max salary must be greater than min salary";
+        }
+        if (newPt.taxAmount === undefined || newPt.taxAmount === null || isNaN(Number(newPt.taxAmount)) || Number(newPt.taxAmount) <= 0) {
+            errors.taxAmount = "Tax amount must be greater than 0";
+        }
+
+        if (Object.keys(errors).length > 0) {
+            setPtErrors(errors);
+            return;
+        }
+        setPtErrors({});
+
         try {
             setLoading(true);
             await api.post('/masters/professional-tax-slabs', {
@@ -120,8 +161,12 @@ export default function StatutoryMasters() {
             setShowPtModal(false);
             toast.success("PT Slab added!");
             setNewPt({ stateId: '', minSalary: 0, maxSalary: 0, taxAmount: 0 });
-        } catch (e) { toast.error("Failed to add PT Slab"); }
-        finally { setLoading(false); }
+            setPtErrors({});
+        } catch (e: any) {
+            toast.error(e.response?.data?.error || e.response?.data?.message || "Failed to add PT Slab");
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleDelete = async () => {
@@ -357,6 +402,7 @@ export default function StatutoryMasters() {
                                 onClick={() => {
                                     setShowCompModal(false);
                                     setEditingComponentId(null);
+                                    setCompErrors({});
                                 }}
                                 className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer"
                             >
@@ -365,8 +411,26 @@ export default function StatutoryMasters() {
                         </div>
                         <div className="p-6 space-y-4">
                             <div>
-                                <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Component Name</label>
-                                <input type="text" placeholder="e.g. Basic Pay" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[7px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newComp.name} onChange={e => setNewComp({ ...newComp, name: e.target.value })} />
+                                <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">
+                                    Component Name <span className="text-[#DE350B]">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. Basic Pay"
+                                    autoComplete="off"
+                                    spellCheck={false}
+                                    className={`w-full px-3 py-2 border ${
+                                        compErrors.name ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20' : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                                    } rounded-[7px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none transition-all`}
+                                    value={newComp.name}
+                                    onChange={e => {
+                                        setNewComp({ ...newComp, name: e.target.value });
+                                        if (compErrors.name) setCompErrors({});
+                                    }}
+                                />
+                                {compErrors.name && (
+                                    <p className="text-[11.5px] text-red-500 font-medium mt-1 animate-fade-in">{compErrors.name}</p>
+                                )}
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
@@ -433,29 +497,92 @@ export default function StatutoryMasters() {
                     <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 w-full max-w-md overflow-hidden animate-scale-in">
                         <div className="p-5 border-b border-[#E2E6ED] dark:border-gray-800 flex justify-between items-center bg-[#F7F8FA] dark:bg-white/5">
                             <h3 className="text-base font-bold text-[#12151C] dark:text-white">Add PT Slab</h3>
-                            <button onClick={() => setShowPtModal(false)} className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer"><X size={18} /></button>
+                            <button onClick={() => { setShowPtModal(false); setPtErrors({}); }} className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer"><X size={18} /></button>
                         </div>
                         <div className="p-6 space-y-4">
                             <div>
-                                <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">State</label>
-                                <select className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newPt.stateId} onChange={e => setNewPt({ ...newPt, stateId: e.target.value })}>
+                                <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">
+                                    State <span className="text-[#DE350B]">*</span>
+                                </label>
+                                <select
+                                    className={`w-full px-3 py-2 border ${
+                                        ptErrors.stateId ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20' : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                                    } rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none cursor-pointer transition-all`}
+                                    value={newPt.stateId}
+                                    onChange={e => {
+                                        setNewPt({ ...newPt, stateId: e.target.value });
+                                        if (ptErrors.stateId) setPtErrors(prev => ({ ...prev, stateId: undefined }));
+                                    }}
+                                >
                                     <option value="">Select State</option>
                                     {states.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                 </select>
+                                {ptErrors.stateId && (
+                                    <p className="text-[11.5px] text-red-500 font-medium mt-1 animate-fade-in">{ptErrors.stateId}</p>
+                                )}
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Min Salary</label>
-                                    <input type="number" placeholder="0" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newPt.minSalary} onChange={e => setNewPt({ ...newPt, minSalary: parseFloat(e.target.value) })} />
+                                    <input
+                                        type="number"
+                                        placeholder="0"
+                                        autoComplete="off"
+                                        className={`w-full px-3 py-2 border ${
+                                            ptErrors.minSalary ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20' : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                                        } rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none transition-all`}
+                                        value={newPt.minSalary}
+                                        onChange={e => {
+                                            setNewPt({ ...newPt, minSalary: parseFloat(e.target.value) || 0 });
+                                            if (ptErrors.minSalary) setPtErrors(prev => ({ ...prev, minSalary: undefined }));
+                                        }}
+                                    />
+                                    {ptErrors.minSalary && (
+                                        <p className="text-[11.5px] text-red-500 font-medium mt-1 animate-fade-in">{ptErrors.minSalary}</p>
+                                    )}
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Max Salary</label>
-                                    <input type="number" placeholder="0" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newPt.maxSalary} onChange={e => setNewPt({ ...newPt, maxSalary: parseFloat(e.target.value) })} />
+                                    <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">
+                                        Max Salary <span className="text-[#DE350B]">*</span>
+                                    </label>
+                                    <input
+                                        type="number"
+                                        placeholder="0"
+                                        autoComplete="off"
+                                        className={`w-full px-3 py-2 border ${
+                                            ptErrors.maxSalary ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20' : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                                        } rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none transition-all`}
+                                        value={newPt.maxSalary}
+                                        onChange={e => {
+                                            setNewPt({ ...newPt, maxSalary: parseFloat(e.target.value) || 0 });
+                                            if (ptErrors.maxSalary) setPtErrors(prev => ({ ...prev, maxSalary: undefined }));
+                                        }}
+                                    />
+                                    {ptErrors.maxSalary && (
+                                        <p className="text-[11.5px] text-red-500 font-medium mt-1 animate-fade-in">{ptErrors.maxSalary}</p>
+                                    )}
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Tax Amount</label>
-                                <input type="number" placeholder="200" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newPt.taxAmount} onChange={e => setNewPt({ ...newPt, taxAmount: parseFloat(e.target.value) })} />
+                                <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">
+                                    Tax Amount <span className="text-[#DE350B]">*</span>
+                                </label>
+                                <input
+                                    type="number"
+                                    placeholder="200"
+                                    autoComplete="off"
+                                    className={`w-full px-3 py-2 border ${
+                                        ptErrors.taxAmount ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20' : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                                    } rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none transition-all`}
+                                    value={newPt.taxAmount}
+                                    onChange={e => {
+                                        setNewPt({ ...newPt, taxAmount: parseFloat(e.target.value) || 0 });
+                                        if (ptErrors.taxAmount) setPtErrors(prev => ({ ...prev, taxAmount: undefined }));
+                                    }}
+                                />
+                                {ptErrors.taxAmount && (
+                                    <p className="text-[11.5px] text-red-500 font-medium mt-1 animate-fade-in">{ptErrors.taxAmount}</p>
+                                )}
                             </div>
 
                             <button onClick={savePtSlab} disabled={loading} className="w-full py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white font-semibold text-[13.5px] rounded-[6px] transition-all cursor-pointer mt-2 flex items-center justify-center gap-2 disabled:opacity-50">

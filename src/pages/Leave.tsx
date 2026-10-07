@@ -43,7 +43,7 @@ export const calculateDuration = (fromTime?: string, toTime?: string) => {
 };
 
 export default function Leave() {
-    const { user } = useAuth();
+    const { user, hasPermission } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
     const initialTab = new URLSearchParams(window.location.search).get('tab');
@@ -112,9 +112,16 @@ export default function Leave() {
     const [toTime, setToTime] = useState('');
     const [reason, setReason] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [leaveErrors, setLeaveErrors] = useState<{
+        reason?: string;
+        fromDate?: string;
+        toDate?: string;
+        time?: string;
+    }>({});
     const [selectedLeaveForReason, setSelectedLeaveForReason] = useState<any | null>(null);
     const [rejectingLeaveId, setRejectingLeaveId] = useState<number | null>(null);
     const [leaveRejectComment, setLeaveRejectComment] = useState('');
+    const [rejectError, setRejectError] = useState<string>('');
     const [submittingLeaveReject, setSubmittingLeaveReject] = useState(false);
     const [processingLeaveId, setProcessingLeaveId] = useState<number | null>(null);
 
@@ -231,9 +238,13 @@ export default function Leave() {
             });
 
             setLeaveBalances(updatedBalances);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error fetching leave data:', error);
-            toast.error('Failed to load leave records');
+            if (error.response?.status === 403 || error.response?.data?.code === 'PERMISSION_DENIED') {
+                toast.error("You don't have access to this", { id: 'access-control-denied-toast' });
+            } else {
+                toast.error('Failed to load leave records');
+            }
         } finally {
             setLoading(false);
         }
@@ -277,21 +288,34 @@ export default function Leave() {
         e.preventDefault();
         if (submitting) return;
 
-        if (!fromDate || !toDate) {
-            toast.error('Please select a valid date');
-            return;
+        const errors: { reason?: string; fromDate?: string; toDate?: string; time?: string } = {};
+
+        if (!reason.trim()) {
+            errors.reason = 'Reason is required';
+        }
+
+        if (!fromDate) {
+            errors.fromDate = 'Start date is required';
+        }
+
+        if (!toDate) {
+            errors.toDate = 'End date is required';
         }
 
         if (['HD', 'SHL'].includes(leaveType)) {
             if (!fromTime || !toTime) {
-                toast.error('Please select both start and end time');
-                return;
+                errors.time = 'Please select both start and end time';
+            } else {
+                const duration = calculateDuration(fromTime, toTime);
+                if (!duration || !duration.isValid) {
+                    errors.time = 'End time must be later than start time';
+                }
             }
-            const duration = calculateDuration(fromTime, toTime);
-            if (!duration || !duration.isValid) {
-                toast.error('End time must be later than start time');
-                return;
-            }
+        }
+
+        if (Object.keys(errors).length > 0) {
+            setLeaveErrors(errors);
+            return;
         }
 
         // Weekend validation (timezone-safe local parsing)
@@ -301,24 +325,30 @@ export default function Leave() {
         const [endYear, endMonth, endDay] = toDate.split('-').map(Number);
         const end = new Date(endYear, endMonth - 1, endDay);
 
+        if (start > end) {
+            setLeaveErrors({ toDate: 'End date cannot be earlier than start date' });
+            return;
+        }
+
         // Check if any day in the selected range is a weekend
         const current = new Date(start);
         while (current <= end) {
             const dayOfWeek = current.getDay();
             if (dayOfWeek === 0 || dayOfWeek === 6) {
-                toast.error('Cannot apply for leave on weekends (Saturday/Sunday)');
+                setLeaveErrors({ fromDate: 'Cannot apply for leave on weekends (Saturday/Sunday)' });
                 return;
             }
             current.setDate(current.getDate() + 1);
         }
 
+        setLeaveErrors({});
         setSubmitting(true);
         try {
             const payload: any = {
                 leaveTypeCode: leaveType,
                 startDate: fromDate,
                 endDate: toDate,
-                reason
+                reason: reason.trim()
             };
             if (['HD', 'SHL'].includes(leaveType)) {
                 payload.fromTime = fromTime;
@@ -332,6 +362,7 @@ export default function Leave() {
             setFromTime('');
             setToTime('');
             setReason('');
+            setLeaveErrors({});
             fetchData();
         } catch (error: any) {
             console.error('Apply leave error:', error);
@@ -357,13 +388,18 @@ export default function Leave() {
 
     const handleRejectLeaveSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!rejectingLeaveId || !leaveRejectComment.trim()) return;
+        if (!leaveRejectComment.trim()) {
+            setRejectError('Please enter a rejection reason');
+            return;
+        }
+        if (!rejectingLeaveId) return;
 
         setSubmittingLeaveReject(true);
         try {
-            await handleUpdateStatus(rejectingLeaveId, 'REJECTED', leaveRejectComment);
+            await handleUpdateStatus(rejectingLeaveId, 'REJECTED', leaveRejectComment.trim());
             setRejectingLeaveId(null);
             setLeaveRejectComment('');
+            setRejectError('');
         } finally {
             setSubmittingLeaveReject(false);
         }
@@ -577,7 +613,7 @@ export default function Leave() {
                         {activeTab === 'APPROVALS' ? 'Review and manage employee leave requests.' : 'View balances and plan your holidays.'}
                     </p>
                 </div>
-                {activeTab === 'MY_LEAVE' && (
+                {activeTab === 'MY_LEAVE' && (user?.role === 'SUPER_ADMIN' || hasPermission('LEAVE_APPLY')) && (
                     <button
                         onClick={() => setShowApplyModal(true)}
                         className="btn btn-primary flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white text-[13.5px] font-semibold rounded-[6px] px-[15px] py-[9px] cursor-pointer transition-all"
@@ -862,33 +898,37 @@ export default function Leave() {
                                             <td className="py-[13px] px-[22px] text-right">
                                                 {l.status === 'PENDING' ? (
                                                     <div className="flex items-center justify-end gap-2">
-                                                        <button
-                                                            onClick={() => handleUpdateStatus(l.id, 'APPROVED')}
-                                                            disabled={processingLeaveId === l.id || submittingLeaveReject}
-                                                            className={`px-3.5 py-1.5 rounded-[3px] bg-[#E4F5EC] text-[#00875A] hover:bg-[#d5f0e1] text-xs font-semibold transition-all flex items-center gap-1 ${
-                                                                processingLeaveId === l.id ? 'opacity-60 cursor-not-allowed pointer-events-none' : 'cursor-pointer'
-                                                            }`}
-                                                        >
-                                                            {processingLeaveId === l.id ? (
-                                                                <>
-                                                                    <Loader2 size={13} className="animate-spin" /> Approving...
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <CheckCircle size={14} /> Approve
-                                                                </>
-                                                            )}
-                                                        </button>
-                                                        <button
-                                                            onClick={() => {
-                                                                setRejectingLeaveId(l.id);
-                                                                setLeaveRejectComment('');
-                                                            }}
-                                                            disabled={processingLeaveId === l.id || submittingLeaveReject}
-                                                            className="px-3.5 py-1.5 rounded-[3px] bg-[#FBE7E7] text-[#DE350B] hover:bg-[#f7d6d6] text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                                        >
-                                                            <XIcon size={14} /> Reject
-                                                        </button>
+                                                        {(user?.role === 'SUPER_ADMIN' || hasPermission('LEAVE_APPROVE')) && (
+                                                            <button
+                                                                onClick={() => handleUpdateStatus(l.id, 'APPROVED')}
+                                                                disabled={processingLeaveId === l.id || submittingLeaveReject}
+                                                                className={`px-3.5 py-1.5 rounded-[3px] bg-[#E4F5EC] text-[#00875A] hover:bg-[#d5f0e1] text-xs font-semibold transition-all flex items-center gap-1 ${
+                                                                    processingLeaveId === l.id ? 'opacity-60 cursor-not-allowed pointer-events-none' : 'cursor-pointer'
+                                                                }`}
+                                                            >
+                                                                {processingLeaveId === l.id ? (
+                                                                    <>
+                                                                        <Loader2 size={13} className="animate-spin" /> Approving...
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <CheckCircle size={14} /> Approve
+                                                                    </>
+                                                                )}
+                                                            </button>
+                                                        )}
+                                                        {(user?.role === 'SUPER_ADMIN' || hasPermission('LEAVE_REJECT')) && (
+                                                            <button
+                                                                onClick={() => {
+                                                                    setRejectingLeaveId(l.id);
+                                                                    setLeaveRejectComment('');
+                                                                }}
+                                                                disabled={processingLeaveId === l.id || submittingLeaveReject}
+                                                                className="px-3.5 py-1.5 rounded-[3px] bg-[#FBE7E7] text-[#DE350B] hover:bg-[#f7d6d6] text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                                            >
+                                                                <XIcon size={14} /> Reject
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 ) : (
                                                     <div className="flex items-center justify-end pr-[71px]">
@@ -993,7 +1033,7 @@ export default function Leave() {
                         </div>
 
                         {/* Form */}
-                        <form onSubmit={handleApplyLeave} className="p-6 space-y-4">
+                        <form onSubmit={handleApplyLeave} noValidate className="p-6 space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">Leave Type</label>
@@ -1001,7 +1041,6 @@ export default function Leave() {
                                         value={leaveType}
                                         onChange={(e) => handleLeaveTypeChange(e.target.value)}
                                         className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white transition-all cursor-pointer font-medium"
-                                        required
                                     >
                                         <option value="CL">Casual Leave (CL)</option>
                                         <option value="HD">Half Day (HD)</option>
@@ -1012,15 +1051,27 @@ export default function Leave() {
                                     </select>
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">Reason</label>
+                                    <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">
+                                        Reason <span className="text-[#DE350B]">*</span>
+                                    </label>
                                     <input
                                         type="text"
                                         placeholder="Vacation, Personal..."
                                         value={reason}
-                                        onChange={(e) => setReason(e.target.value)}
-                                        className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
-                                        required
+                                        onChange={(e) => {
+                                            setReason(e.target.value);
+                                            if (leaveErrors.reason) setLeaveErrors(prev => ({ ...prev, reason: undefined }));
+                                        }}
+                                        autoComplete="off"
+                                        autoCorrect="off"
+                                        spellCheck={false}
+                                        className={`w-full px-3 py-2 bg-white dark:bg-[#12151C] border ${
+                                            leaveErrors.reason ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20' : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                                        } rounded-[6px] outline-none text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1] transition-all`}
                                     />
+                                    {leaveErrors.reason && (
+                                        <p className="text-[11.5px] text-red-500 font-medium mt-1 animate-fade-in">{leaveErrors.reason}</p>
+                                    )}
                                 </div>
                             </div>
 
@@ -1028,20 +1079,28 @@ export default function Leave() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">
-                                        {['HD', 'SHL'].includes(leaveType) ? 'Leave Date' : 'From Date'}
+                                        {['HD', 'SHL'].includes(leaveType) ? 'Leave Date' : 'From Date'} <span className="text-[#DE350B]">*</span>
                                     </label>
                                     <input
                                         type="date"
                                         min={new Date().toISOString().split('T')[0]}
                                         value={fromDate}
-                                        onChange={(e) => handleFromDateChange(e.target.value)}
-                                        className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white"
-                                        required
+                                        onChange={(e) => {
+                                            handleFromDateChange(e.target.value);
+                                            if (leaveErrors.fromDate) setLeaveErrors(prev => ({ ...prev, fromDate: undefined }));
+                                        }}
+                                        autoComplete="off"
+                                        className={`w-full px-3 py-2 bg-white dark:bg-[#12151C] border ${
+                                            leaveErrors.fromDate ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20' : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                                        } rounded-[6px] outline-none text-[13.5px] text-[#12151C] dark:text-white transition-all`}
                                     />
+                                    {leaveErrors.fromDate && (
+                                        <p className="text-[11.5px] text-red-500 font-medium mt-1 animate-fade-in">{leaveErrors.fromDate}</p>
+                                    )}
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">
-                                        {['HD', 'SHL'].includes(leaveType) ? 'Leave Duration Type' : 'To Date'}
+                                        {['HD', 'SHL'].includes(leaveType) ? 'Leave Duration Type' : 'To Date'} {!['HD', 'SHL'].includes(leaveType) && <span className="text-[#DE350B]">*</span>}
                                     </label>
                                     {['HD', 'SHL'].includes(leaveType) ? (
                                         <div className="px-3 py-2 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] text-[13px] font-semibold text-[#2C4FD6] dark:text-blue-400 flex items-center justify-between h-[39px]">
@@ -1049,14 +1108,24 @@ export default function Leave() {
                                             <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-[#E8ECFC] dark:bg-blue-950/40 text-[#2C4FD6] dark:text-blue-300">1 Day</span>
                                         </div>
                                     ) : (
-                                        <input
-                                            type="date"
-                                            min={fromDate || new Date().toISOString().split('T')[0]}
-                                            value={toDate}
-                                            onChange={(e) => setToDate(e.target.value)}
-                                            className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white"
-                                            required
-                                        />
+                                        <>
+                                            <input
+                                                type="date"
+                                                min={fromDate || new Date().toISOString().split('T')[0]}
+                                                value={toDate}
+                                                onChange={(e) => {
+                                                    setToDate(e.target.value);
+                                                    if (leaveErrors.toDate) setLeaveErrors(prev => ({ ...prev, toDate: undefined }));
+                                                }}
+                                                autoComplete="off"
+                                                className={`w-full px-3 py-2 bg-white dark:bg-[#12151C] border ${
+                                                    leaveErrors.toDate ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20' : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                                                } rounded-[6px] outline-none text-[13.5px] text-[#12151C] dark:text-white transition-all`}
+                                            />
+                                            {leaveErrors.toDate && (
+                                                <p className="text-[11.5px] text-red-500 font-medium mt-1 animate-fade-in">{leaveErrors.toDate}</p>
+                                            )}
+                                        </>
                                     )}
                                 </div>
                             </div>
@@ -1094,9 +1163,13 @@ export default function Leave() {
                                             <input
                                                 type="time"
                                                 value={fromTime}
-                                                onChange={(e) => setFromTime(e.target.value)}
-                                                className="w-full px-3 py-1.5 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13px] text-[#12151C] dark:text-white"
-                                                required
+                                                onChange={(e) => {
+                                                    setFromTime(e.target.value);
+                                                    if (leaveErrors.time) setLeaveErrors(prev => ({ ...prev, time: undefined }));
+                                                }}
+                                                className={`w-full px-3 py-1.5 bg-white dark:bg-[#12151C] border ${
+                                                    leaveErrors.time ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20' : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                                                } rounded-[6px] outline-none text-[13px] text-[#12151C] dark:text-white`}
                                             />
                                         </div>
                                         <div className="space-y-1">
@@ -1104,17 +1177,27 @@ export default function Leave() {
                                             <input
                                                 type="time"
                                                 value={toTime}
-                                                onChange={(e) => setToTime(e.target.value)}
-                                                className="w-full px-3 py-1.5 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13px] text-[#12151C] dark:text-white"
-                                                required
+                                                onChange={(e) => {
+                                                    setToTime(e.target.value);
+                                                    if (leaveErrors.time) setLeaveErrors(prev => ({ ...prev, time: undefined }));
+                                                }}
+                                                className={`w-full px-3 py-1.5 bg-white dark:bg-[#12151C] border ${
+                                                    leaveErrors.time ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20' : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                                                } rounded-[6px] outline-none text-[13px] text-[#12151C] dark:text-white`}
                                             />
                                         </div>
                                     </div>
 
-                                    {fromTime && toTime && !calculateDuration(fromTime, toTime)?.isValid && (
-                                        <p className="text-[11.5px] text-[#DE350B] font-medium">
-                                            ⚠️ "To Time" must be later than "From Time".
+                                    {leaveErrors.time ? (
+                                        <p className="text-[11.5px] text-[#DE350B] font-medium animate-fade-in">
+                                            ⚠️ {leaveErrors.time}
                                         </p>
+                                    ) : (
+                                        fromTime && toTime && !calculateDuration(fromTime, toTime)?.isValid && (
+                                            <p className="text-[11.5px] text-[#DE350B] font-medium">
+                                                ⚠️ "To Time" must be later than "From Time".
+                                            </p>
+                                        )
                                     )}
                                 </div>
                             )}
@@ -1376,14 +1459,23 @@ export default function Leave() {
                     <div className="relative bg-white dark:bg-[#12151C] w-full max-w-md rounded-[6px] shadow-xl border border-[#E2E6ED] dark:border-gray-800 overflow-hidden p-6 animate-scale-in">
                         <h3 className="text-base font-bold text-[#12151C] dark:text-white mb-1">Reject Leave Request</h3>
                         <p className="text-xs text-[#5B6472] dark:text-gray-400 mb-4">Please provide a reason for rejecting this leave request.</p>
-                        <form onSubmit={handleRejectLeaveSubmit}>
+                        <form onSubmit={handleRejectLeaveSubmit} noValidate>
                             <textarea
                                 value={leaveRejectComment}
-                                onChange={(e) => setLeaveRejectComment(e.target.value)}
+                                onChange={(e) => {
+                                    setLeaveRejectComment(e.target.value);
+                                    if (rejectError) setRejectError('');
+                                }}
                                 placeholder="Enter rejection reason..."
-                                required
-                                className="w-full px-3 py-2 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6] text-xs min-h-[90px] mb-4 placeholder-[#9AA3B1]"
+                                autoComplete="off"
+                                spellCheck={false}
+                                className={`w-full px-3 py-2 rounded-[6px] border ${
+                                    rejectError ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20' : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                                } bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white outline-none text-xs min-h-[90px] mb-2 placeholder-[#9AA3B1] transition-all`}
                             />
+                            {rejectError && (
+                                <p className="text-[11.5px] text-red-500 font-medium mb-3 animate-fade-in">{rejectError}</p>
+                            )}
                             <div className="flex gap-3">
                                 <button
                                     type="button"

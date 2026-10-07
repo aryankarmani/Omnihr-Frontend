@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { createPortal } from 'react-dom';
 import { AttendanceSkeleton } from '../components/common/SkeletonLoaders';
+import { useAuth } from '../context/AuthContext';
 
 // Types for Attendance Data
 type AttendanceStatus = 'Present' | 'Absent' | 'Late' | 'Half Day' | 'Holiday' | 'Weekend' | 'Pending' | 'Leave' | 'Leave (Pending)';
@@ -18,8 +19,11 @@ interface DailyLog {
 }
 
 export default function Attendance() {
+    const { user, hasPermission } = useAuth();
     const [currentTime, setCurrentTime] = useState(new Date());
     const [isPunchedIn, setIsPunchedIn] = useState(false);
+    const [canPunchIn, setCanPunchIn] = useState(true);
+    const [punchInMessage, setPunchInMessage] = useState<string | null>(null);
     const [_punchInTime, setPunchInTime] = useState<Date | null>(null);
     const [selectedMonth, setSelectedMonth] = useState(new Date());
     const [loading, setLoading] = useState(true);
@@ -119,6 +123,8 @@ export default function Attendance() {
         try {
             const res = await api.get('/attendance/status');
             setIsPunchedIn(res.data.isPunchedIn);
+            if (res.data.canPunchIn !== undefined) setCanPunchIn(res.data.canPunchIn);
+            if (res.data.punchInMessage !== undefined) setPunchInMessage(res.data.punchInMessage);
             if (res.data.punchInTime) setPunchInTime(new Date(res.data.punchInTime));
             if (res.data.shift) setCurrentShift(res.data.shift);
 
@@ -214,12 +220,16 @@ export default function Attendance() {
             fetchHistoryAndRequests();
         },
         onError: (error: any) => {
-            toast.error(error.response?.data?.message || 'Error during punch toggle');
+            toast.error(error.response?.data?.message || 'Error during punch toggle', { id: 'punch-status-error' });
         }
     });
 
     const handlePunch = () => {
         if (punchMutation.isPending) return;
+        if (!isPunchedIn && canPunchIn === false) {
+            toast.error(punchInMessage || `Punch-in is only allowed 1 hour before your shift starts (${currentShift?.startTime || ''}).`, { id: 'punch-status-error' });
+            return;
+        }
         punchMutation.mutate();
     };
 
@@ -522,7 +532,7 @@ export default function Attendance() {
 
                     {/* Bottom: Regularize button directly in card - fixed height container */}
                     <div className="flex justify-end items-center h-5 shrink-0">
-                        {isEligibleForRegularize ? (
+                        {isEligibleForRegularize && (user?.role === 'SUPER_ADMIN' || hasPermission('ATTENDANCE_REGULARIZE')) ? (
                             <button
                                 type="button"
                                 onClick={(e) => {

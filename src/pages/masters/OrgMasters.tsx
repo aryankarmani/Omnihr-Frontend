@@ -5,8 +5,11 @@ import toast from 'react-hot-toast';
 import { Country, State, City } from 'country-state-city';
 import api, { getMediaUrl } from '../../utils/api';
 import SearchableSelect from '../../components/common/SearchableSelect';
+import { useAuth } from '../../context/AuthContext';
 
 export default function OrgMasters() {
+    const { user, hasPermission } = useAuth();
+    const canManageMasters = user?.role === 'SUPER_ADMIN' || hasPermission('MASTERS_MANAGE');
     const [activeTab, setActiveTab] = useState('company');
     const [loading, setLoading] = useState(false);
 
@@ -163,6 +166,9 @@ export default function OrgMasters() {
     const [locations, setLocations] = useState<any[]>([]);
     const [showLocModal, setShowLocModal] = useState(false);
     const [editingLocId, setEditingLocId] = useState<string | number | null>(null);
+    const [locErrors, setLocErrors] = useState<{ name?: string; country?: string; state?: string; city?: string }>({});
+    const [deptErrors, setDeptErrors] = useState<{ name?: string }>({});
+    const [desigErrors, setDesigErrors] = useState<{ name?: string }>({});
     const [newLoc, setNewLoc] = useState({
         name: '',
         address: '',
@@ -294,7 +300,11 @@ export default function OrgMasters() {
 
     const saveDepartment = async () => {
         if (loading) return;
-        if (!newDept.name) return toast.error("Name is required");
+        if (!newDept.name.trim()) {
+            setDeptErrors({ name: "Department name is required" });
+            return;
+        }
+        setDeptErrors({});
         try {
             setLoading(true);
             const cId = company.id;
@@ -311,6 +321,7 @@ export default function OrgMasters() {
             setShowDeptModal(false);
             setNewDept({ name: '', headId: null });
             setEditingDeptId(null);
+            setDeptErrors({});
         } catch (error: any) {
             toast.error(error.response?.data?.error || error.response?.data?.message || "Failed to save department");
         } finally {
@@ -334,12 +345,17 @@ export default function OrgMasters() {
     const handleEditDesig = (des: any) => {
         setEditingDesigId(des.id);
         setNewDesig({ name: des.name, grade: des.grade || '', reportTo: des.reportTo || '' });
+        setDesigErrors({});
         setShowDesigModal(true);
     };
 
     const saveDesignation = async () => {
         if (loading) return;
-        if (!newDesig.name?.trim()) return toast.error("Job Title is required");
+        if (!newDesig.name?.trim()) {
+            setDesigErrors({ name: "Job Title is required" });
+            return;
+        }
+        setDesigErrors({});
         try {
             setLoading(true);
             const cId = company?.id;
@@ -364,6 +380,7 @@ export default function OrgMasters() {
             setShowDesigModal(false);
             setNewDesig({ name: '', grade: '', reportTo: '' });
             setEditingDesigId(null);
+            setDesigErrors({});
         } catch (error: any) {
             console.error("Save designation error:", error);
             const errMsg = error.response?.data?.details || error.response?.data?.error || error.response?.data?.message || "Failed to save designation";
@@ -375,10 +392,17 @@ export default function OrgMasters() {
 
     const saveLocation = async () => {
         if (loading) return;
-        if (!newLoc.name.trim()) return toast.error("Branch name is required");
-        if (!newLoc.country.trim()) return toast.error("Country is required");
-        if (!newLoc.state.trim()) return toast.error("State is required");
-        if (!newLoc.city.trim()) return toast.error("City is required");
+        const errors: { name?: string; country?: string; state?: string; city?: string } = {};
+        if (!newLoc.name.trim()) errors.name = "Branch name is required";
+        if (!newLoc.country.trim()) errors.country = "Country is required";
+        if (!newLoc.state.trim()) errors.state = "State is required";
+        if (!newLoc.city.trim()) errors.city = "City is required";
+
+        if (Object.keys(errors).length > 0) {
+            setLocErrors(errors);
+            return;
+        }
+        setLocErrors({});
         try {
             setLoading(true);
             const cId = company?.id;
@@ -415,6 +439,7 @@ export default function OrgMasters() {
                 city: ''
             });
             setEditingLocId(null);
+            setLocErrors({});
         } catch (error: any) {
             console.error("Save location error:", error);
             const errMsg = error.response?.data?.details || error.response?.data?.error || error.response?.data?.message || "Failed to save location";
@@ -493,23 +518,25 @@ export default function OrgMasters() {
                                 <Building2 size={18} className="text-[#9AA3B1]" />
                                 Legal Entity Details
                             </h3>
-                            <button
-                                onClick={saveCompany}
-                                disabled={loading}
-                                className="inline-flex items-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] disabled:opacity-50 disabled:cursor-not-allowed text-white text-[13.5px] font-semibold rounded-[6px] px-[15px] py-[9px] whitespace-nowrap transition-all cursor-pointer"
-                            >
-                                {loading ? (
-                                    <>
-                                        <Loader2 size={16} className="animate-spin" />
-                                        Processing...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Save size={16} />
-                                        Save Changes
-                                    </>
-                                )}
-                            </button>
+                            {canManageMasters && (
+                                <button
+                                    onClick={saveCompany}
+                                    disabled={loading}
+                                    className="inline-flex items-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] disabled:opacity-50 disabled:cursor-not-allowed text-white text-[13.5px] font-semibold rounded-[6px] px-[15px] py-[9px] whitespace-nowrap transition-all cursor-pointer"
+                                >
+                                    {loading ? (
+                                        <>
+                                            <Loader2 size={16} className="animate-spin" />
+                                            Processing...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Save size={16} />
+                                            Save Changes
+                                        </>
+                                    )}
+                                </button>
+                            )}
                         </div>
 
                         <div className="space-y-6">
@@ -526,6 +553,11 @@ export default function OrgMasters() {
                                             placeholder="Not set"
                                             value={company.legalName || ''}
                                             onChange={handleCompanyChange}
+                                            autoComplete="off"
+                                            autoCorrect="off"
+                                            autoCapitalize="off"
+                                            spellCheck={false}
+                                            data-lpignore="true"
                                             className="w-full px-3.5 py-2.5 bg-[#EEF2F8] dark:bg-gray-800/60 border border-[#E2E6ED] dark:border-gray-700 rounded-[8px] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1] italic outline-none focus:border-[#2C4FD6] transition-all"
                                         />
                                     </div>
@@ -537,6 +569,11 @@ export default function OrgMasters() {
                                             placeholder="Not set"
                                             value={company.gstin || ''}
                                             onChange={handleCompanyChange}
+                                            autoComplete="off"
+                                            autoCorrect="off"
+                                            autoCapitalize="off"
+                                            spellCheck={false}
+                                            data-lpignore="true"
                                             className="w-full px-3.5 py-2.5 bg-[#EEF2F8] dark:bg-gray-800/60 border border-[#E2E6ED] dark:border-gray-700 rounded-[8px] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1] italic uppercase outline-none focus:border-[#2C4FD6] transition-all"
                                         />
                                     </div>
@@ -551,6 +588,11 @@ export default function OrgMasters() {
                                             placeholder="Not set"
                                             value={company.cin || ''}
                                             onChange={handleCompanyChange}
+                                            autoComplete="off"
+                                            autoCorrect="off"
+                                            autoCapitalize="off"
+                                            spellCheck={false}
+                                            data-lpignore="true"
                                             className="w-full px-3.5 py-2.5 bg-[#EEF2F8] dark:bg-gray-800/60 border border-[#E2E6ED] dark:border-gray-700 rounded-[8px] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1] italic uppercase outline-none focus:border-[#2C4FD6] transition-all"
                                         />
                                     </div>
@@ -562,6 +604,11 @@ export default function OrgMasters() {
                                             placeholder="Not set"
                                             value={company.pan || ''}
                                             onChange={handleCompanyChange}
+                                            autoComplete="off"
+                                            autoCorrect="off"
+                                            autoCapitalize="off"
+                                            spellCheck={false}
+                                            data-lpignore="true"
                                             className="w-full px-3.5 py-2.5 bg-[#EEF2F8] dark:bg-gray-800/60 border border-[#E2E6ED] dark:border-gray-700 rounded-[8px] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1] italic uppercase outline-none focus:border-[#2C4FD6] transition-all"
                                         />
                                     </div>
@@ -581,6 +628,11 @@ export default function OrgMasters() {
                                             placeholder="Not set"
                                             value={company.regAddress || ''}
                                             onChange={handleCompanyChange}
+                                            autoComplete="off"
+                                            autoCorrect="off"
+                                            autoCapitalize="off"
+                                            spellCheck={false}
+                                            data-lpignore="true"
                                             className="w-full px-3.5 py-2.5 bg-[#EEF2F8] dark:bg-gray-800/60 border border-[#E2E6ED] dark:border-gray-700 rounded-[8px] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1] italic outline-none focus:border-[#2C4FD6] transition-all"
                                         />
                                     </div>
@@ -592,6 +644,11 @@ export default function OrgMasters() {
                                             placeholder="Not set"
                                             value={company.website || ''}
                                             onChange={handleCompanyChange}
+                                            autoComplete="off"
+                                            autoCorrect="off"
+                                            autoCapitalize="off"
+                                            spellCheck={false}
+                                            data-lpignore="true"
                                             className="w-full px-3.5 py-2.5 bg-[#EEF2F8] dark:bg-gray-800/60 border border-[#E2E6ED] dark:border-gray-700 rounded-[8px] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1] italic outline-none focus:border-[#2C4FD6] transition-all"
                                         />
                                     </div>
@@ -910,7 +967,7 @@ export default function OrgMasters() {
                     <div className="bg-white dark:bg-[#12151C] rounded-[11px] border border-[#E2E6ED] dark:border-gray-800 w-full max-w-lg overflow-hidden animate-scale-in">
                         <div className="p-5 border-b border-[#E2E6ED] dark:border-gray-800 flex justify-between items-center bg-[#F7F8FA] dark:bg-white/5">
                             <h3 className="text-base font-bold text-[#12151C] dark:text-white">{editingLocId ? 'Edit Location' : 'Add New Location'}</h3>
-                            <button onClick={() => setShowLocModal(false)} className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer"><X size={18} /></button>
+                            <button onClick={() => { setShowLocModal(false); setLocErrors({}); }} className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer"><X size={18} /></button>
                         </div>
                         <div className="p-6 space-y-4">
                             <div>
@@ -920,10 +977,20 @@ export default function OrgMasters() {
                                 <input
                                     type="text"
                                     placeholder="e.g. Headquarters / Mumbai Office"
-                                    className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[7px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
+                                    autoComplete="off"
+                                    spellCheck={false}
+                                    className={`w-full px-3 py-2 border ${
+                                        locErrors.name ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20' : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                                    } rounded-[7px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none transition-all`}
                                     value={newLoc.name}
-                                    onChange={e => setNewLoc({ ...newLoc, name: e.target.value })}
+                                    onChange={e => {
+                                        setNewLoc({ ...newLoc, name: e.target.value });
+                                        if (locErrors.name) setLocErrors(prev => ({ ...prev, name: undefined }));
+                                    }}
                                 />
+                                {locErrors.name && (
+                                    <p className="text-[11.5px] text-red-500 font-medium mt-1 animate-fade-in">{locErrors.name}</p>
+                                )}
                             </div>
 
                             {/* Searchable Country */}
@@ -944,57 +1011,80 @@ export default function OrgMasters() {
                                         stateCode: '',
                                         city: ''
                                     });
+                                    if (locErrors.country) setLocErrors(prev => ({ ...prev, country: undefined }));
                                 }}
                             />
+                            {locErrors.country && (
+                                <p className="text-[11.5px] text-red-500 font-medium -mt-2 animate-fade-in">{locErrors.country}</p>
+                            )}
 
                             {/* Searchable State and City */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <SearchableSelect
-                                    label="State / Province"
-                                    required
-                                    placeholder={newLoc.country ? "Select State" : "Select Country first"}
-                                    searchPlaceholder={`Type state name (e.g. ${stateOptions[0]?.label || 'state'})...`}
-                                    disabled={!newLoc.country || stateOptions.length === 0}
-                                    options={stateOptions}
-                                    value={newLoc.state}
-                                    onChange={(val, opt) => {
-                                        const stateCode = opt?.subLabel || (selectedCountryObj ? State.getStatesOfCountry(selectedCountryObj.isoCode).find(s => s.name === val)?.isoCode : '') || '';
-                                        setNewLoc({
-                                            ...newLoc,
-                                            state: val,
-                                            stateCode,
-                                            city: ''
-                                        });
-                                    }}
-                                />
-
-                                {newLoc.state && cityOptions.length === 0 ? (
-                                    <div>
-                                        <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">
-                                            City <span className="text-[#DE350B]">*</span>
-                                        </label>
-                                        <input
-                                            type="text"
-                                            placeholder="Enter city name..."
-                                            className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[7px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
-                                            value={newLoc.city}
-                                            onChange={e => setNewLoc({ ...newLoc, city: e.target.value })}
-                                        />
-                                    </div>
-                                ) : (
+                                <div>
                                     <SearchableSelect
-                                        label="City"
+                                        label="State / Province"
                                         required
-                                        placeholder={newLoc.state ? (cityOptions.length > 0 ? "Select City" : "No predefined cities") : "Select State first"}
-                                        searchPlaceholder={`Type city name in ${newLoc.state || 'state'}...`}
-                                        disabled={!newLoc.state || cityOptions.length === 0}
-                                        options={cityOptions}
-                                        value={newLoc.city}
-                                        onChange={(val) => {
-                                            setNewLoc({ ...newLoc, city: val });
+                                        placeholder={newLoc.country ? "Select State" : "Select Country first"}
+                                        searchPlaceholder={`Type state name (e.g. ${stateOptions[0]?.label || 'state'})...`}
+                                        disabled={!newLoc.country || stateOptions.length === 0}
+                                        options={stateOptions}
+                                        value={newLoc.state}
+                                        onChange={(val, opt) => {
+                                            const stateCode = opt?.subLabel || (selectedCountryObj ? State.getStatesOfCountry(selectedCountryObj.isoCode).find(s => s.name === val)?.isoCode : '') || '';
+                                            setNewLoc({
+                                                ...newLoc,
+                                                state: val,
+                                                stateCode,
+                                                city: ''
+                                            });
+                                            if (locErrors.state) setLocErrors(prev => ({ ...prev, state: undefined }));
                                         }}
                                     />
-                                )}
+                                    {locErrors.state && (
+                                        <p className="text-[11.5px] text-red-500 font-medium mt-1 animate-fade-in">{locErrors.state}</p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    {newLoc.state && cityOptions.length === 0 ? (
+                                        <div>
+                                            <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">
+                                                City <span className="text-[#DE350B]">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="Enter city name..."
+                                                autoComplete="off"
+                                                spellCheck={false}
+                                                className={`w-full px-3 py-2 border ${
+                                                    locErrors.city ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20' : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                                                } rounded-[7px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none transition-all`}
+                                                value={newLoc.city}
+                                                onChange={e => {
+                                                    setNewLoc({ ...newLoc, city: e.target.value });
+                                                    if (locErrors.city) setLocErrors(prev => ({ ...prev, city: undefined }));
+                                                }}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <SearchableSelect
+                                            label="City"
+                                            required
+                                            placeholder={newLoc.state ? (cityOptions.length > 0 ? "Select City" : "No predefined cities") : "Select State first"}
+                                            searchPlaceholder={`Type city name in ${newLoc.state || 'state'}...`}
+                                            disabled={!newLoc.state || cityOptions.length === 0}
+                                            options={cityOptions}
+                                            value={newLoc.city}
+                                            onChange={(val) => {
+                                                setNewLoc({ ...newLoc, city: val });
+                                                if (locErrors.city) setLocErrors(prev => ({ ...prev, city: undefined }));
+                                            }}
+                                        />
+                                    )}
+                                    {locErrors.city && (
+                                        <p className="text-[11.5px] text-red-500 font-medium mt-1 animate-fade-in">{locErrors.city}</p>
+                                    )}
+                                </div>
                             </div>
 
                             <div>
@@ -1003,6 +1093,8 @@ export default function OrgMasters() {
                                     className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[7px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
                                     rows={2}
                                     placeholder="Enter street / building address..."
+                                    autoComplete="off"
+                                    spellCheck={false}
                                     value={newLoc.address}
                                     onChange={e => setNewLoc({ ...newLoc, address: e.target.value })}
                                 />
@@ -1034,20 +1126,32 @@ export default function OrgMasters() {
                                 <h3 className="text-base font-bold text-[#12151C] dark:text-white">{editingDeptId ? 'Edit Department' : 'Add Department'}</h3>
                                 <p className="text-xs text-[#5B6472] dark:text-gray-400 mt-0.5">Configure department details and leadership</p>
                             </div>
-                            <button onClick={() => setShowDeptModal(false)} className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer"><X size={18} /></button>
+                            <button onClick={() => { setShowDeptModal(false); setDeptErrors({}); }} className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer"><X size={18} /></button>
                         </div>
 
                         <div className="p-6 space-y-5">
                             {/* Department Name */}
                             <div>
-                                <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1.5">Department Name</label>
+                                <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1.5">
+                                    Department Name <span className="text-[#DE350B]">*</span>
+                                </label>
                                 <input
                                     type="text"
                                     placeholder="e.g. Information Technology"
-                                    className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[7px] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
+                                    autoComplete="off"
+                                    spellCheck={false}
+                                    className={`w-full px-3 py-2 bg-white dark:bg-[#12151C] border ${
+                                        deptErrors.name ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20' : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                                    } rounded-[7px] text-[13.5px] text-[#12151C] dark:text-white outline-none transition-all`}
                                     value={newDept.name}
-                                    onChange={e => setNewDept({ ...newDept, name: e.target.value })}
+                                    onChange={e => {
+                                        setNewDept({ ...newDept, name: e.target.value });
+                                        if (deptErrors.name) setDeptErrors({});
+                                    }}
                                 />
+                                {deptErrors.name && (
+                                    <p className="text-[11.5px] text-red-500 font-medium mt-1 animate-fade-in">{deptErrors.name}</p>
+                                )}
                             </div>
 
                             {/* Department Head Selection - ONLY SHOW WHEN EDITING */}
@@ -1058,6 +1162,8 @@ export default function OrgMasters() {
                                         <input
                                             type="text"
                                             placeholder="Search employee..."
+                                            autoComplete="off"
+                                            spellCheck={false}
                                             className="w-full px-3 py-2 pr-8 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[7px] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
                                             value={headSearch || (employees.find(e => e.id === newDept.headId)?.name || '')}
                                             onFocus={() => setShowHeadDropdown(true)}
@@ -1113,7 +1219,7 @@ export default function OrgMasters() {
 
                             <div className="flex gap-3 pt-2">
                                 <button
-                                    onClick={() => setShowDeptModal(false)}
+                                    onClick={() => { setShowDeptModal(false); setDeptErrors({}); }}
                                     className="flex-1 py-2.5 bg-white dark:bg-[#12151C] text-[#5B6472] dark:text-gray-300 rounded-[8px] border border-[#E2E6ED] dark:border-gray-700 hover:bg-gray-50 font-semibold transition-all text-[13.5px] cursor-pointer"
                                 >
                                     Discard
@@ -1147,17 +1253,49 @@ export default function OrgMasters() {
                     <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 w-full max-w-md overflow-hidden animate-scale-in">
                         <div className="p-5 border-b border-[#E2E6ED] dark:border-gray-800 flex justify-between items-center bg-[#F7F8FA] dark:bg-white/5">
                             <h3 className="text-base font-bold text-[#12151C] dark:text-white">{editingDesigId ? 'Edit Designation' : 'Add Designation'}</h3>
-                            <button onClick={() => setShowDesigModal(false)} className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer"><X size={18} /></button>
+                            <button onClick={() => { setShowDesigModal(false); setDesigErrors({}); }} className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer"><X size={18} /></button>
                         </div>
                         <div className="p-6 space-y-4">
-                            <div><label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Job Title</label><input type="text" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newDesig.name} onChange={e => setNewDesig({ ...newDesig, name: e.target.value })} /></div>
-                            <div><label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Grade / Level</label><input type="text" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newDesig.grade} onChange={e => setNewDesig({ ...newDesig, grade: e.target.value })} /></div>
+                            <div>
+                                <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">
+                                    Job Title <span className="text-[#DE350B]">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    autoComplete="off"
+                                    spellCheck={false}
+                                    className={`w-full px-3 py-2 border ${
+                                        desigErrors.name ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20' : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                                    } rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none transition-all`}
+                                    value={newDesig.name}
+                                    onChange={e => {
+                                        setNewDesig({ ...newDesig, name: e.target.value });
+                                        if (desigErrors.name) setDesigErrors({});
+                                    }}
+                                />
+                                {desigErrors.name && (
+                                    <p className="text-[11.5px] text-red-500 font-medium mt-1 animate-fade-in">{desigErrors.name}</p>
+                                )}
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Grade / Level</label>
+                                <input
+                                    type="text"
+                                    autoComplete="off"
+                                    spellCheck={false}
+                                    className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
+                                    value={newDesig.grade}
+                                    onChange={e => setNewDesig({ ...newDesig, grade: e.target.value })}
+                                />
+                            </div>
                             <div>
                                 <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Reports To</label>
                                 <input
                                     type="text"
                                     list="reportsToSuggestions"
                                     placeholder="Select or enter reporting designation..."
+                                    autoComplete="off"
+                                    spellCheck={false}
                                     className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
                                     value={newDesig.reportTo}
                                     onChange={e => setNewDesig({ ...newDesig, reportTo: e.target.value })}

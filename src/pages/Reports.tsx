@@ -4,8 +4,10 @@ import { FileText, TrendingUp, Users, Calendar, ChevronDown, Clock, DollarSign }
 import { useEffect, useState } from 'react';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
 
 export default function Reports() {
+    const { user, hasPermission } = useAuth();
     const [attendanceData, setAttendanceData] = useState<any[]>([]);
     const [payrollData, setPayrollData] = useState<any[]>([]);
     const [stats, setStats] = useState<any>({});
@@ -315,6 +317,7 @@ export default function Reports() {
                     </div>
                 </div>
 
+                {(user?.role === 'SUPER_ADMIN' || hasPermission('REPORTS_EXPORT')) ? (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {/* Card 1: Attendance */}
                     <div
@@ -388,6 +391,11 @@ export default function Reports() {
                         </div>
                     </div>
                 </div>
+                ) : (
+                    <div className="p-6 rounded-[6px] border border-dashed border-[#E2E6ED] dark:border-gray-800 text-center text-xs text-[#9AA3B1]">
+                        Report exports are disabled for your account (requires REPORTS_EXPORT permission).
+                    </div>
+                )}
             </div>
         </div>
     );

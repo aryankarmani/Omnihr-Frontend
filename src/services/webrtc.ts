@@ -42,27 +42,119 @@ export class WebRTCService {
         return new Map(this.remoteStreams);
     }
 
+    public async acquireMedia(callType: 'VOICE' | 'VIDEO'): Promise<{
+        stream: MediaStream;
+        fallbackToAudioOnly: boolean;
+        listenOnly: boolean;
+    }> {
+        let hasAudioDevice = true;
+        let hasVideoDevice = true;
+
+        if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const audioInputs = devices.filter((d) => d.kind === 'audioinput');
+                const videoInputs = devices.filter((d) => d.kind === 'videoinput');
+                if (devices.length > 0) {
+                    hasAudioDevice = audioInputs.length > 0;
+                    hasVideoDevice = videoInputs.length > 0;
+                }
+            } catch (e) {
+                console.warn('[WebRTC] enumerateDevices check failed:', e);
+            }
+        }
+
+        let wantVideo = callType === 'VIDEO' && hasVideoDevice;
+        let fallbackToAudioOnly = callType === 'VIDEO' && !hasVideoDevice;
+        let stream: MediaStream | null = null;
+
+        // 1. Attempt primary media capture
+        if (hasAudioDevice || wantVideo) {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    audio: hasAudioDevice ? { echoCancellation: true, noiseSuppression: true } : false,
+                    video: wantVideo ? { width: { ideal: 1280 }, height: { ideal: 720 } } : false,
+                });
+            } catch (err: any) {
+                console.warn('[WebRTC] Primary getUserMedia failed:', err?.name, err?.message);
+
+                if (err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError') {
+                    throw new Error('Permission denied: Please allow microphone/camera access in your browser settings.');
+                }
+
+                // If video was requested but failed (camera unplugged, missing, or busy in another app)
+                if (wantVideo) {
+                    fallbackToAudioOnly = true;
+                    try {
+                        stream = await navigator.mediaDevices.getUserMedia({
+                            audio: hasAudioDevice ? true : false,
+                            video: false,
+                        });
+                    } catch (audioErr: any) {
+                        console.warn('[WebRTC] Audio fallback failed:', audioErr);
+                    }
+                } else if (hasAudioDevice) {
+                    // Try simple audio without echo cancellation
+                    try {
+                        stream = await navigator.mediaDevices.getUserMedia({
+                            audio: true,
+                            video: false,
+                        });
+                    } catch (basicErr: any) {
+                        console.warn('[WebRTC] Basic audio failed:', basicErr);
+                    }
+                }
+            }
+        }
+
+        // 2. If no microphone device or all getUserMedia failed, generate silent audio track for listen-only mode
+        let listenOnly = false;
+        if (!stream || stream.getTracks().length === 0) {
+            console.warn('[WebRTC] No input devices found. Creating silent track for listen-only mode.');
+            try {
+                const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+                if (AudioCtx) {
+                    const ctx = new AudioCtx();
+                    const osc = ctx.createOscillator();
+                    const dst = ctx.createMediaStreamDestination();
+                    osc.connect(dst);
+                    osc.start();
+                    const dummyTrack = dst.stream.getAudioTracks()[0];
+                    dummyTrack.enabled = false;
+                    stream = new MediaStream([dummyTrack]);
+                    listenOnly = true;
+                }
+            } catch (ctxErr) {
+                console.error('[WebRTC] Dummy audio track generation failed:', ctxErr);
+            }
+        }
+
+        if (!stream) {
+            throw new Error('No microphone or camera found on your device. Please plug in a headset or microphone.');
+        }
+
+        return { stream, fallbackToAudioOnly, listenOnly };
+    }
+
     public async initializeCall(
         targetUserId: number,
         callId: number,
         callType: 'VOICE' | 'VIDEO'
-    ): Promise<MediaStream> {
+    ): Promise<{ stream: MediaStream; fallbackToAudioOnly: boolean; listenOnly: boolean }> {
         this.cleanup();
         this.defaultTargetUserId = targetUserId > 0 ? targetUserId : null;
         this.callId = callId > 0 ? callId : null;
 
-        // 1. Get user media (microphone + optional camera)
-        this.localStream = await navigator.mediaDevices.getUserMedia({
-            audio: { echoCancellation: true, noiseSuppression: true },
-            video: callType === 'VIDEO' ? { width: { ideal: 1280 }, height: { ideal: 720 } } : false
-        });
+        // 1. Get user media with graceful hardware fallbacks
+        const result = await this.acquireMedia(callType);
+        this.localStream = result.stream;
 
         // 2. In 1:1 call, pre-create the peer connection
         if (targetUserId > 0) {
             this.getOrCreatePeer(targetUserId);
         }
 
-        return this.localStream;
+        return result;
     }
 
     public getOrCreatePeer(remoteUserId: number): RTCPeerConnection {

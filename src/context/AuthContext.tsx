@@ -12,6 +12,7 @@ interface User {
     tenantId?: string;
     token?: string;
     accessibleModules?: string[];
+    permissions?: string[];
     forcePasswordChange?: boolean;
     avatar?: string | null;
     profilePicture?: string | null;
@@ -25,6 +26,7 @@ interface AuthContextType {
     logout: () => Promise<void> | void;
     refreshUser: () => Promise<void>;
     updateUser: (updatedUser: Partial<User>) => void;
+    hasPermission: (permissionCode: string) => boolean;
     error: string | null;
 }
 
@@ -252,6 +254,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const hasPermission = (permissionCode: string): boolean => {
+        if (!user) return false;
+        const role = String(user.role || '').toUpperCase();
+        if (role === 'SUPER_ADMIN') return true;
+        if (!Array.isArray(user.permissions)) return false;
+        return user.permissions.includes(permissionCode);
+    };
+
     return (
         <AuthContext.Provider value={{
             user,
@@ -261,6 +271,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             logout,
             refreshUser,
             updateUser,
+            hasPermission,
             error
         }}>
             {children}
