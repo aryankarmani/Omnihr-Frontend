@@ -117,7 +117,7 @@ export default function SuperAdminSettings() {
             Choose a strong password with at least 8 characters combining numbers and symbols.
           </p>
 
-          <form onSubmit={handleSubmit(onPasswordSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onPasswordSubmit)} noValidate className="space-y-4">
             <div>
               <label className="block text-[13px] font-semibold text-[#12151C] dark:text-gray-300 mb-1.5">
                 Current Password <span className="text-rose-500">*</span>

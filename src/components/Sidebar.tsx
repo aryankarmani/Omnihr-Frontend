@@ -30,8 +30,8 @@ const menuItems: MenuItem[] = [
         module: 'EMPLOYEE',
         children: [
             { label: 'List', path: '/employee', module: 'EMPLOYEE', icon: Users },
-            { label: 'Leave Approval', path: '/leave', module: 'LEAVE', icon: FileCheck, state: { activeTab: 'APPROVALS' } },
-            { label: 'Correction', path: '/regularizations', module: 'EMPLOYEE_ATTENDANCE', icon: CheckSquare },
+            { label: 'Leave Approval', path: '/leave', module: 'EMPLOYEE', icon: FileCheck, state: { activeTab: 'APPROVALS' } },
+            { label: 'Correction', path: '/regularizations', module: 'EMPLOYEE', icon: CheckSquare },
         ]
     },
     { icon: UsersRound, label: 'Team', path: '/team', module: 'TEAM' },
@@ -51,8 +51,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: SidebarProps) {
-    const { user } = useAuth();
-    const { logout } = useAuth();
+    const { user, logout, hasPermission } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -212,12 +211,17 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
 
                 <nav className="flex-1 px-3 space-y-1 mt-2 overflow-y-auto overflow-x-hidden custom-scrollbar">
                     {menuItems.filter(item => {
-                        if (item.module === 'EMPLOYEE_ATTENDANCE') {
-                            const isAllowed = userModules.includes('EMPLOYEE_ATTENDANCE');
-                            return isAllowed && (
-                                user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN' ||
-                                (managerAccess.isTeamManager &&
-                                    (managerAccess.access.attendance || managerAccess.access.regularization))
+                        if (item.module === 'EMPLOYEE') {
+                            const isGlobalAdmin = user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'SYSTEM_ADMIN';
+                            return (
+                                isGlobalAdmin ||
+                                userModules.includes('EMPLOYEE') ||
+                                userModules.includes('EMPLOYEE_ATTENDANCE') ||
+                                hasPermission('EMPLOYEE_VIEW') ||
+                                hasPermission('LEAVE_APPROVE') ||
+                                hasPermission('ATTENDANCE_APPROVE') ||
+                                hasPermission('ATTENDANCE_REJECT') ||
+                                (managerAccess.isTeamManager && (managerAccess.access.list || managerAccess.access.leaveApproval || managerAccess.access.regularization))
                             );
                         }
                         return userModules.includes(item.module);
@@ -260,11 +264,19 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                                 {hasChildren && isOpen && !isCollapsed && (
                                     <div className="space-y-1 ml-4 border-l border-[#E2E6ED] dark:border-gray-800 pl-2 animate-fade-in">
                                         {item.children?.filter(child => {
-                                            if (managerAccess.isTeamManager && user?.role !== 'HR_ADMIN' && (user?.role as string) !== 'ADMIN') {
-                                                if (child.label === 'List') return !!managerAccess.access.list;
-                                                if (child.label === 'Attendance') return !!managerAccess.access.attendance;
-                                                if (child.label === 'Leave Approval') return !!managerAccess.access.leaveApproval;
-                                                if (child.label === 'Correction' || child.label === 'Regularizations') return !!managerAccess.access.regularization;
+                                            const isGlobalAdmin = user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'SYSTEM_ADMIN';
+
+                                            if (child.label === 'List') {
+                                                return isGlobalAdmin || hasPermission('EMPLOYEE_VIEW') || userModules.includes('EMPLOYEE') || (managerAccess.isTeamManager && managerAccess.access.list);
+                                            }
+                                            if (child.label === 'Leave Approval') {
+                                                return isGlobalAdmin || hasPermission('LEAVE_APPROVE') || hasPermission('LEAVE_VIEW') || (managerAccess.isTeamManager && managerAccess.access.leaveApproval);
+                                            }
+                                            if (child.label === 'Correction' || child.label === 'Regularizations') {
+                                                return isGlobalAdmin || hasPermission('ATTENDANCE_APPROVE') || hasPermission('ATTENDANCE_REJECT') || hasPermission('EMPLOYEE_ATTENDANCE_MANAGE') || (managerAccess.isTeamManager && managerAccess.access.regularization);
+                                            }
+                                            if (child.label === 'Attendance') {
+                                                return isGlobalAdmin || hasPermission('EMPLOYEE_ATTENDANCE_VIEW') || (managerAccess.isTeamManager && managerAccess.access.attendance);
                                             }
                                             if (child.module === 'EMPLOYEE_ATTENDANCE') {
                                                 return userModules.includes('EMPLOYEE_ATTENDANCE');

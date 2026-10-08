@@ -306,7 +306,7 @@ export default function Plans() {
               </p>
             </div>
 
-            <form onSubmit={handleSubmit(onPlanSubmit)} className="space-y-3.5">
+            <form onSubmit={handleSubmit(onPlanSubmit)} noValidate className="space-y-3.5">
               <div>
                 <label className="block text-[13px] font-semibold text-[#12151C] dark:text-gray-300 mb-1">
                   Plan Name <span className="text-rose-500">*</span>

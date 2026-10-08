@@ -18,23 +18,22 @@ interface ModuleDef {
 }
 
 const ALL_MODULES: ModuleDef[] = [
-    { key: 'DASHBOARD', label: 'Dashboard', icon: LayoutDashboard, description: 'Analytics overview and key business metrics' },
-    { key: 'ATTENDANCE', label: 'My Attendance', icon: Fingerprint, description: 'Personal punch-in/out and shift attendance logs' },
-    { key: 'EMPLOYEE_ATTENDANCE', label: 'Employee Attendance', icon: Calendar, description: 'Organization-wide attendance & shift tracking' },
-    { key: 'EMPLOYEE', label: 'Employee List', icon: Users, description: 'Staff directory, onboarding & employee profiles' },
+    { key: 'DASHBOARD', label: 'Dashboard', icon: LayoutDashboard, description: 'Analytics overview, charts and key business metrics' },
+    { key: 'ATTENDANCE', label: 'My Attendance', icon: Fingerprint, description: 'Personal punch-in/out logs, shift timing & calendar' },
+    { key: 'EMPLOYEE', label: 'Employee', icon: Users, description: 'Staff directory, attendance corrections & leave approvals' },
     { key: 'TEAM', label: 'Team', icon: UsersRound, description: 'Department hierarchies & team leadership' },
-    { key: 'CHAT', label: 'Chat', icon: MessageSquare, description: 'Direct messaging, group conversations & team calls' },
-    { key: 'LEAVE', label: 'Leave', icon: CalendarRange, description: 'Leave requests, quota balances & approvals' },
-    { key: 'PAYROLL', label: 'Payroll', icon: FileSpreadsheet, description: 'Salary calculations, payslips & tax deductions' },
-    { key: 'REPORTS', label: 'Reports', icon: BarChart3, description: 'HR analytics, attendance & payroll reports' },
-    { key: 'MASTERS', label: 'Masters', icon: Settings2, description: 'System-wide organizational masters & statutory' },
+    { key: 'CHAT', label: 'Chat', icon: MessageSquare, description: 'Direct messaging, group channels & audio/video calls' },
+    { key: 'LEAVE', label: 'Leave', icon: CalendarRange, description: 'Personal leave applications, balances & leave quota' },
+    { key: 'REPORTS', label: 'Reports', icon: BarChart3, description: 'HR analytics, attendance & organizational reports' },
+    { key: 'MASTERS', label: 'Masters', icon: Settings2, description: 'System-wide organizational masters, statutory & settings' },
     { key: 'LOG', label: 'Log', icon: FileText, description: 'Audit trail and system activity logs' },
-    { key: 'MY_PROFILE', label: 'My Profile', icon: UserCircle, description: 'Personal user profile & credentials' },
+    { key: 'MY_PROFILE', label: 'My Profile', icon: UserCircle, description: 'Personal user profile, documents & credentials' },
 ];
 
 const MODULE_ALIASES: Record<string, string> = {
     EMPLOYEES: 'EMPLOYEE',
     HR: 'EMPLOYEE',
+    EMPLOYEE_ATTENDANCE: 'EMPLOYEE',
     SETTINGS: 'MASTERS',
     ADMIN: 'MASTERS',
     TASK: 'LOG',

@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Clock, Settings, Save, Plus, Calendar, Trash2, X, Loader2, Layers, Sliders, AlertCircle } from 'lucide-react';
+import { Clock, Settings, Save, Plus, Calendar, Trash2, X, Loader2, Layers, Sliders, AlertCircle, Edit2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
 
@@ -32,18 +32,52 @@ export default function AttendanceMasters() {
 
     // Shift Form State
     const [showShiftModal, setShowShiftModal] = useState(false);
+    const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
     const [newShift, setNewShift] = useState({
         name: '', startTime: '09:00', endTime: '18:00', breakDuration: 60, graceTime: 15, isNightShift: false
     });
 
+    const handleOpenAddShift = () => {
+        setEditingShiftId(null);
+        setNewShift({ name: '', startTime: '09:00', endTime: '18:00', breakDuration: 60, graceTime: 15, isNightShift: false });
+        setShowShiftModal(true);
+    };
+
+    const handleOpenEditShift = (shift: any) => {
+        setEditingShiftId(shift.id);
+        setNewShift({
+            name: shift.name || '',
+            startTime: shift.startTime || '09:00',
+            endTime: shift.endTime || '18:00',
+            breakDuration: shift.breakDuration != null ? Number(shift.breakDuration) : 60,
+            graceTime: shift.graceTime != null ? Number(shift.graceTime) : 15,
+            isNightShift: !!shift.isNightShift
+        });
+        setShowShiftModal(true);
+    };
+
     const saveShift = async () => {
         if (loading) return;
+        if (!newShift.name.trim()) {
+            toast.error("Please provide a shift name");
+            return;
+        }
+        if (newShift.breakDuration < 0) {
+            toast.error("Break duration cannot be negative");
+            return;
+        }
         try {
             setLoading(true);
-            await api.post('/masters/shifts', newShift);
+            if (editingShiftId) {
+                await api.put(`/masters/shifts/${editingShiftId}`, newShift);
+                toast.success("Shift updated successfully!");
+            } else {
+                await api.post('/masters/shifts', newShift);
+                toast.success("Shift created successfully!");
+            }
             fetchShifts();
             setShowShiftModal(false);
-            toast.success("Shift saved!");
+            setEditingShiftId(null);
             setNewShift({ name: '', startTime: '09:00', endTime: '18:00', breakDuration: 60, graceTime: 15, isNightShift: false });
         } catch (error: any) {
             toast.error(error.response?.data?.error || error.response?.data?.message || "Failed to save shift");
@@ -147,7 +181,7 @@ export default function AttendanceMasters() {
                                 <h3 className="text-base font-bold text-[#12151C] dark:text-white">Shift Timings</h3>
                                 <p className="text-xs text-[#5B6472] dark:text-gray-400">Configure working hours, break durations, and grace times.</p>
                             </div>
-                            <button onClick={() => setShowShiftModal(true)} className="inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[13.5px] font-semibold px-[15px] py-[9px] transition-all cursor-pointer">
+                            <button onClick={handleOpenAddShift} className="inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[13.5px] font-semibold px-[15px] py-[9px] transition-all cursor-pointer">
                                 <Plus size={16} /> Add Shift
                             </button>
                         </div>
@@ -157,9 +191,16 @@ export default function AttendanceMasters() {
                                     <div className="flex justify-between items-start mb-3">
                                         <div>
                                             <h4 className="font-bold text-[#12151C] dark:text-white text-sm">{shift.name}</h4>
-                                            <p className="text-xs text-[#2C4FD6] font-semibold mt-0.5">{shift.startTime} - {shift.endTime}</p>
+                                            <p className="text-xs text-[#2C4FD6] font-semibold mt-0.5">{shift.startTime} - {shift.endTime}{shift.isNightShift ? ' (Night)' : ''}</p>
                                         </div>
-                                        <button onClick={() => handleDeleteShift(shift.id)} className="opacity-0 group-hover:opacity-100 p-1 text-[#DE350B] hover:bg-[#FBE7E7] dark:hover:bg-rose-900/30 rounded transition-all cursor-pointer"><Trash2 size={15} /></button>
+                                        <div className="flex items-center gap-1">
+                                            <button onClick={() => handleOpenEditShift(shift)} title="Edit Shift" className="p-1 text-[#2C4FD6] hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-all cursor-pointer">
+                                                <Edit2 size={15} />
+                                            </button>
+                                            <button onClick={() => handleDeleteShift(shift.id)} title="Delete Shift" className="p-1 text-[#DE350B] hover:bg-[#FBE7E7] dark:hover:bg-rose-900/30 rounded transition-all cursor-pointer">
+                                                <Trash2 size={15} />
+                                            </button>
+                                        </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-2 text-xs text-[#5B6472] dark:text-gray-400 border-t border-[#E2E6ED] dark:border-gray-800 pt-3">
                                         <div>Break: <span className="font-semibold text-[#12151C] dark:text-gray-200">{shift.breakDuration}m</span></div>
@@ -267,7 +308,9 @@ export default function AttendanceMasters() {
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 w-full max-w-md overflow-hidden animate-scale-in">
                         <div className="p-4 border-b border-[#E2E6ED] dark:border-gray-800 flex justify-between items-center">
-                            <h3 className="font-bold text-[#12151C] dark:text-white text-sm">Add Shift</h3>
+                            <h3 className="font-bold text-[#12151C] dark:text-white text-sm">
+                                {editingShiftId ? 'Edit Shift' : 'Add Shift'}
+                            </h3>
                             <button onClick={() => setShowShiftModal(false)} className="text-[#5B6472] hover:text-[#12151C] dark:hover:text-white"><X size={18} /></button>
                         </div>
                         <div className="p-5 space-y-4">
@@ -280,8 +323,14 @@ export default function AttendanceMasters() {
                                 <div><label className="block text-xs font-semibold mb-1 text-[#5B6472] dark:text-gray-300 uppercase">End Time</label><input type="time" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newShift.endTime} onChange={e => setNewShift({ ...newShift, endTime: e.target.value })} /></div>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
-                                <div><label className="block text-xs font-semibold mb-1 text-[#5B6472] dark:text-gray-300 uppercase">Break (mins)</label><input type="number" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newShift.breakDuration} onChange={e => setNewShift({ ...newShift, breakDuration: parseInt(e.target.value) })} /></div>
-                                <div><label className="block text-xs font-semibold mb-1 text-[#5B6472] dark:text-gray-300 uppercase">Grace In (mins)</label><input type="number" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newShift.graceTime} onChange={e => setNewShift({ ...newShift, graceTime: parseInt(e.target.value) })} /></div>
+                                <div>
+                                    <label className="block text-xs font-semibold mb-1 text-[#5B6472] dark:text-gray-300 uppercase">Break Duration (mins)</label>
+                                    <input type="number" min={0} max={240} className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newShift.breakDuration} onChange={e => setNewShift({ ...newShift, breakDuration: Math.max(0, parseInt(e.target.value) || 0) })} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold mb-1 text-[#5B6472] dark:text-gray-300 uppercase">Grace In (mins)</label>
+                                    <input type="number" min={0} max={120} className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newShift.graceTime} onChange={e => setNewShift({ ...newShift, graceTime: Math.max(0, parseInt(e.target.value) || 0) })} />
+                                </div>
                             </div>
                             <label className="flex items-center gap-3 text-xs text-[#5B6472] dark:text-gray-300 cursor-pointer"><input type="checkbox" className="w-4 h-4 rounded accent-[#2C4FD6]" checked={newShift.isNightShift} onChange={e => setNewShift({ ...newShift, isNightShift: e.target.checked })} /> Night Shift (Ends Next Day)</label>
                         </div>
@@ -297,7 +346,7 @@ export default function AttendanceMasters() {
                                         Saving Shift...
                                     </>
                                 ) : (
-                                    'Save Shift'
+                                    editingShiftId ? 'Update Shift' : 'Save Shift'
                                 )}
                             </button>
                         </div>

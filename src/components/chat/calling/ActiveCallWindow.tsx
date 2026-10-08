@@ -807,7 +807,7 @@ export default function ActiveCallWindow() {
                         </div>
 
                         {/* Chat Input */}
-                        <form onSubmit={handleSendChatMessage} className="p-3 border-t border-white/10 bg-[#0E1118]/90 flex gap-2">
+                        <form onSubmit={handleSendChatMessage} noValidate className="p-3 border-t border-white/10 bg-[#0E1118]/90 flex gap-2">
                             <input
                                 type="text"
                                 value={chatInput}

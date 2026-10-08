@@ -9,10 +9,14 @@ export function useRBAC() {
      */
     const hasPermission = (allowed: UserRole[] | string) => {
         if (!user) return false;
+        const role = String(user.role || '').toUpperCase();
+        if (role === 'SUPER_ADMIN') return true;
+
         if (typeof allowed === 'string') {
-            const role = String(user.role || '').toUpperCase();
-            if (role === 'SUPER_ADMIN') return true;
             return Array.isArray(user.permissions) && user.permissions.includes(allowed);
+        }
+        if (role === 'HR_ADMIN' || (user.role as string) === 'ADMIN' || role === 'SYSTEM_ADMIN') {
+            return true;
         }
         return allowed.includes(user.role);
     };
@@ -20,7 +24,7 @@ export function useRBAC() {
     const hasGranularPermission = (permissionCode: string) => {
         if (!user) return false;
         const role = String(user.role || '').toUpperCase();
-        if (role === 'SUPER_ADMIN') return true;
+        if (role === 'SUPER_ADMIN' || role === 'HR_ADMIN' || (user.role as string) === 'ADMIN' || role === 'SYSTEM_ADMIN') return true;
         return Array.isArray(user.permissions) && user.permissions.includes(permissionCode);
     };
 
@@ -29,7 +33,7 @@ export function useRBAC() {
         hasGranularPermission,
         role: user?.role,
         isAdmin: user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN' || user?.role === 'SYSTEM_ADMIN' || user?.role === 'SUPER_ADMIN',
-        // ✅ CHANGED: Manager is no longer a role
-        isManager: user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN' || user?.role === 'SYSTEM_ADMIN' || user?.role === 'SUPER_ADMIN', // Admins imply manager access usually
+        // ✅ Manager is no longer a role
+        isManager: user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN' || user?.role === 'SYSTEM_ADMIN' || user?.role === 'SUPER_ADMIN',
     };
 }

@@ -378,7 +378,7 @@ export default function Payments() {
               </p>
             </div>
 
-            <form onSubmit={handleSubmit(onSubmitPayment)} className="space-y-3.5">
+            <form onSubmit={handleSubmit(onSubmitPayment)} noValidate className="space-y-3.5">
               {/* Company Name Field with Dual Type/Search + Dropdown */}
               <div className="relative" ref={companyComboboxRef}>
                 <label className="block text-[13px] font-semibold text-[#12151C] dark:text-gray-300 mb-1">

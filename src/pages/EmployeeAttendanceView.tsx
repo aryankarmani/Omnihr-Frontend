@@ -9,7 +9,8 @@ import {
   ChevronRight,
   Loader2,
   ArrowLeft,
-  User
+  User,
+  Coffee
 } from 'lucide-react';
 
 import api from '../utils/api';
@@ -28,6 +29,12 @@ interface DailyLog {
   inTime?: string;
   outTime?: string;
   status: AttendanceStatus;
+  hours?: number;
+  totalHours?: number;
+  grossHours?: number;
+  netHours?: number;
+  totalBreakMinutes?: number;
+  breaks?: any[];
 }
 
 export default function EmployeeAttendanceView() {
@@ -244,10 +251,14 @@ export default function EmployeeAttendanceView() {
         textColor = 'text-[#C13A3A] dark:text-red-400';
       }
 
+      // Resolve breaks for employee view
+      const dayBreaks: any[] = (log?.breaks && Array.isArray(log.breaks)) ? log.breaks : [];
+      const primaryBreak = dayBreaks.length > 0 ? dayBreaks[0] : null;
+
       days.push(
         <div
           key={day}
-          className={`cal-day aspect-square rounded-[6px] ${containerBg} p-1.5 sm:p-2 flex flex-col justify-between transition-all relative`}
+          className={`cal-day min-h-[110px] aspect-square rounded-[6px] ${containerBg} p-1.5 sm:p-2 flex flex-col justify-between transition-all relative`}
         >
           {/* Top row: Day number and status badge */}
           <div className="flex items-start justify-between h-5 sm:h-6 shrink-0">
@@ -271,31 +282,85 @@ export default function EmployeeAttendanceView() {
             </div>
           </div>
 
-          {/* Middle row: Punch In & Out times centered consistently across all cards */}
-          <div className="space-y-0.5 text-left flex-1 flex flex-col justify-center my-auto">
+          {/* Middle row: Punch In, Punch Out, Break In, Break Out times */}
+          <div className="space-y-0.5 text-left flex-1 flex flex-col justify-center my-0.5 overflow-hidden">
             {holiday && !log?.inTime ? (
               <div className="text-[10px] sm:text-[11.5px] font-semibold text-purple-700 dark:text-purple-300 leading-snug line-clamp-2" title={holiday.name}>
                 {holiday.name}
               </div>
             ) : null}
 
+            {/* Punch In */}
             {log?.inTime ? (
-              <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-medium text-[#16A34A] dark:text-green-400 font-mono-numbers leading-tight truncate">
-                <Clock size={10} className="text-[#16A34A] shrink-0" />
-                <span>{formatTime12h(log.inTime).toLowerCase()}</span>
+              <div className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-semibold text-emerald-700 dark:text-green-400 font-mono-numbers leading-tight truncate" title={`Punch In: ${formatTime12h(log.inTime)}`}>
+                <span className="text-[8.5px] sm:text-[9px] font-extrabold text-emerald-800 bg-emerald-200/70 dark:bg-emerald-950/70 dark:text-emerald-300 px-1 py-0.5 rounded shrink-0 leading-none">IN</span>
+                <span className="truncate">{formatTime12h(log.inTime).toLowerCase()}</span>
               </div>
             ) : null}
+
+            {/* Punch Out */}
             {log?.outTime ? (
-              <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-medium text-[#DC2626] dark:text-red-400 font-mono-numbers leading-tight truncate">
-                <Clock size={10} className="text-[#DC2626] shrink-0" />
-                <span>{formatTime12h(log.outTime).toLowerCase()}</span>
+              <div className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-semibold text-rose-700 dark:text-red-400 font-mono-numbers leading-tight truncate" title={`Punch Out: ${formatTime12h(log.outTime)}`}>
+                <span className="text-[8.5px] sm:text-[9px] font-extrabold text-rose-800 bg-rose-200/70 dark:bg-rose-950/70 dark:text-rose-300 px-1 py-0.5 rounded shrink-0 leading-none">OUT</span>
+                <span className="truncate">{formatTime12h(log.outTime).toLowerCase()}</span>
               </div>
             ) : log?.inTime ? (
-              <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-medium text-[#DC2626] dark:text-red-400 font-mono-numbers leading-tight truncate">
-                <Clock size={10} className="text-[#DC2626] shrink-0" />
-                <span>--:--</span>
+              <div className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-semibold text-rose-700 dark:text-red-400 font-mono-numbers leading-tight truncate" title="Punch Out Pending">
+                <span className="text-[8.5px] sm:text-[9px] font-extrabold text-rose-800 bg-rose-200/70 dark:bg-rose-950/70 dark:text-rose-300 px-1 py-0.5 rounded shrink-0 leading-none">OUT</span>
+                <span className="font-mono">--:--</span>
               </div>
             ) : null}
+
+            {/* Break In & Break Out Timings */}
+            {dayBreaks.length > 0 && primaryBreak?.startTime ? (
+              <>
+                <div className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-semibold text-amber-700 dark:text-amber-400 font-mono-numbers leading-tight truncate" title={`Break In: ${formatTime12h(primaryBreak.startTime)}`}>
+                  <span className="text-[8.5px] sm:text-[9px] font-extrabold text-amber-800 bg-amber-200/80 dark:bg-amber-950/80 dark:text-amber-300 px-1 py-0.5 rounded shrink-0 leading-none">B-IN</span>
+                  <span className="truncate">{formatTime12h(primaryBreak.startTime).toLowerCase()}</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-semibold text-amber-700 dark:text-amber-400 font-mono-numbers leading-tight truncate" title={primaryBreak.endTime ? `Break Out: ${formatTime12h(primaryBreak.endTime)}` : 'Break In Progress'}>
+                  <span className="text-[8.5px] sm:text-[9px] font-extrabold text-amber-800 bg-amber-200/80 dark:bg-amber-950/80 dark:text-amber-300 px-1 py-0.5 rounded shrink-0 leading-none">B-OUT</span>
+                  <span className="truncate">
+                    {primaryBreak.endTime
+                      ? formatTime12h(primaryBreak.endTime).toLowerCase()
+                      : '--:--'}
+                  </span>
+                  {dayBreaks.length > 1 && (
+                    <span className="text-[8.5px] sm:text-[9px] font-bold text-amber-800 bg-amber-100 dark:bg-amber-900/60 px-1 rounded ml-auto" title={`${dayBreaks.length} total breaks (${log?.totalBreakMinutes || 0}m)`}>
+                      +{dayBreaks.length - 1}
+                    </span>
+                  )}
+                </div>
+              </>
+            ) : null}
+
+            {/* Net Working Hours display (Gross minus Break) */}
+            {log?.inTime ? (() => {
+              const inT = new Date(log.inTime);
+              const outT = log.outTime ? new Date(log.outTime) : null;
+              const breakMins = log.totalBreakMinutes ?? dayBreaks.reduce((sum: number, b: any) => sum + (b.duration || 0), 0);
+              let grossH = 0;
+              if (outT) {
+                grossH = Math.max(0, (outT.getTime() - inT.getTime()) / (1000 * 60 * 60));
+              }
+              const netH = (log.hours != null && log.hours > 0) ? Number(log.hours) : Math.max(0, grossH - (breakMins / 60));
+              const netDisplay = netH >= 0.1 ? `${netH.toFixed(1)}h` : (netH > 0 ? `${Math.max(1, Math.round(netH * 60))}m` : '0h');
+
+              return (
+                <div
+                  className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-bold text-blue-700 dark:text-blue-300 font-mono-numbers leading-tight truncate mt-0.5"
+                  title={`Total: ${grossH.toFixed(2)}h | Break: ${breakMins}m | Net: ${netH.toFixed(2)}h`}
+                >
+                  <span className="text-[8.5px] sm:text-[9px] font-extrabold text-blue-800 bg-blue-200/70 dark:bg-blue-950/70 dark:text-blue-300 px-1 py-0.5 rounded shrink-0 leading-none">HRS</span>
+                  <span className="truncate">{netDisplay}</span>
+                  {breakMins > 0 && (
+                    <span className="text-[9px] sm:text-[9.5px] font-medium text-amber-700 dark:text-amber-400 ml-auto" title={`${breakMins}m break deducted`}>
+                      (-{breakMins}m)
+                    </span>
+                  )}
+                </div>
+              );
+            })() : null}
           </div>
 
           {/* Bottom row: Holiday label if any, or placeholder */}
@@ -339,9 +404,9 @@ export default function EmployeeAttendanceView() {
       </div>
 
       {/* Stats Cards - Connected continuous strip matching Attendance page (no middle gap) */}
-      <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden mb-6 grid grid-cols-2 lg:grid-cols-4 divide-[#E2E6ED] dark:divide-gray-800">
+      <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden mb-6 grid grid-cols-2 lg:grid-cols-4 items-stretch">
         {/* Card 1: Present Days */}
-        <div className="px-[18px] py-[16px] flex flex-col justify-start h-[130px] border-b sm:border-b-0 border-r border-[#E2E6ED] dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all">
+        <div className="px-[18px] py-[16px] flex flex-col justify-start min-h-[130px] self-stretch border-b lg:border-b-0 border-r border-[#E2E6ED] dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all">
           <div className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 flex items-center justify-center text-[#5B6472] dark:text-gray-300 mb-4">
             <CheckCircle size={16} />
           </div>
@@ -354,7 +419,7 @@ export default function EmployeeAttendanceView() {
         </div>
 
         {/* Card 2: Absents */}
-        <div className="px-[18px] py-[16px] flex flex-col justify-start h-[130px] border-b sm:border-b-0 lg:border-r border-[#E2E6ED] dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all">
+        <div className="px-[18px] py-[16px] flex flex-col justify-start min-h-[130px] self-stretch border-b lg:border-b-0 lg:border-r border-[#E2E6ED] dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all">
           <div className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 flex items-center justify-center text-[#5B6472] dark:text-gray-300 mb-4">
             <AlertCircle size={16} />
           </div>
@@ -367,7 +432,7 @@ export default function EmployeeAttendanceView() {
         </div>
 
         {/* Card 3: Late Marks */}
-        <div className="px-[18px] py-[16px] flex flex-col justify-start h-[130px] border-r border-[#E2E6ED] dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all">
+        <div className="px-[18px] py-[16px] flex flex-col justify-start min-h-[130px] self-stretch border-r border-[#E2E6ED] dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all">
           <div className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 flex items-center justify-center text-[#5B6472] dark:text-gray-300 mb-4">
             <Clock size={16} />
           </div>
@@ -380,7 +445,7 @@ export default function EmployeeAttendanceView() {
         </div>
 
         {/* Card 4: Holidays */}
-        <div className="px-[18px] py-[16px] flex flex-col justify-start h-[130px] hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all">
+        <div className="px-[18px] py-[16px] flex flex-col justify-start min-h-[130px] self-stretch border-0 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all">
           <div className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-[#F7F8FA] dark:bg-gray-800 flex items-center justify-center text-[#5B6472] dark:text-gray-300 mb-4">
             <Calendar size={16} />
           </div>

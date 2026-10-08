@@ -14,6 +14,7 @@ export default function CustomFieldsMasters() {
     const [fieldName, setFieldName] = useState('');
     const [fieldType, setFieldType] = useState('TEXT');
     const [fieldOptions, setFieldOptions] = useState('');
+    const [formErrors, setFormErrors] = useState<{ name?: string; options?: string }>({});
 
     // Delete Confirmation State
     const [fieldToDelete, setFieldToDelete] = useState<any>(null);
@@ -39,16 +40,23 @@ export default function CustomFieldsMasters() {
         setFieldName('');
         setFieldType(activeCategory === 'DOCUMENT_VAULT' ? 'PDF' : 'TEXT');
         setFieldOptions('');
+        setFormErrors({});
         setShowModal(true);
     };
 
     const handleSave = async () => {
+        const errors: { name?: string; options?: string } = {};
         if (!fieldName.trim()) {
-            return toast.error("Field name is required");
+            errors.name = "Field name is required";
         }
         if (fieldType === 'RADIO' && !fieldOptions.trim()) {
-            return toast.error("Radio options are required (comma-separated)");
+            errors.options = "Radio options are required (comma-separated)";
         }
+        if (Object.keys(errors).length > 0) {
+            setFormErrors(errors);
+            return;
+        }
+        setFormErrors({});
         try {
             setLoading(true);
             const payload = {
@@ -203,12 +211,21 @@ export default function CustomFieldsMasters() {
                                     <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">Field Name *</label>
                                     <input
                                         type="text"
-                                        required
                                         value={fieldName}
-                                        onChange={(e) => setFieldName(e.target.value)}
+                                        onChange={(e) => {
+                                            setFieldName(e.target.value);
+                                            if (formErrors.name) setFormErrors(prev => ({ ...prev, name: undefined }));
+                                        }}
                                         placeholder="Enter field name (e.g. Alternate Phone, Emergency Contact)"
-                                        className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
+                                        className={`w-full px-3 py-2 bg-white dark:bg-[#12151C] border ${
+                                            formErrors.name
+                                                ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20'
+                                                : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                                        } rounded-[6px] outline-none text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1] transition-all`}
                                     />
+                                    {formErrors.name && (
+                                        <p className="text-[11.5px] text-red-500 font-medium mt-1 animate-fade-in">{formErrors.name}</p>
+                                    )}
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">Field Type *</label>
@@ -239,12 +256,21 @@ export default function CustomFieldsMasters() {
                                         <label className="text-xs font-semibold text-[#5B6472] dark:text-gray-300">Radio Options * (comma-separated)</label>
                                         <input
                                             type="text"
-                                            required
                                             value={fieldOptions}
-                                            onChange={(e) => setFieldOptions(e.target.value)}
+                                            onChange={(e) => {
+                                                setFieldOptions(e.target.value);
+                                                if (formErrors.options) setFormErrors(prev => ({ ...prev, options: undefined }));
+                                            }}
                                             placeholder="e.g. Male, Female, Other"
-                                            className="w-full px-3 py-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] outline-none focus:border-[#2C4FD6] text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1]"
+                                            className={`w-full px-3 py-2 bg-white dark:bg-[#12151C] border ${
+                                                formErrors.options
+                                                    ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20'
+                                                    : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                                            } rounded-[6px] outline-none text-[13.5px] text-[#12151C] dark:text-white placeholder-[#9AA3B1] transition-all`}
                                         />
+                                        {formErrors.options && (
+                                            <p className="text-[11.5px] text-red-500 font-medium mt-1 animate-fade-in">{formErrors.options}</p>
+                                        )}
                                     </div>
                                 )}
                             </div>
