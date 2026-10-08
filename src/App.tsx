@@ -75,7 +75,7 @@ const PageLoader = () => (
 
 
 function ProtectedRoute({ children, module }: { children: React.ReactNode; module?: string }) {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, hasPermission } = useAuth();
   if (!isAuthenticated) return <Navigate to="/signin" replace />;
 
   if (module) {
@@ -87,8 +87,13 @@ function ProtectedRoute({ children, module }: { children: React.ReactNode; modul
       ? user!.accessibleModules!
       : (isHrAdmin ? adminDefaultModules : employeeDefaultModules);
 
-    if (!userModules.includes(module) && !isHrAdmin) {
-      return <Navigate to="/dashboard" replace />;
+    if (!isHrAdmin) {
+      if (!userModules.includes(module)) {
+        return <Navigate to="/dashboard" replace />;
+      }
+      if (module === 'MY_PROFILE' && !hasPermission('MY_PROFILE_VIEW')) {
+        return <Navigate to="/dashboard" replace />;
+      }
     }
   }
 
@@ -156,7 +161,7 @@ function AppContent() {
                   <Route path="/employee-attendance/:id" element={<ProtectedRoute><EmployeeAttendanceView /></ProtectedRoute>} />
                   <Route path="/regularizations" element={<ProtectedRoute><Regularizations /></ProtectedRoute>} />
                   <Route path="/leave" element={<ProtectedRoute><Leave /></ProtectedRoute>} />
-                  <Route path="/profile" element={<ProtectedRoute><EmployeeProfile /></ProtectedRoute>} />
+                  <Route path="/profile" element={<ProtectedRoute module="MY_PROFILE"><EmployeeProfile /></ProtectedRoute>} />
                   <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
                   <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
                   <Route path="/chat" element={<ProtectedRoute module="CHAT"><ChatHub /></ProtectedRoute>} />

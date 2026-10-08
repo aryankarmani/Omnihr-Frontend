@@ -211,8 +211,11 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
 
                 <nav className="flex-1 px-3 space-y-1 mt-2 overflow-y-auto overflow-x-hidden custom-scrollbar">
                     {menuItems.filter(item => {
+                        const isGlobalAdmin = user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'SYSTEM_ADMIN';
+                        if (item.module === 'MY_PROFILE') {
+                            return isGlobalAdmin || (userModules.includes('MY_PROFILE') && hasPermission('MY_PROFILE_VIEW'));
+                        }
                         if (item.module === 'EMPLOYEE') {
-                            const isGlobalAdmin = user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'SYSTEM_ADMIN';
                             return (
                                 isGlobalAdmin ||
                                 userModules.includes('EMPLOYEE') ||

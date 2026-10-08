@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useRBAC } from '../hooks/useRBAC';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, ArrowRight, User, FileText, CreditCard, Download, Briefcase, Save, X, Printer, Loader2, Eye, Trash2, Upload, TrendingUp, TrendingDown, Coins, ExternalLink, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, ArrowRight, User, FileText, CreditCard, Download, Briefcase, Save, X, Printer, Loader2, Eye, Trash2, Upload, TrendingUp, TrendingDown, Coins, ExternalLink, Image as ImageIcon, ShieldAlert } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api, { getMediaUrl } from '../utils/api';
 import { calculateProfileCompletion } from '../utils/profileCompletion';
@@ -34,13 +34,16 @@ export default function EmployeeProfile() {
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useAuth();
-    const { hasPermission, isAdmin } = useRBAC();
+    const { hasPermission, hasGranularPermission, isAdmin } = useRBAC();
 
     const isSuperAdmin = user?.role === 'SUPER_ADMIN';
     const isHrAdmin = user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN' || user?.role === 'SYSTEM_ADMIN' || isSuperAdmin || isAdmin;
     const isOwnProfile = !id || Number(id) === Number(user?.id);
     const hasEmployeeUpdate = Array.isArray(user?.permissions) && user.permissions.includes('EMPLOYEE_UPDATE');
     const hasMyProfileEdit = Array.isArray(user?.permissions) && user.permissions.includes('MY_PROFILE_EDIT');
+    const canViewOwnProfile = isHrAdmin || hasGranularPermission('MY_PROFILE_VIEW');
+    const canViewOtherProfile = isHrAdmin || hasGranularPermission('EMPLOYEE_VIEW');
+    const canManageMasters = isHrAdmin || hasEmployeeUpdate || hasGranularPermission('MASTERS_VIEW');
 
     // Can edit profile: Admin, user with EMPLOYEE_UPDATE (on other profiles), or employee on own profile with MY_PROFILE_EDIT
     const canEditProfile = isHrAdmin || (isOwnProfile ? hasMyProfileEdit : hasEmployeeUpdate);
@@ -115,8 +118,8 @@ export default function EmployeeProfile() {
         } catch (error: any) {
             console.error('Error fetching employee:', error);
             if (error.response?.status === 403) {
-                toast.error('Access denied: You do not have permission to view other employee profiles');
-                navigate('/profile', { replace: true });
+                toast.error("You don't have access to this", { id: 'access-control-denied-toast' });
+                navigate('/dashboard', { replace: true });
                 return;
             }
             toast.error('Failed to load employee profile');
@@ -298,22 +301,32 @@ export default function EmployeeProfile() {
     };
 
     useEffect(() => {
-        if (id && user && !isAdmin && Number(id) !== Number(user.id)) {
+        if (!user) return;
+
+        if (isOwnProfile && !canViewOwnProfile) {
+            toast.error("You don't have access to this", { id: 'access-control-denied-toast' });
+            navigate('/dashboard', { replace: true });
+            return;
+        }
+
+        if (!isOwnProfile && !canViewOtherProfile) {
             toast.error('Access denied: You do not have permission to view other employee profiles');
-            navigate('/profile', { replace: true });
+            navigate('/dashboard', { replace: true });
             return;
         }
 
         fetchEmployee();
-        fetchShifts();
-        fetchRoles();
-        fetchDesignations();
-        fetchDepartments();
+        if (canManageMasters) {
+            fetchShifts();
+            fetchRoles();
+            fetchDesignations();
+            fetchDepartments();
+            fetchSalaryComponents();
+        }
         fetchEmployeeLeaves();
         fetchCompanySignature();
-        fetchSalaryComponents();
         fetchCustomFields();
-    }, [id, isAdmin, user?.id]);
+    }, [id, isAdmin, user?.id, isOwnProfile, canViewOwnProfile, canViewOtherProfile, canManageMasters]);
 
     useEffect(() => {
         if (employee?.employeeProfile?.phone) {
@@ -1000,6 +1013,28 @@ export default function EmployeeProfile() {
 
     if (loading) {
         return <ProfileSkeleton />;
+    }
+
+    if ((isOwnProfile && !canViewOwnProfile) || (!isOwnProfile && !canViewOtherProfile)) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-6 bg-white dark:bg-[#12151C] rounded-xl border border-gray-100 dark:border-gray-800 m-6">
+                <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400 mb-4">
+                    <ShieldAlert size={32} />
+                </div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Access Denied</h2>
+                <p className="text-gray-500 dark:text-gray-400 max-w-md mb-6 text-sm">
+                    {isOwnProfile
+                        ? "You do not have permission to view your profile. Please contact your administrator."
+                        : "You do not have permission to view other employee profiles."}
+                </p>
+                <button
+                    onClick={() => navigate('/dashboard')}
+                    className="px-4 py-2 bg-[#2C4FD6] text-white rounded-lg text-sm font-medium hover:bg-[#203FB4] transition-colors"
+                >
+                    Back to Dashboard
+                </button>
+            </div>
+        );
     }
 
     if (!employee) {

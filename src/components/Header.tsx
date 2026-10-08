@@ -134,6 +134,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
             const adminModules = ['EMPLOYEE', 'EMPLOYEE_ATTENDANCE', 'MASTERS', 'REPORTS', 'TEAM'];
             if (adminModules.includes(item.module) && !isHrAdmin) return false;
 
+            if (item.module === 'MY_PROFILE' && !isHrAdmin && !hasPermission('MY_PROFILE_VIEW')) return false;
+
             // Fallback module check
             if (!userModules.includes(item.module)) return false;
 
