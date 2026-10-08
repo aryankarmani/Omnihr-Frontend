@@ -247,7 +247,8 @@ export default function ForgotPassword() {
                         value={email}
                         onChange={(e) => handleEmailChange(e.target.value)}
                         onBlur={() => handleBlur('email')}
-                        className={`login-input w-full pl-10 pr-4 py-2.5 sm:py-3 rounded-[6px] text-sm text-[#12151C] placeholder-[#64748B] placeholder:opacity-100 transition-all font-medium border ${
+                        placeholder="Enter registered email or mobile"
+                        className={`login-input w-full pl-10 pr-4 py-2.5 sm:py-3 rounded-[6px] text-sm text-[#12151C] placeholder-[#8C95A6] placeholder:opacity-100 transition-all font-medium border ${
                             touched.email && fieldErrors.email 
                                 ? 'border-rose-500 bg-rose-50/20 focus:outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/15' 
                                 : 'border-[#E2E6ED] bg-[#F8F9FA] focus:outline-none focus:border-[#2C4FD6] focus:bg-white focus:ring-2 focus:ring-[#2C4FD6]/15'
@@ -278,7 +279,8 @@ export default function ForgotPassword() {
                         value={password}
                         onChange={(e) => handlePasswordChange(e.target.value)}
                         onBlur={() => handleBlur('password')}
-                        className={`login-input w-full pl-10 pr-11 py-2.5 sm:py-3 rounded-[6px] text-sm text-[#12151C] placeholder-[#64748B] placeholder:opacity-100 transition-all font-medium border ${
+                        placeholder="Enter new password (min. 8 characters)"
+                        className={`login-input w-full pl-10 pr-11 py-2.5 sm:py-3 rounded-[6px] text-sm text-[#12151C] placeholder-[#8C95A6] placeholder:opacity-100 transition-all font-medium border ${
                             touched.password && fieldErrors.password 
                                 ? 'border-rose-500 bg-rose-50/20 focus:outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/15' 
                                 : 'border-[#E2E6ED] bg-[#F8F9FA] focus:outline-none focus:border-[#2C4FD6] focus:bg-white focus:ring-2 focus:ring-[#2C4FD6]/15'
@@ -317,7 +319,8 @@ export default function ForgotPassword() {
                         value={confirmPassword}
                         onChange={(e) => handleConfirmPasswordChange(e.target.value)}
                         onBlur={() => handleBlur('confirmPassword')}
-                        className={`login-input w-full pl-10 pr-11 py-2.5 sm:py-3 rounded-[6px] text-sm text-[#12151C] placeholder-[#64748B] placeholder:opacity-100 transition-all font-medium border ${
+                        placeholder="Re-enter your new password"
+                        className={`login-input w-full pl-10 pr-11 py-2.5 sm:py-3 rounded-[6px] text-sm text-[#12151C] placeholder-[#8C95A6] placeholder:opacity-100 transition-all font-medium border ${
                             touched.confirmPassword && fieldErrors.confirmPassword 
                                 ? 'border-rose-500 bg-rose-50/20 focus:outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/15' 
                                 : 'border-[#E2E6ED] bg-[#F8F9FA] focus:outline-none focus:border-[#2C4FD6] focus:bg-white focus:ring-2 focus:ring-[#2C4FD6]/15'
