@@ -79,8 +79,8 @@ function ProtectedRoute({ children, module }: { children: React.ReactNode; modul
   if (!isAuthenticated) return <Navigate to="/signin" replace />;
 
   if (module) {
-    const isHrAdmin = user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN' || user?.role === 'SUPER_ADMIN';
-    const adminDefaultModules = ['DASHBOARD', 'ATTENDANCE', 'EMPLOYEE', 'EMPLOYEE_ATTENDANCE', 'TEAM', 'LEAVE', 'REPORTS', 'MASTERS', 'LOG', 'MY_PROFILE', 'CHAT'];
+    const isHrAdmin = user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'SYSTEM_ADMIN';
+    const adminDefaultModules = ['DASHBOARD', 'ATTENDANCE', 'EMPLOYEE', 'TEAM', 'LEAVE', 'REPORTS', 'MASTERS', 'LOG', 'MY_PROFILE', 'CHAT'];
     const employeeDefaultModules = ['DASHBOARD', 'ATTENDANCE', 'LEAVE', 'MY_PROFILE', 'CHAT'];
     const hasCustomModules = Array.isArray(user?.accessibleModules) && user.accessibleModules.length > 0;
     const userModules = hasCustomModules

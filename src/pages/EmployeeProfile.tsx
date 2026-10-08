@@ -36,8 +36,19 @@ export default function EmployeeProfile() {
     const { user } = useAuth();
     const { hasPermission, isAdmin } = useRBAC();
 
+    const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+    const isHrAdmin = user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN' || user?.role === 'SYSTEM_ADMIN' || isSuperAdmin || isAdmin;
+    const isOwnProfile = !id || Number(id) === Number(user?.id);
+    const hasEmployeeUpdate = Array.isArray(user?.permissions) && user.permissions.includes('EMPLOYEE_UPDATE');
+    const hasMyProfileEdit = Array.isArray(user?.permissions) && user.permissions.includes('MY_PROFILE_EDIT');
+
+    // Can edit profile: Admin, user with EMPLOYEE_UPDATE (on other profiles), or employee on own profile with MY_PROFILE_EDIT
+    const canEditProfile = isHrAdmin || (isOwnProfile ? hasMyProfileEdit : hasEmployeeUpdate);
+    // Full employment details edit rights (Role, Department, Designation, Salary, Shift, Date of Joining, Status):
+    const canEditEmploymentDetails = isHrAdmin || hasEmployeeUpdate;
+
     const queryParams = new URLSearchParams(location.search);
-    const initialEditMode = queryParams.get('edit') === 'true';
+    const initialEditMode = canEditProfile && queryParams.get('edit') === 'true';
     const validTabs: Array<'personal' | 'statutory' | 'documents' | 'shiftRoster' | 'salary' | 'team'> = [
         'personal', 'statutory', 'documents', 'shiftRoster', 'salary', 'team'
     ];
@@ -49,12 +60,12 @@ export default function EmployeeProfile() {
 
     useEffect(() => {
         const params = new URLSearchParams(location.search);
-        setIsEditing(params.get('edit') === 'true');
+        setIsEditing(canEditProfile && params.get('edit') === 'true');
         const tabParam = params.get('tab') as any;
         if (tabParam && validTabs.includes(tabParam)) {
             setActiveTab(tabParam);
         }
-    }, [location.search]);
+    }, [location.search, canEditProfile]);
     const [showPayslip, setShowPayslip] = useState(false);
     const [showIDCard, setShowIDCard] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -394,7 +405,7 @@ export default function EmployeeProfile() {
             newErrors.accountNumber = "Account Number must be 9–18 digits";
         }
 
-        if (s.basic === "" || s.basic == null) {
+        if (canEditEmploymentDetails && (s.basic === "" || s.basic == null)) {
             newErrors.basic = "Basic salary is required";
         }
         const requiredDocuments = [
@@ -1352,7 +1363,7 @@ export default function EmployeeProfile() {
                                 }}
                             />
                         )}
-                        {isEditing && hasPermission(['HR_ADMIN']) && (
+                        {isEditing && canEditProfile && (
                             <button
                                 type="button"
                                 onClick={() =>
@@ -1416,7 +1427,7 @@ export default function EmployeeProfile() {
                             </button>
                         </>
                     ) : (
-                        hasPermission(['HR_ADMIN']) && (
+                        canEditProfile && (
                             <button onClick={() => setIsEditing(true)} className="inline-flex items-center justify-center gap-[7px] rounded-[6px] px-[15px] py-[9px] text-[13.5px] font-semibold whitespace-nowrap bg-[#2C4FD6] hover:bg-[#203FB4] text-white transition-all cursor-pointer">
                                 Edit Profile
                             </button>
@@ -1820,7 +1831,7 @@ export default function EmployeeProfile() {
                                     <div className="flex items-center gap-3">
                                         {/* Upload only when profile picture does not exist */}
                                         {isEditing &&
-                                            hasPermission(['HR_ADMIN']) &&
+                                            canEditProfile &&
                                             !displayedProfilePictureUrl && (
                                                 <button
                                                     type="button"
@@ -1861,7 +1872,7 @@ export default function EmployeeProfile() {
 
                                         {/* Delete */}
                                         {isEditing &&
-                                            hasPermission(['HR_ADMIN']) &&
+                                            canEditProfile &&
                                             displayedProfilePictureUrl && (
                                                 <button
                                                     type="button"
@@ -2090,7 +2101,7 @@ export default function EmployeeProfile() {
                                         DATE OF JOINING
                                     </label>
 
-                                    {isEditing && hasPermission(['HR_ADMIN']) ? (
+                                    {isEditing && canEditEmploymentDetails ? (
                                         <>
                                             <input
                                                 type="date"
@@ -2114,7 +2125,7 @@ export default function EmployeeProfile() {
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-[11px] font-semibold text-[#9AA3B1] uppercase tracking-[.06em] block">SYSTEM ROLE</label>
-                                    {isEditing && hasPermission(['HR_ADMIN']) ? (
+                                    {isEditing && canEditEmploymentDetails ? (
                                         <div className="relative">
                                             <select
                                                 value={employee.role?.id || employee.roleId || ''}
@@ -2179,7 +2190,7 @@ export default function EmployeeProfile() {
                                 <div className="space-y-1">
                                     <label className="text-[11px] font-semibold text-[#9AA3B1] uppercase tracking-[.06em] block">DESIGNATION</label>
 
-                                    {isEditing && hasPermission(['HR_ADMIN']) ? (
+                                    {isEditing && canEditEmploymentDetails ? (
                                         <div className="relative">
                                             <select
                                                 value={profile.designationId || ''}
@@ -2242,7 +2253,7 @@ export default function EmployeeProfile() {
                                         DEPARTMENT
                                     </label>
 
-                                    {isEditing && hasPermission(['HR_ADMIN']) ? (
+                                    {isEditing && canEditEmploymentDetails ? (
                                         <div className="relative">
                                             <select
                                                 value={profile.departmentId || ''}
@@ -2354,7 +2365,7 @@ export default function EmployeeProfile() {
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-400 uppercase">Status</label>
-                                    {isEditing && hasPermission(['HR_ADMIN']) ? (
+                                    {isEditing && canEditEmploymentDetails ? (
                                         <div className="flex gap-4 mt-2">
                                             {['Active', 'Inactive', 'OnNotice'].map((s) => (
                                                 <label key={s} className="flex items-center gap-2 cursor-pointer">
@@ -2603,14 +2614,14 @@ export default function EmployeeProfile() {
                                     ASSIGNED SHIFT
                                 </label>
 
-                                {isEditing && hasPermission(['HR_ADMIN']) ? (
+                                {isEditing && canEditEmploymentDetails ? (
                                     <>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                             {shifts.map((shift: any) => (
                                                 <div
                                                     key={shift.id}
                                                     onClick={() => {
-                                                        if (isEditing && hasPermission(['HR_ADMIN'])) {
+                                                        if (isEditing && canEditEmploymentDetails) {
 
                                                             if (errors.shiftId) {
                                                                 setErrors(prev => ({
@@ -2797,7 +2808,7 @@ export default function EmployeeProfile() {
                                                 )}
                                             </div>
 
-                                            {isEditing && hasPermission(['HR_ADMIN']) ? (
+                                            {isEditing && canEditEmploymentDetails ? (
                                                 <input
                                                     type="text"
                                                     value={profile.salary?.basic || ''}
@@ -2837,7 +2848,7 @@ export default function EmployeeProfile() {
                                                         ₹ {getComponentAmount(component).toLocaleString('en-IN')}
                                                     </p>
 
-                                                    {isEditing && hasPermission(['HR_ADMIN']) && (
+                                                    {isEditing && canEditEmploymentDetails && (
                                                         <button
                                                             type="button"
                                                             onClick={() => removeSalaryComponent(component.id)}
@@ -2850,7 +2861,7 @@ export default function EmployeeProfile() {
                                             </div>
                                         ))}
 
-                                        {isEditing && hasPermission(['HR_ADMIN']) && (
+                                        {isEditing && canEditEmploymentDetails && (
                                             <div className="relative">
                                                 <button
                                                     type="button"
@@ -2932,7 +2943,7 @@ export default function EmployeeProfile() {
                                                         ₹ {getComponentAmount(component).toLocaleString('en-IN')}
                                                     </p>
 
-                                                    {isEditing && hasPermission(['HR_ADMIN']) && (
+                                                    {isEditing && canEditEmploymentDetails && (
                                                         <button
                                                             type="button"
                                                             onClick={() => removeSalaryComponent(component.id)}
@@ -2945,7 +2956,7 @@ export default function EmployeeProfile() {
                                             </div>
                                         ))}
 
-                                        {isEditing && hasPermission(['HR_ADMIN']) && (
+                                        {isEditing && canEditEmploymentDetails && (
                                             <div className="relative">
                                                 <button
                                                     type="button"
@@ -3000,7 +3011,7 @@ export default function EmployeeProfile() {
                                 </div>
                             </div>
 
-                            {isEditing && hasPermission(['HR_ADMIN']) && (
+                            {isEditing && canEditEmploymentDetails && (
                                 <p className="text-center text-sm text-gray-400 mt-6">
                                     Changes will be reflected after saving.
                                 </p>

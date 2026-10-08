@@ -9,7 +9,8 @@ import {
   XIcon,
   XCircle,
   Filter,
-  Eye
+  Eye,
+  Coffee
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
@@ -24,6 +25,9 @@ interface RegularizationRequest {
   outTime?: string;
   proposedIn?: string;
   proposedOut?: string;
+  correctionType?: string;
+  proposedBreakStart?: string;
+  proposedBreakEnd?: string;
   reason: string;
   status: string;
   createdAt: string;
@@ -62,9 +66,14 @@ export default function Regularizations() {
   });
   const [showFilterDrawer, setShowFilterDrawer] = useState(false);
 
+  // Approval modal state
+  const [approvingItem, setApprovingItem] = useState<{ id: string; name: string; details?: string } | null>(null);
+  const [submittingApprove, setSubmittingApprove] = useState(false);
+
   // Rejection modal state
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectComment, setRejectComment] = useState('');
+  const [rejectError, setRejectError] = useState('');
   const [submittingReject, setSubmittingReject] = useState(false);
   const [approvingId, setApprovingId] = useState<string | null>(null);
 
@@ -88,43 +97,51 @@ export default function Regularizations() {
     fetchRequests();
   }, []);
 
-  const handleApprove = async (id: string) => {
-    if (approvingId) return;
+  const handleApproveConfirm = async () => {
+    if (!approvingItem || submittingApprove) return;
     try {
-      setApprovingId(id);
-      await api.put(`/attendance/regularize/${id}/approve`);
+      setSubmittingApprove(true);
+      await api.put(`/attendance/regularize/${approvingItem.id}/approve`);
       toast.success('Attendance correction approved successfully');
       setRequests((prev) =>
-        prev.map((r) => (r.id === id ? { ...r, status: 'APPROVED' } : r))
+        prev.map((r) => (r.id === approvingItem.id ? { ...r, status: 'APPROVED' } : r))
       );
+      setApprovingItem(null);
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to approve request');
     } finally {
-      setApprovingId(null);
+      setSubmittingApprove(false);
     }
   };
 
   const handleRejectClick = (id: string) => {
     setRejectingId(id);
     setRejectComment('');
+    setRejectError('');
   };
 
   const handleRejectSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!rejectingId || !rejectComment.trim()) return;
+    if (!rejectComment.trim()) {
+      setRejectError('Please provide a reason for rejecting this correction request');
+      return;
+    }
+    if (!rejectingId) return;
 
+    setRejectError('');
     setSubmittingReject(true);
     try {
       await api.put(`/attendance/regularize/${rejectingId}/reject`, {
-        reason: rejectComment,
-        approverComment: rejectComment
+        reason: rejectComment.trim(),
+        approverComment: rejectComment.trim()
       });
       toast.success('Attendance correction rejected');
       setRequests((prev) =>
-        prev.map((r) => (r.id === rejectingId ? { ...r, status: 'REJECTED', approverComment: rejectComment } : r))
+        prev.map((r) => (r.id === rejectingId ? { ...r, status: 'REJECTED', approverComment: rejectComment.trim() } : r))
       );
       setRejectingId(null);
       setRejectComment('');
+      setRejectError('');
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to reject request');
     } finally { 
@@ -364,17 +381,31 @@ export default function Regularizations() {
                       </td>
                       <td className="py-[13px] px-[22px] text-xs">
                         <div className="flex flex-col gap-1">
-                          {(req.proposedIn || req.inTime) && (
-                            <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-medium text-xs">
-                              <Clock size={12} />
-                              <span>In: {formatTime12h(req.proposedIn || req.inTime)}</span>
+                          {req.correctionType === 'BREAK_IN' || req.reason?.includes('Break In') ? (
+                            <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 font-semibold text-xs">
+                              <Coffee size={12} className="text-amber-600 shrink-0" />
+                              <span>Break In: {formatTime12h(req.proposedBreakStart || req.proposedIn || req.inTime)}</span>
                             </div>
-                          )}
-                          {(req.proposedOut || req.outTime) && (
-                            <div className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400 font-medium text-xs">
-                              <Clock size={12} />
-                              <span>Out: {formatTime12h(req.proposedOut || req.outTime)}</span>
+                          ) : req.correctionType === 'BREAK_OUT' || req.reason?.includes('Break Out') ? (
+                            <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 font-semibold text-xs">
+                              <Coffee size={12} className="text-amber-600 shrink-0" />
+                              <span>Break Out: {formatTime12h(req.proposedBreakEnd || req.proposedOut || req.outTime)}</span>
                             </div>
+                          ) : (
+                            <>
+                              {(req.proposedIn || req.inTime) && (
+                                <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-medium text-xs">
+                                  <Clock size={12} />
+                                  <span>In: {formatTime12h(req.proposedIn || req.inTime)}</span>
+                                </div>
+                              )}
+                              {(req.proposedOut || req.outTime) && (
+                                <div className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400 font-medium text-xs">
+                                  <Clock size={12} />
+                                  <span>Out: {formatTime12h(req.proposedOut || req.outTime)}</span>
+                                </div>
+                              )}
+                            </>
                           )}
                         </div>
                       </td>
@@ -400,13 +431,17 @@ export default function Regularizations() {
                           (user?.role === 'SUPER_ADMIN' || hasPermission('ATTENDANCE_APPROVE')) ? (
                             <div className="flex items-center gap-2 justify-end">
                               <button
-                                onClick={() => handleApprove(req.id)}
-                                disabled={approvingId === req.id}
+                                onClick={() => setApprovingItem({
+                                  id: req.id,
+                                  name: req.user?.name || `Employee #${req.userId}`,
+                                  details: `${req.reason || 'Correction request'}${req.date ? ` · ${req.date}` : ''}`
+                                })}
+                                disabled={submittingApprove && approvingItem?.id === req.id}
                                 className="px-3.5 py-1.5 rounded-[3px] bg-[#E4F5EC] text-[#1F8A5A] hover:bg-[#d1f0e0] disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer"
                                 title="Approve Request"
                               >
                                 <CheckCircle size={14} />
-                                <span>{approvingId === req.id ? 'Approving...' : 'Approve'}</span>
+                                <span>Approve</span>
                               </button>
                               <button
                                 onClick={() => handleRejectClick(req.id)}
@@ -556,27 +591,103 @@ export default function Regularizations() {
           document.body
         )}
 
+      {/* Approval Confirmation Modal */}
+      {approvingItem &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+            <div
+              className="absolute inset-0 bg-slate-900/20 dark:bg-black/60 backdrop-blur-md"
+              onClick={() => {
+                if (!submittingApprove) {
+                  setApprovingItem(null);
+                }
+              }}
+            />
+            <div className="relative bg-white dark:bg-[#12151C] w-full max-w-md rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden p-6 animate-scale-in shadow-xl">
+              <h3 className="text-base font-bold text-[#12151C] dark:text-white mb-1">Approve Request</h3>
+              <p className="text-xs text-[#5B6472] dark:text-gray-400 mb-4">
+                Are you sure you want to approve this correction request for <strong className="text-[#12151C] dark:text-white font-semibold">{approvingItem.name}</strong>?
+              </p>
+              {approvingItem.details && (
+                <div className="mb-5 p-3 rounded-[6px] bg-[#F7F8FA] dark:bg-gray-800/60 border border-[#E2E6ED] dark:border-gray-700 text-xs text-[#5B6472] dark:text-gray-300">
+                  <span className="font-semibold text-[#12151C] dark:text-white block mb-0.5">Details</span>
+                  <span>{approvingItem.details}</span>
+                </div>
+              )}
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setApprovingItem(null)}
+                  disabled={submittingApprove}
+                  className="flex-1 py-2.5 px-4 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 text-[#5B6472] dark:text-gray-300 font-semibold rounded-[6px] hover:bg-gray-50 dark:hover:bg-white/5 transition-colors text-xs cursor-pointer text-center"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApproveConfirm}
+                  disabled={submittingApprove}
+                  className="flex-1 py-2.5 px-4 bg-[#1F8A5A] text-white font-semibold rounded-[6px] hover:bg-[#186f48] transition-colors flex items-center justify-center gap-2 text-xs cursor-pointer disabled:opacity-60"
+                >
+                  {submittingApprove ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    'Approve'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
       {/* Reject Request Modal */}
       {rejectingId &&
         createPortal(
           <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-slate-900/20 dark:bg-black/60 backdrop-blur-md" onClick={() => setRejectingId(null)} />
+            <div
+              className="absolute inset-0 bg-slate-900/20 dark:bg-black/60 backdrop-blur-md"
+              onClick={() => {
+                if (!submittingReject) {
+                  setRejectingId(null);
+                  setRejectComment('');
+                  setRejectError('');
+                }
+              }}
+            />
             <div className="relative bg-white dark:bg-[#12151C] w-full max-w-md rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden p-6 animate-scale-in shadow-xl">
               <h3 className="text-base font-bold text-[#12151C] dark:text-white mb-1">Reject Request</h3>
               <p className="text-xs text-[#5B6472] dark:text-gray-400 mb-4">Please provide a reason for rejecting this correction request.</p>
-              <form onSubmit={handleRejectSubmit}>
+              <form onSubmit={handleRejectSubmit} noValidate>
                 <textarea
                   value={rejectComment}
-                  onChange={(e) => setRejectComment(e.target.value)}
+                  onChange={(e) => {
+                    setRejectComment(e.target.value);
+                    if (rejectError) setRejectError('');
+                  }}
                   placeholder="Enter rejection reason..."
-                  required
                   autoFocus
-                  className="w-full px-3 py-2 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white text-xs outline-none focus:border-[#2C4FD6] min-h-[90px] mb-4 placeholder-[#9AA3B1] resize-none"
+                  className={`w-full px-3 py-2 rounded-[6px] border ${
+                    rejectError
+                      ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20'
+                      : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                  } bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white text-xs outline-none min-h-[90px] mb-2 placeholder-[#9AA3B1] resize-none transition-all`}
                 />
+                {rejectError && (
+                  <p className="text-[11.5px] text-red-500 font-medium mb-3 animate-fade-in">{rejectError}</p>
+                )}
                 <div className="flex gap-3">
                   <button
                     type="button"
-                    onClick={() => setRejectingId(null)}
+                    onClick={() => {
+                      setRejectingId(null);
+                      setRejectComment('');
+                      setRejectError('');
+                    }}
+                    disabled={submittingReject}
                     className="flex-1 py-2.5 px-4 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 text-[#5B6472] dark:text-gray-300 font-semibold rounded-[6px] hover:bg-gray-50 dark:hover:bg-white/5 transition-colors text-xs cursor-pointer"
                   >
                     Cancel

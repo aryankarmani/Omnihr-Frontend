@@ -455,7 +455,7 @@ export default function CompanyDetails() {
               </p>
             </div>
 
-            <form onSubmit={handleSubmit(onExtendSubmit)} className="space-y-4">
+            <form onSubmit={handleSubmit(onExtendSubmit)} noValidate className="space-y-4">
               <div>
                 <label className="block text-[13px] font-semibold text-[#12151C] dark:text-gray-300 mb-1.5">
                   Extension Duration (Days) <span className="text-rose-500">*</span>

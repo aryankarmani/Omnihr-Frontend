@@ -135,7 +135,9 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
 
     // Total real hours worked this month from database (100% genuine data)
-    const currentMonthPrefix = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+    const now = new Date();
+    const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(now);
+    const currentMonthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     const totalMonthlyHours = monthlyAttendance
         .filter(r => {
             if (!r?.date) return false;
@@ -143,9 +145,15 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
             return rDate.startsWith(currentMonthPrefix);
         })
         .reduce((acc, curr) => {
-            let h = parseFloat(curr.hours) || parseFloat(curr.totalHours) || 0;
-            if (!h && curr.inTime && curr.outTime) {
-                h = (new Date(curr.outTime).getTime() - new Date(curr.inTime).getTime()) / (1000 * 60 * 60);
+            let h = parseFloat(curr.netHours) || parseFloat(curr.hours) || parseFloat(curr.totalHours) || 0;
+            const breakMins = curr.totalBreakMinutes || (curr.breaks || []).reduce((sum: number, b: any) => sum + (b.duration || 0), 0);
+            if (!h && curr.inTime) {
+                const isTodayDate = (typeof curr.date === 'string' && curr.date.includes('T') ? curr.date.split('T')[0] : String(curr.date)) === todayStr;
+                const end = curr.outTime ? new Date(curr.outTime) : (isTodayDate ? now : null);
+                if (end) {
+                    const gross = (end.getTime() - new Date(curr.inTime).getTime()) / (1000 * 60 * 60);
+                    h = Math.max(0, gross - (breakMins / 60));
+                }
             }
             return acc + (isNaN(h) || h < 0 ? 0 : h);
         }, 0);
@@ -154,12 +162,11 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
     const weeklyChartData = (() => {
         const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const result = [];
-        const now = new Date();
 
         for (let i = 6; i >= 0; i--) {
             const d = new Date();
             d.setDate(now.getDate() - i);
-            const dateStr = d.toISOString().split('T')[0];
+            const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(d);
             const dayLabel = days[d.getDay()];
             const isWeekend = d.getDay() === 0 || d.getDay() === 6;
 
@@ -171,20 +178,51 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
             });
 
             let hours = 0;
+            let grossHours = 0;
+            let breakMinutes = 0;
+
             if (record) {
-                if (record.hours != null && !isNaN(Number(record.hours))) {
-                    hours = Number(record.hours);
-                } else if (record.totalHours != null && !isNaN(Number(record.totalHours))) {
-                    hours = Number(record.totalHours);
-                } else if (record.inTime && record.outTime) {
-                    hours = (new Date(record.outTime).getTime() - new Date(record.inTime).getTime()) / (1000 * 60 * 60);
+                const inT = record.inTime ? new Date(record.inTime) : null;
+                const isTodayDate = dateStr === todayStr;
+                const outT = record.outTime ? new Date(record.outTime) : (isTodayDate && inT ? now : null);
+
+                breakMinutes = record.totalBreakMinutes || 0;
+                if (!breakMinutes && record.breaks && Array.isArray(record.breaks)) {
+                    breakMinutes = record.breaks.reduce((s: number, b: any) => s + (b.duration || 0), 0);
                 }
+
+                if (inT && outT) {
+                    grossHours = Math.max(0, (outT.getTime() - inT.getTime()) / (1000 * 60 * 60));
+                }
+
+                if (record.hours != null && !isNaN(Number(record.hours)) && Number(record.hours) > 0) {
+                    hours = Number(record.hours);
+                    if (grossHours === 0) {
+                        grossHours = hours + (breakMinutes / 60);
+                    }
+                } else if (grossHours > 0) {
+                    hours = Math.max(0, grossHours - (breakMinutes / 60));
+                }
+            }
+
+            const netNum = Number(Math.max(0, hours).toFixed(2));
+            const grossNum = Number(Math.max(0, grossHours).toFixed(2));
+            // Minimum visible bar height for short working sessions (e.g. 0.03 hrs = 2 mins)
+            const barHours = netNum > 0 && netNum < 0.25 ? 0.35 : netNum;
+
+            let displayHours = `${netNum.toFixed(1)} hrs`;
+            if (netNum > 0 && netNum < 0.1) {
+                displayHours = `${netNum} hrs (${Math.max(1, Math.round(netNum * 60))}m)`;
             }
 
             result.push({
                 name: dayLabel,
                 fullDate: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-                hours: Number(Math.max(0, hours).toFixed(1)),
+                hours: netNum,
+                barHours,
+                grossHours: grossNum,
+                breakMins: breakMinutes,
+                displayHours,
                 target: isWeekend ? 0 : 8.0,
                 isWeekend,
                 status: record?.status || (isWeekend ? 'Weekend' : (hours > 0 ? 'Present' : 'Absent'))
@@ -238,6 +276,31 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
                                         ? `Holiday (${todayHoliday?.name || 'Official'})`
                                         : 'Not Punched In'}
                         </div>
+                        {(() => {
+                            const todayLog = monthlyAttendance.find(r => {
+                                if (!r?.date) return false;
+                                const rDate = typeof r.date === 'string' && r.date.includes('T') ? r.date.split('T')[0] : String(r.date);
+                                return rDate === todayStr;
+                            });
+
+                            const inT = todayLog?.inTime || punchStatus?.punchInTime;
+                            if (!inT) return null;
+
+                            const outT = todayLog?.outTime || punchStatus?.punchOutTime || (punchStatus?.isPunchedIn ? now : null);
+                            const breakMins = todayLog?.totalBreakMinutes || punchStatus?.totalBreakMinutes || 0;
+                            let grossH = 0;
+                            if (outT) {
+                                grossH = Math.max(0, (new Date(outT).getTime() - new Date(inT).getTime()) / (1000 * 60 * 60));
+                            }
+                            const netH = todayLog?.hours != null && todayLog?.hours > 0 ? Number(todayLog.hours) : Math.max(0, grossH - (breakMins / 60));
+                            const netDisplay = netH >= 0.1 ? `${netH.toFixed(1)} hrs` : (netH > 0 ? `${netH.toFixed(2)} hrs (${Math.max(1, Math.round(netH * 60))}m)` : '0 hrs');
+
+                            return (
+                                <p className="text-[11.5px] font-semibold text-blue-600 dark:text-blue-400 mt-1">
+                                    Work: {netDisplay} {breakMins > 0 ? `(Gross ${grossH.toFixed(1)}h - ${breakMins}m break)` : ''}
+                                </p>
+                            );
+                        })()}
                     </div>
 
                     <div className="mt-4 pt-3 border-t border-[#E2E6ED] dark:border-gray-800 flex items-center justify-between gap-2">
@@ -377,18 +440,27 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
                                 />
                                 <Tooltip
                                     cursor={{ fill: 'rgba(238, 241, 245, 0.4)' }}
-                                    contentStyle={{
-                                        borderRadius: '6px',
-                                        border: '1px solid #E2E6ED',
-                                        backgroundColor: '#FFFFFF',
-                                        fontSize: '12px',
-                                        boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+                                    content={({ active, payload }) => {
+                                        if (!active || !payload || !payload.length) return null;
+                                        const data = payload[0].payload;
+                                        return (
+                                            <div className="bg-white dark:bg-gray-800 p-2.5 rounded-[6px] border border-gray-200 dark:border-gray-700 shadow-lg text-xs space-y-1">
+                                                <p className="font-bold text-gray-800 dark:text-white">{data.fullDate} ({data.name})</p>
+                                                {data.grossHours > 0 && (
+                                                    <p className="text-gray-500 dark:text-gray-400">Total Shift: <span className="font-semibold text-gray-700 dark:text-gray-200">{data.grossHours} hrs</span></p>
+                                                )}
+                                                {data.breakMins > 0 && (
+                                                    <p className="text-amber-600 dark:text-amber-400">Break Deducted: <span className="font-semibold">-{data.breakMins} mins</span></p>
+                                                )}
+                                                <p className="text-blue-600 dark:text-blue-400 font-bold border-t border-gray-100 dark:border-gray-700 pt-1">
+                                                    Net Worked: <span>{data.displayHours}</span>
+                                                </p>
+                                            </div>
+                                        );
                                     }}
-                                    formatter={(value: any) => [`${value} hrs`, 'Worked']}
-                                    labelFormatter={(label, payload) => payload?.[0]?.payload?.fullDate || label}
                                 />
                                 <Bar
-                                    dataKey="hours"
+                                    dataKey="barHours"
                                     radius={[4, 4, 0, 0]}
                                     maxBarSize={36}
                                 >
@@ -474,7 +546,27 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
                                 </div>
                                 <div>
                                     <p className="font-bold text-gray-800 dark:text-white">{new Date(log.date).toLocaleDateString()}</p>
-                                    <p className="text-xs text-gray-500">{log.totalHours || '0'} hrs worked</p>
+                                    <p className="text-xs text-gray-500">
+                                        {(() => {
+                                            const net = Number(log.netHours ?? log.totalHours ?? log.hours ?? 0);
+                                            const breakMins = Number(log.totalBreakMinutes || (log.breaks || []).reduce((s: number, b: any) => s + (b.duration || 0), 0));
+                                            let netStr = `${net.toFixed(1)} hrs worked`;
+                                            if (net > 0 && net < 0.1) {
+                                                netStr = `${net} hrs (${Math.max(1, Math.round(net * 60))}m) worked`;
+                                            } else if (net === 0) {
+                                                netStr = `0 hrs worked`;
+                                            }
+                                            if (breakMins > 0) {
+                                                return (
+                                                    <span>
+                                                        <span className="font-medium text-gray-700 dark:text-gray-300">{netStr}</span>
+                                                        <span className="text-[11px] text-amber-600 dark:text-amber-400 ml-1.5">(Net of {breakMins}m break)</span>
+                                                    </span>
+                                                );
+                                            }
+                                            return netStr;
+                                        })()}
+                                    </p>
                                 </div>
                             </div>
                             <div className="text-right">

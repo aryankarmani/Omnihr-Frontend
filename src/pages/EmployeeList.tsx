@@ -86,6 +86,14 @@ export default function EmployeeList() {
 
     // Modal State
     const [showAddModal, setShowAddModal] = useState(false);
+    const [addEmpErrors, setAddEmpErrors] = useState<{
+        name?: string;
+        email?: string;
+        roleId?: string;
+        designationId?: string;
+        departmentId?: string;
+        phone?: string;
+    }>({});
     const [newEmployee, setNewEmployee] = useState({
         name: '',
         email: '',
@@ -190,22 +198,28 @@ export default function EmployeeList() {
     const handleAddEmployee = (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Basic Validation
-        if (!newEmployee.name || !newEmployee.email || !newEmployee.roleId || !newEmployee.designationId || !newEmployee.departmentId) {
+        const errors: typeof addEmpErrors = {};
+        if (!newEmployee.name?.trim()) errors.name = 'Full name is required';
+        if (!newEmployee.roleId) errors.roleId = 'System role is required';
+        if (!newEmployee.designationId) errors.designationId = 'Designation is required';
+        if (!newEmployee.email?.trim()) {
+            errors.email = 'Email address is required';
+        } else {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(newEmployee.email)) {
+                errors.email = 'Please enter a valid email address';
+            }
+        }
+        if (newEmployee.phone && !/^\d{10}$/.test(String(newEmployee.phone).replace(/\D/g, ''))) {
+            errors.phone = 'Phone number must be 10 digits';
+        }
+
+        if (Object.keys(errors).length > 0) {
+            setAddEmpErrors(errors);
             toast.error('Please fill in all required fields');
             return;
         }
-
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(newEmployee.email)) {
-            toast.error('Please enter a valid email address');
-            return;
-        }
-
-        if (newEmployee.phone && !/^\d{10}$/.test(String(newEmployee.phone).replace(/\D/g, ''))) {
-            toast.error('Phone number must be 10 digits');
-            return;
-        }
+        setAddEmpErrors({});
 
         const id = employees.length + 1;
         const colors = ['bg-blue-500', 'bg-purple-500', 'bg-orange-500', 'bg-pink-500', 'bg-teal-500'];
@@ -845,7 +859,7 @@ export default function EmployeeList() {
                                 <Plus size={22} className="rotate-45 text-gray-400" />
                             </button>
                         </div>
-                        <form onSubmit={handleAddEmployee} className="p-6 overflow-y-auto custom-scrollbar space-y-6">
+                        <form onSubmit={handleAddEmployee} noValidate className="p-6 overflow-y-auto custom-scrollbar space-y-6">
                             {/* Personal Details Section */}
                             <div className="space-y-4">
                                 <h4 className="text-xs font-semibold uppercase tracking-wider text-[#2C4FD6]">Personal Details</h4>
@@ -854,25 +868,38 @@ export default function EmployeeList() {
                                         <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Full Name *</label>
                                         <input
                                             type="text"
-                                            required
                                             value={newEmployee.name}
-                                            onChange={(e) => setNewEmployee({ ...newEmployee, name: e.target.value })}
+                                            onChange={(e) => {
+                                                setNewEmployee({ ...newEmployee, name: e.target.value });
+                                                if (addEmpErrors.name) setAddEmpErrors(prev => ({ ...prev, name: undefined }));
+                                            }}
                                             placeholder="John Doe"
-                                            className="w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all placeholder:text-[#9AA3B1] placeholder:font-normal"
+                                            className={`w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border ${
+                                                addEmpErrors.name
+                                                    ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20'
+                                                    : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                                            } rounded-[6px] outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all placeholder:text-[#9AA3B1] placeholder:font-normal`}
                                         />
+                                        {addEmpErrors.name && (
+                                            <p className="text-[11.5px] text-red-500 font-medium mt-1 animate-fade-in">{addEmpErrors.name}</p>
+                                        )}
                                     </div>
                                     <div className="space-y-1.5">
                                         <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">System Role *</label>
                                         <div className="relative group/select">
                                             <select
-                                                required
                                                 value={newEmployee.roleId}
                                                 onChange={(e) => {
                                                     const id = e.target.value;
                                                     const name = masters.roles.find(r => String(r.id) === String(id))?.name || '';
                                                     setNewEmployee({ ...newEmployee, roleId: id, role: name });
+                                                    if (addEmpErrors.roleId) setAddEmpErrors(prev => ({ ...prev, roleId: undefined }));
                                                 }}
-                                                className="appearance-none w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all cursor-pointer"
+                                                className={`appearance-none w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border ${
+                                                    addEmpErrors.roleId
+                                                        ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20'
+                                                        : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                                                } rounded-[6px] outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all cursor-pointer`}
                                             >
                                                 <option value="" className="dark:bg-[#161B26]">Select Role</option>
                                                 {masters.roles.map(role => (
@@ -883,19 +910,26 @@ export default function EmployeeList() {
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"></path></svg>
                                             </div>
                                         </div>
+                                        {addEmpErrors.roleId && (
+                                            <p className="text-[11.5px] text-red-500 font-medium mt-1 animate-fade-in">{addEmpErrors.roleId}</p>
+                                        )}
                                     </div>
                                     <div className="space-y-1.5">
                                         <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Designation / Title *</label>
                                         <div className="relative group/select">
                                             <select
-                                                required
                                                 value={newEmployee.designationId}
                                                 onChange={(e) => {
                                                     const id = e.target.value;
                                                     const name = masters.designations.find(d => String(d.id) === String(id))?.name || '';
                                                     setNewEmployee({ ...newEmployee, designationId: id, title: name });
+                                                    if (addEmpErrors.designationId) setAddEmpErrors(prev => ({ ...prev, designationId: undefined }));
                                                 }}
-                                                className="appearance-none w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all cursor-pointer"
+                                                className={`appearance-none w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border ${
+                                                    addEmpErrors.designationId
+                                                        ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20'
+                                                        : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                                                } rounded-[6px] outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all cursor-pointer`}
                                             >
                                                 <option value="" className="dark:bg-[#161B26]">Select Designation</option>
                                                 {masters.designations.map(desig => (
@@ -906,27 +940,49 @@ export default function EmployeeList() {
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"></path></svg>
                                             </div>
                                         </div>
+                                        {addEmpErrors.designationId && (
+                                            <p className="text-[11.5px] text-red-500 font-medium mt-1 animate-fade-in">{addEmpErrors.designationId}</p>
+                                        )}
                                     </div>
                                     <div className="space-y-1.5">
                                         <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Email Address *</label>
                                         <input
                                             type="email"
-                                            required
                                             value={newEmployee.email}
-                                            onChange={(e) => setNewEmployee({ ...newEmployee, email: e.target.value })}
+                                            onChange={(e) => {
+                                                setNewEmployee({ ...newEmployee, email: e.target.value });
+                                                if (addEmpErrors.email) setAddEmpErrors(prev => ({ ...prev, email: undefined }));
+                                            }}
                                             placeholder="john.doe@encalm.com"
-                                            className="w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all placeholder:text-[#9AA3B1] placeholder:font-normal"
+                                            className={`w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border ${
+                                                addEmpErrors.email
+                                                    ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20'
+                                                    : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                                            } rounded-[6px] outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all placeholder:text-[#9AA3B1] placeholder:font-normal`}
                                         />
+                                        {addEmpErrors.email && (
+                                            <p className="text-[11.5px] text-red-500 font-medium mt-1 animate-fade-in">{addEmpErrors.email}</p>
+                                        )}
                                     </div>
                                     <div className="space-y-1.5">
                                         <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Phone Number</label>
                                         <input
                                             type="tel"
                                             value={newEmployee.phone}
-                                            onChange={(e) => setNewEmployee({ ...newEmployee, phone: e.target.value })}
+                                            onChange={(e) => {
+                                                setNewEmployee({ ...newEmployee, phone: e.target.value });
+                                                if (addEmpErrors.phone) setAddEmpErrors(prev => ({ ...prev, phone: undefined }));
+                                            }}
                                             placeholder="+91 98765 43210"
-                                            className="w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] focus:ring-2 focus:ring-[#2C4FD6]/20 outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all placeholder:text-[#9AA3B1] placeholder:font-normal"
+                                            className={`w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border ${
+                                                addEmpErrors.phone
+                                                    ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20'
+                                                    : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                                            } rounded-[6px] outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all placeholder:text-[#9AA3B1] placeholder:font-normal`}
                                         />
+                                        {addEmpErrors.phone && (
+                                            <p className="text-[11.5px] text-red-500 font-medium mt-1 animate-fade-in">{addEmpErrors.phone}</p>
+                                        )}
                                     </div>
                                     <div className="space-y-1.5">
                                         <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Department</label>

@@ -7,6 +7,7 @@ import { useSuperAdminAuth } from "../../context/SuperAdminAuthContext";
 export default function SuperAdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -15,10 +16,15 @@ export default function SuperAdminLogin() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password) {
-      toast.error("Please provide both email and password.");
+    const newErrors: { email?: string; password?: string } = {};
+    if (!email.trim()) newErrors.email = "Super Admin email is required";
+    if (!password) newErrors.password = "Master password is required";
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
+    setErrors({});
 
     try {
       setSubmitting(true);
@@ -37,6 +43,7 @@ export default function SuperAdminLogin() {
   const handleQuickFill = () => {
     setEmail("superadmin@encalm.com");
     setPassword("SuperAdmin@2026!");
+    setErrors({});
   };
 
   return (
@@ -64,7 +71,7 @@ export default function SuperAdminLogin() {
         </div>
 
         {/* Login Form */}
-        <form onSubmit={handleLogin} className="p-8 space-y-4">
+        <form onSubmit={handleLogin} noValidate className="p-8 space-y-4">
           <div>
             <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
               Super Admin Email
@@ -73,13 +80,22 @@ export default function SuperAdminLogin() {
               <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="email"
-                required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (errors.email) setErrors(prev => ({ ...prev, email: undefined }));
+                }}
                 placeholder="superadmin@encalm.com"
-                className="w-full pl-9 pr-3 py-2.5 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-lg text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                className={`w-full pl-9 pr-3 py-2.5 bg-gray-50 dark:bg-gray-800/60 border ${
+                  errors.email
+                    ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20'
+                    : 'border-gray-200 dark:border-gray-700 focus:ring-indigo-500'
+                } rounded-lg text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-all`}
               />
             </div>
+            {errors.email && (
+              <p className="text-[11.5px] text-red-500 font-medium mt-1 animate-fade-in">{errors.email}</p>
+            )}
           </div>
 
           <div>
@@ -90,11 +106,17 @@ export default function SuperAdminLogin() {
               <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type={showPassword ? "text" : "password"}
-                required
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (errors.password) setErrors(prev => ({ ...prev, password: undefined }));
+                }}
                 placeholder="••••••••••••"
-                className="w-full pl-9 pr-10 py-2.5 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-lg text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                className={`w-full pl-9 pr-10 py-2.5 bg-gray-50 dark:bg-gray-800/60 border ${
+                  errors.password
+                    ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20'
+                    : 'border-gray-200 dark:border-gray-700 focus:ring-indigo-500'
+                } rounded-lg text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-all`}
               />
               <button
                 type="button"
@@ -104,6 +126,9 @@ export default function SuperAdminLogin() {
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
+            {errors.password && (
+              <p className="text-[11.5px] text-red-500 font-medium mt-1 animate-fade-in">{errors.password}</p>
+            )}
           </div>
 
           <button

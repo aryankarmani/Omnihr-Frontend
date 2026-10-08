@@ -1223,6 +1223,7 @@ export default function ChatHub() {
                 {/* Message Input Box */}
                 <form
                     onSubmit={handleSendMessage}
+                    noValidate
                     className="p-3 sm:p-4 border-t border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] flex items-center gap-2 shrink-0"
                 >
                     <input

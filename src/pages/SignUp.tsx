@@ -24,20 +24,26 @@ export default function SignUp() {
     const [generatedCaptcha, setGeneratedCaptcha] = useState('');
     const [captchaInput, setCaptchaInput] = useState('');
     const [otp, setOtp] = useState('');
+    const [formErrors, setFormErrors] = useState<{ email?: string; password?: string; confirmPassword?: string; captcha?: string }>({});
 
     const handleSendOTP = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
 
-        if (captchaInput.toUpperCase() !== generatedCaptcha.toUpperCase()) {
-            setError('Invalid Captcha. Please try again.');
-            return;
-        }
+        const newErrors: { email?: string; password?: string; confirmPassword?: string; captcha?: string } = {};
+        if (!email.trim()) newErrors.email = 'Registered email or mobile is required';
+        if (!password) newErrors.password = 'Password is required';
+        else if (password.length < 6) newErrors.password = 'Password must be at least 6 characters';
+        if (!confirmPassword) newErrors.confirmPassword = 'Confirm password is required';
+        else if (password !== confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
+        if (!captchaInput.trim()) newErrors.captcha = 'Captcha is required';
+        else if (captchaInput.toUpperCase() !== generatedCaptcha.toUpperCase()) newErrors.captcha = 'Invalid Captcha';
 
-        if (password !== confirmPassword) {
-            setError('Passwords do not match.');
+        if (Object.keys(newErrors).length > 0) {
+            setFormErrors(newErrors);
             return;
         }
+        setFormErrors({});
 
         setLoading(true);
         try {
@@ -71,7 +77,7 @@ export default function SignUp() {
     };
 
     const renderInitialForm = () => (
-        <form onSubmit={handleSendOTP} className="w-full space-y-3 sm:space-y-4">
+        <form onSubmit={handleSendOTP} noValidate className="w-full space-y-3 sm:space-y-4">
             <div className="mb-2 text-center md:text-left">
                 <h2 className="text-xl font-bold text-[#12151C] dark:text-white">Create Account</h2>
                 <p className="text-xs text-[#5B6472] dark:text-gray-400 mt-0.5">Sign up to get started with OmniHR</p>
@@ -81,12 +87,21 @@ export default function SignUp() {
                 <label className="text-xs font-bold text-[#5B6472] dark:text-gray-300 ml-1 uppercase tracking-wider">Registered Email / Mobile *</label>
                 <input
                     type="text"
-                    required
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="login-input w-full px-3.5 py-2.5 bg-[#F7F8FA] dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6] focus:bg-white dark:focus:bg-[#12151C] focus:ring-4 focus:ring-[#2C4FD6]/10 rounded-xl text-[#12151C] dark:text-white text-sm font-medium transition-all hover:border-gray-400"
+                    onChange={(e) => {
+                        setEmail(e.target.value);
+                        if (formErrors.email) setFormErrors(prev => ({ ...prev, email: undefined }));
+                    }}
+                    className={`login-input w-full px-3.5 py-2.5 bg-[#F7F8FA] dark:bg-[#12151C] border ${
+                        formErrors.email
+                            ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20'
+                            : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                    } focus:bg-white dark:focus:bg-[#12151C] rounded-xl text-[#12151C] dark:text-white text-sm font-medium transition-all`}
                     placeholder="admin@encalm.com"
                 />
+                {formErrors.email && (
+                    <p className="text-[11.5px] text-red-500 font-medium ml-1 animate-fade-in">{formErrors.email}</p>
+                )}
             </div>
 
             <div className="space-y-1">
@@ -94,10 +109,16 @@ export default function SignUp() {
                 <div className="relative">
                     <input
                         type={showPassword ? "text" : "password"}
-                        required
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="login-input w-full px-3.5 py-2.5 bg-[#F7F8FA] dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6] focus:bg-white dark:focus:bg-[#12151C] focus:ring-4 focus:ring-[#2C4FD6]/10 rounded-xl text-[#12151C] dark:text-white text-sm font-medium transition-all hover:border-gray-400"
+                        onChange={(e) => {
+                            setPassword(e.target.value);
+                            if (formErrors.password) setFormErrors(prev => ({ ...prev, password: undefined }));
+                        }}
+                        className={`login-input w-full px-3.5 py-2.5 bg-[#F7F8FA] dark:bg-[#12151C] border ${
+                            formErrors.password
+                                ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20'
+                                : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                        } focus:bg-white dark:focus:bg-[#12151C] rounded-xl text-[#12151C] dark:text-white text-sm font-medium transition-all`}
                         placeholder="••••••••"
                     />
                     <button
@@ -108,6 +129,9 @@ export default function SignUp() {
                         {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                 </div>
+                {formErrors.password && (
+                    <p className="text-[11.5px] text-red-500 font-medium ml-1 animate-fade-in">{formErrors.password}</p>
+                )}
             </div>
 
             <div className="space-y-1">
@@ -115,10 +139,16 @@ export default function SignUp() {
                 <div className="relative">
                     <input
                         type={showConfirmPassword ? "text" : "password"}
-                        required
                         value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="login-input w-full px-3.5 py-2.5 bg-[#F7F8FA] dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6] focus:bg-white dark:focus:bg-[#12151C] focus:ring-4 focus:ring-[#2C4FD6]/10 rounded-xl text-[#12151C] dark:text-white text-sm font-medium transition-all hover:border-gray-400"
+                        onChange={(e) => {
+                            setConfirmPassword(e.target.value);
+                            if (formErrors.confirmPassword) setFormErrors(prev => ({ ...prev, confirmPassword: undefined }));
+                        }}
+                        className={`login-input w-full px-3.5 py-2.5 bg-[#F7F8FA] dark:bg-[#12151C] border ${
+                            formErrors.confirmPassword
+                                ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20'
+                                : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                        } focus:bg-white dark:focus:bg-[#12151C] rounded-xl text-[#12151C] dark:text-white text-sm font-medium transition-all`}
                         placeholder="••••••••"
                     />
                     <button
@@ -129,18 +159,30 @@ export default function SignUp() {
                         {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                 </div>
+                {formErrors.confirmPassword && (
+                    <p className="text-[11.5px] text-red-500 font-medium ml-1 animate-fade-in">{formErrors.confirmPassword}</p>
+                )}
             </div>
 
             <Captcha onVerify={setGeneratedCaptcha} className="pt-0.5">
                 <input
                     type="text"
-                    required
                     value={captchaInput}
-                    onChange={(e) => setCaptchaInput(e.target.value)}
-                    className="login-input w-28 h-10 bg-[#F7F8FA] dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6] rounded-xl text-center font-bold tracking-widest text-[#12151C] dark:text-white text-sm uppercase hover:border-gray-400 transition-all"
+                    onChange={(e) => {
+                        setCaptchaInput(e.target.value);
+                        if (formErrors.captcha) setFormErrors(prev => ({ ...prev, captcha: undefined }));
+                    }}
+                    className={`login-input w-28 h-10 bg-[#F7F8FA] dark:bg-[#12151C] border ${
+                        formErrors.captcha
+                            ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20'
+                            : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                    } rounded-xl text-center font-bold tracking-widest text-[#12151C] dark:text-white text-sm uppercase transition-all`}
                     placeholder="----"
                 />
             </Captcha>
+            {formErrors.captcha && (
+                <p className="text-[11.5px] text-red-500 font-medium ml-1 animate-fade-in">{formErrors.captcha}</p>
+            )}
 
             {error && <p className="text-xs text-[#C13A3A] font-bold text-center">{error}</p>}
 
@@ -162,7 +204,7 @@ export default function SignUp() {
     );
 
     const renderOtpStep = () => (
-        <form onSubmit={handleVerifyOTP} className="w-full space-y-6 py-2">
+        <form onSubmit={handleVerifyOTP} noValidate className="w-full space-y-6 py-2">
             <div className="text-center space-y-1">
                 <h2 className="text-xl font-bold text-[#12151C] dark:text-white">Verify OTP</h2>
                 <p className="text-[#5B6472] dark:text-gray-400 text-xs">We've sent a code to your email/mobile</p>

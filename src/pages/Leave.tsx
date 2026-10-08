@@ -124,13 +124,11 @@ export default function Leave() {
     const [rejectError, setRejectError] = useState<string>('');
     const [submittingLeaveReject, setSubmittingLeaveReject] = useState(false);
     const [processingLeaveId, setProcessingLeaveId] = useState<number | null>(null);
+    const [approvingLeave, setApprovingLeave] = useState<{ id: number; name: string; details?: string } | null>(null);
+    const [submittingApprove, setSubmittingApprove] = useState(false);
 
-    // const [teamMemberIds, setTeamMemberIds] = useState<number[]>([]);
-    const isHrAdmin = user?.role === 'HR_ADMIN';
-    //const isManager = user?.role === 'MANAGER';
-    //const canSeeApprovals = isHrAdmin || isManager;
-
-    const canSeeApprovals = isHrAdmin;
+    const isHrAdmin = user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN' || user?.role === 'SYSTEM_ADMIN' || user?.role === 'SUPER_ADMIN';
+    const canSeeApprovals = isHrAdmin || hasPermission('LEAVE_APPROVE') || hasPermission('LEAVE_REJECT') || hasPermission('LEAVE_VIEW');
 
     // useEffect(() => {
     //     const fetchManagerTeam = async () => {
@@ -386,6 +384,17 @@ export default function Leave() {
         }
     };
 
+    const handleApproveConfirm = async () => {
+        if (!approvingLeave || submittingApprove) return;
+        setSubmittingApprove(true);
+        try {
+            await handleUpdateStatus(approvingLeave.id, 'APPROVED');
+            setApprovingLeave(null);
+        } finally {
+            setSubmittingApprove(false);
+        }
+    };
+
     const handleRejectLeaveSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!leaveRejectComment.trim()) {
@@ -604,6 +613,38 @@ export default function Leave() {
 
     return (
         <div className="pb-8 relative">
+            {canSeeApprovals && (
+                <div className="flex items-center gap-2 mb-5 border-b border-[#E2E6ED] dark:border-gray-800">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setActiveTab('MY_LEAVE');
+                            navigate('/leave', { state: { activeTab: 'MY_LEAVE' }, replace: true });
+                        }}
+                        className={`pb-3 px-3 text-[13.5px] font-semibold border-b-2 transition-all cursor-pointer ${
+                            activeTab === 'MY_LEAVE'
+                                ? 'border-[#2C4FD6] text-[#2C4FD6]'
+                                : 'border-transparent text-[#5B6472] dark:text-gray-400 hover:text-[#12151C] dark:hover:text-white'
+                        }`}
+                    >
+                        My Leave
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setActiveTab('APPROVALS');
+                            navigate('/leave', { state: { activeTab: 'APPROVALS' }, replace: true });
+                        }}
+                        className={`pb-3 px-3 text-[13.5px] font-semibold border-b-2 transition-all cursor-pointer ${
+                            activeTab === 'APPROVALS'
+                                ? 'border-[#2C4FD6] text-[#2C4FD6]'
+                                : 'border-transparent text-[#5B6472] dark:text-gray-400 hover:text-[#12151C] dark:hover:text-white'
+                        }`}
+                    >
+                        Leave Approvals
+                    </button>
+                </div>
+            )}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                 <div>
                     <h2 className="text-2xl font-bold text-[#12151C] dark:text-white mb-1">
@@ -900,21 +941,15 @@ export default function Leave() {
                                                     <div className="flex items-center justify-end gap-2">
                                                         {(user?.role === 'SUPER_ADMIN' || hasPermission('LEAVE_APPROVE')) && (
                                                             <button
-                                                                onClick={() => handleUpdateStatus(l.id, 'APPROVED')}
-                                                                disabled={processingLeaveId === l.id || submittingLeaveReject}
-                                                                className={`px-3.5 py-1.5 rounded-[3px] bg-[#E4F5EC] text-[#00875A] hover:bg-[#d5f0e1] text-xs font-semibold transition-all flex items-center gap-1 ${
-                                                                    processingLeaveId === l.id ? 'opacity-60 cursor-not-allowed pointer-events-none' : 'cursor-pointer'
-                                                                }`}
+                                                                onClick={() => setApprovingLeave({
+                                                                    id: l.id,
+                                                                    name: l.user?.name || `Employee #${l.userId}`,
+                                                                    details: `${l.leaveType?.name || l.leaveType?.code || 'Leave'} (${l.startDate}${l.endDate && l.endDate !== l.startDate ? ` to ${l.endDate}` : ''})${l.reason ? ` · ${l.reason}` : ''}`
+                                                                })}
+                                                                disabled={submittingApprove && approvingLeave?.id === l.id}
+                                                                className="px-3.5 py-1.5 rounded-[3px] bg-[#E4F5EC] text-[#00875A] hover:bg-[#d5f0e1] text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer disabled:opacity-60"
                                                             >
-                                                                {processingLeaveId === l.id ? (
-                                                                    <>
-                                                                        <Loader2 size={13} className="animate-spin" /> Approving...
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <CheckCircle size={14} /> Approve
-                                                                    </>
-                                                                )}
+                                                                <CheckCircle size={14} /> Approve
                                                             </button>
                                                         )}
                                                         {(user?.role === 'SUPER_ADMIN' || hasPermission('LEAVE_REJECT')) && (
@@ -1448,6 +1483,58 @@ export default function Leave() {
                                     Close
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Approval Confirmation Modal */}
+            {approvingLeave && createPortal(
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+                    <div
+                        className="absolute inset-0 bg-slate-900/20 dark:bg-black/60 backdrop-blur-md"
+                        onClick={() => {
+                            if (!submittingApprove) {
+                                setApprovingLeave(null);
+                            }
+                        }}
+                    />
+                    <div className="relative bg-white dark:bg-[#12151C] w-full max-w-md rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden p-6 animate-scale-in shadow-xl">
+                        <h3 className="text-base font-bold text-[#12151C] dark:text-white mb-1">Approve Request</h3>
+                        <p className="text-xs text-[#5B6472] dark:text-gray-400 mb-4">
+                            Are you sure you want to approve this leave request for <strong className="text-[#12151C] dark:text-white font-semibold">{approvingLeave.name}</strong>?
+                        </p>
+                        {approvingLeave.details && (
+                            <div className="mb-5 p-3 rounded-[6px] bg-[#F7F8FA] dark:bg-gray-800/60 border border-[#E2E6ED] dark:border-gray-700 text-xs text-[#5B6472] dark:text-gray-300">
+                                <span className="font-semibold text-[#12151C] dark:text-white block mb-0.5">Details</span>
+                                <span>{approvingLeave.details}</span>
+                            </div>
+                        )}
+                        <div className="flex gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setApprovingLeave(null)}
+                                disabled={submittingApprove}
+                                className="flex-1 py-2.5 px-4 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 text-[#5B6472] dark:text-gray-300 font-semibold rounded-[6px] hover:bg-gray-50 dark:hover:bg-white/5 transition-colors text-xs cursor-pointer text-center"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleApproveConfirm}
+                                disabled={submittingApprove}
+                                className="flex-1 py-2.5 px-4 bg-[#1F8A5A] text-white font-semibold rounded-[6px] hover:bg-[#186f48] transition-colors flex items-center justify-center gap-2 text-xs cursor-pointer disabled:opacity-60"
+                            >
+                                {submittingApprove ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Processing...
+                                    </>
+                                ) : (
+                                    'Approve'
+                                )}
+                            </button>
                         </div>
                     </div>
                 </div>,

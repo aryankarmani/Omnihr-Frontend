@@ -51,6 +51,7 @@ export default function AdminDashboard({
         name: string;
     } | null>(null);
     const [rejectComment, setRejectComment] = useState('');
+    const [rejectError, setRejectError] = useState('');
     const [submittingReject, setSubmittingReject] = useState(false);
 
     useEffect(() => {
@@ -92,8 +93,13 @@ export default function AdminDashboard({
 
     const handleRejectSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!rejectingItem || !rejectComment.trim()) return;
+        if (!rejectComment.trim()) {
+            setRejectError('Please provide a reason for rejection');
+            return;
+        }
+        if (!rejectingItem) return;
 
+        setRejectError('');
         setSubmittingReject(true);
         try {
             if (rejectingItem.type === 'LEAVE') {
@@ -639,21 +645,31 @@ export default function AdminDashboard({
                         <p className="text-xs text-[#5B6472] dark:text-gray-400 mb-4">
                             Please provide a reason for rejecting this {rejectingItem.type === 'LEAVE' ? 'leave' : 'correction'} request for <strong className="text-[#12151C] dark:text-white font-semibold">{rejectingItem.name}</strong>.
                         </p>
-                        <form onSubmit={handleRejectSubmit}>
+                        <form onSubmit={handleRejectSubmit} noValidate>
                             <textarea
                                 value={rejectComment}
-                                onChange={(e) => setRejectComment(e.target.value)}
+                                onChange={(e) => {
+                                    setRejectComment(e.target.value);
+                                    if (rejectError) setRejectError('');
+                                }}
                                 placeholder="Enter rejection reason..."
-                                required
                                 autoFocus
-                                className="w-full px-3 py-2 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white text-xs outline-none focus:border-[#2C4FD6] min-h-[90px] mb-4 placeholder-[#9AA3B1] resize-none"
+                                className={`w-full px-3 py-2 rounded-[6px] border ${
+                                    rejectError
+                                        ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20'
+                                        : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                                } bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white text-xs outline-none min-h-[90px] mb-2 placeholder-[#9AA3B1] resize-none transition-all`}
                             />
+                            {rejectError && (
+                                <p className="text-[11.5px] text-red-500 font-medium mb-3 animate-fade-in">{rejectError}</p>
+                            )}
                             <div className="flex gap-3">
                                 <button
                                     type="button"
                                     onClick={() => {
                                         setRejectingItem(null);
                                         setRejectComment('');
+                                        setRejectError('');
                                     }}
                                     disabled={submittingReject}
                                     className="flex-1 py-2.5 px-4 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 text-[#5B6472] dark:text-gray-300 font-semibold rounded-[6px] hover:bg-gray-50 dark:hover:bg-white/5 transition-colors text-xs cursor-pointer text-center"
