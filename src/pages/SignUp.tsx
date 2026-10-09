@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
-// @ts-ignore
-import officeWorkerImg from '../assets/office-worker-3d.png';
 import { Captcha } from '../components/auth/Captcha';
 import { OtpInput } from '../components/auth/OtpInput';
 import api from '../utils/api';
@@ -258,12 +256,11 @@ export default function SignUp() {
                         </p>
                     </div>
 
-                    <div className="relative flex-1 flex items-center justify-center pointer-events-none min-h-0">
-                        <img
-                            src={officeWorkerImg}
-                            alt="Welcome"
-                            className="max-h-[240px] lg:max-h-[280px] w-auto object-contain"
-                        />
+                    <div className="relative flex-1 flex flex-col justify-center pointer-events-none min-h-0 space-y-3">
+                        <div className="bg-white/80 dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-800 rounded-xl p-4 shadow-sm">
+                            <p className="text-xs font-semibold text-[#12151C] dark:text-white mb-1">Unified HR Ecosystem</p>
+                            <p className="text-[11px] text-[#5B6472] dark:text-gray-400">Automate shifts, attendance, leaves, and zero-error payroll.</p>
+                        </div>
                     </div>
                 </div>
 

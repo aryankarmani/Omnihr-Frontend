@@ -244,7 +244,6 @@ export default function StatutoryMasters() {
                                             <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${comp.type === 'EARNING' ? 'bg-[#E4F5EC] text-[#1F8A5A] dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-[#FBE7E7] text-[#DE350B] dark:bg-rose-900/30 dark:text-rose-400'}`}>{comp.type}</span>
                                             <button
                                                 type="button"
-                                                title="Edit component"
                                                 onClick={() => {
                                                     setEditingComponentId(comp.id);
                                                     setNewComp({
@@ -266,7 +265,6 @@ export default function StatutoryMasters() {
                                             </button>
                                             <button
                                                 type="button"
-                                                title="Delete component"
                                                 onClick={() => setItemToDelete({ id: comp.id, name: comp.name, type: 'salary-component' })}
                                                 className="p-1 text-[#5B6472] dark:text-gray-400 hover:text-[#DE350B] dark:hover:text-rose-400 hover:bg-[#FBE7E7] dark:hover:bg-rose-950/40 rounded transition-colors cursor-pointer"
                                             >
@@ -348,14 +346,14 @@ export default function StatutoryMasters() {
                 {/* 3. PT SLABS */}
                 {activeTab === 'pt' && (
                     <div className="space-y-6 animate-fade-in">
-                        <div className="flex justify-between items-center">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <h3 className="text-[15.5px] font-semibold text-[#12151C] dark:text-white">Professional Tax Slabs</h3>
-                            <button onClick={() => setShowPtModal(true)} className="inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white text-[13.5px] font-semibold rounded-[8px] px-[15px] py-[9px] transition-all cursor-pointer">
+                            <button onClick={() => setShowPtModal(true)} className="inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white text-[13.5px] font-semibold rounded-[8px] px-[15px] py-[9px] transition-all cursor-pointer shrink-0">
                                 <Plus size={16} /> Add Slab
                             </button>
                         </div>
-                        <div className="overflow-hidden bg-white dark:bg-[#12151C] rounded-[11px] border border-[#E2E6ED] dark:border-gray-800">
-                            <table className="w-full text-left border-collapse">
+                        <div className="overflow-x-auto bg-white dark:bg-[#12151C] rounded-[11px] border border-[#E2E6ED] dark:border-gray-800">
+                            <table className="w-full text-left border-collapse min-w-[500px]">
                                 <thead className="bg-[#EEF1F5] dark:bg-gray-800/60 border-b border-[#E2E6ED] dark:border-gray-800">
                                     <tr>
                                         <th className="py-[9px] px-[22px] text-[11px] font-semibold text-[#9AA3B1] dark:text-gray-400 uppercase tracking-[.05em]">State</th>

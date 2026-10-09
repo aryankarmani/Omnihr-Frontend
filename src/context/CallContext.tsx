@@ -881,7 +881,6 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
                         <button
                             onClick={dismissRejoin}
                             className="text-gray-400 hover:text-white p-1 rounded transition-colors cursor-pointer"
-                            title="Dismiss"
                         >
                             <X size={15} />
                         </button>

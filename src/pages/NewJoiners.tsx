@@ -351,7 +351,6 @@ export default function NewJoiners() {
                                             onClick={() => setCurrentPage(1)}
                                             disabled={currentPage === 1}
                                             className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
-                                            title="First Page"
                                         >
                                             <ChevronsLeft size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
                                         </button>
@@ -360,7 +359,6 @@ export default function NewJoiners() {
                                             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                                             disabled={currentPage === 1}
                                             className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
-                                            title="Previous Page"
                                         >
                                             <ChevronLeft size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
                                         </button>
@@ -369,7 +367,6 @@ export default function NewJoiners() {
                                             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                                             disabled={currentPage === totalPages || totalPages === 0}
                                             className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
-                                            title="Next Page"
                                         >
                                             <ChevronRight size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
                                         </button>
@@ -378,7 +375,6 @@ export default function NewJoiners() {
                                             onClick={() => setCurrentPage(totalPages)}
                                             disabled={currentPage === totalPages || totalPages === 0}
                                             className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
-                                            title="Last Page"
                                         >
                                             <ChevronsRight size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
                                         </button>
@@ -405,7 +401,6 @@ export default function NewJoiners() {
                                     <button
                                         onClick={() => setShowFilterDrawer(false)}
                                         className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer"
-                                        title="Close"
                                     >
                                         <XCircle size={18} />
                                     </button>

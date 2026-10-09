@@ -618,14 +618,14 @@ export default function Attendance() {
                     {/* Middle row: Punch In, Punch Out, Break In, Break Out times */}
                     <div className="space-y-0.5 text-left flex-1 flex flex-col justify-center my-0.5 overflow-hidden">
                         {holiday && !log?.inTime ? (
-                            <div className="text-[10px] sm:text-[11.5px] font-semibold text-purple-700 dark:text-purple-300 leading-snug line-clamp-2" title={holiday.name}>
+                            <div className="text-[10px] sm:text-[11.5px] font-semibold text-purple-700 dark:text-purple-300 leading-snug line-clamp-2">
                                 {holiday.name}
                             </div>
                         ) : null}
 
                         {/* Punch In */}
                         {log?.inTime ? (
-                            <div className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-semibold text-emerald-700 dark:text-emerald-400 font-mono-numbers leading-tight truncate" title={`Punch In: ${formatTime12h(log.inTime)}`}>
+                            <div className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-semibold text-emerald-700 dark:text-emerald-400 font-mono-numbers leading-tight truncate">
                                 <span className="text-[8.5px] sm:text-[9px] font-extrabold text-emerald-800 bg-emerald-200/80 dark:bg-emerald-950/80 dark:text-emerald-300 px-1 py-0.5 rounded shrink-0 leading-none">IN</span>
                                 <span className="truncate">{formatTime12h(log.inTime).toLowerCase()}</span>
                             </div>
@@ -633,12 +633,12 @@ export default function Attendance() {
 
                         {/* Punch Out */}
                         {log?.outTime ? (
-                            <div className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-semibold text-rose-700 dark:text-rose-400 font-mono-numbers leading-tight truncate" title={`Punch Out: ${formatTime12h(log.outTime)}`}>
+                            <div className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-semibold text-rose-700 dark:text-rose-400 font-mono-numbers leading-tight truncate">
                                 <span className="text-[8.5px] sm:text-[9px] font-extrabold text-rose-800 bg-rose-200/80 dark:bg-rose-950/80 dark:text-rose-300 px-1 py-0.5 rounded shrink-0 leading-none">OUT</span>
                                 <span className="truncate">{formatTime12h(log.outTime).toLowerCase()}</span>
                             </div>
                         ) : log?.inTime ? (
-                            <div className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-semibold text-rose-700 dark:text-rose-400 font-mono-numbers leading-tight truncate" title="Punch Out Pending">
+                            <div className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-semibold text-rose-700 dark:text-rose-400 font-mono-numbers leading-tight truncate">
                                 <span className="text-[8.5px] sm:text-[9px] font-extrabold text-rose-800 bg-rose-200/80 dark:bg-rose-950/80 dark:text-rose-300 px-1 py-0.5 rounded shrink-0 leading-none">OUT</span>
                                 <span className="font-mono">--:--</span>
                             </div>
@@ -647,11 +647,11 @@ export default function Attendance() {
                         {/* Break In & Break Out Timings */}
                         {dayBreaks.length > 0 && primaryBreak?.startTime ? (
                             <>
-                                <div className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-semibold text-amber-700 dark:text-amber-400 font-mono-numbers leading-tight truncate" title={`Break In: ${formatTime12h(primaryBreak.startTime)}`}>
+                                <div className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-semibold text-amber-700 dark:text-amber-400 font-mono-numbers leading-tight truncate">
                                     <span className="text-[8.5px] sm:text-[9px] font-extrabold text-amber-800 bg-amber-200/80 dark:bg-amber-950/80 dark:text-amber-300 px-1 py-0.5 rounded shrink-0 leading-none">B-IN</span>
                                     <span className="truncate">{formatTime12h(primaryBreak.startTime).toLowerCase()}</span>
                                 </div>
-                                <div className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-semibold text-amber-700 dark:text-amber-400 font-mono-numbers leading-tight truncate" title={primaryBreak.endTime ? `Break Out: ${formatTime12h(primaryBreak.endTime)}` : (isToday && isOnBreak ? 'Break In Progress' : 'Break Out Pending')}>
+                                <div className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-semibold text-amber-700 dark:text-amber-400 font-mono-numbers leading-tight truncate">
                                     <span className="text-[8.5px] sm:text-[9px] font-extrabold text-amber-800 bg-amber-200/80 dark:bg-amber-950/80 dark:text-amber-300 px-1 py-0.5 rounded shrink-0 leading-none">B-OUT</span>
                                     <span className="truncate">
                                         {primaryBreak.endTime
@@ -659,7 +659,7 @@ export default function Attendance() {
                                             : (isToday && isOnBreak ? 'active' : '--:--')}
                                     </span>
                                     {dayBreaks.length > 1 && (
-                                        <span className="text-[8.5px] sm:text-[9px] font-bold text-amber-800 bg-amber-100 dark:bg-amber-900/60 px-1 rounded ml-auto" title={`${dayBreaks.length} total breaks (${log?.totalBreakMinutes || totalBreakMinutes || 0}m)`}>
+                                        <span className="text-[8.5px] sm:text-[9px] font-bold text-amber-800 bg-amber-100 dark:bg-amber-900/60 px-1 rounded ml-auto">
                                             +{dayBreaks.length - 1}
                                         </span>
                                     )}
@@ -682,12 +682,11 @@ export default function Attendance() {
                             return (
                                 <div
                                     className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-bold text-blue-700 dark:text-blue-300 font-mono-numbers leading-tight truncate mt-0.5"
-                                    title={`Total: ${grossH.toFixed(2)}h | Break: ${breakMins}m | Net: ${netH.toFixed(2)}h`}
                                 >
                                     <span className="text-[8.5px] sm:text-[9px] font-extrabold text-blue-800 bg-blue-200/80 dark:bg-blue-950/80 dark:text-blue-300 px-1 py-0.5 rounded shrink-0 leading-none">HRS</span>
                                     <span className="truncate">{netDisplay}</span>
                                     {breakMins > 0 && (
-                                        <span className="text-[9px] sm:text-[9.5px] font-medium text-amber-700 dark:text-amber-400 ml-auto" title={`${breakMins}m break deducted`}>
+                                        <span className="text-[9px] sm:text-[9.5px] font-medium text-amber-700 dark:text-amber-400 ml-auto">
                                             (-{breakMins}m)
                                         </span>
                                     )}
@@ -710,7 +709,7 @@ export default function Attendance() {
                                 Correction
                             </button>
                         ) : holiday && log?.inTime ? (
-                            <span className="text-[8.5px] sm:text-[9.5px] text-purple-700 dark:text-purple-300 font-medium truncate max-w-full" title={holiday.name}>
+                            <span className="text-[8.5px] sm:text-[9.5px] text-purple-700 dark:text-purple-300 font-medium truncate max-w-full">
                                 {holiday.name}
                             </span>
                         ) : null}
@@ -781,13 +780,13 @@ export default function Attendance() {
                                     </span>
 
                                     {totalBreakMinutes > 0 && (
-                                        <span className="text-[9.5px] px-1.5 py-0.5 rounded-[4px] bg-amber-50 dark:bg-amber-950/40 text-[#B45309] dark:text-amber-400 font-medium border border-amber-200/50" title={hasUsedDailyBreak ? "Daily break completed (1/1 taken)" : "Break duration"}>
+                                        <span className="text-[9.5px] px-1.5 py-0.5 rounded-[4px] bg-amber-50 dark:bg-amber-950/40 text-[#B45309] dark:text-amber-400 font-medium border border-amber-200/50">
                                             Break: {totalBreakMinutes}m {hasUsedDailyBreak ? '(Done)' : ''}
                                         </span>
                                     )}
 
                                     {currentShift && (
-                                        <span className="text-[10px] px-1.5 py-0.5 rounded-[4px] bg-[#EEF1F5] dark:bg-gray-800 text-[#2C4FD6] dark:text-blue-400 font-mono font-semibold border border-blue-100 dark:border-blue-900/40" title={`${currentShift.name} (Break: ${currentShift.breakDuration}m, Grace: ${currentShift.graceTime}m)`}>
+                                        <span className="text-[10px] px-1.5 py-0.5 rounded-[4px] bg-[#EEF1F5] dark:bg-gray-800 text-[#2C4FD6] dark:text-blue-400 font-mono font-semibold border border-blue-100 dark:border-blue-900/40">
                                             {currentShift.startTime} - {currentShift.endTime}{currentShift.isNightShift ? ' (Night)' : ''}
                                         </span>
                                     )}
@@ -806,15 +805,6 @@ export default function Attendance() {
                                         type="button"
                                         onClick={() => breakInMutation.mutate()}
                                         disabled={!isPunchedIn || isOnBreak || hasUsedDailyBreak || breakInMutation.isPending || breakOutMutation.isPending || punchMutation.isPending}
-                                        title={
-                                            !isPunchedIn
-                                                ? "Punch in first to start a break"
-                                                : isOnBreak
-                                                ? "You are already on a break"
-                                                : hasUsedDailyBreak
-                                                ? "Daily break limit reached (Only 1 break allowed per shift)"
-                                                : "Start Break"
-                                        }
                                         className={`h-[36px] sm:h-[39px] px-2.5 sm:px-3 rounded-[6px] border flex items-center justify-center gap-1.5 transition-all text-[10.5px] font-bold uppercase tracking-wider ${
                                             isOnBreak || !isPunchedIn || hasUsedDailyBreak
                                                 ? 'border-gray-200 bg-gray-50 text-gray-400 dark:border-gray-800 dark:bg-gray-900/40 dark:text-gray-600 cursor-not-allowed opacity-50'
@@ -833,7 +823,6 @@ export default function Attendance() {
                                         type="button"
                                         onClick={() => breakOutMutation.mutate()}
                                         disabled={!isPunchedIn || !isOnBreak || breakOutMutation.isPending || breakInMutation.isPending || punchMutation.isPending}
-                                        title={!isOnBreak ? "No active break to end" : "End Break"}
                                         className={`h-[36px] sm:h-[39px] px-2.5 sm:px-3 rounded-[6px] border flex items-center justify-center gap-1.5 transition-all text-[10.5px] font-bold uppercase tracking-wider ${
                                             isOnBreak
                                                 ? 'border-[#059669] bg-[#D1FAE5] text-[#047857] hover:bg-[#A7F3D0] cursor-pointer active:scale-95 shadow-sm'
@@ -856,15 +845,6 @@ export default function Attendance() {
                             type="button"
                             onClick={handlePunch}
                             disabled={punchMutation.isPending || isAlreadyPunchedOut}
-                            title={
-                                isAlreadyPunchedOut
-                                    ? "Shift completed: You have already punched out for today"
-                                    : !isPunchedIn && canPunchIn === false
-                                    ? punchInMessage || `Punch-in is only allowed 1 hour before your shift starts (${currentShift?.startTime || ''})`
-                                    : isPunchedIn
-                                    ? "Click to Punch Out"
-                                    : "Click to Punch In"
-                            }
                             className={`w-[78px] h-[78px] sm:w-[84px] sm:h-[84px] rounded-[6px] border flex flex-col items-center justify-center transition-all shrink-0 ${
                                 isAlreadyPunchedOut
                                     ? 'border-gray-200 bg-gray-50 text-gray-400 dark:border-gray-800 dark:bg-gray-900/40 dark:text-gray-600 cursor-not-allowed opacity-50 shadow-none'

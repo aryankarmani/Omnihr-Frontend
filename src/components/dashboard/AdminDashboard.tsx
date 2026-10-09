@@ -334,7 +334,6 @@ export default function AdminDashboard({
                                                         });
                                                     }}
                                                     className="w-6 h-6 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 text-[#1F8A5A] hover:bg-[#E4F5EC] dark:hover:bg-green-950/40 flex items-center justify-center transition-colors cursor-pointer"
-                                                    title={`Approve ${item.category === 'LEAVE' ? 'Leave' : 'Correction'}`}
                                                 >
                                                     <Check size={13} />
                                                 </button>
@@ -349,7 +348,6 @@ export default function AdminDashboard({
                                                         setRejectComment('');
                                                     }}
                                                     className="w-6 h-6 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 text-[#C13A3A] hover:bg-[#FBE7E7] dark:hover:bg-red-950/40 flex items-center justify-center transition-colors cursor-pointer"
-                                                    title={`Reject ${item.category === 'LEAVE' ? 'Leave' : 'Correction'}`}
                                                 >
                                                     <X size={13} />
                                                 </button>
@@ -537,7 +535,6 @@ export default function AdminDashboard({
                                             onClick={() => setEmpCurrentPage(1)}
                                             disabled={empCurrentPage === 1}
                                             className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer disabled:cursor-not-allowed"
-                                            title="First Page"
                                         >
                                             <ChevronsLeft size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
                                         </button>
@@ -546,7 +543,6 @@ export default function AdminDashboard({
                                             onClick={() => setEmpCurrentPage(prev => Math.max(prev - 1, 1))}
                                             disabled={empCurrentPage === 1}
                                             className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer disabled:cursor-not-allowed"
-                                            title="Previous Page"
                                         >
                                             <ChevronLeft size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
                                         </button>
@@ -555,7 +551,6 @@ export default function AdminDashboard({
                                             onClick={() => setEmpCurrentPage(prev => Math.min(prev + 1, empTotalPages))}
                                             disabled={empCurrentPage === empTotalPages || empTotalPages === 0}
                                             className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer disabled:cursor-not-allowed"
-                                            title="Next Page"
                                         >
                                             <ChevronRight size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
                                         </button>
@@ -564,7 +559,6 @@ export default function AdminDashboard({
                                             onClick={() => setEmpCurrentPage(empTotalPages)}
                                             disabled={empCurrentPage === empTotalPages || empTotalPages === 0}
                                             className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer disabled:cursor-not-allowed"
-                                            title="Last Page"
                                         >
                                             <ChevronsRight size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
                                         </button>

@@ -4,7 +4,7 @@ import {
     LayoutDashboard, Users, UsersRound, LogOut,
     AlertCircle, ChevronDown, ChevronLeft, ChevronRight,
     Fingerprint, UserCog, FileCheck, BarChart3, Settings2,
-    CheckSquare, UserCircle, CalendarRange, FileText, MessageSquare
+    CheckSquare, UserCircle, CalendarRange, FileText, MessageSquare, ClipboardCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -30,6 +30,7 @@ const menuItems: MenuItem[] = [
         module: 'EMPLOYEE',
         children: [
             { label: 'List', path: '/employee', module: 'EMPLOYEE', icon: Users },
+            { label: 'Profile Completion', path: '/employee/profile-completion', module: 'EMPLOYEE', icon: ClipboardCheck },
             { label: 'Leave Approval', path: '/leave', module: 'EMPLOYEE', icon: FileCheck, state: { activeTab: 'APPROVALS' } },
             { label: 'Correction', path: '/regularizations', module: 'EMPLOYEE', icon: CheckSquare },
         ]
@@ -202,7 +203,6 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                     <button
                         type="button"
                         onClick={onToggleCollapse}
-                        title={isCollapsed ? "Expand sidebar" : "Minimize sidebar"}
                         className="w-7 h-7 rounded-[6px] flex items-center justify-center text-[#5B6472] dark:text-gray-400 hover:text-[#2C4FD6] dark:hover:text-white hover:bg-white/80 dark:hover:bg-white/10 transition-all cursor-pointer border border-transparent hover:border-[#E2E6ED] dark:hover:border-gray-700"
                     >
                         {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
@@ -244,7 +244,6 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                                             if (window.innerWidth < 768) onClose();
                                         }
                                     }}
-                                    title={isCollapsed ? item.label : ''}
                                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[6px] transition-all duration-200 ease-in-out group ${active && !hasChildren
                                         ? 'bg-[#E8ECFC] text-[#2C4FD6] font-semibold border-l-[3.5px] border-[#2C4FD6]'
                                         : 'text-[#5B6472] hover:bg-white/80 hover:text-[#2C4FD6] font-medium'
@@ -271,6 +270,9 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
 
                                             if (child.label === 'List') {
                                                 return isGlobalAdmin || hasPermission('EMPLOYEE_VIEW') || userModules.includes('EMPLOYEE') || (managerAccess.isTeamManager && managerAccess.access.list);
+                                            }
+                                            if (child.label === 'Profile Completion') {
+                                                return isGlobalAdmin || hasPermission('EMPLOYEE_VIEW') || userModules.includes('EMPLOYEE');
                                             }
                                             if (child.label === 'Leave Approval') {
                                                 return isGlobalAdmin || hasPermission('LEAVE_APPROVE') || hasPermission('LEAVE_VIEW') || (managerAccess.isTeamManager && managerAccess.access.leaveApproval);
@@ -316,7 +318,6 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                 <div className="p-3 border-t border-[#E2E6ED] dark:border-gray-800">
                     <button
                         onClick={() => setShowLogoutConfirm(true)}
-                        title={isCollapsed ? 'Logout' : ''}
                         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[6px] text-[#5B6472] hover:bg-[#FBE7E7] hover:text-[#C13A3A] font-medium transition-all ${isCollapsed ? 'justify-center' : ''}`}
                     >
                         <LogOut size={18} className="flex-shrink-0" />

@@ -30,6 +30,8 @@ if (typeof window !== 'undefined' && !(window as any).__toastErrorWrapped) {
 // Lazy-loaded application pages
 const DashboardHome = lazy(() => import('./pages/DashboardHome'));
 const EmployeeList = lazy(() => import('./pages/EmployeeList'));
+const ProfileCompletion = lazy(() => import('./pages/ProfileCompletion'));
+const CompleteProfile = lazy(() => import('./pages/CompleteProfile'));
 const AddEmployee = lazy(() => import('./pages/AddEmployee'));
 const EmployeeProfile = lazy(() => import('./pages/EmployeeProfile'));
 const Attendance = lazy(() => import('./pages/Attendance'));
@@ -119,72 +121,74 @@ function AppContent() {
             <CallProvider>
               <BrowserRouter>
                 <Suspense fallback={<PageLoader />}>
-                <Routes>
-                  <Route path="/" element={<Navigate to="/signin" replace />} />
-                  <Route
-                    path="/signin"
-                    element={
-                      isAuthenticated ? (
-                        user?.role === 'SUPER_ADMIN' ? (
-                          <Navigate to="/superadmin/dashboard" replace />
+                  <Routes>
+                    <Route path="/" element={<Navigate to="/signin" replace />} />
+                    <Route
+                      path="/signin"
+                      element={
+                        isAuthenticated ? (
+                          user?.role === 'SUPER_ADMIN' ? (
+                            <Navigate to="/superadmin/dashboard" replace />
+                          ) : (
+                            <Navigate to="/dashboard" replace />
+                          )
                         ) : (
-                          <Navigate to="/dashboard" replace />
+                          <SignIn />
                         )
-                      ) : (
-                        <SignIn />
-                      )
-                    }
-                  />
-                  <Route path="/login" element={<Navigate to="/signin" replace />} />
-                  <Route path="/signup" element={<Navigate to="/signin" replace />} />
-                  <Route path="/forgot-password" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <ForgotPassword />} />
+                      }
+                    />
+                    <Route path="/login" element={<Navigate to="/signin" replace />} />
+                    <Route path="/signup" element={<Navigate to="/signin" replace />} />
+                    <Route path="/forgot-password" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <ForgotPassword />} />
+                    <Route path="/complete-profile" element={<CompleteProfile />} />
 
-                  {/* Super Admin Routes (Unified Login, redirects old login to /signin) */}
-                  <Route path="/superadmin/login" element={<Navigate to="/signin" replace />} />
-                  <Route path="/superadmin/dashboard" element={<SuperAdminProtectedRoute><SuperAdminDashboard /></SuperAdminProtectedRoute>} />
-                  <Route path="/superadmin/companies" element={<SuperAdminProtectedRoute><Companies /></SuperAdminProtectedRoute>} />
-                  <Route path="/superadmin/companies/:id" element={<SuperAdminProtectedRoute><CompanyDetails /></SuperAdminProtectedRoute>} />
-                  <Route path="/superadmin/subscriptions" element={<SuperAdminProtectedRoute><Subscriptions /></SuperAdminProtectedRoute>} />
-                  <Route path="/superadmin/payments" element={<SuperAdminProtectedRoute><Payments /></SuperAdminProtectedRoute>} />
-                  <Route path="/superadmin/plans" element={<SuperAdminProtectedRoute><Plans /></SuperAdminProtectedRoute>} />
-                  <Route path="/superadmin/notifications" element={<SuperAdminProtectedRoute><SuperAdminNotifications /></SuperAdminProtectedRoute>} />
-                  <Route path="/superadmin/demo-requests" element={<SuperAdminProtectedRoute><DemoRequests /></SuperAdminProtectedRoute>} />
-                  <Route path="/superadmin/settings" element={<SuperAdminProtectedRoute><SuperAdminSettings /></SuperAdminProtectedRoute>} />
-                  <Route path="/superadmin" element={<Navigate to="/superadmin/dashboard" replace />} />
+                    {/* Super Admin Routes (Unified Login, redirects old login to /signin) */}
+                    <Route path="/superadmin/login" element={<Navigate to="/signin" replace />} />
+                    <Route path="/superadmin/dashboard" element={<SuperAdminProtectedRoute><SuperAdminDashboard /></SuperAdminProtectedRoute>} />
+                    <Route path="/superadmin/companies" element={<SuperAdminProtectedRoute><Companies /></SuperAdminProtectedRoute>} />
+                    <Route path="/superadmin/companies/:id" element={<SuperAdminProtectedRoute><CompanyDetails /></SuperAdminProtectedRoute>} />
+                    <Route path="/superadmin/subscriptions" element={<SuperAdminProtectedRoute><Subscriptions /></SuperAdminProtectedRoute>} />
+                    <Route path="/superadmin/payments" element={<SuperAdminProtectedRoute><Payments /></SuperAdminProtectedRoute>} />
+                    <Route path="/superadmin/plans" element={<SuperAdminProtectedRoute><Plans /></SuperAdminProtectedRoute>} />
+                    <Route path="/superadmin/notifications" element={<SuperAdminProtectedRoute><SuperAdminNotifications /></SuperAdminProtectedRoute>} />
+                    <Route path="/superadmin/demo-requests" element={<SuperAdminProtectedRoute><DemoRequests /></SuperAdminProtectedRoute>} />
+                    <Route path="/superadmin/settings" element={<SuperAdminProtectedRoute><SuperAdminSettings /></SuperAdminProtectedRoute>} />
+                    <Route path="/superadmin" element={<Navigate to="/superadmin/dashboard" replace />} />
 
-                  {/* Protected Routes */}
-                  <Route path="/dashboard" element={<ProtectedRoute><DashboardHome /></ProtectedRoute>} />
-                  <Route path="/employee" element={<ProtectedRoute><EmployeeList /></ProtectedRoute>} />
-                  <Route path="/employee/add" element={<ProtectedRoute><AddEmployee /></ProtectedRoute>} />
-                  <Route path="/employee/:id" element={<ProtectedRoute><EmployeeProfile /></ProtectedRoute>} />
-                  <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
-                  <Route path="/employee-attendance/:id" element={<ProtectedRoute><EmployeeAttendanceView /></ProtectedRoute>} />
-                  <Route path="/regularizations" element={<ProtectedRoute><Regularizations /></ProtectedRoute>} />
-                  <Route path="/leave" element={<ProtectedRoute><Leave /></ProtectedRoute>} />
-                  <Route path="/profile" element={<ProtectedRoute module="MY_PROFILE"><EmployeeProfile /></ProtectedRoute>} />
-                  <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-                  <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
-                  <Route path="/chat" element={<ProtectedRoute module="CHAT"><ChatHub /></ProtectedRoute>} />
-                  <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-                  <Route path="/leave-today" element={<ProtectedRoute><LeaveToday /></ProtectedRoute>} />
-                  <Route path="/new-joiners" element={<ProtectedRoute><NewJoiners /></ProtectedRoute>} />
-                  <Route path="/log-file" element={<ProtectedRoute><LogFile /></ProtectedRoute>} />
+                    {/* Protected Routes */}
+                    <Route path="/dashboard" element={<ProtectedRoute><DashboardHome /></ProtectedRoute>} />
+                    <Route path="/employee" element={<ProtectedRoute><EmployeeList /></ProtectedRoute>} />
+                    <Route path="/employee/profile-completion" element={<ProtectedRoute module="EMPLOYEE"><ProfileCompletion /></ProtectedRoute>} />
+                    <Route path="/employee/add" element={<ProtectedRoute><AddEmployee /></ProtectedRoute>} />
+                    <Route path="/employee/:id" element={<ProtectedRoute><EmployeeProfile /></ProtectedRoute>} />
+                    <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
+                    <Route path="/employee-attendance/:id" element={<ProtectedRoute><EmployeeAttendanceView /></ProtectedRoute>} />
+                    <Route path="/regularizations" element={<ProtectedRoute><Regularizations /></ProtectedRoute>} />
+                    <Route path="/leave" element={<ProtectedRoute><Leave /></ProtectedRoute>} />
+                    <Route path="/profile" element={<ProtectedRoute module="MY_PROFILE"><EmployeeProfile /></ProtectedRoute>} />
+                    <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+                    <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
+                    <Route path="/chat" element={<ProtectedRoute module="CHAT"><ChatHub /></ProtectedRoute>} />
+                    <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+                    <Route path="/leave-today" element={<ProtectedRoute><LeaveToday /></ProtectedRoute>} />
+                    <Route path="/new-joiners" element={<ProtectedRoute><NewJoiners /></ProtectedRoute>} />
+                    <Route path="/log-file" element={<ProtectedRoute><LogFile /></ProtectedRoute>} />
 
-                  {/* Masters Route */}
-                  <Route path="/masters" element={<ProtectedRoute><MastersLayout /></ProtectedRoute>}>
-                    <Route index element={<Navigate to="org" replace />} />
-                    <Route path="org" element={<OrgMasters />} />
-                    <Route path="statutory" element={<StatutoryMasters />} />
-                    <Route path="attendance" element={<AttendanceMasters />} />
-                    <Route path="access" element={<AccessMasters />} />
-                    <Route path="custom-fields" element={<CustomFieldsMasters />} />
-                  </Route>
+                    {/* Masters Route */}
+                    <Route path="/masters" element={<ProtectedRoute><MastersLayout /></ProtectedRoute>}>
+                      <Route index element={<Navigate to="org" replace />} />
+                      <Route path="org" element={<OrgMasters />} />
+                      <Route path="statutory" element={<StatutoryMasters />} />
+                      <Route path="attendance" element={<AttendanceMasters />} />
+                      <Route path="access" element={<AccessMasters />} />
+                      <Route path="custom-fields" element={<CustomFieldsMasters />} />
+                    </Route>
 
-                </Routes>
-              </Suspense>
-            </BrowserRouter>
-          </CallProvider>
-        </SuperAdminAuthProvider>
+                  </Routes>
+                </Suspense>
+              </BrowserRouter>
+            </CallProvider>
+          </SuperAdminAuthProvider>
           <Toaster
             position="top-right"
             containerStyle={{ zIndex: 99999999 }}
@@ -246,7 +250,6 @@ function AppContent() {
                           toast.dismiss(t.id);
                         }}
                         className="ml-2 shrink-0 p-1 rounded-[4px] hover:bg-black/20 text-white/80 hover:text-white transition-colors cursor-pointer"
-                        title="Close"
                       >
                         <X size={15} />
                       </button>

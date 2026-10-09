@@ -285,14 +285,14 @@ export default function EmployeeAttendanceView() {
           {/* Middle row: Punch In, Punch Out, Break In, Break Out times */}
           <div className="space-y-0.5 text-left flex-1 flex flex-col justify-center my-0.5 overflow-hidden">
             {holiday && !log?.inTime ? (
-              <div className="text-[10px] sm:text-[11.5px] font-semibold text-purple-700 dark:text-purple-300 leading-snug line-clamp-2" title={holiday.name}>
+              <div className="text-[10px] sm:text-[11.5px] font-semibold text-purple-700 dark:text-purple-300 leading-snug line-clamp-2">
                 {holiday.name}
               </div>
             ) : null}
 
             {/* Punch In */}
             {log?.inTime ? (
-              <div className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-semibold text-emerald-700 dark:text-green-400 font-mono-numbers leading-tight truncate" title={`Punch In: ${formatTime12h(log.inTime)}`}>
+              <div className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-semibold text-emerald-700 dark:text-green-400 font-mono-numbers leading-tight truncate">
                 <span className="text-[8.5px] sm:text-[9px] font-extrabold text-emerald-800 bg-emerald-200/70 dark:bg-emerald-950/70 dark:text-emerald-300 px-1 py-0.5 rounded shrink-0 leading-none">IN</span>
                 <span className="truncate">{formatTime12h(log.inTime).toLowerCase()}</span>
               </div>
@@ -300,12 +300,12 @@ export default function EmployeeAttendanceView() {
 
             {/* Punch Out */}
             {log?.outTime ? (
-              <div className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-semibold text-rose-700 dark:text-red-400 font-mono-numbers leading-tight truncate" title={`Punch Out: ${formatTime12h(log.outTime)}`}>
+              <div className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-semibold text-rose-700 dark:text-red-400 font-mono-numbers leading-tight truncate">
                 <span className="text-[8.5px] sm:text-[9px] font-extrabold text-rose-800 bg-rose-200/70 dark:bg-rose-950/70 dark:text-rose-300 px-1 py-0.5 rounded shrink-0 leading-none">OUT</span>
                 <span className="truncate">{formatTime12h(log.outTime).toLowerCase()}</span>
               </div>
             ) : log?.inTime ? (
-              <div className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-semibold text-rose-700 dark:text-red-400 font-mono-numbers leading-tight truncate" title="Punch Out Pending">
+              <div className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-semibold text-rose-700 dark:text-red-400 font-mono-numbers leading-tight truncate">
                 <span className="text-[8.5px] sm:text-[9px] font-extrabold text-rose-800 bg-rose-200/70 dark:bg-rose-950/70 dark:text-rose-300 px-1 py-0.5 rounded shrink-0 leading-none">OUT</span>
                 <span className="font-mono">--:--</span>
               </div>
@@ -314,11 +314,11 @@ export default function EmployeeAttendanceView() {
             {/* Break In & Break Out Timings */}
             {dayBreaks.length > 0 && primaryBreak?.startTime ? (
               <>
-                <div className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-semibold text-amber-700 dark:text-amber-400 font-mono-numbers leading-tight truncate" title={`Break In: ${formatTime12h(primaryBreak.startTime)}`}>
+                <div className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-semibold text-amber-700 dark:text-amber-400 font-mono-numbers leading-tight truncate">
                   <span className="text-[8.5px] sm:text-[9px] font-extrabold text-amber-800 bg-amber-200/80 dark:bg-amber-950/80 dark:text-amber-300 px-1 py-0.5 rounded shrink-0 leading-none">B-IN</span>
                   <span className="truncate">{formatTime12h(primaryBreak.startTime).toLowerCase()}</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-semibold text-amber-700 dark:text-amber-400 font-mono-numbers leading-tight truncate" title={primaryBreak.endTime ? `Break Out: ${formatTime12h(primaryBreak.endTime)}` : 'Break In Progress'}>
+                <div className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-semibold text-amber-700 dark:text-amber-400 font-mono-numbers leading-tight truncate">
                   <span className="text-[8.5px] sm:text-[9px] font-extrabold text-amber-800 bg-amber-200/80 dark:bg-amber-950/80 dark:text-amber-300 px-1 py-0.5 rounded shrink-0 leading-none">B-OUT</span>
                   <span className="truncate">
                     {primaryBreak.endTime
@@ -326,7 +326,7 @@ export default function EmployeeAttendanceView() {
                       : '--:--'}
                   </span>
                   {dayBreaks.length > 1 && (
-                    <span className="text-[8.5px] sm:text-[9px] font-bold text-amber-800 bg-amber-100 dark:bg-amber-900/60 px-1 rounded ml-auto" title={`${dayBreaks.length} total breaks (${log?.totalBreakMinutes || 0}m)`}>
+                    <span className="text-[8.5px] sm:text-[9px] font-bold text-amber-800 bg-amber-100 dark:bg-amber-900/60 px-1 rounded ml-auto">
                       +{dayBreaks.length - 1}
                     </span>
                   )}
@@ -349,12 +349,11 @@ export default function EmployeeAttendanceView() {
               return (
                 <div
                   className="flex items-center gap-1.5 text-[11px] sm:text-[12px] font-bold text-blue-700 dark:text-blue-300 font-mono-numbers leading-tight truncate mt-0.5"
-                  title={`Total: ${grossH.toFixed(2)}h | Break: ${breakMins}m | Net: ${netH.toFixed(2)}h`}
                 >
                   <span className="text-[8.5px] sm:text-[9px] font-extrabold text-blue-800 bg-blue-200/70 dark:bg-blue-950/70 dark:text-blue-300 px-1 py-0.5 rounded shrink-0 leading-none">HRS</span>
                   <span className="truncate">{netDisplay}</span>
                   {breakMins > 0 && (
-                    <span className="text-[9px] sm:text-[9.5px] font-medium text-amber-700 dark:text-amber-400 ml-auto" title={`${breakMins}m break deducted`}>
+                    <span className="text-[9px] sm:text-[9.5px] font-medium text-amber-700 dark:text-amber-400 ml-auto">
                       (-{breakMins}m)
                     </span>
                   )}

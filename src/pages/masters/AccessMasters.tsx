@@ -305,14 +305,12 @@ export default function AccessMasters() {
                                 <div className="absolute top-4 right-4 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button
                                         onClick={() => handleEdit(role)}
-                                        title="Edit Role"
                                         className="p-1.5 text-[#9AA3B1] hover:text-[#2C4FD6] hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded transition-colors cursor-pointer"
                                     >
                                         <Edit2 size={16} />
                                     </button>
                                     <button
                                         onClick={() => setItemToDelete({ id: role.id, name: role.name === 'HR_ADMIN' ? 'ADMIN' : role.name })}
-                                        title="Delete Role"
                                         className="p-1.5 text-[#9AA3B1] hover:text-[#DE350B] hover:bg-red-50 dark:hover:bg-red-950/40 rounded transition-colors cursor-pointer"
                                     >
                                         <Trash2 size={16} />

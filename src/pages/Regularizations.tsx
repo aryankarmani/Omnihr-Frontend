@@ -277,7 +277,6 @@ export default function Regularizations() {
               setShowFilterDrawer(true);
             }}
             className="flex items-center justify-center border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] px-3 py-[9px] h-[36px] text-[13px] font-semibold text-[#5B6472] dark:text-gray-300 bg-white dark:bg-[#12151C] hover:bg-gray-50 dark:hover:bg-white/5 transition-all shrink-0 cursor-pointer"
-            title="Advanced Filters"
           >
             <Filter size={15} className="text-[#5B6472] dark:text-gray-300" />
           </button>
@@ -412,7 +411,6 @@ export default function Regularizations() {
                       <td
                         onClick={() => setSelectedRequestForReason(req)}
                         className="py-[13px] px-[22px] text-xs text-[#5B6472] dark:text-gray-300 cursor-pointer hover:text-[#2C4FD6] dark:hover:text-blue-400 transition-colors"
-                        title="Click to view full details"
                       >
                         <span className="line-clamp-2">"{req.reason}"</span>
                       </td>
@@ -438,7 +436,6 @@ export default function Regularizations() {
                                 })}
                                 disabled={submittingApprove && approvingItem?.id === req.id}
                                 className="px-3.5 py-1.5 rounded-[3px] bg-[#E4F5EC] text-[#1F8A5A] hover:bg-[#d1f0e0] disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer"
-                                title="Approve Request"
                               >
                                 <CheckCircle size={14} />
                                 <span>Approve</span>
@@ -446,7 +443,6 @@ export default function Regularizations() {
                               <button
                                 onClick={() => handleRejectClick(req.id)}
                                 className="px-3.5 py-1.5 rounded-[3px] bg-[#FBE7E7] text-[#DE350B] hover:bg-[#f7d6d6] text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer"
-                                title="Reject Request"
                               >
                                 <XIcon size={14} />
                                 <span>Reject</span>

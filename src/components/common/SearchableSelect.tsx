@@ -129,7 +129,6 @@ export default function SearchableSelect({
                         <span
                             onClick={handleClear}
                             className="p-0.5 hover:text-[#DE350B] hover:bg-gray-100 dark:hover:bg-white/10 rounded transition-colors cursor-pointer"
-                            title="Clear"
                         >
                             <X size={14} />
                         </span>

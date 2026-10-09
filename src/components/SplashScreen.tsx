@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import vedaLogo from '../assets/veda-logo.png';
 
 interface SplashScreenProps {
   onFinish: () => void;
@@ -34,7 +33,7 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
       {/* Centered Animated Logo */}
       <div className="flex items-center justify-center">
         <img
-          src={vedaLogo}
+          src="/logo.png"
           alt="App Logo"
           className={`w-32 h-32 object-contain transition-all duration-500 ease-out transform ${
             fadingOut ? 'scale-110 opacity-0' : 'scale-100 opacity-100 animate-pulse'
