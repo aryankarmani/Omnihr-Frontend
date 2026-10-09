@@ -535,7 +535,6 @@ export default function Leave() {
             dayCells.push(
                 <div
                     key={day}
-                    title={status?.label ? (status.type === 'Holiday' ? `Official Holiday: ${status.label}` : `Leave: ${status.label} (${status.status})`) : undefined}
                     onClick={() => {
                         if (status?.type === 'Holiday') {
                             toast(`Official Holiday: ${status.label}`, { icon: '🎉' });
@@ -586,11 +585,11 @@ export default function Leave() {
                     {/* Middle row: Holiday name or Leave label (matching Attendance calendar layout) */}
                     <div className="space-y-0.5 text-left flex-1 flex flex-col justify-center my-auto">
                         {status?.type === 'Holiday' ? (
-                            <div className="text-[10px] sm:text-[11.5px] font-semibold text-purple-700 dark:text-purple-300 leading-snug line-clamp-2" title={status.label}>
+                            <div className="text-[10px] sm:text-[11.5px] font-semibold text-purple-700 dark:text-purple-300 leading-snug line-clamp-2">
                                 {status.label}
                             </div>
                         ) : status?.type === 'Leave' ? (
-                            <div className={`text-[10px] sm:text-[11.5px] font-semibold leading-snug line-clamp-2 ${textColor}`} title={status.label}>
+                            <div className={`text-[10px] sm:text-[11.5px] font-semibold leading-snug line-clamp-2 ${textColor}`}>
                                 {status.label}
                             </div>
                         ) : null}
@@ -613,38 +612,7 @@ export default function Leave() {
 
     return (
         <div className="pb-8 relative">
-            {canSeeApprovals && (
-                <div className="flex items-center gap-2 mb-5 border-b border-[#E2E6ED] dark:border-gray-800">
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setActiveTab('MY_LEAVE');
-                            navigate('/leave', { state: { activeTab: 'MY_LEAVE' }, replace: true });
-                        }}
-                        className={`pb-3 px-3 text-[13.5px] font-semibold border-b-2 transition-all cursor-pointer ${
-                            activeTab === 'MY_LEAVE'
-                                ? 'border-[#2C4FD6] text-[#2C4FD6]'
-                                : 'border-transparent text-[#5B6472] dark:text-gray-400 hover:text-[#12151C] dark:hover:text-white'
-                        }`}
-                    >
-                        My Leave
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setActiveTab('APPROVALS');
-                            navigate('/leave', { state: { activeTab: 'APPROVALS' }, replace: true });
-                        }}
-                        className={`pb-3 px-3 text-[13.5px] font-semibold border-b-2 transition-all cursor-pointer ${
-                            activeTab === 'APPROVALS'
-                                ? 'border-[#2C4FD6] text-[#2C4FD6]'
-                                : 'border-transparent text-[#5B6472] dark:text-gray-400 hover:text-[#12151C] dark:hover:text-white'
-                        }`}
-                    >
-                        Leave Approvals
-                    </button>
-                </div>
-            )}
+
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                 <div>
                     <h2 className="text-2xl font-bold text-[#12151C] dark:text-white mb-1">
@@ -922,7 +890,6 @@ export default function Leave() {
                                             <td
                                                 onClick={() => setSelectedLeaveForReason(l)}
                                                 className="py-[13px] px-[22px] text-xs text-[#5B6472] dark:text-gray-300 max-w-xs truncate italic cursor-pointer hover:text-[#2C4FD6] dark:hover:text-blue-400 transition-all translate-x-[10px]"
-                                                title="Click to view full reason"
                                             >
                                                 "{l.reason}"
                                             </td>
@@ -1016,7 +983,6 @@ export default function Leave() {
                                         onClick={() => setCurrentPage(1)}
                                         disabled={currentPage === 1}
                                         className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
-                                        title="First Page"
                                     >
                                         <ChevronsLeft size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
                                     </button>
@@ -1025,7 +991,6 @@ export default function Leave() {
                                         onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                                         disabled={currentPage === 1}
                                         className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
-                                        title="Previous Page"
                                     >
                                         <ChevronLeft size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
                                     </button>
@@ -1034,7 +999,6 @@ export default function Leave() {
                                         onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                                         disabled={currentPage === totalPages || totalPages === 0}
                                         className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
-                                        title="Next Page"
                                     >
                                         <ChevronRight size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
                                     </button>
@@ -1043,7 +1007,6 @@ export default function Leave() {
                                         onClick={() => setCurrentPage(totalPages)}
                                         disabled={currentPage === totalPages || totalPages === 0}
                                         className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
-                                        title="Last Page"
                                     >
                                         <ChevronsRight size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
                                     </button>

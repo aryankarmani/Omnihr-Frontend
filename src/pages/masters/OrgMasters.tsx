@@ -748,7 +748,7 @@ export default function OrgMasters() {
                                         <div className="mt-6 pt-4 border-t border-[#E2E6ED] dark:border-gray-800 flex justify-between items-center">
                                             <div className="flex -space-x-2">
                                                 {deptEmployees.slice(0, 3).map((emp) => (
-                                                    <div key={emp.id} title={emp.name} className="w-7 h-7 rounded-full border-2 border-white dark:border-gray-800 bg-[#E8ECFC] flex items-center justify-center text-[10px] font-bold text-[#2C4FD6]">
+                                                    <div key={emp.id} className="w-7 h-7 rounded-full border-2 border-white dark:border-gray-800 bg-[#E8ECFC] flex items-center justify-center text-[10px] font-bold text-[#2C4FD6]">
                                                         {emp.name.substring(0, 1)}
                                                     </div>
                                                 ))}
@@ -772,17 +772,17 @@ export default function OrgMasters() {
                 {/* 4. DESIGNATIONS TAB */}
                 {activeTab === 'designations' && (
                     <div className="space-y-6 animate-fade-in">
-                        <div className="flex justify-between items-center">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <h3 className="text-lg font-semibold text-[#12151C] dark:text-white flex items-center gap-2">
                                 <Briefcase size={20} className="text-[#2C4FD6]" />
                                 Job Titles & Grades ({designations.length})
                             </h3>
-                            <button onClick={() => { setEditingDesigId(null); setNewDesig({ name: '', grade: '', reportTo: '' }); setShowDesigModal(true); }} className="inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white text-[13.5px] font-semibold rounded-[6px] px-[15px] py-[9px] active:scale-95 transition-all cursor-pointer">
+                            <button onClick={() => { setEditingDesigId(null); setNewDesig({ name: '', grade: '', reportTo: '' }); setShowDesigModal(true); }} className="inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white text-[13.5px] font-semibold rounded-[6px] px-[15px] py-[9px] active:scale-95 transition-all cursor-pointer shrink-0">
                                 <Plus size={16} /> Add Designation
                             </button>
                         </div>
-                        <div className="overflow-hidden bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800">
-                            <table className="w-full text-left text-sm text-[#5B6472] dark:text-gray-300">
+                        <div className="overflow-x-auto bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800">
+                            <table className="w-full text-left text-sm text-[#5B6472] dark:text-gray-300 min-w-[550px]">
                                 <thead>
                                     <tr className="bg-[#EEF1F5] dark:bg-gray-800/60 text-[#9AA3B1] dark:text-gray-400 text-[11px] font-semibold uppercase tracking-[.05em]">
                                         <th className="py-[9px] px-[22px] border-b border-[#E2E6ED] dark:border-gray-800">TITLE</th>

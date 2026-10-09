@@ -211,7 +211,6 @@ export default function Plans() {
                     </span>
                     <button
                       onClick={() => togglePlanActive(p)}
-                      title={p.isActive ? "Deactivate Plan" : "Activate Plan"}
                       className="text-[#9AA3B1] hover:text-[#2C4FD6] transition-colors cursor-pointer"
                     >
                       {p.isActive ? (
@@ -272,7 +271,6 @@ export default function Plans() {
                     <button
                       onClick={() => handleDeletePlan(p)}
                       disabled={deletingPlanId === p.id}
-                      title="Delete Plan"
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-500 hover:text-rose-600 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 dark:text-rose-400 rounded-[6px] text-[12px] font-semibold transition-colors cursor-pointer disabled:opacity-50"
                     >
                       <Trash2 size={13} />

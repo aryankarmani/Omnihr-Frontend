@@ -1360,7 +1360,6 @@ export default function AddEmployee() {
                                                                     }
                                                                 }}
                                                                 className="p-2 text-[#2C4FD6] hover:bg-[#2C4FD6]/10 rounded-lg transition-colors cursor-pointer"
-                                                                title={`View ${doc.name}`}
                                                             >
                                                                 <Eye size={18} />
                                                             </button>
@@ -1371,7 +1370,6 @@ export default function AddEmployee() {
                                                                     setConfirmDeleteDoc(doc.key);
                                                                 }}
                                                                 className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
-                                                                title="Remove document"
                                                             >
                                                                 <Trash2 size={18} />
                                                             </button>
@@ -1651,7 +1649,6 @@ export default function AddEmployee() {
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="p-2 text-gray-500 hover:text-[#2C4FD6] hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
-                                        title="Open in new window"
                                     >
                                         <ExternalLink size={18} />
                                     </a>
@@ -1659,7 +1656,6 @@ export default function AddEmployee() {
                                         type="button"
                                         onClick={() => downloadFile(previewDoc.url, previewDoc.fileName)}
                                         className="p-2 text-gray-500 hover:text-[#2C4FD6] hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
-                                        title="Download document"
                                     >
                                         <Download size={18} />
                                     </button>
@@ -1667,7 +1663,6 @@ export default function AddEmployee() {
                                         type="button"
                                         onClick={() => setPreviewDoc(null)}
                                         className="p-2 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer ml-1"
-                                        title="Close preview"
                                     >
                                         <X size={20} />
                                     </button>

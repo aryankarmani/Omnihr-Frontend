@@ -171,7 +171,6 @@ export default function CustomFieldsMasters() {
                                             <button
                                                 onClick={() => setFieldToDelete(field)}
                                                 className="p-1.5 text-[#9AA3B1] hover:text-[#DE350B] transition-colors rounded-[6px] hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer"
-                                                title="Delete Custom Field"
                                             >
                                                 <Trash2 size={16} />
                                             </button>

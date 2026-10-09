@@ -274,7 +274,7 @@ const LogFile = () => {
       {/* Logs Table Card */}
       <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse min-w-[800px]">
             <thead>
               <tr className="bg-[#EEF1F5] dark:bg-gray-800/60 border-b border-[#E2E6ED] dark:border-gray-800">
                 <th className="py-[9px] px-[22px] text-[11px] font-semibold text-[#9AA3B1] dark:text-gray-400 uppercase tracking-[.05em]">
@@ -333,7 +333,6 @@ const LogFile = () => {
                           type="button"
                           onClick={() => navigate(`/employee/${log.targetUserId}`)}
                           className="text-left hover:text-[#2C4FD6] hover:underline transition-colors cursor-pointer"
-                          title="View employee profile"
                         >
                           {log.targetUser || "—"}
                         </button>
@@ -358,7 +357,6 @@ const LogFile = () => {
                         type="button"
                         onClick={() => setSelectedDescription(log.description)}
                         className="block max-w-[280px] text-left truncate hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer"
-                        title="Click to view description"
                       >
                         {log.description || "—"}
                       </button>
@@ -407,7 +405,6 @@ const LogFile = () => {
                 onClick={() => setCurrentPage(1)}
                 disabled={currentPage === 1}
                 className="w-8 h-8 flex items-center justify-center rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 text-[#12151C] dark:text-white disabled:opacity-30 hover:bg-[#F7F8FA] dark:hover:bg-gray-800 transition-colors cursor-pointer"
-                title="First Page"
               >
                 <ChevronsLeft size={15} className="stroke-[2.5]" />
               </button>
@@ -415,7 +412,6 @@ const LogFile = () => {
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
                 className="w-8 h-8 flex items-center justify-center rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 text-[#12151C] dark:text-white disabled:opacity-30 hover:bg-[#F7F8FA] dark:hover:bg-gray-800 transition-colors cursor-pointer"
-                title="Previous Page"
               >
                 <ChevronLeft size={15} className="stroke-[2.5]" />
               </button>
@@ -423,7 +419,6 @@ const LogFile = () => {
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages || totalPages === 0}
                 className="w-8 h-8 flex items-center justify-center rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 text-[#12151C] dark:text-white disabled:opacity-30 hover:bg-[#F7F8FA] dark:hover:bg-gray-800 transition-colors cursor-pointer"
-                title="Next Page"
               >
                 <ChevronRight size={15} className="stroke-[2.5]" />
               </button>
@@ -431,7 +426,6 @@ const LogFile = () => {
                 onClick={() => setCurrentPage(totalPages)}
                 disabled={currentPage === totalPages || totalPages === 0}
                 className="w-8 h-8 flex items-center justify-center rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 text-[#12151C] dark:text-white disabled:opacity-30 hover:bg-[#F7F8FA] dark:hover:bg-gray-800 transition-colors cursor-pointer"
-                title="Last Page"
               >
                 <ChevronsRight size={15} className="stroke-[2.5]" />
               </button>

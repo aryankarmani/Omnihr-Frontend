@@ -25,7 +25,6 @@ export const SuperAdminHeader: React.FC<SuperAdminHeaderProps> = ({
           <button
             onClick={onMenuClick}
             className="md:hidden p-2 text-[#5B6472] dark:text-gray-300 hover:bg-[#EEF1F5] dark:hover:bg-white/5 rounded-[6px] shrink-0"
-            title="Open navigation menu"
           >
             <Menu size={20} />
           </button>
@@ -36,7 +35,6 @@ export const SuperAdminHeader: React.FC<SuperAdminHeaderProps> = ({
           {/* Dark / Light Toggle */}
           <button
             onClick={toggleTheme}
-            title="Toggle theme"
             className="p-2 text-[#5B6472] dark:text-gray-400 hover:bg-[#EEF1F5] dark:hover:bg-white/5 rounded-[6px] transition-colors cursor-pointer"
           >
             {theme === "dark" ? (

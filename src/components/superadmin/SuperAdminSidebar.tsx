@@ -96,7 +96,6 @@ export const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
           <button
             type="button"
             onClick={onToggleCollapse}
-            title={isCollapsed ? "Expand sidebar" : "Minimize sidebar"}
             className="w-7 h-7 rounded-[6px] flex items-center justify-center text-[#5B6472] dark:text-gray-400 hover:text-[#2C4FD6] dark:hover:text-white hover:bg-white/80 dark:hover:bg-white/10 transition-all cursor-pointer border border-transparent hover:border-[#E2E6ED] dark:hover:border-gray-700"
           >
             {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
@@ -116,7 +115,6 @@ export const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
                   navigate(item.path);
                   if (window.innerWidth < 768) onClose();
                 }}
-                title={isCollapsed ? item.label : ""}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[6px] transition-all duration-200 ease-in-out group cursor-pointer ${
                   active
                     ? "bg-[#E8ECFC] text-[#2C4FD6] font-semibold border-l-[3.5px] border-[#2C4FD6]"
@@ -157,7 +155,6 @@ export const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
             )}
             <button
               onClick={() => setShowLogoutConfirm(true)}
-              title="Sign Out"
               className="p-1.5 text-[#5B6472] hover:text-rose-600 dark:text-gray-400 dark:hover:text-rose-400 rounded-[6px] transition-colors cursor-pointer"
             >
               <LogOut size={16} />

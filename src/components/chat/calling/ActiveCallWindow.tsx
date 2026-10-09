@@ -267,7 +267,6 @@ function SharedScreenMainStage({
                 <button
                     onClick={onStopSharing}
                     className="absolute top-4 right-4 z-20 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold px-4 py-1.5 rounded-full shadow-2xl transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 border border-rose-500/30"
-                    title="Stop screen sharing"
                 >
                     <ScreenShare size={14} />
                     <span>Stop Presenting</span>
@@ -465,21 +464,18 @@ export default function ActiveCallWindow() {
                     <button
                         onClick={toggleMic}
                         className={`p-2 rounded-full cursor-pointer transition-colors ${isMicMuted ? 'bg-rose-500/20 text-rose-400' : 'bg-white/10 hover:bg-white/20 text-white'}`}
-                        title={isMicMuted ? 'Unmute' : 'Mute'}
                     >
                         {isMicMuted ? <MicOff size={15} /> : <Mic size={15} />}
                     </button>
                     <button
                         onClick={() => setIsMinimized(false)}
                         className="p-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white cursor-pointer transition-colors"
-                        title="Maximize"
                     >
                         <Maximize2 size={15} />
                     </button>
                     <button
                         onClick={endCall}
                         className="p-2 rounded-full bg-rose-600 hover:bg-rose-700 text-white cursor-pointer transition-colors"
-                        title={activeCall.isGroup ? "Leave Call" : "End Call"}
                     >
                         <PhoneOff size={15} />
                     </button>
@@ -537,7 +533,6 @@ export default function ActiveCallWindow() {
                     <button
                         onClick={toggleFullscreen}
                         className="px-2.5 py-1.5 sm:py-2 rounded-[6px] bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5"
-                        title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
                     >
                         {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
                         <span className="hidden md:inline text-xs font-medium">{isFullscreen ? 'Exit Full' : 'Fullscreen'}</span>
@@ -547,7 +542,6 @@ export default function ActiveCallWindow() {
                     <button
                         onClick={() => setIsMinimized(true)}
                         className="px-2.5 py-1.5 sm:py-2 rounded-[6px] bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5"
-                        title="Minimize to mini window"
                     >
                         <Minus size={15} />
                         <span className="hidden md:inline text-xs font-medium">Minimize</span>
@@ -838,7 +832,6 @@ export default function ActiveCallWindow() {
                                 ? 'bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 border border-rose-500/30'
                                 : 'bg-white/10 text-white hover:bg-white/20'
                         }`}
-                        title={isMicMuted ? 'Unmute Microphone' : 'Mute Microphone'}
                     >
                         {isMicMuted ? <MicOff size={19} /> : <Mic size={19} />}
                     </button>
@@ -851,7 +844,6 @@ export default function ActiveCallWindow() {
                                 ? 'bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 border border-rose-500/30'
                                 : 'bg-white/10 text-white hover:bg-white/20'
                         }`}
-                        title={isCameraOff ? 'Turn Camera On' : 'Turn Camera Off'}
                     >
                         {isCameraOff ? <VideoOff size={19} /> : <Video size={19} />}
                     </button>
@@ -864,7 +856,6 @@ export default function ActiveCallWindow() {
                                 ? 'bg-blue-600 text-white font-semibold shadow-lg shadow-blue-600/30'
                                 : 'bg-white/10 text-white hover:bg-white/20'
                         }`}
-                        title={isScreenSharing ? 'Stop Sharing Screen' : 'Share Screen'}
                     >
                         <ScreenShare size={19} />
                         <span className="hidden md:inline text-xs font-semibold">
@@ -880,7 +871,6 @@ export default function ActiveCallWindow() {
                                 ? 'bg-amber-500 hover:bg-amber-400 text-black font-bold shadow-lg shadow-amber-500/30 ring-2 ring-amber-400/50'
                                 : 'bg-white/10 text-white hover:bg-white/20'
                         }`}
-                        title={isMyHandRaised ? 'Lower Hand' : 'Raise Hand'}
                     >
                         <Hand size={19} className={isMyHandRaised ? 'animate-bounce' : ''} />
                         <span className="hidden md:inline text-xs font-semibold">
@@ -896,7 +886,6 @@ export default function ActiveCallWindow() {
                                 ? 'bg-[#2C4FD6] text-white shadow-lg shadow-blue-600/30'
                                 : 'bg-white/10 text-white hover:bg-white/20'
                         }`}
-                        title="In-Call Chat"
                     >
                         <MessageSquare size={19} />
                         {inCallMessages.length > 0 && !showChat && (
@@ -913,7 +902,6 @@ export default function ActiveCallWindow() {
                             fetchEmployeesForInvite();
                         }}
                         className="p-3 rounded-[6px] cursor-pointer transition-all duration-150 bg-white/10 text-white hover:bg-white/20 flex items-center gap-1.5 active:scale-95"
-                        title="Add Users to Call"
                     >
                         <UserPlus size={19} />
                         <span className="hidden md:inline text-xs font-semibold">Add People</span>
@@ -923,7 +911,6 @@ export default function ActiveCallWindow() {
                     <button
                         onClick={endCall}
                         className="px-5 py-3 rounded-[6px] bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-rose-600/30 transition-all cursor-pointer active:scale-95 ml-1 border border-rose-500/30"
-                        title={activeCall.isGroup ? 'Leave Call' : 'End Call'}
                     >
                         <PhoneOff size={17} />
                         <span className="hidden sm:inline">

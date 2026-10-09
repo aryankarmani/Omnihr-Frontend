@@ -1407,7 +1407,6 @@ export default function EmployeeProfile() {
                                         ?.click()
                                 }
                                 className="absolute bottom-0 right-0 z-20 w-6 h-6 rounded-full bg-[#2C4FD6] text-white flex items-center justify-center hover:bg-[#203FB4] transition-colors"
-                                title="Change profile picture"
                             >
                                 <Upload size={12} />
                             </button>
@@ -1784,7 +1783,6 @@ export default function EmployeeProfile() {
                                                         ? 'bg-[#2C4FD6]/10 text-[#2C4FD6] hover:bg-[#2C4FD6] hover:text-white cursor-pointer'
                                                         : 'bg-gray-100 dark:bg-white/5 text-gray-300 dark:text-gray-600 cursor-not-allowed'
                                                         }`}
-                                                    title={`View ${doc.name}`}
                                                 >
                                                     <Eye size={16} />
                                                 </button>
@@ -1900,7 +1898,6 @@ export default function EmployeeProfile() {
                                                 ? 'bg-[#2C4FD6]/10 text-[#2C4FD6] hover:bg-[#2C4FD6] hover:text-white cursor-pointer'
                                                 : 'bg-gray-100 dark:bg-white/5 text-gray-300 dark:text-gray-600 cursor-not-allowed'
                                                 }`}
-                                            title="View profile picture"
                                         >
                                             <Eye size={16} />
                                         </button>
@@ -1913,7 +1910,6 @@ export default function EmployeeProfile() {
                                                     type="button"
                                                     onClick={() => setShowProfilePictureDeleteModal(true)}
                                                     className="w-8 h-8 rounded-[6px] flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all"
-                                                    title="Delete profile picture"
                                                 >
                                                     <Trash2 size={16} />
                                                 </button>
@@ -1983,7 +1979,6 @@ export default function EmployeeProfile() {
                                                         ? 'bg-brand-500/10 text-brand-500 hover:bg-brand-500 hover:text-white cursor-pointer'
                                                         : 'bg-gray-100 dark:bg-white/5 text-gray-300 dark:text-gray-600 cursor-not-allowed'
                                                         }`}
-                                                    title={`View ${cf.field?.name || 'Document'}`}
                                                 >
                                                     <Eye size={18} />
                                                 </button>
@@ -2508,7 +2503,6 @@ export default function EmployeeProfile() {
                                                                                 }
                                                                             }}
                                                                             className="w-8 h-8 rounded-lg flex items-center justify-center bg-brand-500/10 text-brand-500 hover:bg-brand-500 hover:text-white cursor-pointer"
-                                                                            title={`View ${cf.field?.name || 'Document'}`}
                                                                         >
                                                                             <Eye size={14} />
                                                                         </button>
@@ -2595,7 +2589,6 @@ export default function EmployeeProfile() {
                                                                     }
                                                                 }}
                                                                 className="w-8 h-8 rounded-lg flex items-center justify-center bg-brand-500/10 text-brand-500 hover:bg-brand-500 hover:text-white cursor-pointer"
-                                                                title={`View ${cf.field?.name || 'Document'}`}
                                                             >
                                                                 <Eye size={14} />
                                                             </button>
@@ -3169,7 +3162,6 @@ export default function EmployeeProfile() {
                                                             ? 'group cursor-pointer hover:text-[#2C4FD6] dark:hover:text-blue-400 transition-colors'
                                                             : 'cursor-default'
                                                     }`}
-                                                    title={isAdmin ? `Go to ${item.tabKey} tab` : undefined}
                                                 >
                                                     <div className="flex items-center gap-2 min-w-0">
                                                         <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
@@ -3605,7 +3597,6 @@ export default function EmployeeProfile() {
                         <button
                             onClick={() => setShowIDCard(false)}
                             className="absolute -top-11 right-0 w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer shadow-md"
-                            title="Close Preview"
                         >
                             <X size={18} />
                         </button>
@@ -3666,7 +3657,7 @@ export default function EmployeeProfile() {
                                         <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
                                             Department
                                         </p>
-                                        <p className="text-[13px] font-semibold text-gray-700 truncate" title={profile.department || 'N/A'}>
+                                        <p className="text-[13px] font-semibold text-gray-700 truncate">
                                             {profile.department || 'N/A'}
                                         </p>
                                     </div>
@@ -3675,7 +3666,7 @@ export default function EmployeeProfile() {
                                         <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
                                             Mobile Number
                                         </p>
-                                        <p className="text-[13px] font-semibold text-gray-700 truncate font-mono-numbers" title={formatPhoneNumber(profile.phone) || 'N/A'}>
+                                        <p className="text-[13px] font-semibold text-gray-700 truncate font-mono-numbers">
                                             {formatPhoneNumber(profile.phone) || 'N/A'}
                                         </p>
                                     </div>
@@ -3942,7 +3933,6 @@ export default function EmployeeProfile() {
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="p-2 text-gray-500 hover:text-[#2C4FD6] hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
-                                        title="Open in new window"
                                     >
                                         <ExternalLink size={18} />
                                     </a>
@@ -3950,7 +3940,6 @@ export default function EmployeeProfile() {
                                         type="button"
                                         onClick={() => downloadFile(previewDoc.url, previewDoc.fileName)}
                                         className="p-2 text-gray-500 hover:text-[#2C4FD6] hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
-                                        title="Download document"
                                     >
                                         <Download size={18} />
                                     </button>
@@ -3958,7 +3947,6 @@ export default function EmployeeProfile() {
                                         type="button"
                                         onClick={() => setPreviewDoc(null)}
                                         className="p-2 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer ml-1"
-                                        title="Close preview"
                                     >
                                         <X size={20} />
                                     </button>

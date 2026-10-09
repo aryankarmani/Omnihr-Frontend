@@ -167,7 +167,8 @@ export default function Companies() {
               ))}
             </div>
           ) : companies.length > 0 ? (
-            <table className="w-full text-left min-w-[950px]">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left min-w-[950px]">
               <thead className="sticky top-0 z-10 bg-[#F4F6FB] dark:bg-[#1A1F2C]">
                 <tr className="border-b border-[#E2E6ED] dark:border-gray-800 text-[12px] text-[#5B6472] dark:text-gray-400 font-semibold">
                   <th className="py-3 px-4 bg-[#F4F6FB] dark:bg-[#1A1F2C]">Company Name</th>
@@ -263,7 +264,6 @@ export default function Companies() {
                         <Link
                           to={`/superadmin/companies/${c.id}`}
                           className="p-1.5 text-[#2C4FD6] hover:bg-[#E8ECFC] rounded-[6px] transition-colors inline-flex items-center gap-1 text-[12px] font-semibold"
-                          title="View Company Details"
                         >
                           <span>View Details</span>
                           <ExternalLink size={13} />
@@ -274,6 +274,7 @@ export default function Companies() {
                 ))}
               </tbody>
             </table>
+            </div>
           ) : (
             <div className="py-16 text-center text-[#9AA3B1]">
               <Building2 className="w-10 h-10 mx-auto mb-2 opacity-30" />
@@ -323,7 +324,6 @@ export default function Companies() {
                   onClick={() => setCurrentPage(1)}
                   disabled={currentPage === 1}
                   className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
-                  title="First Page"
                 >
                   <ChevronsLeft size={14} />
                 </button>
@@ -331,7 +331,6 @@ export default function Companies() {
                   onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
                   className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
-                  title="Previous Page"
                 >
                   <ChevronLeft size={14} />
                 </button>
@@ -340,7 +339,6 @@ export default function Companies() {
                   onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
                   className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
-                  title="Next Page"
                 >
                   <ChevronRight size={14} />
                 </button>
@@ -348,7 +346,6 @@ export default function Companies() {
                   onClick={() => setCurrentPage(totalPages)}
                   disabled={currentPage === totalPages}
                   className="w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#1A1F2C] text-[#12151C] dark:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#EEF1F5] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
-                  title="Last Page"
                 >
                   <ChevronsRight size={14} />
                 </button>

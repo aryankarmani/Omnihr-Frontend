@@ -447,7 +447,6 @@ export default function Team() {
                                         onClick={() => setCurrentPage(1)}
                                         disabled={safeCurrentPage === 1}
                                         className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
-                                        title="First Page"
                                     >
                                         <ChevronsLeft size={16} className="stroke-[2.5]" />
                                     </button>
@@ -456,7 +455,6 @@ export default function Team() {
                                         onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                                         disabled={safeCurrentPage === 1}
                                         className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
-                                        title="Previous Page"
                                     >
                                         <ChevronLeft size={16} className="stroke-[2.5]" />
                                     </button>
@@ -465,7 +463,6 @@ export default function Team() {
                                         onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                                         disabled={safeCurrentPage >= totalPages}
                                         className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
-                                        title="Next Page"
                                     >
                                         <ChevronRight size={16} className="stroke-[2.5]" />
                                     </button>
@@ -474,7 +471,6 @@ export default function Team() {
                                         onClick={() => setCurrentPage(totalPages)}
                                         disabled={safeCurrentPage >= totalPages}
                                         className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
-                                        title="Last Page"
                                     >
                                         <ChevronsRight size={16} className="stroke-[2.5]" />
                                     </button>

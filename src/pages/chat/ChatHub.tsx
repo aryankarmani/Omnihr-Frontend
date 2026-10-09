@@ -547,7 +547,6 @@ export default function ChatHub() {
                         <button
                             onClick={() => setShowCreateModal(true)}
                             className="p-1.5 rounded-[6px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white transition-all cursor-pointer shadow-sm shrink-0"
-                            title="New Group or Chat"
                         >
                             <Plus size={16} />
                         </button>
@@ -641,7 +640,6 @@ export default function ChatHub() {
                                                                 ? 'hover:bg-white/20 text-white'
                                                                 : 'hover:bg-gray-200 dark:hover:bg-white/10 text-gray-400 hover:text-amber-500'
                                                         }`}
-                                                        title="Leave Group"
                                                     >
                                                         <LogOut size={13} />
                                                     </button>
@@ -759,7 +757,6 @@ export default function ChatHub() {
                                                                 ? 'hover:bg-white/20 text-white'
                                                                 : 'hover:bg-gray-200 dark:hover:bg-white/10 text-gray-400 hover:text-rose-500'
                                                         }`}
-                                                        title="Delete Chat"
                                                     >
                                                         <Trash2 size={13} />
                                                     </button>
@@ -783,7 +780,6 @@ export default function ChatHub() {
                         <button
                             onClick={() => setMobileView('LIST')}
                             className="sm:hidden p-1.5 -ml-1 rounded-[6px] text-gray-500 hover:text-gray-800 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition-all cursor-pointer shrink-0"
-                            title="Back to conversations"
                             aria-label="Back to conversations"
                         >
                             <ArrowLeft size={18} />
@@ -834,7 +830,6 @@ export default function ChatHub() {
                             <button
                                 onClick={() => handleStartCall('VOICE')}
                                 className="p-2 rounded-[6px] text-gray-500 hover:text-[#2C4FD6] hover:bg-blue-50 dark:hover:bg-white/5 transition-all cursor-pointer"
-                                title={currentConversation?.isGroup ? 'Start Group Voice Call' : 'Start Voice Call'}
                             >
                                 <Phone size={17} />
                             </button>
@@ -845,7 +840,6 @@ export default function ChatHub() {
                             <button
                                 onClick={() => handleStartCall('VIDEO')}
                                 className="p-2 rounded-[6px] text-gray-500 hover:text-[#2C4FD6] hover:bg-blue-50 dark:hover:bg-white/5 transition-all cursor-pointer"
-                                title={currentConversation?.isGroup ? 'Start Group Video Call' : 'Start Video Call'}
                             >
                                 <Video size={17} />
                             </button>
@@ -862,7 +856,6 @@ export default function ChatHub() {
                                     })
                                 }
                                 className="p-2 rounded-[6px] text-gray-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-all cursor-pointer"
-                                title="Leave Group"
                             >
                                 <LogOut size={17} />
                             </button>
@@ -876,7 +869,6 @@ export default function ChatHub() {
                                     })
                                 }
                                 className="p-2 rounded-[6px] text-gray-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all cursor-pointer"
-                                title="Delete Chat"
                             >
                                 <Trash2 size={17} />
                             </button>
@@ -890,7 +882,6 @@ export default function ChatHub() {
                                     ? 'bg-blue-50 dark:bg-white/10 text-[#2C4FD6] dark:text-blue-400'
                                     : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5'
                             }`}
-                            title="Conversation Info"
                         >
                             <Info size={17} />
                         </button>
@@ -916,7 +907,6 @@ export default function ChatHub() {
                             <button
                                 onClick={dismissRejoin}
                                 className="text-gray-400 hover:text-gray-600 dark:hover:text-white p-1 rounded transition-colors cursor-pointer"
-                                title="Dismiss"
                             >
                                 <X size={14} />
                             </button>
@@ -1062,7 +1052,6 @@ export default function ChatHub() {
                                                                             <div
                                                                                 onClick={() => window.open(fullUrl, '_blank')}
                                                                                 className="flex items-center gap-2 min-w-0 cursor-pointer hover:underline flex-1"
-                                                                                title="Open file in new tab"
                                                                             >
                                                                                 <FileText size={16} className="shrink-0" />
                                                                                 <span className="truncate font-medium">{att.fileName}</span>
@@ -1084,7 +1073,6 @@ export default function ChatHub() {
                                                                                         ? 'hover:bg-blue-800 text-white'
                                                                                         : 'hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-300'
                                                                                 }`}
-                                                                                title="Download attachment"
                                                                             >
                                                                                 <Download size={15} />
                                                                             </button>
@@ -1107,7 +1095,6 @@ export default function ChatHub() {
                                                     <button
                                                         onClick={() => setReplyTo(msg)}
                                                         className="p-1 hover:bg-gray-100 dark:hover:bg-white/10 rounded-[6px] text-gray-500 hover:text-gray-800 dark:hover:text-white cursor-pointer"
-                                                        title="Reply"
                                                     >
                                                         <Reply size={13} />
                                                     </button>
@@ -1119,14 +1106,12 @@ export default function ChatHub() {
                                                                     setInputText(msg.content);
                                                                 }}
                                                                 className="p-1 hover:bg-gray-100 dark:hover:bg-white/10 rounded-[6px] text-gray-500 hover:text-gray-800 dark:hover:text-white cursor-pointer"
-                                                                title="Edit"
                                                             >
                                                                 <Edit2 size={13} />
                                                             </button>
                                                             <button
                                                                 onClick={() => setMessageToDelete(msg.id)}
                                                                 className="p-1 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-[6px] text-rose-500 cursor-pointer"
-                                                                title="Delete"
                                                             >
                                                                 <Trash2 size={13} />
                                                             </button>
@@ -1213,7 +1198,6 @@ export default function ChatHub() {
                             type="button"
                             onClick={() => setStagedAttachment(null)}
                             className="p-1 hover:bg-gray-200 dark:hover:bg-white/10 rounded-[6px] text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors cursor-pointer"
-                            title="Remove attachment"
                         >
                             <X size={15} />
                         </button>
@@ -1237,7 +1221,6 @@ export default function ChatHub() {
                         onClick={() => fileInputRef.current?.click()}
                         disabled={uploadingFile}
                         className="p-2 rounded-[6px] text-gray-500 hover:text-gray-800 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition-all cursor-pointer shrink-0 disabled:opacity-50"
-                        title="Upload file or image"
                     >
                         {uploadingFile ? (
                             <div className="w-4 h-4 border-2 border-[#2C4FD6] border-t-transparent rounded-full animate-spin" />
@@ -1266,7 +1249,6 @@ export default function ChatHub() {
                         type="submit"
                         disabled={!inputText.trim() && !stagedAttachment}
                         className="p-2.5 rounded-[6px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-sm shrink-0"
-                        title="Send message"
                     >
                         <Send size={18} />
                     </button>
@@ -1376,7 +1358,6 @@ export default function ChatHub() {
                                                 <button
                                                     onClick={() => handleStartCall('VOICE', emp)}
                                                     className="p-1 text-gray-400 hover:text-[#2C4FD6] transition-colors cursor-pointer"
-                                                    title={`Call ${emp.name}`}
                                                 >
                                                     <Phone size={12} />
                                                 </button>

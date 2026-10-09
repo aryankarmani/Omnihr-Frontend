@@ -360,7 +360,6 @@ The OmniHR Team`
                             setSelectedRequest(req);
                             setIsDetailsOpen(true);
                           }}
-                          title="View Request Details"
                           className="p-1.5 text-gray-500 hover:text-[#2C4FD6] hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors cursor-pointer"
                         >
                           <Eye size={16} />
@@ -369,7 +368,6 @@ The OmniHR Team`
                         {/* Delete */}
                         <button
                           onClick={() => handleDelete(req.id)}
-                          title="Delete Request"
                           className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md transition-colors cursor-pointer"
                         >
                           <Trash2 size={16} />

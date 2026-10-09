@@ -176,12 +176,12 @@ export default function AttendanceMasters() {
             <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 p-6 sm:p-8 min-h-[400px]">
                 {activeTab === 'SHIFTS' && (
                     <div className="space-y-6">
-                        <div className="flex justify-between items-center pb-4 border-b border-[#E2E6ED] dark:border-gray-800">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E2E6ED] dark:border-gray-800">
                             <div>
                                 <h3 className="text-base font-bold text-[#12151C] dark:text-white">Shift Timings</h3>
                                 <p className="text-xs text-[#5B6472] dark:text-gray-400">Configure working hours, break durations, and grace times.</p>
                             </div>
-                            <button onClick={handleOpenAddShift} className="inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[13.5px] font-semibold px-[15px] py-[9px] transition-all cursor-pointer">
+                            <button onClick={handleOpenAddShift} className="inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[13.5px] font-semibold px-[15px] py-[9px] transition-all cursor-pointer shrink-0">
                                 <Plus size={16} /> Add Shift
                             </button>
                         </div>
@@ -194,10 +194,10 @@ export default function AttendanceMasters() {
                                             <p className="text-xs text-[#2C4FD6] font-semibold mt-0.5">{shift.startTime} - {shift.endTime}{shift.isNightShift ? ' (Night)' : ''}</p>
                                         </div>
                                         <div className="flex items-center gap-1">
-                                            <button onClick={() => handleOpenEditShift(shift)} title="Edit Shift" className="p-1 text-[#2C4FD6] hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-all cursor-pointer">
+                                            <button onClick={() => handleOpenEditShift(shift)} className="p-1 text-[#2C4FD6] hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-all cursor-pointer">
                                                 <Edit2 size={15} />
                                             </button>
-                                            <button onClick={() => handleDeleteShift(shift.id)} title="Delete Shift" className="p-1 text-[#DE350B] hover:bg-[#FBE7E7] dark:hover:bg-rose-900/30 rounded transition-all cursor-pointer">
+                                            <button onClick={() => handleDeleteShift(shift.id)} className="p-1 text-[#DE350B] hover:bg-[#FBE7E7] dark:hover:bg-rose-900/30 rounded transition-all cursor-pointer">
                                                 <Trash2 size={15} />
                                             </button>
                                         </div>
@@ -214,17 +214,17 @@ export default function AttendanceMasters() {
 
                 {activeTab === 'HOLIDAYS' && (
                     <div className="space-y-6">
-                        <div className="flex justify-between items-center pb-4 border-b border-[#E2E6ED] dark:border-gray-800">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E2E6ED] dark:border-gray-800">
                             <div>
                                 <h3 className="text-base font-bold text-[#12151C] dark:text-white">Annual Holidays</h3>
                                 <p className="text-xs text-[#5B6472] dark:text-gray-400">Manage public and company holidays for the current year.</p>
                             </div>
-                            <button onClick={() => setShowHolidayModal(true)} className="inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[13.5px] font-semibold px-[15px] py-[9px] transition-all cursor-pointer">
+                            <button onClick={() => setShowHolidayModal(true)} className="inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[13.5px] font-semibold px-[15px] py-[9px] transition-all cursor-pointer shrink-0">
                                 <Plus size={16} /> Add Holiday
                             </button>
                         </div>
-                        <div className="overflow-hidden bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800">
-                            <table className="w-full text-left text-xs border-collapse">
+                        <div className="overflow-x-auto bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800">
+                            <table className="w-full text-left text-xs border-collapse min-w-[500px]">
                                 <thead>
                                     <tr className="bg-[#F7F8FA] dark:bg-gray-800/50 border-b border-[#E2E6ED] dark:border-gray-800 text-[#5B6472] dark:text-gray-400 font-bold uppercase tracking-wider">
                                         <th className="p-3">Holiday Name</th>
@@ -252,12 +252,12 @@ export default function AttendanceMasters() {
 
                 {activeTab === 'POLICY' && (
                     <div className="space-y-6 max-w-2xl">
-                        <div className="flex justify-between items-center pb-4 border-b border-[#E2E6ED] dark:border-gray-800">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E2E6ED] dark:border-gray-800">
                             <div>
                                 <h3 className="text-base font-bold text-[#12151C] dark:text-white">Attendance Rules</h3>
                                 <p className="text-xs text-[#5B6472] dark:text-gray-400">Configure cutoff times, late marks, and half-day hours.</p>
                             </div>
-                            <button onClick={savePolicy} disabled={loading} className="inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[13.5px] font-semibold px-[15px] py-[9px] transition-all cursor-pointer disabled:opacity-50">
+                            <button onClick={savePolicy} disabled={loading} className="inline-flex items-center justify-center gap-[7px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-[13.5px] font-semibold px-[15px] py-[9px] transition-all cursor-pointer disabled:opacity-50 shrink-0">
                                 {loading ? (
                                     <>
                                         <Loader2 size={16} className="animate-spin" />
@@ -270,17 +270,17 @@ export default function AttendanceMasters() {
                                 )}
                             </button>
                         </div>
-                        <div className="bg-white dark:bg-[#12151C] p-6 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 space-y-6">
+                        <div className="bg-white dark:bg-[#12151C] p-4 sm:p-6 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 space-y-6">
                             <div className="space-y-4">
                                 <h4 className="font-bold text-sm text-[#12151C] dark:text-white">Hours Calculation</h4>
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div><label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Min Half Day</label><input type="number" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white text-sm outline-none focus:border-[#2C4FD6]" value={policy.minHalfDayHours || 4} onChange={e => setPolicy({ ...policy, minHalfDayHours: parseFloat(e.target.value) })} /></div>
                                     <div><label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Min Full Day</label><input type="number" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white text-sm outline-none focus:border-[#2C4FD6]" value={policy.minFullDayHours || 8} onChange={e => setPolicy({ ...policy, minFullDayHours: parseFloat(e.target.value) })} /></div>
                                 </div>
                             </div>
                             <div className="border-t border-[#E2E6ED] dark:border-gray-800 pt-4 space-y-4">
                                 <h4 className="font-bold text-sm text-[#12151C] dark:text-white">Late Mark Penalty</h4>
-                                <div className="flex items-center gap-4">
+                                <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                                     <span className="text-xs text-[#5B6472] dark:text-gray-300">After</span>
                                     <input type="number" className="w-16 px-2 py-1.5 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white text-center font-bold text-sm outline-none focus:border-[#2C4FD6]" value={policy.lateMarkThreshold || 3} onChange={e => setPolicy({ ...policy, lateMarkThreshold: parseInt(e.target.value) })} />
                                     <span className="text-xs text-[#5B6472] dark:text-gray-300">late marks, deduct</span>
@@ -304,14 +304,17 @@ export default function AttendanceMasters() {
                 )}
             </div>
 
-            {showShiftModal && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 w-full max-w-md overflow-hidden animate-scale-in">
+            {showShiftModal && createPortal(
+                <div 
+                    className="fixed inset-0 z-[999999] bg-slate-900/30 dark:bg-black/60 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in"
+                    onClick={(e) => { if (e.target === e.currentTarget) setShowShiftModal(false); }}
+                >
+                    <div className="bg-white dark:bg-[#12151C] rounded-[8px] border border-[#E2E6ED] dark:border-gray-800 w-full max-w-md overflow-hidden animate-scale-in shadow-2xl">
                         <div className="p-4 border-b border-[#E2E6ED] dark:border-gray-800 flex justify-between items-center">
                             <h3 className="font-bold text-[#12151C] dark:text-white text-sm">
                                 {editingShiftId ? 'Edit Shift' : 'Add Shift'}
                             </h3>
-                            <button onClick={() => setShowShiftModal(false)} className="text-[#5B6472] hover:text-[#12151C] dark:hover:text-white"><X size={18} /></button>
+                            <button onClick={() => setShowShiftModal(false)} className="text-[#5B6472] hover:text-[#12151C] dark:hover:text-white cursor-pointer"><X size={18} /></button>
                         </div>
                         <div className="p-5 space-y-4">
                             <div>
@@ -332,7 +335,6 @@ export default function AttendanceMasters() {
                                     <input type="number" min={0} max={120} className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newShift.graceTime} onChange={e => setNewShift({ ...newShift, graceTime: Math.max(0, parseInt(e.target.value) || 0) })} />
                                 </div>
                             </div>
-                            <label className="flex items-center gap-3 text-xs text-[#5B6472] dark:text-gray-300 cursor-pointer"><input type="checkbox" className="w-4 h-4 rounded accent-[#2C4FD6]" checked={newShift.isNightShift} onChange={e => setNewShift({ ...newShift, isNightShift: e.target.checked })} /> Night Shift (Ends Next Day)</label>
                         </div>
                         <div className="p-4 border-t border-[#E2E6ED] dark:border-gray-800 bg-[#F7F8FA] dark:bg-gray-800/30">
                             <button
@@ -351,15 +353,19 @@ export default function AttendanceMasters() {
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
-            {showHolidayModal && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 w-full max-w-md overflow-hidden animate-scale-in">
+            {showHolidayModal && createPortal(
+                <div 
+                    className="fixed inset-0 z-[999999] bg-slate-900/30 dark:bg-black/60 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in"
+                    onClick={(e) => { if (e.target === e.currentTarget) setShowHolidayModal(false); }}
+                >
+                    <div className="bg-white dark:bg-[#12151C] rounded-[8px] border border-[#E2E6ED] dark:border-gray-800 w-full max-w-md overflow-hidden animate-scale-in shadow-2xl">
                         <div className="p-4 border-b border-[#E2E6ED] dark:border-gray-800 flex justify-between items-center">
                             <h3 className="font-bold text-[#12151C] dark:text-white text-sm">Add Holiday</h3>
-                            <button onClick={() => setShowHolidayModal(false)} className="text-[#5B6472] hover:text-[#12151C] dark:hover:text-white"><X size={18} /></button>
+                            <button onClick={() => setShowHolidayModal(false)} className="text-[#5B6472] hover:text-[#12151C] dark:hover:text-white cursor-pointer"><X size={18} /></button>
                         </div>
                         <div className="p-5 space-y-4">
                             <div><label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Holiday Name</label><input type="text" placeholder="e.g. Independence Day" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newHoliday.name} onChange={e => setNewHoliday({ ...newHoliday, name: e.target.value })} /></div>
@@ -383,7 +389,8 @@ export default function AttendanceMasters() {
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {deleteModal.isOpen && createPortal(

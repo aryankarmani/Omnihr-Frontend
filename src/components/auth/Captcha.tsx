@@ -42,7 +42,6 @@ export const Captcha: React.FC<CaptchaProps> = ({ onVerify, className = "", chil
           onClick={fetchCaptcha}
           disabled={loading}
           className="text-brand-600 hover:text-brand-700 active:scale-95 transition-all outline-none flex items-center justify-center cursor-pointer disabled:opacity-50"
-          title="Refresh Captcha"
           aria-label="Refresh Captcha"
         >
           <RefreshCw size={16} className={loading ? "animate-spin" : ""} />

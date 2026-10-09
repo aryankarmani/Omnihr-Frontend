@@ -105,7 +105,6 @@ export default function PunchInPromptModal() {
                 <button
                     type="button"
                     onClick={() => setIsOpen(false)}
-                    title="Dismiss"
                     className="absolute top-3.5 right-3.5 w-7 h-7 rounded-[6px] flex items-center justify-center text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
                 >
                     <X size={16} />

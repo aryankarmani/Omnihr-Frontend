@@ -359,7 +359,6 @@ export default function EmployeeList() {
                         <button
                             onClick={() => setShowBulkDeleteModal(true)}
                             className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded-[6px] px-3.5 py-[9px] text-[13px] font-semibold transition-all cursor-pointer animate-fade-in shrink-0"
-                            title={`Delete ${selectedEmployeeIds.length} selected employee(s)`}
                         >
                             <Trash2 size={15} />
                             <span>Delete ({selectedEmployeeIds.length})</span>
@@ -445,9 +444,8 @@ export default function EmployeeList() {
                                 <div
                                     key={emp.id}
                                     onClick={() => handleViewProfile(emp.id)}
-                                    className={`p-4 transition-colors cursor-pointer hover:bg-[#F7F8FA] dark:hover:bg-white/5 ${
-                                        isSelected ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
-                                    }`}
+                                    className={`p-4 transition-colors cursor-pointer hover:bg-[#F7F8FA] dark:hover:bg-white/5 ${isSelected ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
+                                        }`}
                                 >
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -474,13 +472,12 @@ export default function EmployeeList() {
                                                 </div>
                                             </div>
                                         </div>
-                                        <span className={`pill inline-block px-2.5 py-1 rounded-[3px] text-[11px] font-semibold tracking-wide shrink-0 ${
-                                            statusLower === 'active'
+                                        <span className={`pill inline-block px-2.5 py-1 rounded-[3px] text-[11px] font-semibold tracking-wide shrink-0 ${statusLower === 'active'
                                                 ? 'bg-[#E4F5EC] text-[#1F8A5A]'
                                                 : statusLower === 'on leave'
                                                     ? 'bg-[#F1F3F7] text-[#5B6472]'
                                                     : 'bg-[#FBE7E7] text-[#DE350B]'
-                                        }`}>
+                                            }`}>
                                             {status}
                                         </span>
                                     </div>
@@ -501,13 +498,12 @@ export default function EmployeeList() {
                                         </div>
                                         <div className="col-span-2 pt-1 border-t border-gray-200/60 dark:border-white/5 flex items-center justify-between">
                                             <span className="text-[#9AA3B1] dark:text-gray-400 text-[11px] font-medium">Profile Completion</span>
-                                            <span className={`font-semibold font-mono-numbers text-[12px] ${
-                                                pct === 100
+                                            <span className={`font-semibold font-mono-numbers text-[12px] ${pct === 100
                                                     ? 'text-[#1F8A5A] dark:text-emerald-400'
                                                     : pct >= 50
                                                         ? 'text-[#2C4FD6] dark:text-blue-400'
                                                         : 'text-[#D97706] dark:text-amber-400'
-                                            }`}>
+                                                }`}>
                                                 {pct}%
                                             </span>
                                         </div>
@@ -528,7 +524,6 @@ export default function EmployeeList() {
                                         <button
                                             onClick={() => navigate(`/employee/${emp.id}?edit=true`)}
                                             className="inline-flex items-center gap-1 border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#5B6472] text-[11.5px] hover:bg-gray-50 dark:hover:bg-white/5 font-semibold rounded-[6px] px-2.5 py-1.5 cursor-pointer"
-                                            title="Edit Profile"
                                         >
                                             <Edit size={13} />
                                             <span>Edit</span>
@@ -536,7 +531,6 @@ export default function EmployeeList() {
                                         <button
                                             onClick={() => setEmployeeToDelete(emp)}
                                             className="inline-flex items-center gap-1 border border-red-200 dark:border-red-900/40 bg-white dark:bg-[#12151C] text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 text-[11.5px] font-semibold rounded-[6px] px-2.5 py-1.5 cursor-pointer"
-                                            title="Delete Employee"
                                         >
                                             <Trash2 size={13} />
                                             <span>Delete</span>
@@ -558,7 +552,6 @@ export default function EmployeeList() {
                                             checked={isAllSelected}
                                             onChange={handleToggleSelectAll}
                                             className="w-4 h-4 rounded border-[#D0D5DD] text-[#2C4FD6] focus:ring-[#2C4FD6] cursor-pointer accent-[#2C4FD6] align-middle"
-                                            title={isAllSelected ? "Deselect All" : "Select All"}
                                         />
                                     </th>
                                     <th className="py-[9px] px-[60px] border-b border-[#E2E6ED] dark:border-gray-800 w-[24%]">EMPLOYEE</th>
@@ -661,7 +654,6 @@ export default function EmployeeList() {
                                                         <button
                                                             onClick={() => navigate(`/employee/${emp.id}?edit=true`)}
                                                             className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#5B6472]  text-[12px] hover:bg-gray-50 dark:hover:bg-white/5 font-semibold transition-all cursor-pointer"
-                                                            title="Edit Profile"
                                                         >
                                                             <Edit size={13} />
                                                             <span>Edit Profile</span>
@@ -671,7 +663,6 @@ export default function EmployeeList() {
                                                         <button
                                                             onClick={() => setEmployeeToDelete(emp)}
                                                             className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[6px] border border-red-200 dark:border-red-900/40 bg-white dark:bg-[#12151C] text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 text-[12px] font-semibold transition-all cursor-pointer"
-                                                            title="Delete Employee"
                                                         >
                                                             <Trash2 size={13} />
                                                             <span>Delete</span>
@@ -717,7 +708,6 @@ export default function EmployeeList() {
                                         onClick={() => setCurrentPage(1)}
                                         disabled={currentPage === 1}
                                         className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
-                                        title="First Page"
                                     >
                                         <ChevronsLeft size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
                                     </button>
@@ -726,7 +716,6 @@ export default function EmployeeList() {
                                         onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                                         disabled={currentPage === 1}
                                         className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
-                                        title="Previous Page"
                                     >
                                         <ChevronLeft size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
                                     </button>
@@ -735,7 +724,6 @@ export default function EmployeeList() {
                                         onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                                         disabled={currentPage === totalPages || totalPages === 0}
                                         className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
-                                        title="Next Page"
                                     >
                                         <ChevronRight size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
                                     </button>
@@ -744,7 +732,6 @@ export default function EmployeeList() {
                                         onClick={() => setCurrentPage(totalPages)}
                                         disabled={currentPage === totalPages || totalPages === 0}
                                         className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer"
-                                        title="Last Page"
                                     >
                                         <ChevronsRight size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
                                     </button>
@@ -874,11 +861,10 @@ export default function EmployeeList() {
                                                 if (addEmpErrors.name) setAddEmpErrors(prev => ({ ...prev, name: undefined }));
                                             }}
                                             placeholder="John Doe"
-                                            className={`w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border ${
-                                                addEmpErrors.name
+                                            className={`w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border ${addEmpErrors.name
                                                     ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20'
                                                     : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
-                                            } rounded-[6px] outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all placeholder:text-[#9AA3B1] placeholder:font-normal`}
+                                                } rounded-[6px] outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all placeholder:text-[#9AA3B1] placeholder:font-normal`}
                                         />
                                         {addEmpErrors.name && (
                                             <p className="text-[11.5px] text-red-500 font-medium mt-1 animate-fade-in">{addEmpErrors.name}</p>
@@ -895,11 +881,10 @@ export default function EmployeeList() {
                                                     setNewEmployee({ ...newEmployee, roleId: id, role: name });
                                                     if (addEmpErrors.roleId) setAddEmpErrors(prev => ({ ...prev, roleId: undefined }));
                                                 }}
-                                                className={`appearance-none w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border ${
-                                                    addEmpErrors.roleId
+                                                className={`appearance-none w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border ${addEmpErrors.roleId
                                                         ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20'
                                                         : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
-                                                } rounded-[6px] outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all cursor-pointer`}
+                                                    } rounded-[6px] outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all cursor-pointer`}
                                             >
                                                 <option value="" className="dark:bg-[#161B26]">Select Role</option>
                                                 {masters.roles.map(role => (
@@ -925,11 +910,10 @@ export default function EmployeeList() {
                                                     setNewEmployee({ ...newEmployee, designationId: id, title: name });
                                                     if (addEmpErrors.designationId) setAddEmpErrors(prev => ({ ...prev, designationId: undefined }));
                                                 }}
-                                                className={`appearance-none w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border ${
-                                                    addEmpErrors.designationId
+                                                className={`appearance-none w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border ${addEmpErrors.designationId
                                                         ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20'
                                                         : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
-                                                } rounded-[6px] outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all cursor-pointer`}
+                                                    } rounded-[6px] outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all cursor-pointer`}
                                             >
                                                 <option value="" className="dark:bg-[#161B26]">Select Designation</option>
                                                 {masters.designations.map(desig => (
@@ -954,11 +938,10 @@ export default function EmployeeList() {
                                                 if (addEmpErrors.email) setAddEmpErrors(prev => ({ ...prev, email: undefined }));
                                             }}
                                             placeholder="john.doe@encalm.com"
-                                            className={`w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border ${
-                                                addEmpErrors.email
+                                            className={`w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border ${addEmpErrors.email
                                                     ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20'
                                                     : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
-                                            } rounded-[6px] outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all placeholder:text-[#9AA3B1] placeholder:font-normal`}
+                                                } rounded-[6px] outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all placeholder:text-[#9AA3B1] placeholder:font-normal`}
                                         />
                                         {addEmpErrors.email && (
                                             <p className="text-[11.5px] text-red-500 font-medium mt-1 animate-fade-in">{addEmpErrors.email}</p>
@@ -974,11 +957,10 @@ export default function EmployeeList() {
                                                 if (addEmpErrors.phone) setAddEmpErrors(prev => ({ ...prev, phone: undefined }));
                                             }}
                                             placeholder="+91 98765 43210"
-                                            className={`w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border ${
-                                                addEmpErrors.phone
+                                            className={`w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border ${addEmpErrors.phone
                                                     ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20'
                                                     : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
-                                            } rounded-[6px] outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all placeholder:text-[#9AA3B1] placeholder:font-normal`}
+                                                } rounded-[6px] outline-none text-[#12151C] dark:text-white font-medium text-sm transition-all placeholder:text-[#9AA3B1] placeholder:font-normal`}
                                         />
                                         {addEmpErrors.phone && (
                                             <p className="text-[11.5px] text-red-500 font-medium mt-1 animate-fade-in">{addEmpErrors.phone}</p>
@@ -1127,7 +1109,6 @@ export default function EmployeeList() {
                                         <button
                                             onClick={() => setShowFilterDrawer(false)}
                                             className="text-[#9AA3B1] hover:text-[#12151C] dark:hover:text-white transition-colors cursor-pointer"
-                                            title="Close"
                                         >
                                             <XCircle size={18} />
                                         </button>
