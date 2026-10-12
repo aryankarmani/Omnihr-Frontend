@@ -1,14 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Send, Plus, Trash2, Mail, Loader2, CheckCircle2, RefreshCw, XCircle, Clock, AlertCircle, FileSpreadsheet, Upload } from 'lucide-react';
+import { Send, Plus, Trash2, Mail, Loader2, CheckCircle2, RefreshCw, XCircle, Clock, AlertCircle, FileSpreadsheet, Upload, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import api from '../utils/api';
+import ReviewOnboardingModal from '../components/ReviewOnboardingModal';
 
 interface InviteRow {
     id: string | number;
     email: string;
-    status?: 'Pending' | 'Failed' | 'Completed' | 'Cancelled' | 'Expired' | 'Submitted' | '';
+    status?: 'Pending' | 'Failed' | 'Completed' | 'Cancelled' | 'Expired' | 'Submitted' | 'Changes_Requested' | '';
+    adminRemarks?: string;
     sending?: boolean;
     error?: string;
     checking?: boolean;
@@ -22,6 +24,7 @@ export default function ProfileCompletion() {
     const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
     const [isBulkSending, setIsBulkSending] = useState(false);
     const [approvingIds, setApprovingIds] = useState<Record<string | number, boolean>>({});
+    const [reviewEmployee, setReviewEmployee] = useState<{ id: string | number; email: string } | null>(null);
     const [itemToDelete, setItemToDelete] = useState<{ index: number; id: string | number; email: string } | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
@@ -71,7 +74,8 @@ export default function ProfileCompletion() {
                     ...data.map((item: any, idx: number) => ({
                         id: item.id || `invite-${idx}`,
                         email: item.email || '',
-                        status: (item.status as any) || 'Pending'
+                        status: (item.status as any) || 'Pending',
+                        adminRemarks: item.adminRemarks || ''
                     })),
                     // Keep one empty row ready for typing a new email
                     { id: `new-${Date.now()}`, email: '', status: '' }
@@ -823,6 +827,14 @@ export default function ProfileCompletion() {
                                                         <CheckCircle2 size={12} className="text-indigo-600" />
                                                         Submitted
                                                     </span>
+                                                ) : row.status === 'Changes_Requested' ? (
+                                                    <span
+                                                        title={row.adminRemarks ? `Remarks: ${row.adminRemarks}` : "Correction requested from candidate"}
+                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-300 dark:border-amber-800/40"
+                                                    >
+                                                        <AlertCircle size={12} className="text-amber-600" />
+                                                        Changes Requested
+                                                    </span>
                                                 ) : isCompleted ? (
                                                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40">
                                                         <CheckCircle2 size={12} className="text-emerald-600" />
@@ -861,22 +873,24 @@ export default function ProfileCompletion() {
                                                             {row.status === 'Submitted' ? (
                                                                 <button
                                                                     type="button"
-                                                                    onClick={() => handleApprove(row.id, row.email)}
-                                                                    disabled={approvingIds[row.id] || isBulkSending}
+                                                                    onClick={() => setReviewEmployee({ id: row.id, email: row.email })}
+                                                                    disabled={isBulkSending}
                                                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[5px] bg-[#107C41] hover:bg-[#0c6333] text-white text-xs font-semibold shadow-sm transition-all cursor-pointer active:scale-95 disabled:opacity-50"
-                                                                    title="Approve profile and send login credentials email"
+                                                                    title="Open review screen to inspect candidate details and approve or add remarks"
                                                                 >
-                                                                    {approvingIds[row.id] ? (
-                                                                        <>
-                                                                            <Loader2 size={12} className="animate-spin" />
-                                                                            <span>Approving...</span>
-                                                                        </>
-                                                                    ) : (
-                                                                        <>
-                                                                            <CheckCircle2 size={12} />
-                                                                            <span>Approve</span>
-                                                                        </>
-                                                                    )}
+                                                                    <CheckCircle2 size={12} />
+                                                                    <span>Approve</span>
+                                                                </button>
+                                                            ) : row.status === 'Changes_Requested' ? (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setReviewEmployee({ id: row.id, email: row.email })}
+                                                                    disabled={isBulkSending}
+                                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[5px] bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold shadow-sm transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                                                                    title="View candidate details & remarks"
+                                                                >
+                                                                    <Eye size={12} />
+                                                                    <span>Review</span>
                                                                 </button>
                                                             ) : row.status === 'Pending' ? (
                                                                 <span
@@ -1034,6 +1048,26 @@ export default function ProfileCompletion() {
                 </div>,
                 document.body
             )}
+
+            {/* Submitted Profile Review & Remark Modal */}
+            <ReviewOnboardingModal
+                isOpen={!!reviewEmployee}
+                employeeId={reviewEmployee?.id || null}
+                employeeEmail={reviewEmployee?.email || ''}
+                onClose={() => setReviewEmployee(null)}
+                onApproved={(approvedId) => {
+                    setRows(prev => {
+                        const remaining = prev.filter(r => r.id !== approvedId);
+                        return remaining.length > 0 ? remaining : [{ id: `new-${Date.now()}`, email: '', status: '' }];
+                    });
+                    setSelectedIds(prev => prev.filter(selId => selId !== approvedId));
+                    setReviewEmployee(null);
+                }}
+                onChangesRequested={(changedId, newRemarks) => {
+                    setRows(prev => prev.map(r => r.id === changedId ? { ...r, status: 'Changes_Requested', adminRemarks: newRemarks } : r));
+                    setReviewEmployee(null);
+                }}
+            />
         </div>
     );
 }

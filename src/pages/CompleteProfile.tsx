@@ -143,6 +143,8 @@ export default function CompleteProfile() {
         };
     }, [showComponentDropdown]);
 
+    const [adminRemarks, setAdminRemarks] = useState<string>('');
+
     // Fetch onboarding masters and initial user data using the token
     useEffect(() => {
         if (!token) {
@@ -172,16 +174,38 @@ export default function CompleteProfile() {
 
                 setSalaryComponents(data.salaryComponents || []);
                 setCustomFieldMasters(data.customFieldMasters || []);
+                if (data.adminRemarks) {
+                    setAdminRemarks(data.adminRemarks);
+                }
 
+                const init = data.initialData || {};
                 setFormData(prev => ({
                     ...prev,
                     email: data.email || '',
                     roleId: String(finalRoles[0]?.id || '1'),
                     role: finalRoles[0]?.name || 'Employee',
-                    phone: data.initialData?.phone || prev.phone,
-                    departmentId: data.initialData?.departmentId || (depts[0]?.id ? String(depts[0].id) : ''),
-                    designationId: data.initialData?.designationId || (desigs[0]?.id ? String(desigs[0].id) : ''),
-                    joiningDate: data.initialData?.joiningDate || prev.joiningDate
+                    firstName: init.firstName || prev.firstName,
+                    lastName: init.lastName || prev.lastName,
+                    phone: init.phone || prev.phone,
+                    dob: init.dob || prev.dob,
+                    bloodGroup: init.bloodGroup || prev.bloodGroup,
+                    address: init.address || prev.address,
+                    departmentId: init.departmentId || (depts[0]?.id ? String(depts[0].id) : ''),
+                    designationId: init.designationId || (desigs[0]?.id ? String(desigs[0].id) : ''),
+                    joiningDate: init.joiningDate || prev.joiningDate,
+                    pan: init.pan || prev.pan,
+                    aadhaar: init.aadhaar || prev.aadhaar,
+                    uan: init.uan || prev.uan,
+                    esic: init.esic || prev.esic,
+                    bankName: init.bankName || prev.bankName,
+                    ifsc: init.ifsc || prev.ifsc,
+                    accountNumber: init.accountNumber || prev.accountNumber,
+                    salary: {
+                        basic: init.salary?.basic || prev.salary.basic
+                    },
+                    selectedSalaryComponents: (init.selectedSalaryComponents && init.selectedSalaryComponents.length > 0)
+                        ? init.selectedSalaryComponents
+                        : prev.selectedSalaryComponents
                 }));
             } catch (err: any) {
                 console.error('Failed to load onboarding data:', err);
@@ -286,6 +310,14 @@ export default function CompleteProfile() {
             return;
         }
 
+        const duplicateInStandard = Object.values(documents).some(val => val && val.name === file.name && val.size === file.size);
+        const duplicateInCustom = Object.values(customFieldFiles).some(val => val && val.name === file.name && val.size === file.size);
+        if (duplicateInStandard || duplicateInCustom) {
+            toast.error('This file has already been uploaded as a document. Please choose a unique photo.');
+            e.target.value = '';
+            return;
+        }
+
         if (profilePicturePreview) {
             URL.revokeObjectURL(profilePicturePreview);
         }
@@ -329,30 +361,24 @@ export default function CompleteProfile() {
 
             if (!formData.firstName.trim()) {
                 newErrors.firstName = 'First name is required';
+            } else if (!/^[A-Za-z\s]+$/.test(formData.firstName.trim())) {
+                newErrors.firstName = 'Only letters and spaces are allowed';
             }
 
-            const cleanPhone = formData.phone.replace(/\D/g, '');
-            if (!formData.phone.trim()) {
-                newErrors.phone = 'Phone number is required';
-            } else if (cleanPhone.length !== 10) {
-                newErrors.phone = 'Enter valid 10 digit phone number';
+            if (!formData.lastName.trim()) {
+                newErrors.lastName = 'Last name is required';
+            } else if (!/^[A-Za-z\s]+$/.test(formData.lastName.trim())) {
+                newErrors.lastName = 'Only letters and spaces are allowed';
             }
 
-            if (!formData.departmentId) {
-                newErrors.departmentId = 'Select department';
+            if (formData.phone.trim()) {
+                const cleanPhone = formData.phone.replace(/\D/g, '');
+                if (cleanPhone.length < 7 || cleanPhone.length > 15) {
+                    newErrors.phone = 'Enter valid phone number (7-15 digits)';
+                }
             }
 
-            if (!formData.roleId) {
-                newErrors.roleId = 'Select role';
-            }
-
-            if (!formData.designationId) {
-                newErrors.designationId = 'Select designation';
-            }
-
-            if (!formData.dob) {
-                newErrors.dob = 'Date of birth is required';
-            } else {
+            if (formData.dob) {
                 const selectedDate = new Date(formData.dob);
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
@@ -361,44 +387,58 @@ export default function CompleteProfile() {
                 }
             }
 
-            if (!formData.joiningDate) {
-                newErrors.joiningDate = 'Date of joining is required';
-            }
-
-            if (!formData.address.trim()) {
-                newErrors.address = 'Enter full residential address';
-            }
-
-            // Custom fields validation for personal details
-            customFieldMasters.filter(cf => cf.category === 'PERSONAL_DETAILS').forEach(cf => {
-                const value = customFieldValues[cf.id];
-                const file = customFieldFiles[cf.id];
-
-                if (cf.type === 'FILE') {
-                    if (!file) {
-                        newErrors[`customField-${cf.id}`] = 'Please upload a file';
-                    }
-                } else {
-                    if (!value || !value.trim()) {
-                        newErrors[`customField-${cf.id}`] = `${cf.name} is required`;
-                    }
-                }
-            });
-
             setErrors(newErrors);
 
             if (Object.keys(newErrors).length > 0) {
-                toast.error('Please fill in all mandatory personal details');
+                toast.error('Please provide valid first and last name');
                 return;
             }
         }
 
-        // STEP 2 & 3: Advance
+        // STEP 2 VALIDATION: Statutory & Bank details
+        if (currentStep === 2) {
+            const newErrors: any = {};
+            if (formData.bankName.trim() && !/^[A-Za-z\s]+$/.test(formData.bankName.trim())) {
+                newErrors.bankName = 'Bank name can only contain letters and spaces (no numbers)';
+            }
+            if (Object.keys(newErrors).length > 0) {
+                setErrors((prev: any) => ({ ...prev, ...newErrors }));
+                toast.error('Please correct errors in statutory & bank details');
+                return;
+            }
+        }
+
+        // STEP 3 VALIDATION: Salary details (optional for onboarding candidate)
+        if (currentStep === 3) {
+            // Salary is optional during onboarding
+        }
+
+        // Advance to next step
         if (currentStep < 4) {
             setCurrentStep(c => c + 1);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } else {
-            // STEP 4: SUBMIT ALL DATA
+            // STEP 4: Documents are optional during onboarding
+            // Verify no duplicate files uploaded across documents if uploaded
+            const uploadedCheckList = [
+                { name: 'Aadhaar Card', file: documents.aadhaar },
+                { name: 'PAN Card', file: documents.pan },
+                { name: 'Highest Qualification Degree', file: documents.degree }
+            ].filter(d => d.file);
+
+            for (let i = 0; i < uploadedCheckList.length; i++) {
+                for (let j = i + 1; j < uploadedCheckList.length; j++) {
+                    if (
+                        uploadedCheckList[i].file.name === uploadedCheckList[j].file.name &&
+                        uploadedCheckList[i].file.size === uploadedCheckList[j].file.size
+                    ) {
+                        toast.error(`Cannot upload the same file for "${uploadedCheckList[i].name}" and "${uploadedCheckList[j].name}". Please upload unique documents.`);
+                        return;
+                    }
+                }
+            }
+
+            // SUBMIT ALL DATA
             setSubmitting(true);
             try {
                 const submissionData = {
@@ -574,6 +614,28 @@ export default function CompleteProfile() {
 
                     {/* Step Form Content */}
                     <div className="p-6 sm:p-8 w-full">
+                        {/* Admin Correction Remarks Banner */}
+                        {adminRemarks && (
+                            <div className="mb-6 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800/60 flex items-start gap-3.5 shadow-sm animate-fade-in">
+                                <div className="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+                                    <AlertCircle size={20} />
+                                </div>
+                                <div className="flex-1 text-left">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">
+                                            Action Required — HR Administrator Remarks
+                                        </span>
+                                    </div>
+                                    <p className="text-xs sm:text-sm text-amber-950 dark:text-amber-100 leading-relaxed font-semibold whitespace-pre-wrap">
+                                        {adminRemarks}
+                                    </p>
+                                    <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-2 font-medium">
+                                        Your previous details are pre-filled below. Please make the requested corrections, then submit to proceed.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
                         {/* STEP 1: PERSONAL DETAILS */}
                         {currentStep === 1 && (
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 animate-fade-in">
@@ -594,7 +656,7 @@ export default function CompleteProfile() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Last Name</label>
+                                    <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Last Name *</label>
                                     <input
                                         autoComplete="off"
                                         name="lastName"
@@ -604,6 +666,9 @@ export default function CompleteProfile() {
                                         className="w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all placeholder:text-[#9AA3B1] placeholder:font-normal"
                                         placeholder="Last"
                                     />
+                                    {errors.lastName && (
+                                        <p className="text-red-500 text-xs ml-1 font-medium">{errors.lastName}</p>
+                                    )}
                                 </div>
 
                                 <div className="space-y-2">
@@ -623,21 +688,36 @@ export default function CompleteProfile() {
                                 <div className="space-y-2">
                                     <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Phone Number *</label>
                                     <div className="flex gap-2">
-                                        <div className="w-20 px-3 py-3 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] text-[#12151C] dark:text-white text-sm font-medium flex items-center justify-center">
-                                            {countryCode}
-                                        </div>
+                                        <input
+                                            type="text"
+                                            name="countryCode"
+                                            value={countryCode}
+                                            onChange={(e) => {
+                                                let val = e.target.value.trim();
+                                                if (!val) {
+                                                    setCountryCode('+');
+                                                    return;
+                                                }
+                                                if (!val.startsWith('+')) val = '+' + val;
+                                                const clean = '+' + val.slice(1).replace(/\D/g, '').slice(0, 4);
+                                                setCountryCode(clean);
+                                            }}
+                                            placeholder="+91"
+                                            title="Country Code (e.g. +91, +1, +44)"
+                                            className="w-20 px-2 py-3 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] text-[#12151C] dark:text-white text-sm font-medium text-center focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none"
+                                        />
                                         <input
                                             autoComplete="off"
                                             name="phone"
                                             value={formData.phone}
                                             onChange={(e) => {
-                                                const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                                const value = e.target.value.replace(/\D/g, '').slice(0, 15);
                                                 setFormData(prev => ({ ...prev, phone: value }));
                                                 if (errors.phone) setErrors(prev => ({ ...prev, phone: '' }));
                                             }}
                                             type="tel"
                                             className={`flex-1 px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border ${errors.phone ? 'border-red-500' : 'border-[#E2E6ED] dark:border-white/10'} rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all placeholder:text-[#9AA3B1] placeholder:font-normal`}
-                                            placeholder="10-digit mobile number"
+                                            placeholder="Phone number"
                                         />
                                     </div>
                                     {errors.phone && <p className="text-red-500 text-xs ml-1 font-medium">{errors.phone}</p>}
@@ -915,11 +995,16 @@ export default function CompleteProfile() {
                                                 autoComplete="off"
                                                 name="bankName"
                                                 value={formData.bankName}
-                                                onChange={handleInputChange}
+                                                onChange={(e) => {
+                                                    const val = e.target.value.replace(/[^A-Za-z\s]/g, '');
+                                                    setFormData(prev => ({ ...prev, bankName: val }));
+                                                    if (errors.bankName) setErrors(prev => ({ ...prev, bankName: '' }));
+                                                }}
                                                 type="text"
                                                 className="w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all placeholder:text-[#9AA3B1] placeholder:font-normal"
-                                                placeholder="e.g. HDFC Bank"
+                                                placeholder="e.g. HDFC Bank (Letters only)"
                                             />
+                                            {errors.bankName && <p className="text-red-500 text-xs ml-1 font-medium">{errors.bankName}</p>}
                                         </div>
 
                                         <div className="space-y-2">
@@ -1141,8 +1226,8 @@ export default function CompleteProfile() {
                                         const hasFile = doc.isCustom ? !!customFieldFiles[doc.key] : !!documents[doc.key];
                                         const fileObj = doc.isCustom ? customFieldFiles[doc.key] : documents[doc.key];
                                         const acceptString = doc.isCustom
-                                            ? (doc.type === 'PDF' ? '.pdf' : doc.type === 'IMAGE' ? 'image/*' : '.pdf,image/*')
-                                            : 'application/pdf,image/*';
+                                            ? (doc.type === 'PDF' ? '.pdf' : doc.type === 'IMAGE' ? 'image/png,image/jpeg,image/jpg,image/webp' : '.pdf,image/png,image/jpeg,image/jpg,image/webp')
+                                            : '.pdf,image/png,image/jpeg,image/jpg,image/webp';
 
                                         return (
                                             <div key={i} className="space-y-1">
@@ -1217,6 +1302,37 @@ export default function CompleteProfile() {
                                                         onChange={(e) => {
                                                             const file = e.target.files?.[0];
                                                             if (file) {
+                                                                // 1. Only PDF and images allowed
+                                                                const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+                                                                const isPdfOrImg = validTypes.includes(file.type.toLowerCase()) || /\.(pdf|jpg|jpeg|png|webp)$/i.test(file.name);
+                                                                if (!isPdfOrImg) {
+                                                                    toast.error('Only PDF and image (JPG, PNG) files are allowed');
+                                                                    e.target.value = '';
+                                                                    return;
+                                                                }
+
+                                                                // 2. Max size 5MB
+                                                                if (file.size > 5 * 1024 * 1024) {
+                                                                    toast.error('File size must be less than 5MB');
+                                                                    e.target.value = '';
+                                                                    return;
+                                                                }
+
+                                                                // 3. Prevent duplicate files across all documents
+                                                                const duplicateInStandard = Object.entries(documents).some(([key, val]) => {
+                                                                    return key !== doc.key && val && val.name === file.name && val.size === file.size;
+                                                                });
+                                                                const duplicateInCustom = Object.entries(customFieldFiles).some(([key, val]) => {
+                                                                    return key !== doc.key && val && val.name === file.name && val.size === file.size;
+                                                                });
+                                                                const duplicateInProfile = profilePicture && profilePicture.name === file.name && profilePicture.size === file.size;
+
+                                                                if (duplicateInStandard || duplicateInCustom || duplicateInProfile) {
+                                                                    toast.error('This file has already been uploaded for another document. Please upload a unique file.');
+                                                                    e.target.value = '';
+                                                                    return;
+                                                                }
+
                                                                 if (doc.isCustom) {
                                                                     setCustomFieldFiles(prev => ({ ...prev, [doc.key]: file }));
                                                                 } else {

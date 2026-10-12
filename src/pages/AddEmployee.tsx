@@ -1053,20 +1053,23 @@ export default function AddEmployee() {
                             <div className="space-y-4">
                                 <h3 className="font-semibold text-[#12151C] dark:text-white border-b border-[#E2E6ED] dark:border-white/10 pb-2">Bank Details</h3>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Bank Name</label>
-                                        <input
-                                            autoComplete="off"
-                                            name="bankName"
-                                            value={formData.bankName}
-                                            onChange={handleInputChange}
-                                            type="text"
-                                            className="w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all placeholder:text-[#9AA3B1] placeholder:font-normal"
-                                            placeholder="e.g. HDFC Bank"
-                                        />
-                                        {errors.bankName && <p className="text-red-500 text-xs ml-1">{errors.bankName}</p>}
-
-                                    </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Bank Name</label>
+                                            <input
+                                                autoComplete="off"
+                                                name="bankName"
+                                                value={formData.bankName}
+                                                onChange={(e) => {
+                                                    const val = e.target.value.replace(/[^A-Za-z\s]/g, '');
+                                                    setFormData(prev => ({ ...prev, bankName: val }));
+                                                    if (errors.bankName) setErrors((prev: any) => ({ ...prev, bankName: '' }));
+                                                }}
+                                                type="text"
+                                                className="w-full px-4 py-2.5 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all placeholder:text-[#9AA3B1] placeholder:font-normal"
+                                                placeholder="e.g. HDFC Bank (Letters only)"
+                                            />
+                                            {errors.bankName && <p className="text-red-500 text-xs ml-1">{errors.bankName}</p>}
+                                        </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">IFSC Code</label>
                                         <input
