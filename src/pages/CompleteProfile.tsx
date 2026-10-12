@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { CheckCircle2, Loader2, AlertCircle, Mail, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 
 export default function CompleteProfile() {
+    const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const token = searchParams.get('token') || '';
 
@@ -180,14 +181,38 @@ export default function CompleteProfile() {
     if (submitted) {
         return (
             <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0E1117] flex items-center justify-center p-4 font-sans">
-                <div className="max-w-md w-full bg-white dark:bg-[#161B26] p-8 rounded-xl border border-emerald-200 dark:border-emerald-900/40 text-center shadow-lg animate-fade-in">
-                    <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/50 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-600">
+                <div className="max-w-md w-full bg-white dark:bg-[#161B26] p-8 rounded-2xl border border-emerald-200 dark:border-emerald-900/40 text-center shadow-xl animate-fade-in space-y-6">
+                    <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/50 rounded-2xl flex items-center justify-center mx-auto text-emerald-600 shadow-sm">
                         <CheckCircle2 size={36} />
                     </div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Profile Completed!</h2>
-                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-2 leading-relaxed">
-                        Thank you for completing your profile details. Your information has been saved successfully in the company database.
-                    </p>
+                    <div>
+                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Profile Completed!</h2>
+                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-2 leading-relaxed">
+                            Your account has been activated and saved successfully in the system.
+                        </p>
+                    </div>
+
+                    <div className="bg-[#F8FAFC] dark:bg-[#1E232F] rounded-xl p-4 border border-[#E2E6ED] dark:border-gray-800 text-left flex items-start gap-3.5">
+                        <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 mt-0.5">
+                            <Mail size={18} />
+                        </div>
+                        <div className="text-xs text-[#5B6472] dark:text-gray-300 leading-relaxed">
+                            <span className="font-semibold text-gray-900 dark:text-white block mb-0.5">Login Credentials Sent</span>
+                            Your official login instructions and temporary password have been emailed to{' '}
+                            <span className="font-semibold text-blue-600 dark:text-blue-400">{formData.email || 'your registered email'}</span>. Please check your inbox or spam folder.
+                        </div>
+                    </div>
+
+                    <div className="pt-2">
+                        <button
+                            type="button"
+                            onClick={() => navigate('/signin')}
+                            className="w-full py-3 px-5 rounded-lg bg-[#2C4FD6] hover:bg-[#233FA8] text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-md transition-colors"
+                        >
+                            <span>Proceed to Sign In</span>
+                            <ArrowRight size={16} />
+                        </button>
+                    </div>
                 </div>
             </div>
         );

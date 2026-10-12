@@ -129,6 +129,17 @@ export default function EmployeeList() {
         const filterEmail = String(appliedFilters.email || '').trim().toLowerCase();
         const filterRole = String(appliedFilters.role || '').trim().toLowerCase();
         const filterLocation = String(appliedFilters.location || '').trim().toLowerCase();
+        // Hide onboarding invitees who have not completed their profile yet
+        const rawStatus = profile.status || '';
+        if (
+            (!emp.password && ['Pending', 'Failed', 'Cancelled', 'Expired'].includes(rawStatus)) ||
+            (profile.customFields && typeof profile.customFields === 'string' && profile.customFields.includes('"onboardingToken"') && !profile.customFields.includes('"onboardingCompleted":true'))
+        ) {
+            return false;
+        }
+
+        let empStatus = profile.status || (emp.isActive !== false ? 'Active' : 'Inactive');
+        if (empStatus === 'Completed') empStatus = 'Active';
 
         return (
             (!filterName ||
@@ -138,7 +149,7 @@ export default function EmployeeList() {
             (!filterEmail || empEmail.includes(filterEmail)) &&
             (!filterRole || profileTitle.includes(filterRole)) &&
             (!filterLocation || profileLocation.includes(filterLocation)) &&
-            (appliedFilters.status === 'All' || String(profile.status || 'Active').toLowerCase() === appliedFilters.status.toLowerCase())
+            (appliedFilters.status === 'All' || empStatus.toLowerCase() === appliedFilters.status.toLowerCase())
         );
     });
     const totalPages = Math.ceil(filteredEmployees.length / rowsPerPage);
@@ -271,7 +282,7 @@ export default function EmployeeList() {
                 sanitize(profile.title),
                 sanitize(profile.department),
                 sanitize(profile.location),
-                sanitize(profile.status || "Active"),
+                sanitize(profile.status === 'Completed' ? 'Active' : (profile.status || (emp.isActive !== false ? 'Active' : 'Inactive'))),
                 `"${comp?.percentage ?? 0}%"`,
             ]);
         });
@@ -426,7 +437,8 @@ export default function EmployeeList() {
                         {paginatedEmployees.map((emp) => {
                             if (!emp) return null;
                             const profile = emp.employeeProfile || {};
-                            const status = profile.status || 'Active';
+                            let status = profile.status || (emp.isActive !== false ? 'Active' : 'Inactive');
+                            if (status === 'Completed') status = 'Active';
                             const statusLower = String(status).toLowerCase();
                             const rawName = String(emp.name || emp.email || '?').trim();
                             const initials = rawName
@@ -566,7 +578,8 @@ export default function EmployeeList() {
                                 {paginatedEmployees.map((emp) => {
                                     if (!emp) return null;
                                     const profile = emp.employeeProfile || {};
-                                    const status = profile.status || 'Active';
+                                    let status = profile.status || (emp.isActive !== false ? 'Active' : 'Inactive');
+                                    if (status === 'Completed') status = 'Active';
                                     const statusLower = String(status).toLowerCase();
                                     const rawName = String(emp.name || emp.email || '?').trim();
                                     const initials = rawName
