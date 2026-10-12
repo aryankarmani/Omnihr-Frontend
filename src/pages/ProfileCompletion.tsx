@@ -8,7 +8,7 @@ import api from '../utils/api';
 interface InviteRow {
     id: string | number;
     email: string;
-    status?: 'Pending' | 'Failed' | 'Completed' | 'Cancelled' | 'Expired' | '';
+    status?: 'Pending' | 'Failed' | 'Completed' | 'Cancelled' | 'Expired' | 'Submitted' | '';
     sending?: boolean;
     error?: string;
     checking?: boolean;
@@ -21,11 +21,14 @@ export default function ProfileCompletion() {
     const [loading, setLoading] = useState(true);
     const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
     const [isBulkSending, setIsBulkSending] = useState(false);
+    const [approvingIds, setApprovingIds] = useState<Record<string | number, boolean>>({});
     const [itemToDelete, setItemToDelete] = useState<{ index: number; id: string | number; email: string } | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
     const [isBulkDeleting, setIsBulkDeleting] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const sendingRowsRef = useRef<Set<string | number>>(new Set());
+    const approvingRowsRef = useRef<Set<string | number>>(new Set());
 
     // Helpers to check status capabilities
     const isPending = (status?: string) => status === 'Pending';
@@ -223,43 +226,60 @@ export default function ProfileCompletion() {
     // Send or Resend invitation email for a specific row
     const handleSendRow = async (index: number) => {
         const row = rows[index];
+        if (!row) return;
+
+        // Prevent double clicks instantly synchronously
+        if (sendingRowsRef.current.has(row.id)) return;
+        sendingRowsRef.current.add(row.id);
+
         const email = row.email.trim();
 
         if (!email) {
+            sendingRowsRef.current.delete(row.id);
             toast.error('Please enter an email address first');
             return;
         }
 
         if (row.status === 'Pending') {
+            sendingRowsRef.current.delete(row.id);
             toast.error('Invitation is already sent and pending. You can only resend if the link expires or is cancelled.');
             return;
         }
 
+        // Set UI loading state immediately on first click
+        setRows(prev => {
+            const updated = [...prev];
+            if (updated[index]) updated[index] = { ...updated[index], sending: true, error: undefined };
+            return updated;
+        });
+
         const isValid = await validateRowEmail(index, email);
         if (!isValid) {
+            sendingRowsRef.current.delete(row.id);
+            setRows(prev => {
+                const updated = [...prev];
+                if (updated[index]) updated[index] = { ...updated[index], sending: false };
+                return updated;
+            });
             toast.error(rows[index]?.error || 'This email is already in use. Please use a different email address.');
             return;
         }
 
         try {
-            setRows(prev => {
-                const updated = [...prev];
-                updated[index] = { ...updated[index], sending: true };
-                return updated;
-            });
-
             const res = await api.post('/employee/invite-onboarding', { email });
             toast.success(res.data?.message || `Invitation email sent to ${email}`);
 
             setRows(prev => {
                 const updated = [...prev];
-                updated[index] = {
-                    ...updated[index],
-                    id: res.data?.invite?.id || updated[index].id,
-                    status: 'Pending',
-                    sending: false,
-                    error: undefined
-                };
+                if (updated[index]) {
+                    updated[index] = {
+                        ...updated[index],
+                        id: res.data?.invite?.id || updated[index].id,
+                        status: 'Pending',
+                        sending: false,
+                        error: undefined
+                    };
+                }
                 return updated;
             });
         } catch (error: any) {
@@ -268,9 +288,36 @@ export default function ProfileCompletion() {
             toast.error(errMsg);
             setRows(prev => {
                 const updated = [...prev];
-                updated[index] = { ...updated[index], sending: false, error: errMsg };
+                if (updated[index]) {
+                    updated[index] = { ...updated[index], sending: false, error: errMsg };
+                }
                 return updated;
             });
+        } finally {
+            sendingRowsRef.current.delete(row.id);
+        }
+    };
+
+    // Approve a submitted profile and dispatch credentials email
+    const handleApprove = async (id: string | number, email: string) => {
+        if (approvingRowsRef.current.has(id)) return;
+        approvingRowsRef.current.add(id);
+
+        try {
+            setApprovingIds(prev => ({ ...prev, [id]: true }));
+            const res = await api.post(`/employee/approve-onboarding/${id}`);
+            toast.success(res.data?.message || `Approved! Login credentials sent to ${email}`);
+            setRows(prev => {
+                const remaining = prev.filter(r => r.id !== id);
+                return remaining.length > 0 ? remaining : [{ id: `new-${Date.now()}`, email: '', status: '' }];
+            });
+            setSelectedIds(prev => prev.filter(selId => selId !== id));
+        } catch (error: any) {
+            console.error('Approve onboarding error:', error);
+            toast.error(error.response?.data?.message || 'Failed to approve onboarding');
+        } finally {
+            approvingRowsRef.current.delete(id);
+            setApprovingIds(prev => ({ ...prev, [id]: false }));
         }
     };
 
@@ -771,7 +818,12 @@ export default function ProfileCompletion() {
 
                                             {/* 3. STATUS */}
                                             <td className="p-3.5 text-center">
-                                                {isCompleted ? (
+                                                {row.status === 'Submitted' ? (
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/40">
+                                                        <CheckCircle2 size={12} className="text-indigo-600" />
+                                                        Submitted
+                                                    </span>
+                                                ) : isCompleted ? (
                                                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40">
                                                         <CheckCircle2 size={12} className="text-emerald-600" />
                                                         Completed
@@ -806,7 +858,27 @@ export default function ProfileCompletion() {
                                                 <div className="flex items-center justify-center gap-2">
                                                     {!isCompleted && (
                                                         <>
-                                                            {row.status === 'Pending' ? (
+                                                            {row.status === 'Submitted' ? (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleApprove(row.id, row.email)}
+                                                                    disabled={approvingIds[row.id] || isBulkSending}
+                                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[5px] bg-[#107C41] hover:bg-[#0c6333] text-white text-xs font-semibold shadow-sm transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                                                                    title="Approve profile and send login credentials email"
+                                                                >
+                                                                    {approvingIds[row.id] ? (
+                                                                        <>
+                                                                            <Loader2 size={12} className="animate-spin" />
+                                                                            <span>Approving...</span>
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <CheckCircle2 size={12} />
+                                                                            <span>Approve</span>
+                                                                        </>
+                                                                    )}
+                                                                </button>
+                                                            ) : row.status === 'Pending' ? (
                                                                 <span
                                                                     title="Invitation already sent and currently waiting for employee completion"
                                                                     className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[5px] bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/40 text-[11px] font-semibold select-none"
@@ -820,7 +892,6 @@ export default function ProfileCompletion() {
                                                                     onClick={() => handleSendRow(index)}
                                                                     disabled={row.sending || isBulkSending}
                                                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[5px] bg-[#2C4FD6] hover:bg-[#203FB4] text-white text-xs font-semibold shadow-sm transition-all cursor-pointer active:scale-95 disabled:opacity-50"
-                                                                    title={isResendable(row.status) ? "Resend Invitation Email" : "Send Invitation Email"}
                                                                 >
                                                                     {row.sending ? (
                                                                         <>
@@ -845,7 +916,7 @@ export default function ProfileCompletion() {
                                                     <button
                                                         type="button"
                                                         onClick={() => handleDeleteClick(index)}
-                                                        disabled={isBulkSending}
+                                                        disabled={isBulkSending || approvingIds[row.id]}
                                                         className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded transition-all cursor-pointer disabled:opacity-50"
                                                         title="Delete Row"
                                                     >

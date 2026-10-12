@@ -1437,8 +1437,10 @@ export default function EmployeeProfile() {
                         <p className="profile-role text-[13.5px] font-semibold text-[#2C4FD6] dark:text-blue-400 my-0.5">
                             {(() => {
                                 const r = employee.role?.name || employee.role?.title || employee.role || 'ADMIN';
-                                return r === 'HR_ADMIN' ? 'ADMIN' : r;
-                            })()} · Employee
+                                const displayRole = r === 'HR_ADMIN' ? 'ADMIN' : r;
+                                const desigTitle = profile?.designationRef?.title || profile?.title;
+                                return desigTitle ? `${displayRole} · ${desigTitle}` : `${displayRole} · Employee`;
+                            })()}
                         </p>
                         <div className="flex items-center gap-2 mt-1">
                             <span className="text-[11px] text-[#9AA3B1] bg-[#F7F8FA] dark:bg-gray-800 px-2 py-0.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 font-mono-numbers">
@@ -2240,7 +2242,7 @@ export default function EmployeeProfile() {
                                                         employeeProfile: {
                                                             ...(prev?.employeeProfile || {}),
                                                             designationId: e.target.value,
-                                                            title: selectedDesignation?.name || ''
+                                                            title: selectedDesignation?.title || selectedDesignation?.name || ''
                                                         }
                                                     }));
                                                 }}
@@ -2256,7 +2258,7 @@ export default function EmployeeProfile() {
                                                         value={desig.id}
                                                         className="dark:bg-brand-900"
                                                     >
-                                                        {desig.name}
+                                                        {desig.title || desig.name}
                                                     </option>
                                                 ))}
                                             </select>
@@ -2268,7 +2270,7 @@ export default function EmployeeProfile() {
                                             </div>
                                         </div>
                                     ) : (
-                                        <p className="text-[13.5px] font-semibold text-[#12151C] dark:text-white">{profile.title || 'N/A'}</p>
+                                        <p className="text-[13.5px] font-semibold text-[#12151C] dark:text-white">{profile.designationRef?.title || profile.title || 'N/A'}</p>
                                     )}
 
                                     {errors.designationId && (
@@ -2342,7 +2344,7 @@ export default function EmployeeProfile() {
                                         </div>
                                     ) : (
                                         <p className="text-[13.5px] font-semibold text-[#12151C] dark:text-white">
-                                            {profile.department || 'N/A'}
+                                            {profile.departmentRef?.name || profile.department || 'N/A'}
                                         </p>
                                     )}
 

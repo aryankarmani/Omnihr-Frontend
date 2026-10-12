@@ -101,12 +101,28 @@ export default function CompleteProfile() {
     const validatePersonal = () => {
         const errs: Record<string, string> = {};
         if (!formData.firstName.trim()) errs.firstName = 'First Name is required';
-        if (!formData.phone.trim()) errs.phone = 'Phone Number is required';
-        if (!formData.dob) errs.dob = 'Date of Birth is required';
+        if (!formData.lastName.trim()) errs.lastName = 'Last Name is required';
+
+        const cleanPhone = formData.phone.replace(/\D/g, '');
+        if (!formData.phone.trim()) {
+            errs.phone = 'Phone Number is required';
+        } else if (cleanPhone.length !== 10) {
+            errs.phone = 'Please enter a valid 10-digit phone number';
+        }
+
+        if (!formData.dob) {
+            errs.dob = 'Date of Birth is required';
+        } else if (new Date(formData.dob) >= new Date()) {
+            errs.dob = 'Date of Birth must be in the past';
+        }
+
         if (!formData.joiningDate) errs.joiningDate = 'Date of Joining is required';
         if (!formData.departmentId) errs.departmentId = 'Department is required';
+        if (!formData.roleId) errs.roleId = 'System Role is required';
         if (!formData.designationId) errs.designationId = 'Designation is required';
+        if (!formData.bloodGroup) errs.bloodGroup = 'Blood Group is required';
         if (!formData.address.trim()) errs.address = 'Residential Address is required';
+
         setErrors(errs);
         return Object.keys(errs).length === 0;
     };
@@ -114,7 +130,7 @@ export default function CompleteProfile() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!validatePersonal()) {
-            toast.error('Please fill in all required fields marked with *');
+            toast.error('Please fill in all mandatory fields');
             return;
         }
 
@@ -126,7 +142,7 @@ export default function CompleteProfile() {
             });
 
             setSubmitted(true);
-            toast.success('Profile details submitted successfully!');
+            toast.success('Profile details submitted successfully! Awaiting admin approval.');
         } catch (error: any) {
             console.error('Submission error:', error);
             toast.error(error.response?.data?.message || 'Failed to submit profile details');
@@ -181,14 +197,14 @@ export default function CompleteProfile() {
     if (submitted) {
         return (
             <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0E1117] flex items-center justify-center p-4 font-sans">
-                <div className="max-w-md w-full bg-white dark:bg-[#161B26] p-8 rounded-2xl border border-emerald-200 dark:border-emerald-900/40 text-center shadow-xl animate-fade-in space-y-6">
-                    <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/50 rounded-2xl flex items-center justify-center mx-auto text-emerald-600 shadow-sm">
+                <div className="max-w-md w-full bg-white dark:bg-[#161B26] p-8 rounded-2xl border border-indigo-200 dark:border-indigo-900/40 text-center shadow-xl animate-fade-in space-y-6">
+                    <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-950/50 rounded-2xl flex items-center justify-center mx-auto text-[#2C4FD6] shadow-sm">
                         <CheckCircle2 size={36} />
                     </div>
                     <div>
-                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Profile Completed!</h2>
+                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Profile Submitted!</h2>
                         <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-2 leading-relaxed">
-                            Your account has been activated and saved successfully in the system.
+                            Your details have been submitted successfully and are currently awaiting HR / Administrator approval.
                         </p>
                     </div>
 
@@ -197,21 +213,10 @@ export default function CompleteProfile() {
                             <Mail size={18} />
                         </div>
                         <div className="text-xs text-[#5B6472] dark:text-gray-300 leading-relaxed">
-                            <span className="font-semibold text-gray-900 dark:text-white block mb-0.5">Login Credentials Sent</span>
-                            Your official login instructions and temporary password have been emailed to{' '}
-                            <span className="font-semibold text-blue-600 dark:text-blue-400">{formData.email || 'your registered email'}</span>. Please check your inbox or spam folder.
+                            <span className="font-semibold text-gray-900 dark:text-white block mb-0.5">What happens next?</span>
+                            Once an administrator approves your profile, your official login instructions and temporary password will be emailed to{' '}
+                            <span className="font-semibold text-blue-600 dark:text-blue-400">{formData.email || 'your registered email'}</span>.
                         </div>
-                    </div>
-
-                    <div className="pt-2">
-                        <button
-                            type="button"
-                            onClick={() => navigate('/signin')}
-                            className="w-full py-3 px-5 rounded-lg bg-[#2C4FD6] hover:bg-[#233FA8] text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-md transition-colors"
-                        >
-                            <span>Proceed to Sign In</span>
-                            <ArrowRight size={16} />
-                        </button>
                     </div>
                 </div>
             </div>
@@ -258,10 +263,10 @@ export default function CompleteProfile() {
                                 {errors.firstName && <p className="text-[11px] text-red-500 font-medium">{errors.firstName}</p>}
                             </div>
 
-                            {/* LAST NAME */}
+                            {/* LAST NAME * */}
                             <div className="space-y-1.5">
                                 <label className="text-[11px] font-bold text-[#5B6472] dark:text-gray-300 uppercase tracking-wider">
-                                    LAST NAME
+                                    LAST NAME *
                                 </label>
                                 <input
                                     type="text"
@@ -269,8 +274,13 @@ export default function CompleteProfile() {
                                     value={formData.lastName}
                                     onChange={handleInputChange}
                                     placeholder="Last"
-                                    className="w-full px-3.5 py-2.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#161B26] text-xs sm:text-[13px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6] transition-all placeholder:text-gray-400"
+                                    className={`w-full px-3.5 py-2.5 rounded-[6px] border bg-white dark:bg-[#161B26] text-xs sm:text-[13px] text-[#12151C] dark:text-white outline-none transition-all placeholder:text-gray-400 ${
+                                        errors.lastName
+                                            ? 'border-red-500 focus:border-red-500'
+                                            : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                                    }`}
                                 />
+                                {errors.lastName && <p className="text-[11px] text-red-500 font-medium">{errors.lastName}</p>}
                             </div>
 
                             {/* EMAIL ADDRESS * */}
@@ -339,8 +349,13 @@ export default function CompleteProfile() {
                                     value={formData.joiningDate}
                                     onChange={handleInputChange}
                                     placeholder="dd-mm-yyyy"
-                                    className="w-full px-3.5 py-2.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#161B26] text-xs sm:text-[13px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6] transition-all"
+                                    className={`w-full px-3.5 py-2.5 rounded-[6px] border bg-white dark:bg-[#161B26] text-xs sm:text-[13px] text-[#12151C] dark:text-white outline-none transition-all ${
+                                        errors.joiningDate
+                                            ? 'border-red-500 focus:border-red-500'
+                                            : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                                    }`}
                                 />
+                                {errors.joiningDate && <p className="text-[11px] text-red-500 font-medium">{errors.joiningDate}</p>}
                             </div>
 
                             {/* DEPARTMENT * */}
@@ -375,12 +390,18 @@ export default function CompleteProfile() {
                                     name="roleId"
                                     value={formData.roleId}
                                     onChange={handleInputChange}
-                                    className="w-full px-3.5 py-2.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#161B26] text-xs sm:text-[13px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6] transition-all font-medium"
+                                    className={`w-full px-3.5 py-2.5 rounded-[6px] border bg-white dark:bg-[#161B26] text-xs sm:text-[13px] text-[#12151C] dark:text-white outline-none transition-all font-medium ${
+                                        errors.roleId
+                                            ? 'border-red-500 focus:border-red-500'
+                                            : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                                    }`}
                                 >
+                                    <option value="">Select System Role</option>
                                     {roles.map((r: any) => (
                                         <option key={r.id} value={r.id}>{r.name}</option>
                                     ))}
                                 </select>
+                                {errors.roleId && <p className="text-[11px] text-red-500 font-medium">{errors.roleId}</p>}
                             </div>
 
                             {/* DESIGNATION / TITLE * */}
@@ -406,22 +427,27 @@ export default function CompleteProfile() {
                                 {errors.designationId && <p className="text-[11px] text-red-500 font-medium">{errors.designationId}</p>}
                             </div>
 
-                            {/* BLOOD GROUP */}
+                            {/* BLOOD GROUP * */}
                             <div className="space-y-1.5">
                                 <label className="text-[11px] font-bold text-[#5B6472] dark:text-gray-300 uppercase tracking-wider">
-                                    BLOOD GROUP
+                                    BLOOD GROUP *
                                 </label>
                                 <select
                                     name="bloodGroup"
                                     value={formData.bloodGroup}
                                     onChange={handleInputChange}
-                                    className="w-full px-3.5 py-2.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#161B26] text-xs sm:text-[13px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6] transition-all"
+                                    className={`w-full px-3.5 py-2.5 rounded-[6px] border bg-white dark:bg-[#161B26] text-xs sm:text-[13px] text-[#12151C] dark:text-white outline-none transition-all ${
+                                        errors.bloodGroup
+                                            ? 'border-red-500 focus:border-red-500'
+                                            : 'border-[#E2E6ED] dark:border-gray-700 focus:border-[#2C4FD6]'
+                                    }`}
                                 >
                                     <option value="">Select Blood Group</option>
                                     {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
                                         <option key={bg} value={bg}>{bg}</option>
                                     ))}
                                 </select>
+                                {errors.bloodGroup && <p className="text-[11px] text-red-500 font-medium">{errors.bloodGroup}</p>}
                             </div>
                         </div>
 

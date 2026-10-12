@@ -132,7 +132,7 @@ export default function EmployeeList() {
         // Hide onboarding invitees who have not completed their profile yet
         const rawStatus = profile.status || '';
         if (
-            (!emp.password && ['Pending', 'Failed', 'Cancelled', 'Expired'].includes(rawStatus)) ||
+            (!emp.password && ['Pending', 'Submitted', 'Failed', 'Cancelled', 'Expired'].includes(rawStatus)) ||
             (profile.customFields && typeof profile.customFields === 'string' && profile.customFields.includes('"onboardingToken"') && !profile.customFields.includes('"onboardingCompleted":true'))
         ) {
             return false;
