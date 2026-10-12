@@ -10,7 +10,11 @@ import {
   XCircle,
   Filter,
   Eye,
-  Coffee
+  Coffee,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
@@ -215,6 +219,21 @@ export default function Regularizations() {
     });
   }, [requests, appliedFilters]);
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  const totalPages = Math.ceil(filteredRequests.length / rowsPerPage) || 1;
+
+  const paginatedRequests = useMemo(() => {
+    const start = (currentPage - 1) * rowsPerPage;
+    return filteredRequests.slice(start, start + rowsPerPage);
+  }, [filteredRequests, currentPage, rowsPerPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [appliedFilters]);
+
   return (
     <div className="animate-fade-in-up pb-8 relative">
       {/* Header & Toolbar matching Leave Approvals */}
@@ -339,7 +358,7 @@ export default function Regularizations() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800 text-xs">
-                {filteredRequests.map((req) => {
+                {paginatedRequests.map((req) => {
                   const name = req.user?.name || `Employee #${req.userId}`;
                   const title = req.user?.employeeProfile?.title || 'Employee';
                   const department = req.user?.employeeProfile?.department || 'General';
@@ -475,6 +494,71 @@ export default function Regularizations() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Footer */}
+          {filteredRequests.length > 0 && (
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-6 py-4 border-t border-[#E2E6ED] dark:border-gray-800 text-xs bg-white dark:bg-[#12151C]">
+              <div className="flex items-center gap-2">
+                <span className="text-[#9AA3B1] font-semibold text-xs uppercase">
+                  Rows per page
+                </span>
+
+                <select
+                  value={rowsPerPage}
+                  onChange={(e) => {
+                    setRowsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="px-3 py-1 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] text-[#12151C] dark:text-white text-xs font-semibold cursor-pointer outline-none focus:border-[#2C4FD6]"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-bold text-[#5B6472] dark:text-gray-300 font-mono-numbers">
+                  Page {currentPage} of {totalPages || 1}
+                </span>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    <ChevronsLeft size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
+                  </button>
+
+                  <button
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
+                  </button>
+
+                  <button
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage >= totalPages || totalPages === 0}
+                    className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    <ChevronRight size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
+                  </button>
+
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage >= totalPages || totalPages === 0}
+                    className="w-8 h-8 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 bg-white dark:bg-[#12151C] text-[#12151C] dark:text-white disabled:opacity-25 hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-all flex items-center justify-center cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    <ChevronsRight size={16} className="text-[#12151C] dark:text-white stroke-[2.5]" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

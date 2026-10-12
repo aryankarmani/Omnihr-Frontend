@@ -954,10 +954,10 @@ export default function Leave() {
                         </table>
                     </div>
 
-                    {totalPages > 1 && (
-                        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-6 py-4 border-t border-[#E2E6ED] dark:border-gray-800 text-xs">
+                    {filteredLeaves.length > 0 && (
+                        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-6 py-4 border-t border-[#E2E6ED] dark:border-gray-800 text-xs bg-white dark:bg-[#12151C]">
                             <div className="flex items-center gap-2">
-                                <span className="text-[#9AA3B1] font-semibold text-xs uppercase">Rows per page:</span>
+                                <span className="text-[#9AA3B1] font-semibold text-xs uppercase">Rows per page</span>
                                 <select
                                     value={rowsPerPage}
                                     onChange={(e) => {

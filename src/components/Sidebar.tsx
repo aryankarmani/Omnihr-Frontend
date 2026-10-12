@@ -168,6 +168,42 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
         return true;
     };
 
+    const isChildActive = (child: { path: string; state?: any }, siblings?: { path: string; state?: any }[]) => {
+        // If a specific state is required for this child
+        if (child.state && child.state.activeTab) {
+            return location.pathname === child.path && location.state?.activeTab === child.state.activeTab;
+        }
+
+        // If the current route has a specific activeTab state, base path item without state is not active
+        if (location.state?.activeTab && !child.state) {
+            return false;
+        }
+
+        // Exact match
+        if (location.pathname === child.path) {
+            return true;
+        }
+
+        // If another sibling has a more specific path match that matches the current pathname, this child is not active
+        if (siblings && siblings.length > 0) {
+            const hasMoreSpecificMatch = siblings.some(
+                s => s.path !== child.path &&
+                    s.path.startsWith(child.path) &&
+                    (location.pathname === s.path || location.pathname.startsWith(s.path + '/'))
+            );
+            if (hasMoreSpecificMatch) {
+                return false;
+            }
+        }
+
+        // Subpath match (e.g. /employee/123 matches /employee)
+        if (child.path !== '/' && child.path !== '/dashboard' && location.pathname.startsWith(child.path + '/')) {
+            return true;
+        }
+
+        return false;
+    };
+
     const Overlay = () => (
         <div
             className={`fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
@@ -231,7 +267,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                     }).map((item) => {
                         const hasChildren = item.children && item.children.length > 0;
                         const isOpen = openMenus.includes(item.label);
-                        const active = isActive(item.path, item.state) || (item.children?.some(child => isActive(child.path, child.state)) ?? false);
+                        const active = (item.children?.some(child => isChildActive(child, item.children))) || isActive(item.path, item.state);
 
                         return (
                             <div key={item.label} className="space-y-1">
@@ -288,7 +324,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                                             }
                                             return userModules.includes(child.module);
                                         }).map((child) => {
-                                            const childActive = isActive(child.path, child.state);
+                                            const childActive = isChildActive(child, item.children);
                                             const ChildIcon = child.icon || item.icon;
 
                                             return (
