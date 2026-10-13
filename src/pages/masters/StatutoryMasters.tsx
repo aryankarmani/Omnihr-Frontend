@@ -47,9 +47,19 @@ export default function StatutoryMasters() {
 
     // Component Form State
     const [showCompModal, setShowCompModal] = useState(false);
-    const [newComp, setNewComp] = useState({
+    const [newComp, setNewComp] = useState<{
+        name: string;
+        type: string;
+        taxability: string;
+        isWageCodeComponent: boolean;
+        isPartOfWages: boolean;
+        isFBP: boolean;
+        calculationType: string;
+        value: string | number;
+        prorationMethod: string;
+    }>({
         name: '', type: 'EARNING', taxability: 'TAXABLE', isWageCodeComponent: false, isPartOfWages: false,
-        isFBP: false, calculationType: 'FLAT', value: 0, prorationMethod: 'CALENDAR_DAYS'
+        isFBP: false, calculationType: 'FLAT', value: '', prorationMethod: 'CALENDAR_DAYS'
     });
     const [editingComponentId, setEditingComponentId] = useState<any>(null);
 
@@ -87,18 +97,22 @@ export default function StatutoryMasters() {
         setCompErrors({});
         try {
             setLoading(true);
+            const payload = {
+                ...newComp,
+                value: newComp.value === '' ? 0 : parseFloat(String(newComp.value)) || 0
+            };
             if (editingComponentId) {
-                await api.put(`/masters/salary-components/${editingComponentId}`, newComp);
+                await api.put(`/masters/salary-components/${editingComponentId}`, payload);
                 toast.success("Component updated!");
             } else {
-                await api.post('/masters/salary-components', newComp);
+                await api.post('/masters/salary-components', payload);
                 toast.success("Component saved!");
             }
             fetchComponents();
             setShowCompModal(false);
             setNewComp({
                 name: '', type: 'EARNING', taxability: 'TAXABLE', isWageCodeComponent: false, isPartOfWages: false,
-                isFBP: false, calculationType: 'FLAT', value: 0, prorationMethod: 'CALENDAR_DAYS'
+                isFBP: false, calculationType: 'FLAT', value: '', prorationMethod: 'CALENDAR_DAYS'
             });
             setEditingComponentId(null);
             setCompErrors({});
@@ -120,7 +134,7 @@ export default function StatutoryMasters() {
 
     // PT Form State
     const [showPtModal, setShowPtModal] = useState(false);
-    const [newPt, setNewPt] = useState({ stateId: '', minSalary: 0, maxSalary: 0, taxAmount: 0 });
+    const [newPt, setNewPt] = useState<{ stateId: string; minSalary: string | number; maxSalary: string | number; taxAmount: string | number }>({ stateId: '', minSalary: '', maxSalary: '', taxAmount: '' });
     const [ptErrors, setPtErrors] = useState<{
         stateId?: string;
         minSalary?: string;
@@ -131,18 +145,22 @@ export default function StatutoryMasters() {
     const savePtSlab = async () => {
         const errors: { stateId?: string; minSalary?: string; maxSalary?: string; taxAmount?: string } = {};
 
+        const minVal = newPt.minSalary === '' ? 0 : parseFloat(String(newPt.minSalary));
+        const maxVal = newPt.maxSalary === '' ? 0 : parseFloat(String(newPt.maxSalary));
+        const taxVal = newPt.taxAmount === '' ? 0 : parseFloat(String(newPt.taxAmount));
+
         if (!newPt.stateId) {
             errors.stateId = "Please select a state";
         }
-        if (newPt.minSalary === undefined || newPt.minSalary === null || isNaN(Number(newPt.minSalary)) || Number(newPt.minSalary) < 0) {
+        if (isNaN(minVal) || minVal < 0) {
             errors.minSalary = "Min salary cannot be negative";
         }
-        if (newPt.maxSalary === undefined || newPt.maxSalary === null || isNaN(Number(newPt.maxSalary)) || Number(newPt.maxSalary) <= 0) {
+        if (isNaN(maxVal) || maxVal <= 0) {
             errors.maxSalary = "Max salary must be greater than 0";
-        } else if (Number(newPt.maxSalary) <= Number(newPt.minSalary)) {
+        } else if (maxVal <= minVal) {
             errors.maxSalary = "Max salary must be greater than min salary";
         }
-        if (newPt.taxAmount === undefined || newPt.taxAmount === null || isNaN(Number(newPt.taxAmount)) || Number(newPt.taxAmount) <= 0) {
+        if (isNaN(taxVal) || taxVal <= 0) {
             errors.taxAmount = "Tax amount must be greater than 0";
         }
 
@@ -155,12 +173,15 @@ export default function StatutoryMasters() {
         try {
             setLoading(true);
             await api.post('/masters/professional-tax-slabs', {
-                ...newPt, stateId: Number(newPt.stateId)
+                stateId: Number(newPt.stateId),
+                minSalary: minVal,
+                maxSalary: maxVal,
+                taxAmount: taxVal
             });
             fetchPtSlabs();
             setShowPtModal(false);
             toast.success("PT Slab added!");
-            setNewPt({ stateId: '', minSalary: 0, maxSalary: 0, taxAmount: 0 });
+            setNewPt({ stateId: '', minSalary: '', maxSalary: '', taxAmount: '' });
             setPtErrors({});
         } catch (e: any) {
             toast.error(e.response?.data?.error || e.response?.data?.message || "Failed to add PT Slab");
@@ -254,7 +275,7 @@ export default function StatutoryMasters() {
                                                         isPartOfWages: Boolean(comp.isPartOfWages),
                                                         isFBP: Boolean(comp.isFBP),
                                                         calculationType: comp.calculationType || 'FLAT',
-                                                        value: comp.value !== undefined && comp.value !== null ? comp.value : 0,
+                                                        value: comp.value !== undefined && comp.value !== null ? comp.value : '',
                                                         prorationMethod: comp.prorationMethod || 'CALENDAR_DAYS'
                                                     });
                                                     setShowCompModal(true);
@@ -461,7 +482,19 @@ export default function StatutoryMasters() {
                                 </div>
                                 <div>
                                     <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 mb-1">Value</label>
-                                    <input type="number" placeholder="0" className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]" value={newComp.value} onChange={e => setNewComp({ ...newComp, value: parseFloat(e.target.value) || 0 })} />
+                                    <input
+                                        type="number"
+                                        placeholder="0"
+                                        className="w-full px-3 py-2 border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none focus:border-[#2C4FD6]"
+                                        value={newComp.value}
+                                        onChange={e => {
+                                            let val = e.target.value;
+                                            if (val.length > 1 && val.startsWith('0') && !val.startsWith('0.')) {
+                                                val = val.replace(/^0+/, '');
+                                            }
+                                            setNewComp({ ...newComp, value: val });
+                                        }}
+                                    />
                                 </div>
                             </div>
 
@@ -531,7 +564,9 @@ export default function StatutoryMasters() {
                                         } rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none transition-all`}
                                         value={newPt.minSalary}
                                         onChange={e => {
-                                            setNewPt({ ...newPt, minSalary: parseFloat(e.target.value) || 0 });
+                                            let val = e.target.value;
+                                            if (val.length > 1 && val.startsWith('0') && !val.startsWith('0.')) val = val.replace(/^0+/, '');
+                                            setNewPt({ ...newPt, minSalary: val });
                                             if (ptErrors.minSalary) setPtErrors(prev => ({ ...prev, minSalary: undefined }));
                                         }}
                                     />
@@ -552,7 +587,9 @@ export default function StatutoryMasters() {
                                         } rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none transition-all`}
                                         value={newPt.maxSalary}
                                         onChange={e => {
-                                            setNewPt({ ...newPt, maxSalary: parseFloat(e.target.value) || 0 });
+                                            let val = e.target.value;
+                                            if (val.length > 1 && val.startsWith('0') && !val.startsWith('0.')) val = val.replace(/^0+/, '');
+                                            setNewPt({ ...newPt, maxSalary: val });
                                             if (ptErrors.maxSalary) setPtErrors(prev => ({ ...prev, maxSalary: undefined }));
                                         }}
                                     />
@@ -574,7 +611,9 @@ export default function StatutoryMasters() {
                                     } rounded-[6px] bg-white dark:bg-[#12151C] text-[13.5px] text-[#12151C] dark:text-white outline-none transition-all`}
                                     value={newPt.taxAmount}
                                     onChange={e => {
-                                        setNewPt({ ...newPt, taxAmount: parseFloat(e.target.value) || 0 });
+                                        let val = e.target.value;
+                                        if (val.length > 1 && val.startsWith('0') && !val.startsWith('0.')) val = val.replace(/^0+/, '');
+                                        setNewPt({ ...newPt, taxAmount: val });
                                         if (ptErrors.taxAmount) setPtErrors(prev => ({ ...prev, taxAmount: undefined }));
                                     }}
                                 />

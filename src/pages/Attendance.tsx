@@ -152,9 +152,17 @@ export default function Attendance() {
 
 
             const empRes = await api.get('/employee/me');
-            const jd = empRes.data.employeeProfile?.joiningDate || empRes.data.createdAt;
-            if (jd) {
-                const datePart = jd.split('T')[0];
+            const rawJd = empRes.data.employeeProfile?.joiningDate;
+            const rawCreated = empRes.data.createdAt;
+            let effectiveDateStr = rawJd || rawCreated;
+            if (rawJd && rawCreated) {
+                const jdDate = new Date(rawJd);
+                const crDate = new Date(rawCreated);
+                // If employee joined before onboarding into the software, track from onboarding date
+                effectiveDateStr = jdDate < crDate ? rawCreated : rawJd;
+            }
+            if (effectiveDateStr) {
+                const datePart = effectiveDateStr.split('T')[0];
                 const [year, month, day] = datePart.split('-').map(Number);
                 setJoiningDate(new Date(year, month - 1, day));
             }
