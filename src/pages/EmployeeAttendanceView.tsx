@@ -110,9 +110,17 @@ export default function EmployeeAttendanceView() {
         try {
           const empRes = await api.get(`/employee/${id}`);
           setEmployeeName(empRes.data.name);
-          const jd = empRes.data.employeeProfile?.joiningDate || empRes.data.createdAt;
-          if (jd) {
-            effectiveJoiningDate = new Date(jd);
+          const rawJd = empRes.data.employeeProfile?.joiningDate;
+          const rawCreated = empRes.data.createdAt;
+          let effectiveDateStr = rawJd || rawCreated;
+          if (rawJd && rawCreated) {
+            const jdDate = new Date(rawJd);
+            const crDate = new Date(rawCreated);
+            // If employee joined before onboarding into software, track from onboarding date
+            effectiveDateStr = jdDate < crDate ? rawCreated : rawJd;
+          }
+          if (effectiveDateStr) {
+            effectiveJoiningDate = new Date(effectiveDateStr);
             setJoiningDate(effectiveJoiningDate);
           }
         } catch {
@@ -132,9 +140,8 @@ export default function EmployeeAttendanceView() {
 
           const isPastDay = currentLoopDate < todayMidnight;
           const isWeekend = currentLoopDate.getDay() === 0 || currentLoopDate.getDay() === 6;
-          const isBeforeJoining = effectiveJoiningDate && currentLoopDate < new Date(new Date(effectiveJoiningDate).setHours(0, 0, 0, 0));
-
           const log = historyData.find((l) => l.date === dateStr);
+          const isBeforeJoining = !log && effectiveJoiningDate && currentLoopDate < new Date(new Date(effectiveJoiningDate).setHours(0, 0, 0, 0));
           const isHoliday = holidayData.some((h: any) => h.date.split('T')[0] === dateStr);
           const isApprovedLeave = leavesData.some((l: any) => {
             if (l.status !== 'APPROVED') return false;
@@ -213,21 +220,29 @@ export default function EmployeeAttendanceView() {
       todayMidnight.setHours(0, 0, 0, 0);
       const isPastDay = currentLoopDate < todayMidnight;
       const isWeekend = currentLoopDate.getDay() === 0 || currentLoopDate.getDay() === 6;
-      const isBeforeJoining = joiningDate && currentLoopDate < new Date(new Date(joiningDate).setHours(0, 0, 0, 0));
+      const isBeforeJoining = !log && joiningDate && currentLoopDate < new Date(new Date(joiningDate).setHours(0, 0, 0, 0));
       const isApprovedLeave = !isBeforeJoining && leave && leave.status === 'APPROVED';
       const isAbsent = !isBeforeJoining && isPastDay && !isWeekend && !holiday && !isApprovedLeave && (!log || log.status === 'Absent');
 
       // Check if day has any activity
       const hasActivity = log || holiday || isApprovedLeave || isAbsent;
 
-      // Empty day with no data - keep original clean minimal look with no border or box
+      // Empty day with no data - upcoming weekdays without status get light gray styling, weekends stay clean
       if (!hasActivity) {
+        const isUpcomingWeekday = !isPastDay && !isWeekend;
+
         days.push(
           <div
             key={day}
-            className="cal-day aspect-square rounded-[6px] bg-transparent flex items-center justify-center text-center transition-all"
+            className={`cal-day aspect-square rounded-[6px] ${
+              isUpcomingWeekday
+                ? 'bg-[#F7F8FA] dark:bg-white/5 dark:border-gray-800'
+                : 'bg-transparent'
+            } flex items-center justify-center text-center transition-all`}
           >
-            <span className="font-mono font-bold text-[12.5px] text-[#9AA3B1]">{day}</span>
+            <span className={`font-mono font-bold text-[12.5px] ${
+              isUpcomingWeekday ? 'text-[#5B6472] dark:text-gray-300' : 'text-[#9AA3B1]'
+            }`}>{day}</span>
           </div>
         );
         continue;

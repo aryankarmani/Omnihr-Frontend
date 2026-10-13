@@ -4,7 +4,8 @@ import {
     User, Users, Plus, Search, Phone, Video,
     Send, Paperclip, Smile, MoreVertical, Reply, Edit2,
     Trash2, Copy, Check, CheckCheck, X, FileText, Image as ImageIcon,
-    Download, Info, ChevronDown, ChevronRight, Circle, ArrowLeft, LogOut
+    Download, Info, ChevronDown, ChevronRight, Circle, ArrowLeft, LogOut,
+    UserPlus
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCall } from '../../context/CallContext';
@@ -18,8 +19,9 @@ import { downloadFile } from '../../utils/fileDownloader';
 import { ChatSkeleton, ChatMessagesSkeleton } from '../../components/common/SkeletonLoaders';
 import toast from 'react-hot-toast';
 
-// Lazy loaded modal
+// Lazy loaded modals
 const CreateTeamChannelModal = lazy(() => import('../../components/chat/CreateTeamChannelModal'));
+import AddGroupMembersModal from '../../components/chat/AddGroupMembersModal';
 
 export default function ChatHub() {
     const { user, hasPermission } = useAuth();
@@ -45,6 +47,7 @@ export default function ChatHub() {
 
     // UI Toggles
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [showAddMembersModal, setShowAddMembersModal] = useState(false);
     const [showDetailsPane, setShowDetailsPane] = useState(false);
     const [mobileView, setMobileView] = useState<'LIST' | 'CHAT'>('LIST');
     const [searchQuery, setSearchQuery] = useState('');
@@ -191,6 +194,39 @@ export default function ChatHub() {
             }
         });
 
+        socket.on('conversation_updated', (updated: DirectConversation) => {
+            if (!updated) return;
+            setConversations((prev) =>
+                prev.map((cv) => (cv.id === updated.id ? { ...cv, ...updated } : cv))
+            );
+        });
+
+        socket.on('conversation_members_added', ({ conversationId, newMembers }: { conversationId: number; newMembers: any[] }) => {
+            if (!conversationId || !newMembers) return;
+            setConversations((prev) =>
+                prev.map((c) => {
+                    if (c.id === conversationId) {
+                        const existingIds = new Set(c.participants.map((p) => p.userId));
+                        const brandNew = newMembers.filter((u: any) => !existingIds.has(u.id));
+                        if (brandNew.length === 0) return c;
+                        return {
+                            ...c,
+                            participants: [
+                                ...c.participants,
+                                ...brandNew.map((u: any) => ({
+                                    id: Date.now() + Math.random(),
+                                    conversationId,
+                                    userId: u.id,
+                                    user: u,
+                                })),
+                            ],
+                        };
+                    }
+                    return c;
+                })
+            );
+        });
+
         return () => {
             socket.off('new_message');
             socket.off('new_conversation_message');
@@ -199,6 +235,8 @@ export default function ChatHub() {
             socket.off('user_typing');
             socket.off('user_stop_typing');
             socket.off('conversation_deleted');
+            socket.off('conversation_updated');
+            socket.off('conversation_members_added');
         };
     }, [activeConvId]);
 
@@ -840,8 +878,21 @@ export default function ChatHub() {
                             <button
                                 onClick={() => handleStartCall('VIDEO')}
                                 className="p-2 rounded-[6px] text-gray-500 hover:text-[#2C4FD6] hover:bg-blue-50 dark:hover:bg-white/5 transition-all cursor-pointer"
+                                title="Video Call"
                             >
                                 <Video size={17} />
+                            </button>
+                        )}
+
+                        {/* Add Members Button (Group Chat Only) */}
+                        {currentConversation?.isGroup && (
+                            <button
+                                onClick={() => setShowAddMembersModal(true)}
+                                className="py-1.5 px-2.5 rounded-[6px] text-gray-600 dark:text-gray-300 hover:text-[#2C4FD6] dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-white/5 border border-gray-200 dark:border-gray-800 transition-all cursor-pointer flex items-center gap-1.5"
+                                title="Add Members to Group"
+                            >
+                                <UserPlus size={15} className="text-[#2C4FD6] dark:text-blue-400" />
+                                <span className="hidden sm:inline text-xs font-semibold">Add Member</span>
                             </button>
                         )}
 
@@ -1313,9 +1364,20 @@ export default function ChatHub() {
 
                         {/* Member List */}
                         <div>
-                            <h5 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">
-                                Members ({currentConversation?.participants?.length || 0})
-                            </h5>
+                            <div className="flex items-center justify-between mb-2">
+                                <h5 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                                    Members ({currentConversation?.participants?.length || 0})
+                                </h5>
+                                {currentConversation?.isGroup && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowAddMembersModal(true)}
+                                        className="text-[11px] font-semibold text-[#2C4FD6] dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-[4px]"
+                                    >
+                                        <UserPlus size={11} /> + Add
+                                    </button>
+                                )}
+                            </div>
                             <div className="space-y-1.5">
                                 {currentConversation?.participants?.map((p) => {
                                     const emp = p.user;
@@ -1441,6 +1503,43 @@ export default function ChatHub() {
                         }}
                     />
                 </Suspense>
+            )}
+
+            {/* Add Group Members Modal */}
+            {showAddMembersModal && currentConversation?.isGroup && (
+                <AddGroupMembersModal
+                    isOpen={showAddMembersModal}
+                    onClose={() => setShowAddMembersModal(false)}
+                    conversationId={currentConversation.id}
+                    groupTitle={currentConversation.title || 'Group Chat'}
+                    existingMemberIds={currentConversation.participants.map((p) => p.userId)}
+                    employees={employees}
+                    onMembersAdded={(updatedConv, addedUsers) => {
+                        if (updatedConv) {
+                            setConversations((prev) =>
+                                prev.map((c) => (c.id === updatedConv.id ? updatedConv : c))
+                            );
+                        } else if (addedUsers && addedUsers.length > 0) {
+                            setConversations((prev) =>
+                                prev.map((c) => {
+                                    if (c.id === currentConversation.id) {
+                                        const newParts = [
+                                            ...c.participants,
+                                            ...addedUsers.map((u: any) => ({
+                                                id: Date.now() + Math.random(),
+                                                conversationId: c.id,
+                                                userId: u.id,
+                                                user: u,
+                                            })),
+                                        ];
+                                        return { ...c, participants: newParts };
+                                    }
+                                    return c;
+                                })
+                            );
+                        }
+                    }}
+                />
             )}
 
             {/* Custom UI Delete Message Confirmation Modal */}

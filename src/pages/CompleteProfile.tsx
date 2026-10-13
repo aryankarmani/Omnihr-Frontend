@@ -371,14 +371,18 @@ export default function CompleteProfile() {
                 newErrors.lastName = 'Only letters and spaces are allowed';
             }
 
-            if (formData.phone.trim()) {
-                const cleanPhone = formData.phone.replace(/\D/g, '');
-                if (cleanPhone.length < 7 || cleanPhone.length > 15) {
-                    newErrors.phone = 'Enter valid phone number (7-15 digits)';
-                }
+            const cleanPhone = (formData.phone || '').replace(/\D/g, '');
+            if (!cleanPhone) {
+                newErrors.phone = 'Phone number is required';
+            } else if (countryCode === '+91' && cleanPhone.length !== 10) {
+                newErrors.phone = 'Enter valid 10-digit mobile number';
+            } else if (cleanPhone.length < 7 || cleanPhone.length > 15) {
+                newErrors.phone = 'Enter valid phone number (7-15 digits)';
             }
 
-            if (formData.dob) {
+            if (!formData.dob) {
+                newErrors.dob = 'Date of birth is required';
+            } else {
                 const selectedDate = new Date(formData.dob);
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
@@ -387,10 +391,41 @@ export default function CompleteProfile() {
                 }
             }
 
+            if (!formData.joiningDate) {
+                newErrors.joiningDate = 'Date of joining is required';
+            }
+
+            if (!formData.departmentId) {
+                newErrors.departmentId = 'Department is required';
+            }
+
+            if (!formData.roleId) {
+                newErrors.roleId = 'System role is required';
+            }
+
+            if (!formData.designationId) {
+                newErrors.designationId = 'Designation is required';
+            }
+
+            if (!formData.bloodGroup) {
+                newErrors.bloodGroup = 'Blood group is required';
+            }
+
+            if (!formData.address?.trim()) {
+                newErrors.address = 'Residential address is required';
+            }
+
+            // Validate required custom fields in Personal Details
+            customFieldMasters.filter(cf => cf.category === 'PERSONAL_DETAILS').forEach(cf => {
+                if (cf.isRequired && !customFieldValues[cf.id]?.trim()) {
+                    newErrors[`customField-${cf.id}`] = `${cf.name} is required`;
+                }
+            });
+
             setErrors(newErrors);
 
             if (Object.keys(newErrors).length > 0) {
-                toast.error('Please provide valid first and last name');
+                toast.error('Please fill in all required personal details');
                 return;
             }
         }
@@ -647,7 +682,7 @@ export default function CompleteProfile() {
                                         value={formData.firstName}
                                         onChange={handleInputChange}
                                         type="text"
-                                        className="w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all placeholder:text-[#9AA3B1] placeholder:font-normal"
+                                        className={`w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border ${errors.firstName ? 'border-red-500' : 'border-[#E2E6ED] dark:border-white/10'} rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all placeholder:text-[#9AA3B1] placeholder:font-normal`}
                                         placeholder="First"
                                     />
                                     {errors.firstName && (
@@ -663,7 +698,7 @@ export default function CompleteProfile() {
                                         value={formData.lastName}
                                         onChange={handleInputChange}
                                         type="text"
-                                        className="w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all placeholder:text-[#9AA3B1] placeholder:font-normal"
+                                        className={`w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border ${errors.lastName ? 'border-red-500' : 'border-[#E2E6ED] dark:border-white/10'} rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all placeholder:text-[#9AA3B1] placeholder:font-normal`}
                                         placeholder="Last"
                                     />
                                     {errors.lastName && (
@@ -732,7 +767,7 @@ export default function CompleteProfile() {
                                         onChange={handleInputChange}
                                         type="date"
                                         max={new Date().toISOString().split('T')[0]}
-                                        className="w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all cursor-pointer"
+                                        className={`w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border ${errors.dob ? 'border-red-500' : 'border-[#E2E6ED] dark:border-white/10'} rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all cursor-pointer`}
                                     />
                                     {errors.dob && <p className="text-red-500 text-xs ml-1 font-medium">{errors.dob}</p>}
                                 </div>
@@ -745,7 +780,7 @@ export default function CompleteProfile() {
                                         value={formData.joiningDate}
                                         onChange={handleInputChange}
                                         type="date"
-                                        className="w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all cursor-pointer"
+                                        className={`w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border ${errors.joiningDate ? 'border-red-500' : 'border-[#E2E6ED] dark:border-white/10'} rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all cursor-pointer`}
                                     />
                                     {errors.joiningDate && <p className="text-red-500 text-xs ml-1 font-medium">{errors.joiningDate}</p>}
                                 </div>
@@ -762,7 +797,7 @@ export default function CompleteProfile() {
                                                 setFormData(prev => ({ ...prev, departmentId: id, department: name }));
                                                 if (errors.departmentId) setErrors(prev => ({ ...prev, departmentId: '' }));
                                             }}
-                                            className="appearance-none w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all cursor-pointer"
+                                            className={`appearance-none w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border ${errors.departmentId ? 'border-red-500' : 'border-[#E2E6ED] dark:border-white/10'} rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all cursor-pointer`}
                                         >
                                             <option value="" className="dark:bg-[#161B26]">Select Department</option>
                                             {masters.departments.map(dept => (
@@ -788,7 +823,7 @@ export default function CompleteProfile() {
                                                 setFormData(prev => ({ ...prev, roleId: id, role: name }));
                                                 if (errors.roleId) setErrors(prev => ({ ...prev, roleId: '' }));
                                             }}
-                                            className="appearance-none w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all cursor-pointer"
+                                            className={`appearance-none w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border ${errors.roleId ? 'border-red-500' : 'border-[#E2E6ED] dark:border-white/10'} rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all cursor-pointer`}
                                         >
                                             {masters.roles.map(role => (
                                                 <option key={role.id} value={role.id} className="dark:bg-[#161B26]">{role.name}</option>
@@ -813,7 +848,7 @@ export default function CompleteProfile() {
                                                 setFormData(prev => ({ ...prev, designationId: id, title: name }));
                                                 if (errors.designationId) setErrors(prev => ({ ...prev, designationId: '' }));
                                             }}
-                                            className="appearance-none w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all cursor-pointer"
+                                            className={`appearance-none w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border ${errors.designationId ? 'border-red-500' : 'border-[#E2E6ED] dark:border-white/10'} rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all cursor-pointer`}
                                         >
                                             <option value="" className="dark:bg-[#161B26]">Select Designation</option>
                                             {masters.designations.map(desig => (
@@ -828,13 +863,13 @@ export default function CompleteProfile() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Blood Group</label>
+                                    <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Blood Group *</label>
                                     <div className="relative group/select">
                                         <select
                                             name="bloodGroup"
                                             value={formData.bloodGroup}
                                             onChange={handleInputChange}
-                                            className="appearance-none w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all cursor-pointer"
+                                            className={`appearance-none w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border ${errors.bloodGroup ? 'border-red-500' : 'border-[#E2E6ED] dark:border-white/10'} rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all cursor-pointer`}
                                         >
                                             <option value="" className="dark:bg-[#161B26]">Select Blood Group</option>
                                             {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
@@ -845,11 +880,12 @@ export default function CompleteProfile() {
                                             <ChevronDown size={16} />
                                         </div>
                                     </div>
+                                    {errors.bloodGroup && <p className="text-red-500 text-xs ml-1 font-medium">{errors.bloodGroup}</p>}
                                 </div>
 
                                 <div className="sm:col-span-2 space-y-2">
                                     <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">Residential Address *</label>
-                                    <div className="w-full bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] focus-within:ring-2 focus-within:ring-[#2C4FD6]/20 transition-all overflow-hidden h-[54px]">
+                                    <div className={`w-full bg-[#F7F8FA] dark:bg-white/5 border ${errors.address ? 'border-red-500' : 'border-[#E2E6ED] dark:border-white/10'} rounded-[8px] focus-within:ring-2 focus-within:ring-[#2C4FD6]/20 transition-all overflow-hidden h-[54px]`}>
                                         <textarea
                                             name="address"
                                             value={formData.address}
