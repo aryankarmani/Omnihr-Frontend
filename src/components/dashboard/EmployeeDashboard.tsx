@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
 import { DashboardSkeleton } from '../common/SkeletonLoaders';
+import AttendanceConfirmModal, { type AttendanceActionType } from '../common/AttendanceConfirmModal';
 
 export default function EmployeeDashboard({ user }: { user?: any }) {
     const navigate = useNavigate();
@@ -15,6 +16,7 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
     const [monthlyAttendance, setMonthlyAttendance] = useState<any[]>([]);
     const [holidays, setHolidays] = useState<any[]>([]);
     const [isPunching, setIsPunching] = useState(false);
+    const [confirmAction, setConfirmAction] = useState<AttendanceActionType | null>(null);
 
     const fetchEmployeeData = useCallback(async () => {
         const now = new Date();
@@ -73,7 +75,7 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
         return () => window.removeEventListener('punch-updated', onPunchUpdated);
     }, [fetchEmployeeData]);
 
-    const handlePunch = async () => {
+    const executePunch = async () => {
         if (isPunching) return;
         setIsPunching(true);
         const now = new Date();
@@ -91,6 +93,7 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
 
             toast.success(res.data.message || 'Action successful');
             window.dispatchEvent(new Event('punch-updated'));
+            setConfirmAction(null);
 
             // Refresh history with correct parameters
             const historyRes = await api.get(`/attendance/history?year=${year}&month=${month}`);
@@ -104,6 +107,11 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
         } finally {
             setIsPunching(false);
         }
+    };
+
+    const handlePunch = () => {
+        if (isPunching || isShiftCompleted || punchStatus?.isOnLeave) return;
+        setConfirmAction(isPunchedIn ? 'PUNCH_OUT' : 'PUNCH_IN');
     };
 
     if (loading) {
@@ -592,6 +600,16 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
                     )}
                 </div>
             </div>
+
+            {/* Confirmation Modal for Punch In / Punch Out */}
+            <AttendanceConfirmModal
+                isOpen={Boolean(confirmAction)}
+                actionType={confirmAction}
+                onClose={() => setConfirmAction(null)}
+                onConfirm={executePunch}
+                isLoading={isPunching}
+                shiftInfo={punchStatus?.shift ? `${punchStatus.shift.startTime} - ${punchStatus.shift.endTime}` : undefined}
+            />
         </div>
     );
 }

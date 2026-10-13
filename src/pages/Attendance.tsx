@@ -6,6 +6,7 @@ import api from '../utils/api';
 import { createPortal } from 'react-dom';
 import { AttendanceSkeleton } from '../components/common/SkeletonLoaders';
 import { useAuth } from '../context/AuthContext';
+import AttendanceConfirmModal, { type AttendanceActionType } from '../components/common/AttendanceConfirmModal';
 
 // Types for Attendance Data
 type AttendanceStatus = 'Present' | 'Absent' | 'Late' | 'Half Day' | 'Holiday' | 'Weekend' | 'Pending' | 'Leave' | 'Leave (Pending)';
@@ -33,6 +34,7 @@ export default function Attendance() {
     const [todayBreaks, setTodayBreaks] = useState<any[]>([]);
     const [canPunchIn, setCanPunchIn] = useState(true);
     const [punchInMessage, setPunchInMessage] = useState<string | null>(null);
+    const [confirmAction, setConfirmAction] = useState<AttendanceActionType | null>(null);
     const [punchInTime, setPunchInTime] = useState<Date | null>(null);
     const [punchOutTime, setPunchOutTime] = useState<Date | null>(null);
     const [selectedMonth, setSelectedMonth] = useState(new Date());
@@ -288,7 +290,23 @@ export default function Attendance() {
             toast.error(punchInMessage || `Punch-in is only allowed 1 hour before your shift starts (${currentShift?.startTime || ''}).`, { id: 'punch-status-error' });
             return;
         }
-        punchMutation.mutate();
+        setConfirmAction(isPunchedIn ? 'PUNCH_OUT' : 'PUNCH_IN');
+    };
+
+    const handleConfirmAction = () => {
+        if (confirmAction === 'PUNCH_IN' || confirmAction === 'PUNCH_OUT') {
+            punchMutation.mutate(undefined, {
+                onSettled: () => setConfirmAction(null)
+            });
+        } else if (confirmAction === 'BREAK_IN') {
+            breakInMutation.mutate(undefined, {
+                onSettled: () => setConfirmAction(null)
+            });
+        } else if (confirmAction === 'BREAK_OUT') {
+            breakOutMutation.mutate(undefined, {
+                onSettled: () => setConfirmAction(null)
+            });
+        }
     };
 
     const submitRegularization = async (e: React.FormEvent) => {
@@ -803,7 +821,7 @@ export default function Attendance() {
                                 <div className="flex flex-col gap-1.5 justify-center">
                                     <button
                                         type="button"
-                                        onClick={() => breakInMutation.mutate()}
+                                        onClick={() => setConfirmAction('BREAK_IN')}
                                         disabled={!isPunchedIn || isOnBreak || hasUsedDailyBreak || breakInMutation.isPending || breakOutMutation.isPending || punchMutation.isPending}
                                         className={`h-[36px] sm:h-[39px] px-2.5 sm:px-3 rounded-[6px] border flex items-center justify-center gap-1.5 transition-all text-[10.5px] font-bold uppercase tracking-wider ${
                                             isOnBreak || !isPunchedIn || hasUsedDailyBreak
@@ -821,7 +839,7 @@ export default function Attendance() {
 
                                     <button
                                         type="button"
-                                        onClick={() => breakOutMutation.mutate()}
+                                        onClick={() => setConfirmAction('BREAK_OUT')}
                                         disabled={!isPunchedIn || !isOnBreak || breakOutMutation.isPending || breakInMutation.isPending || punchMutation.isPending}
                                         className={`h-[36px] sm:h-[39px] px-2.5 sm:px-3 rounded-[6px] border flex items-center justify-center gap-1.5 transition-all text-[10.5px] font-bold uppercase tracking-wider ${
                                             isOnBreak
@@ -1340,6 +1358,17 @@ export default function Attendance() {
                 </div>,
                 document.body
             )}
+
+            {/* Confirmation Modal for Punch In, Punch Out, Break In, Break Out */}
+            <AttendanceConfirmModal
+                isOpen={Boolean(confirmAction)}
+                actionType={confirmAction}
+                onClose={() => setConfirmAction(null)}
+                onConfirm={handleConfirmAction}
+                isLoading={punchMutation.isPending || breakInMutation.isPending || breakOutMutation.isPending}
+                shiftInfo={currentShift ? `${currentShift.startTime} - ${currentShift.endTime}` : undefined}
+                extraInfo={confirmAction === 'PUNCH_OUT' && totalBreakMinutes > 0 ? `Total Break Taken: ${totalBreakMinutes} mins` : undefined}
+            />
         </div>
     );
 }
