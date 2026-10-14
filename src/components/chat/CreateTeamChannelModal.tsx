@@ -13,6 +13,7 @@ interface CreateTeamChannelModalProps {
     onChannelCreated?: (channel: any) => void;
     onConversationCreated: (conversation: any) => void;
     currentUserId: number;
+    existingConversations?: DirectConversation[];
 }
 
 export default function CreateTeamChannelModal({
@@ -21,6 +22,7 @@ export default function CreateTeamChannelModal({
     employees,
     onConversationCreated,
     currentUserId,
+    existingConversations = [],
 }: CreateTeamChannelModalProps) {
     const [activeTab, setActiveTab] = useState<'GROUP' | 'DIRECT'>('GROUP');
 
@@ -47,6 +49,7 @@ export default function CreateTeamChannelModal({
 
     const handleCreateGroupChat = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (loading) return;
         if (!groupTitle.trim()) {
             setTitleError('Please enter a group chat name');
             return;
@@ -75,10 +78,22 @@ export default function CreateTeamChannelModal({
     };
 
     const handleStartDirectChat = async (targetUserId: number) => {
+        if (loading) return;
         if (Number(targetUserId) === Number(currentUserId)) {
             toast.error('You cannot start a direct chat with yourself');
             return;
         }
+
+        // If a 1:1 conversation already exists with this user, directly select it without creating duplicate
+        const existing = existingConversations.find(
+            (c) => !c.isGroup && (c.participants || []).some((p) => Number(p.userId) === Number(targetUserId))
+        );
+        if (existing) {
+            onConversationCreated(existing);
+            onClose();
+            return;
+        }
+
         setLoading(true);
         try {
             const res = await api.post('/communication/conversations', {
@@ -274,8 +289,8 @@ export default function CreateTeamChannelModal({
                                         return (
                                             <div
                                                 key={emp.id}
-                                                onClick={() => handleStartDirectChat(emp.id)}
-                                                className="p-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors"
+                                                onClick={() => !loading && handleStartDirectChat(emp.id)}
+                                                className={`p-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors ${loading ? 'opacity-50 pointer-events-none' : ''}`}
                                             >
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-tr from-blue-500 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shrink-0">

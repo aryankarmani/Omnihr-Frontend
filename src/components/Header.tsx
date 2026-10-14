@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import api, { getMediaUrl } from '../utils/api';
 import { getNotificationRedirectUrl } from '../utils/notificationNavigation';
+import UserAvatar from './common/UserAvatar';
 
 interface HeaderProps {
     onMenuClick: () => void;
@@ -201,9 +202,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                                         className="w-full flex items-center gap-3 p-2 rounded-[6px] hover:bg-[#E8ECFC] transition-all text-left group/item"
                                                     >
                                                         <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                                            <div className="w-7 h-7 rounded-full bg-[#EEF1F5] text-[#12151C] font-mono-numbers font-bold text-xs flex items-center justify-center shrink-0">
-                                                                {emp.name.charAt(0)}
-                                                            </div>
+                                                            <UserAvatar
+                                                                src={emp.avatar || emp.employeeProfile?.avatar}
+                                                                name={emp.name}
+                                                                size="xs"
+                                                            />
                                                             <span className="text-xs font-semibold text-[#12151C] dark:text-white truncate flex-1">{emp.name}</span>
                                                         </div>
                                                     </button>
@@ -251,18 +254,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                 onClick={() => navigate('/profile')}
                                 className="flex items-center gap-2.5 pl-2 cursor-pointer hover:opacity-85 transition-opacity"
                             >
-                                <div className="relative w-8 h-8 rounded-full bg-[#EEF1F5] dark:bg-gray-700 text-[#12151C] dark:text-white font-mono-numbers font-semibold text-xs flex items-center justify-center shrink-0 overflow-hidden ring-1 ring-black/5 dark:ring-white/10">
-                                    {avatarUrl && !avatarError ? (
-                                        <img
-                                            src={avatarUrl}
-                                            alt={user.name}
-                                            className="w-full h-full object-cover object-top rounded-full"
-                                            onError={() => setAvatarError(true)}
-                                        />
-                                    ) : (
-                                        <span>{user.name ? user.name.charAt(0).toUpperCase() : 'U'}</span>
-                                    )}
-                                </div>
+                                <UserAvatar
+                                    src={userAvatar || user.avatar || (user as any).profilePicture || (user as any).employeeProfile?.avatar}
+                                    name={user.name}
+                                    size="sm"
+                                />
                                 <div className="user-name text-left hidden md:block">
                                     <p className="text-[13.5px] font-semibold text-[#12151C] dark:text-gray-100 leading-tight capitalize">{user.name}</p>
                                     <p className="text-[11px] text-[#9AA3B1] leading-tight">

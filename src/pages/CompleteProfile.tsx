@@ -1410,7 +1410,7 @@ export default function CompleteProfile() {
 
                                             <div>
                                                 <p className="font-semibold text-[#12151C] dark:text-white text-sm">
-                                                    Profile Picture
+                                                    Profile Picture <span className="text-xs font-normal text-[#9AA3B1]">(use less than 2 MB)</span>
                                                 </p>
                                                 <p
                                                     className={`text-xs font-medium ${profilePicture

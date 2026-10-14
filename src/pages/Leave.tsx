@@ -7,7 +7,7 @@ import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { createPortal } from 'react-dom';
 import { TableSkeleton } from '../components/common/SkeletonLoaders';
-// import { getTeams } from '../utils/teamApi';
+import UserAvatar from '../components/common/UserAvatar';
 
 export const formatTime12h = (timeStr?: string) => {
     if (!timeStr) return '';
@@ -863,9 +863,11 @@ export default function Leave() {
                                         <tr key={l.id} className="hover:bg-[#F7F8FA] dark:hover:bg-white/5 transition-colors">
                                             <td className="py-[13px] px-[22px]">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-[#EEF1F5] dark:bg-gray-700 text-[#5B6472] dark:text-white font-mono-numbers font-bold text-xs flex items-center justify-center shrink-0 uppercase">
-                                                        {getInitials(l.user?.name)}
-                                                    </div>
+                                                    <UserAvatar
+                                                        src={l.user?.employeeProfile?.avatar || (l.user as any)?.avatar}
+                                                        name={l.user?.name}
+                                                        size="sm"
+                                                    />
                                                     <div>
                                                         <button
                                                             onClick={() => navigate(`/employee/${l.user?.id}`)}

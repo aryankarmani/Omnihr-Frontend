@@ -1473,7 +1473,7 @@ export default function AddEmployee() {
 
                                         <div>
                                             <p className="font-semibold text-[#12151C] dark:text-white text-sm">
-                                                Profile Picture <span className="text-red-500"></span>
+                                                Profile Picture <span className="text-xs font-normal text-[#9AA3B1]">(use less than 2 MB)</span> <span className="text-red-500"></span>
                                             </p>
 
                                             <p

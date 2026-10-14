@@ -193,14 +193,27 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         });
 
         // 8. Call Cancelled by caller
-        socket.on('call_cancelled', () => {
-            setIncomingCall(null);
+        socket.on('call_cancelled', (data?: { callId?: number }) => {
+            setIncomingCall(prev => {
+                if (!prev) return null;
+                if (!data?.callId || prev.callId === data.callId) {
+                    return null;
+                }
+                return prev;
+            });
             toast('Call cancelled by caller', { icon: '📞' });
         });
 
         // 9. Call Ended globally (host ended for everyone or 1:1 call completed)
         socket.on('call_ended', (data?: { callId?: number }) => {
             toast('Call ended', { icon: '📞' });
+            setIncomingCall(prev => {
+                if (!prev) return null;
+                if (!data?.callId || prev.callId === data.callId) {
+                    return null;
+                }
+                return prev;
+            });
             if (data?.callId) {
                 setLastLeftCall(prev => prev?.callId === data.callId ? null : prev);
             } else {
@@ -687,13 +700,23 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     const endCall = () => {
         const socket = getSocket();
         if (activeCall) {
-            if (activeCall.status === 'RINGING' && activeCall.isInitiator && !activeCall.isGroup) {
+            const isRingingOrConnecting = activeCall.status === 'RINGING' || activeCall.status === 'CONNECTING';
+            const hasJoinedParticipants = (activeCall.participants || []).some(
+                p => Number(p.id) !== Number(user?.id) && remoteStreams.has(Number(p.id))
+            );
+
+            // If initiator cuts/cancels while ringing or before anyone joined, cancel call for all recipients
+            if (activeCall.isInitiator && (isRingingOrConnecting || !hasJoinedParticipants)) {
                 socket?.emit('cancel_call', {
                     callId: activeCall.callId,
                     receiverId: activeCall.partnerId,
+                    participantIds: activeCall.isGroup
+                        ? (activeCall.participants || []).map(p => p.id)
+                        : (activeCall.partnerId ? [activeCall.partnerId] : []),
+                    isGroup: activeCall.isGroup,
                 });
             } else if (activeCall.isGroup) {
-                // In group call, this user leaves the call room
+                // In group call where others are connected, this user leaves the call room
                 socket?.emit('leave_group_call', {
                     callId: activeCall.callId,
                 });

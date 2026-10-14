@@ -38,11 +38,17 @@ export default function IncomingCallModal({ call, onAccept, onReject }: Incoming
             interval = window.setInterval(playBeep, 2500);
         } catch (_) {}
 
+        // Auto-dismiss after 45 seconds if unanswered (missed call)
+        const timeout = window.setTimeout(() => {
+            onReject('Missed call (no answer)');
+        }, 45000);
+
         return () => {
             if (interval) clearInterval(interval);
+            if (timeout) clearTimeout(timeout);
             if (audioCtx) audioCtx.close().catch(() => {});
         };
-    }, []);
+    }, [onReject]);
 
     return createPortal(
         <div className="fixed inset-0 z-[9999999] flex items-center justify-center p-4">

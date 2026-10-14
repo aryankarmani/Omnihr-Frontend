@@ -514,7 +514,14 @@ export default function ChatHub() {
                     return otherKey === groupKey;
                 });
             }
-            return index === self.findIndex((c) => Number(c.id) === Number(cv.id));
+            const partner = getConversationPartner(cv);
+            const partnerId = partner?.id;
+            if (!partnerId) return index === self.findIndex((c) => Number(c.id) === Number(cv.id));
+            return index === self.findIndex((c) => {
+                if (c.isGroup) return false;
+                const otherPartner = getConversationPartner(c);
+                return Number(otherPartner?.id) === Number(partnerId);
+            });
         })
         .filter((cv) => {
             const q = searchQuery.toLowerCase().trim();
@@ -1493,8 +1500,19 @@ export default function ChatHub() {
                         employees={employees}
                         teams={teams}
                         currentUserId={user?.id as number}
+                        existingConversations={conversations}
                         onConversationCreated={(newConv) => {
                             setConversations((prev) => {
+                                if (!newConv.isGroup) {
+                                    const newPartner = getConversationPartner(newConv);
+                                    const withoutPartner = prev.filter((c) => {
+                                        if (Number(c.id) === Number(newConv.id)) return false;
+                                        if (c.isGroup) return true;
+                                        const p = getConversationPartner(c);
+                                        return Number(p?.id) !== Number(newPartner?.id);
+                                    });
+                                    return [newConv, ...withoutPartner];
+                                }
                                 const withoutNew = prev.filter((c) => c.id !== newConv.id);
                                 return [newConv, ...withoutNew];
                             });
