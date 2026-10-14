@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createPortal } from 'react-dom';
+import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import UserAvatar from '../components/common/UserAvatar';
 

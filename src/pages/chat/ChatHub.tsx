@@ -5,7 +5,7 @@ import {
     Send, Paperclip, Smile, MoreVertical, Reply, Edit2,
     Trash2, Copy, Check, CheckCheck, X, FileText, Image as ImageIcon,
     Download, Info, ChevronDown, ChevronRight, Circle, ArrowLeft, LogOut,
-    UserPlus
+    UserPlus, CornerUpRight
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCall } from '../../context/CallContext';
@@ -55,6 +55,11 @@ export default function ChatHub() {
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [messageToDelete, setMessageToDelete] = useState<number | null>(null);
     const [isDeletingMessage, setIsDeletingMessage] = useState(false);
+
+    // Forward Message State (WhatsApp Style)
+    const [messageToForward, setMessageToForward] = useState<ChatMessage | null>(null);
+    const [forwardSearch, setForwardSearch] = useState('');
+    const [forwardingToId, setForwardingToId] = useState<number | null>(null);
 
     // Conversation Actions (Delete Chat / Leave Group)
     const [confirmModalAction, setConfirmModalAction] = useState<{
@@ -129,13 +134,22 @@ export default function ChatHub() {
             if (isCurrentConv) {
                 setMessages((prev) => {
                     if (prev.some((m) => Number(m.id) === Number(message.id))) return prev;
+                    const optIdx = prev.findIndex(
+                        (m) => Number(m.id) < 0 && Number(m.senderId) === Number(message.senderId) && m.content === message.content
+                    );
+                    if (optIdx !== -1) {
+                        const copy = [...prev];
+                        copy[optIdx] = message;
+                        return copy;
+                    }
                     return [...prev, message];
                 });
                 scrollToBottom();
+                socket.emit('mark_read', { conversationId: activeConvId });
             } else if (message.conversationId) {
                 setConversations((prev) =>
                     prev.map((cv) =>
-                        cv.id === message.conversationId
+                        Number(cv.id) === Number(message.conversationId)
                             ? { ...cv, unreadCount: (cv.unreadCount || 0) + 1, updatedAt: new Date().toISOString() }
                             : cv
                     )
@@ -150,13 +164,22 @@ export default function ChatHub() {
             if (isCurrentConv) {
                 setMessages((prev) => {
                     if (prev.some((m) => Number(m.id) === Number(message.id))) return prev;
+                    const optIdx = prev.findIndex(
+                        (m) => Number(m.id) < 0 && Number(m.senderId) === Number(message.senderId) && m.content === message.content
+                    );
+                    if (optIdx !== -1) {
+                        const copy = [...prev];
+                        copy[optIdx] = message;
+                        return copy;
+                    }
                     return [...prev, message];
                 });
                 scrollToBottom();
+                socket.emit('mark_read', { conversationId: activeConvId });
             } else if (message.conversationId) {
                 setConversations((prev) =>
                     prev.map((cv) =>
-                        cv.id === message.conversationId
+                        Number(cv.id) === Number(message.conversationId)
                             ? { ...cv, unreadCount: (cv.unreadCount || 0) + 1, updatedAt: new Date().toISOString() }
                             : cv
                     )
@@ -227,6 +250,35 @@ export default function ChatHub() {
             );
         });
 
+        // Real-time WhatsApp-style read receipt sync
+        socket.on('conversation_read', ({ conversationId, userId, readAt }: { conversationId: number; userId: number; readAt: string }) => {
+            setConversations((prev) =>
+                prev.map((c) => {
+                    if (Number(c.id) === Number(conversationId)) {
+                        return {
+                            ...c,
+                            participants: (c.participants || []).map((p) =>
+                                Number(p.userId) === Number(userId) ? { ...p, lastReadAt: readAt } : p
+                            ),
+                        };
+                    }
+                    return c;
+                })
+            );
+
+            setMessages((prev) =>
+                prev.map((m) => {
+                    if (Number(m.conversationId) === Number(conversationId) && Number(m.senderId) !== Number(userId)) {
+                        const receipts = m.readReceipts || [];
+                        if (!receipts.some((r) => Number(r.userId) === Number(userId))) {
+                            return { ...m, readReceipts: [...receipts, { userId: Number(userId), readAt }] };
+                        }
+                    }
+                    return m;
+                })
+            );
+        });
+
         return () => {
             socket.off('new_message');
             socket.off('new_conversation_message');
@@ -237,6 +289,7 @@ export default function ChatHub() {
             socket.off('conversation_deleted');
             socket.off('conversation_updated');
             socket.off('conversation_members_added');
+            socket.off('conversation_read');
         };
     }, [activeConvId]);
 
@@ -267,9 +320,10 @@ export default function ChatHub() {
                     prev.map((cv) => (cv.id === activeConvId ? { ...cv, unreadCount: 0 } : cv))
                 );
 
-                // Join socket conversation room
+                // Join socket conversation room & mark messages as read
                 const socket = getSocket();
                 socket?.emit('join_conversation', activeConvId);
+                socket?.emit('mark_read', { conversationId: activeConvId });
             } catch (err: any) {
                 console.error('[ChatHub] Failed to load messages', err);
                 toast.error('Failed to load messages');
@@ -388,9 +442,46 @@ export default function ChatHub() {
 
         setInputText('');
         const replyId = replyTo?.id || null;
+        const currentReply = replyTo;
         setReplyTo(null);
         const attachmentToSend = stagedAttachment;
         setStagedAttachment(null);
+
+        // Optimistic UI: display message instantly (0ms latency)
+        const tempId = -Date.now();
+        const nowIso = new Date().toISOString();
+        const optimisticMessage: ChatMessage = {
+            id: tempId,
+            tenantId: user?.tenantId || '',
+            content: text || (attachmentToSend ? `Sent an attachment: ${attachmentToSend.fileName}` : ''),
+            senderId: Number(user?.id || 0),
+            conversationId: activeConvId,
+            replyToId: replyId,
+            isEdited: false,
+            isDeleted: false,
+            createdAt: nowIso,
+            updatedAt: nowIso,
+            sender: {
+                id: Number(user?.id || 0),
+                name: user?.name || 'You',
+                email: user?.email || '',
+                role: user?.role ? { name: String(user.role) } : undefined,
+                employeeProfile: (user as any)?.employeeProfile || null,
+            },
+            replyTo: currentReply ? {
+                id: currentReply.id,
+                content: currentReply.content,
+                sender: {
+                    id: currentReply.sender?.id || 0,
+                    name: currentReply.sender?.name || 'User',
+                },
+            } : null,
+            attachments: attachmentToSend ? [attachmentToSend as any] : [],
+            readReceipts: [],
+        };
+
+        setMessages((prev) => [...prev, optimisticMessage]);
+        scrollToBottom();
 
         try {
             const payload: any = {
@@ -404,11 +495,15 @@ export default function ChatHub() {
 
             const res = await api.post('/communication/messages', payload);
             setMessages((prev) => {
-                if (prev.some((m) => Number(m.id) === Number(res.data.id))) return prev;
-                return [...prev, res.data];
+                const alreadyExists = prev.some((m) => Number(m.id) === Number(res.data.id));
+                if (alreadyExists) {
+                    return prev.filter((m) => m.id !== tempId);
+                }
+                return prev.map((m) => (m.id === tempId ? res.data : m));
             });
             scrollToBottom();
         } catch (err: any) {
+            setMessages((prev) => prev.filter((m) => m.id !== tempId));
             toast.error(err.response?.data?.message || 'Failed to send message');
         }
     };
@@ -488,7 +583,7 @@ export default function ChatHub() {
     };
 
     // Active Conversation Entity
-    const currentConversation = conversations.find((c) => c.id === activeConvId);
+    const currentConversation = conversations.find((c) => Number(c.id) === Number(activeConvId));
 
     // Robust Partner Resolver for 1:1 Direct Chats
     const getConversationPartner = (cv: DirectConversation | null | undefined): EmployeeSummary | null => {
@@ -502,6 +597,213 @@ export default function ChatHub() {
     // Direct Partner info for 1:1 chat
     const directPartner = getConversationPartner(currentConversation);
     const isPartnerOnline = directPartner ? isUserOnline(directPartner.id) : false;
+
+    // WhatsApp-Style Message Status Ticks (Single Grey -> Double Grey -> Double Blue)
+    const renderMessageStatusTick = (msg: ChatMessage, inBubble: boolean = false) => {
+        if (Number(msg.senderId) !== Number(user?.id)) return null;
+
+        const activeConv = currentConversation || conversations.find((c) => Number(c.id) === Number(activeConvId || msg.conversationId));
+
+        let isRead = false;
+        let isDelivered = false;
+
+        if (activeConv && !activeConv.isGroup) {
+            const partner = directPartner || getConversationPartner(activeConv);
+            const partnerId = partner?.id;
+            const partnerMember = activeConv.participants?.find(
+                (p) => Number(p.userId) === Number(partnerId)
+            );
+
+            // 1. Double Blue Tick: Recipient has read/opened the message
+            const hasReadReceipt = (msg.readReceipts || []).some(
+                (r) => Number(r.userId) === Number(partnerId)
+            );
+            const hasReadTimestamp = Boolean(
+                partnerMember?.lastReadAt &&
+                new Date(partnerMember.lastReadAt).getTime() >= new Date(msg.createdAt).getTime()
+            );
+            isRead = hasReadReceipt || hasReadTimestamp;
+
+            // 2. Double Grey Tick: Recipient is online (delivered)
+            isDelivered = partnerId ? isUserOnline(partnerId) : false;
+        } else if (activeConv?.isGroup) {
+            const otherParticipants = (activeConv?.participants || []).filter(
+                (p) => Number(p.userId) !== Number(user?.id)
+            );
+            const readReceiptCount = (msg.readReceipts || []).filter(
+                (r) => Number(r.userId) !== Number(user?.id)
+            ).length;
+            const isAllRead = otherParticipants.length > 0 && readReceiptCount >= otherParticipants.length;
+            isDelivered = otherParticipants.some((p) => isUserOnline(p.userId)) || readReceiptCount > 0;
+            if (isAllRead) isRead = true;
+        } else {
+            // Direct partner fallback when conversation is not indexed yet
+            if (directPartner) {
+                isDelivered = isUserOnline(directPartner.id);
+            }
+        }
+
+        // Return tick icon with high-contrast colors for both inside-bubble and header placements
+        if (isRead) {
+            return (
+                <span title="Read / Seen" className={`inline-flex items-center ml-1 ${inBubble ? 'text-[#38bdf8]' : 'text-[#34B7F1]'}`}>
+                    <CheckCheck size={16} className="stroke-[2.5]" />
+                </span>
+            );
+        }
+
+        if (isDelivered) {
+            return (
+                <span title="Delivered (Online)" className={`inline-flex items-center ml-1 ${inBubble ? 'text-blue-100' : 'text-[#8696a0] dark:text-gray-400'}`}>
+                    <CheckCheck size={16} className="stroke-[2.2]" />
+                </span>
+            );
+        }
+
+        // Single Tick (Sent to server / Offline)
+        return (
+            <span title="Sent (Offline)" className={`inline-flex items-center ml-1 ${inBubble ? 'text-blue-100' : 'text-[#8696a0] dark:text-gray-400'}`}>
+                <Check size={16} className="stroke-[2.2]" />
+            </span>
+        );
+    };
+
+    // Forward Message Execution (WhatsApp Style)
+    const handleForwardMessage = async (target: { convId?: number; targetUserId?: number; name: string }) => {
+        if (!messageToForward) return;
+        setForwardingToId(target.convId || target.targetUserId || -1);
+
+        try {
+            let targetConvId = target.convId;
+
+            if (!targetConvId && target.targetUserId) {
+                const convRes = await api.post('/communication/direct', {
+                    targetUserId: target.targetUserId,
+                });
+                targetConvId = convRes.data?.id;
+                if (convRes.data && !conversations.some((c) => c.id === convRes.data.id)) {
+                    setConversations((prev) => [convRes.data, ...prev]);
+                }
+            }
+
+            if (!targetConvId) {
+                toast.error('Could not find destination conversation');
+                return;
+            }
+
+            const rawContent = messageToForward.content?.replace(/^\[FORWARDED\]\n/, '') || '';
+            const forwardContent = `[FORWARDED]\n${rawContent}`;
+
+            const payload: any = {
+                conversationId: targetConvId,
+                content: forwardContent || (messageToForward.attachments?.length ? 'Sent an attachment' : ''),
+            };
+
+            if (messageToForward.attachments && messageToForward.attachments.length > 0) {
+                payload.attachments = messageToForward.attachments.map((a) => ({
+                    fileName: a.fileName,
+                    fileUrl: a.fileUrl,
+                    fileType: a.fileType,
+                    fileSize: a.fileSize,
+                }));
+            }
+
+            const res = await api.post('/communication/messages', payload);
+
+            if (Number(targetConvId) === Number(activeConvId)) {
+                setMessages((prev) => {
+                    if (prev.some((m) => Number(m.id) === Number(res.data.id))) return prev;
+                    return [...prev, res.data];
+                });
+                scrollToBottom();
+            }
+
+            toast.success(`Message forwarded to ${target.name}`, { icon: '↗️' });
+            setMessageToForward(null);
+            setForwardSearch('');
+        } catch (err: any) {
+            console.error('[ChatHub] Forward error:', err);
+            toast.error(err.response?.data?.message || 'Failed to forward message');
+        } finally {
+            setForwardingToId(null);
+        }
+    };
+
+    // Search targets for forwarding
+    const getForwardTargets = () => {
+        const query = forwardSearch.trim().toLowerCase();
+        const targets: Array<{
+            key: string;
+            name: string;
+            subtitle: string;
+            avatar: string | null;
+            isGroup: boolean;
+            isOnline: boolean;
+            convId?: number;
+            targetUserId?: number;
+        }> = [];
+
+        conversations.forEach((c) => {
+            if (c.isGroup) {
+                const name = c.title || 'Group Chat';
+                if (!query || name.toLowerCase().includes(query)) {
+                    targets.push({
+                        key: `conv-${c.id}`,
+                        name,
+                        subtitle: `${c.participants?.length || 0} members`,
+                        avatar: null,
+                        isGroup: true,
+                        isOnline: false,
+                        convId: c.id,
+                    });
+                }
+            } else {
+                const partner = getConversationPartner(c);
+                if (partner) {
+                    const name = partner.name || partner.email;
+                    if (!query || name.toLowerCase().includes(query) || partner.email?.toLowerCase().includes(query)) {
+                        targets.push({
+                            key: `conv-${c.id}`,
+                            name,
+                            subtitle: partner.employeeProfile?.department || partner.role?.name || partner.email,
+                            avatar: resolveAvatar(partner),
+                            isGroup: false,
+                            isOnline: isUserOnline(partner.id),
+                            convId: c.id,
+                            targetUserId: partner.id,
+                        });
+                    }
+                }
+            }
+        });
+
+        const existingPartnerUserIds = new Set(
+            conversations
+                .filter((c) => !c.isGroup)
+                .map((c) => getConversationPartner(c)?.id)
+                .filter(Boolean)
+        );
+
+        employees.forEach((emp) => {
+            if (Number(emp.id) === Number(user?.id)) return;
+            if (existingPartnerUserIds.has(emp.id)) return;
+
+            const name = emp.name || emp.email;
+            if (!query || name.toLowerCase().includes(query) || emp.email?.toLowerCase().includes(query)) {
+                targets.push({
+                    key: `emp-${emp.id}`,
+                    name,
+                    subtitle: emp.employeeProfile?.department || emp.role?.name || emp.email,
+                    avatar: resolveAvatar(emp),
+                    isGroup: false,
+                    isOnline: isUserOnline(emp.id),
+                    targetUserId: emp.id,
+                });
+            }
+        });
+
+        return targets;
+    };
 
     // Filtered lists for sidebar
     const filteredConversations = conversations
@@ -863,7 +1165,7 @@ export default function ChatHub() {
                                     </>
                                 )}
                                 {currentConversation?.isGroup &&
-                                    `${currentConversation.participants.length} members`}
+                                    `${currentConversation.participants?.length || 0} members`}
                             </p>
                         </div>
                     </div>
@@ -1008,8 +1310,10 @@ export default function ChatHub() {
                         messages
                             .filter((msg, index, self) => index === self.findIndex((m) => Number(m.id) === Number(msg.id)))
                             .map((msg, idx) => {
-                                const isMe = msg.senderId === user?.id;
+                                const isMe = Number(msg.senderId) === Number(user?.id);
                                 const avatar = resolveAvatar(msg.sender);
+                                const isForwarded = msg.content?.startsWith('[FORWARDED]\n');
+                                const displayContent = isForwarded ? msg.content.replace(/^\[FORWARDED\]\n/, '') : msg.content;
 
                                 return (
                                     <div
@@ -1035,7 +1339,7 @@ export default function ChatHub() {
                                         <div className={`max-w-[75%] space-y-1 relative group/bubble ${isMe ? 'items-end' : 'items-start'}`}>
                                             {/* Sender Name & Timestamp */}
                                             <div
-                                                className={`flex items-center gap-2 text-[10px] text-gray-400 ${
+                                                className={`flex items-center gap-1.5 text-[10px] text-gray-400 ${
                                                     isMe ? 'justify-end' : ''
                                                 }`}
                                             >
@@ -1062,7 +1366,7 @@ export default function ChatHub() {
                                                         {msg.replyTo.sender?.name}
                                                     </span>
                                                     <p className="truncate text-gray-600 dark:text-gray-300">
-                                                        {msg.replyTo.content}
+                                                        {msg.replyTo.content?.replace(/^\[FORWARDED\]\n/, '')}
                                                     </p>
                                                 </div>
                                             )}
@@ -1079,7 +1383,17 @@ export default function ChatHub() {
                                                     <span className="italic text-gray-400">This message was deleted</span>
                                                 ) : (
                                                     <>
-                                                        <p className="whitespace-pre-wrap">{msg.content}</p>
+                                                        {/* WhatsApp Style Forwarded Tag */}
+                                                        {isForwarded && (
+                                                            <div className={`flex items-center gap-1 text-[11px] italic font-medium mb-1.5 ${
+                                                                isMe ? 'text-blue-200' : 'text-gray-400 dark:text-gray-400'
+                                                            }`}>
+                                                                <CornerUpRight size={12} className="shrink-0" />
+                                                                <span>Forwarded</span>
+                                                            </div>
+                                                        )}
+
+                                                        <p className="whitespace-pre-wrap">{displayContent}</p>
 
                                                         {/* Attachments rendering */}
                                                         {msg.attachments && msg.attachments.length > 0 && (
@@ -1139,6 +1453,21 @@ export default function ChatHub() {
                                                                 })}
                                                             </div>
                                                         )}
+
+                                                        {/* WhatsApp Style Time & Ticks in bottom right of bubble */}
+                                                        <div
+                                                            className={`flex items-center justify-end gap-1 mt-1 text-[10px] select-none ${
+                                                                isMe ? 'text-blue-100/80' : 'text-gray-400'
+                                                            }`}
+                                                        >
+                                                            <span>
+                                                                {new Date(msg.createdAt).toLocaleTimeString([], {
+                                                                    hour: '2-digit',
+                                                                    minute: '2-digit',
+                                                                })}
+                                                            </span>
+                                                            {isMe && renderMessageStatusTick(msg, true)}
+                                                        </div>
                                                     </>
                                                 )}
                                             </div>
@@ -1152,23 +1481,33 @@ export default function ChatHub() {
                                                 >
                                                     <button
                                                         onClick={() => setReplyTo(msg)}
+                                                        title="Reply"
                                                         className="p-1 hover:bg-gray-100 dark:hover:bg-white/10 rounded-[6px] text-gray-500 hover:text-gray-800 dark:hover:text-white cursor-pointer"
                                                     >
                                                         <Reply size={13} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setMessageToForward(msg)}
+                                                        title="Forward message"
+                                                        className="p-1 hover:bg-gray-100 dark:hover:bg-white/10 rounded-[6px] text-gray-500 hover:text-gray-800 dark:hover:text-white cursor-pointer"
+                                                    >
+                                                        <CornerUpRight size={13} />
                                                     </button>
                                                     {isMe && (
                                                         <>
                                                             <button
                                                                 onClick={() => {
                                                                     setEditingMessage(msg);
-                                                                    setInputText(msg.content);
+                                                                    setInputText(displayContent);
                                                                 }}
+                                                                title="Edit"
                                                                 className="p-1 hover:bg-gray-100 dark:hover:bg-white/10 rounded-[6px] text-gray-500 hover:text-gray-800 dark:hover:text-white cursor-pointer"
                                                             >
                                                                 <Edit2 size={13} />
                                                             </button>
                                                             <button
                                                                 onClick={() => setMessageToDelete(msg.id)}
+                                                                title="Delete"
                                                                 className="p-1 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-[6px] text-rose-500 cursor-pointer"
                                                             >
                                                                 <Trash2 size={13} />
@@ -1348,7 +1687,7 @@ export default function ChatHub() {
                             </h3>
                             <p className="text-xs text-gray-400 mt-0.5">
                                 {currentConversation?.isGroup
-                                    ? `${currentConversation.participants.length} group members`
+                                    ? `${currentConversation.participants?.length || 0} group members`
                                     : directPartner?.employeeProfile?.title || directPartner?.email}
                             </p>
                         </div>
@@ -1530,7 +1869,7 @@ export default function ChatHub() {
                     onClose={() => setShowAddMembersModal(false)}
                     conversationId={currentConversation.id}
                     groupTitle={currentConversation.title || 'Group Chat'}
-                    existingMemberIds={currentConversation.participants.map((p) => p.userId)}
+                    existingMemberIds={(currentConversation?.participants || []).map((p) => p.userId)}
                     employees={employees}
                     onMembersAdded={(updatedConv, addedUsers) => {
                         if (updatedConv) {
@@ -1542,7 +1881,7 @@ export default function ChatHub() {
                                 prev.map((c) => {
                                     if (c.id === currentConversation.id) {
                                         const newParts = [
-                                            ...c.participants,
+                                            ...(c.participants || []),
                                             ...addedUsers.map((u: any) => ({
                                                 id: Date.now() + Math.random(),
                                                 conversationId: c.id,
@@ -1656,6 +1995,129 @@ export default function ChatHub() {
                             >
                                 Cancel
                             </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* WhatsApp-Style Forward Message Modal */}
+            {messageToForward !== null && createPortal(
+                <div className="fixed inset-0 z-[9999999] flex items-center justify-center p-4">
+                    <div
+                        className="absolute inset-0 bg-slate-900/40 dark:bg-black/70 backdrop-blur-sm animate-fade-in"
+                        onClick={() => !forwardingToId && setMessageToForward(null)}
+                    />
+
+                    <div className="relative bg-white dark:bg-[#12151C] w-full max-w-[calc(100vw-2rem)] sm:max-w-md rounded-[10px] shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden animate-scale-in flex flex-col max-h-[85vh]">
+                        {/* Header */}
+                        <div className="p-4 border-b border-[#E2E6ED] dark:border-gray-800 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <CornerUpRight size={18} className="text-[#2C4FD6]" />
+                                <h3 className="text-base font-bold text-gray-900 dark:text-white">Forward Message</h3>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setMessageToForward(null)}
+                                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-md transition-colors cursor-pointer"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        {/* Message Preview */}
+                        <div className="p-3 bg-gray-50 dark:bg-white/5 border-b border-[#E2E6ED] dark:border-gray-800">
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
+                                Forwarding message from {messageToForward.sender?.name || 'User'}
+                            </span>
+                            <div className="p-2.5 bg-white dark:bg-[#1A1F2B] rounded-md border border-gray-200/80 dark:border-gray-700/60 text-xs text-gray-700 dark:text-gray-300">
+                                <p className="line-clamp-3 whitespace-pre-wrap">
+                                    {messageToForward.content?.replace(/^\[FORWARDED\]\n/, '') || '(Attachment)'}
+                                </p>
+                                {messageToForward.attachments && messageToForward.attachments.length > 0 && (
+                                    <div className="mt-1.5 flex items-center gap-1.5 text-blue-600 dark:text-blue-400 text-[11px] font-medium">
+                                        <FileText size={13} />
+                                        <span>{messageToForward.attachments.length} attachment(s)</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Search input */}
+                        <div className="p-3 border-b border-[#E2E6ED] dark:border-gray-800">
+                            <div className="relative">
+                                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Search people or groups..."
+                                    value={forwardSearch}
+                                    onChange={(e) => setForwardSearch(e.target.value)}
+                                    className="w-full pl-9 pr-3 py-2 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-700 rounded-md text-xs text-gray-800 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-[#2C4FD6]"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Destination List */}
+                        <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
+                            {getForwardTargets().length === 0 ? (
+                                <p className="text-center text-xs text-gray-400 py-6">No matching contacts or groups found</p>
+                            ) : (
+                                getForwardTargets().map((target) => {
+                                    const isBusy = forwardingToId === (target.convId || target.targetUserId);
+                                    return (
+                                        <div
+                                            key={target.key}
+                                            className="flex items-center justify-between p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group"
+                                        >
+                                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                <div className="relative shrink-0">
+                                                    <div className="w-9 h-9 rounded-full overflow-hidden bg-gradient-to-tr from-blue-500 to-indigo-600 text-white font-bold text-xs flex items-center justify-center">
+                                                        {target.avatar ? (
+                                                            <img src={target.avatar} alt={target.name} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            target.name?.charAt(0).toUpperCase() || 'U'
+                                                        )}
+                                                    </div>
+                                                    {target.isOnline && (
+                                                        <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white dark:border-[#12151C]" />
+                                                    )}
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="text-xs font-semibold text-gray-900 dark:text-white truncate block">
+                                                            {target.name}
+                                                        </span>
+                                                        {target.isGroup && (
+                                                            <span className="text-[9px] px-1.5 py-0.2 bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 rounded font-medium">
+                                                                Group
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-[11px] text-gray-400 truncate">
+                                                        {target.subtitle}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => handleForwardMessage(target)}
+                                                disabled={isBusy || forwardingToId !== null}
+                                                className="px-3 py-1.5 bg-[#2C4FD6] hover:bg-blue-700 text-white text-xs font-medium rounded-md flex items-center gap-1 transition-all active:scale-95 disabled:opacity-50 cursor-pointer shrink-0 ml-2"
+                                            >
+                                                {isBusy ? (
+                                                    <span>Sending...</span>
+                                                ) : (
+                                                    <>
+                                                        <Send size={12} />
+                                                        <span>Send</span>
+                                                    </>
+                                                )}
+                                            </button>
+                                        </div>
+                                    );
+                                })
+                            )}
                         </div>
                     </div>
                 </div>,

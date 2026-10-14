@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Users, User, Search, Check } from 'lucide-react';
-import type { EmployeeSummary } from '../../types/chat';
+import type { EmployeeSummary, DirectConversation, DirectConversationMember } from '../../types/chat';
 import api, { getMediaUrl } from '../../utils/api';
 import toast from 'react-hot-toast';
 
@@ -86,7 +86,7 @@ export default function CreateTeamChannelModal({
 
         // If a 1:1 conversation already exists with this user, directly select it without creating duplicate
         const existing = existingConversations.find(
-            (c) => !c.isGroup && (c.participants || []).some((p) => Number(p.userId) === Number(targetUserId))
+            (c) => !c.isGroup && (c.participants || []).some((p: DirectConversationMember) => Number(p.userId) === Number(targetUserId))
         );
         if (existing) {
             onConversationCreated(existing);
