@@ -83,7 +83,7 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
         const month = now.getMonth() + 1;
 
         try {
-            const res = await api.post('/attendance/punch');
+            const res = await api.post('/attendance/punch', confirmAction ? { action: confirmAction } : undefined);
             setPunchStatus(res.data.record ? {
                 isPunchedIn: res.data.record.inTime && !res.data.record.outTime,
                 punchInTime: res.data.record.inTime,
