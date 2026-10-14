@@ -239,8 +239,8 @@ export default function Attendance() {
     }, [selectedMonth, joiningDate]);
 
     const punchMutation = useMutation({
-        mutationFn: async () => {
-            const res = await api.post('/attendance/punch');
+        mutationFn: async (action?: 'PUNCH_IN' | 'PUNCH_OUT') => {
+            const res = await api.post('/attendance/punch', action ? { action } : undefined);
             return res.data;
         },
         onSuccess: (data) => {
@@ -248,6 +248,7 @@ export default function Attendance() {
             if (data.shift) setCurrentShift(data.shift);
             fetchStatusAndPolicy();
             fetchHistoryAndRequests();
+            window.dispatchEvent(new Event('punch-updated'));
         },
         onError: (error: any) => {
             toast.error(error.response?.data?.message || 'Error during punch toggle', { id: 'punch-status-error' });
@@ -303,7 +304,7 @@ export default function Attendance() {
 
     const handleConfirmAction = () => {
         if (confirmAction === 'PUNCH_IN' || confirmAction === 'PUNCH_OUT') {
-            punchMutation.mutate(undefined, {
+            punchMutation.mutate(confirmAction, {
                 onSettled: () => setConfirmAction(null)
             });
         } else if (confirmAction === 'BREAK_IN') {

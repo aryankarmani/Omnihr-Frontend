@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { MapPin, X, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -10,6 +10,8 @@ export default function PunchInPromptModal() {
     const [isOpen, setIsOpen] = useState(false);
     const [currentTime, setCurrentTime] = useState(new Date());
     const [isPunching, setIsPunching] = useState(false);
+    const isPunchingRef = useRef(false);
+    const timerRef = useRef<any>(null);
 
     // Live clock timer
     useEffect(() => {
@@ -19,12 +21,26 @@ export default function PunchInPromptModal() {
         return () => clearInterval(interval);
     }, []);
 
+    // Listen for punch updates elsewhere (e.g. user punched in manually on page or dashboard)
+    // If user punches in or out, immediately dismiss modal and cancel pending timer
+    useEffect(() => {
+        const onPunchUpdated = () => {
+            if (timerRef.current) {
+                clearTimeout(timerRef.current);
+                timerRef.current = null;
+            }
+            setIsOpen(false);
+        };
+
+        window.addEventListener('punch-updated', onPunchUpdated);
+        return () => window.removeEventListener('punch-updated', onPunchUpdated);
+    }, []);
+
     // Check punch status and trigger 3-second popup once per day
     useEffect(() => {
         // Only run for logged-in company users (Employees, HR Admins, Managers, etc.)
         if (!user || user.role === 'SUPER_ADMIN') return;
 
-        let timerId: any = null;
         let isCancelled = false;
 
         const checkAndPrompt = async () => {
@@ -44,17 +60,30 @@ export default function PunchInPromptModal() {
 
                 const { isPunchedIn, punchOutTime, canPunchIn } = statusRes.data || {};
 
-                // If user is already punched in, already completed shift, or not yet in punch-in window (e.g. morning for night shift), do not prompt
+                // If user is already punched in, already completed shift, or not yet in punch-in window, do not prompt
                 if (isPunchedIn || punchOutTime || canPunchIn === false) {
                     return;
                 }
 
-                // Wait 3 seconds after login / landing on page, then display the modal
-                timerId = setTimeout(() => {
-                    if (!isCancelled) {
+                // Wait 3 seconds after login / landing on page, then re-verify and display modal
+                timerRef.current = setTimeout(async () => {
+                    if (isCancelled) return;
+
+                    try {
+                        // Re-verify live punch status right before popping up (in case user punched in during the 3s window)
+                        const latestStatus = await api.get('/attendance/status');
+                        if (isCancelled) return;
+
+                        const latest = latestStatus.data || {};
+                        if (latest.isPunchedIn || latest.punchOutTime || latest.canPunchIn === false) {
+                            return;
+                        }
+
                         // Mark as shown today so it only appears once per day
                         localStorage.setItem(storageKey, 'true');
                         setIsOpen(true);
+                    } catch (err) {
+                        console.error("Error re-verifying status before modal:", err);
                     }
                 }, 3000);
             } catch (error) {
@@ -66,16 +95,21 @@ export default function PunchInPromptModal() {
 
         return () => {
             isCancelled = true;
-            if (timerId) clearTimeout(timerId);
+            if (timerRef.current) {
+                clearTimeout(timerRef.current);
+                timerRef.current = null;
+            }
         };
     }, [user]);
 
     const handlePunchIn = async () => {
-        if (isPunching) return;
+        // Synchronous guard against double-clicks
+        if (isPunchingRef.current || isPunching) return;
+        isPunchingRef.current = true;
         setIsPunching(true);
 
         try {
-            const res = await api.post('/attendance/punch');
+            const res = await api.post('/attendance/punch', { action: 'PUNCH_IN' });
             toast.success(res.data?.message || 'Punched in successfully!');
             setIsOpen(false);
             // Notify other components (dashboards, attendance page) to refresh immediately
@@ -84,8 +118,12 @@ export default function PunchInPromptModal() {
             console.error("Punch in error:", error);
             const msg = error.response?.data?.message || error.message || 'Failed to punch in';
             toast.error(msg);
+            if (msg.toLowerCase().includes('already')) {
+                setIsOpen(false);
+            }
         } finally {
             setIsPunching(false);
+            isPunchingRef.current = false;
         }
     };
 
