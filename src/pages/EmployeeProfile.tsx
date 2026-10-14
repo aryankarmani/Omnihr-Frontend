@@ -923,7 +923,7 @@ export default function EmployeeProfile() {
             toast.error('Failed to delete profile picture');
         }
     };
-    const handleProfilePictureChange = (
+    const handleProfilePictureChange = async (
         e: React.ChangeEvent<HTMLInputElement>
     ) => {
         const file = e.target.files?.[0];
@@ -942,18 +942,36 @@ export default function EmployeeProfile() {
             return;
         }
 
-        if (newProfilePicturePreview) {
-            URL.revokeObjectURL(newProfilePicturePreview);
+        const previewUrl = URL.createObjectURL(file);
+        setNewProfilePicturePreview(previewUrl);
+
+        const formData = new FormData();
+        formData.append('profilePicture', file);
+
+        toast.loading('Uploading profile picture...', { id: 'profile-picture-toast' });
+        try {
+            await api.put(
+                id ? `/employee/${id}/profile-picture` : '/employee/me/profile-picture',
+                formData,
+                { headers: { 'Content-Type': 'multipart/form-data' } }
+            );
+
+            await fetchEmployee();
+            window.dispatchEvent(new Event('auth_user_updated'));
+            toast.success('Profile picture updated successfully!', { id: 'profile-picture-toast' });
+            setErrors((prev) => ({
+                ...prev,
+                profilePicture: '',
+            }));
+            setNewProfilePicture(null);
+        } catch (error: any) {
+            console.error('Profile picture upload failed:', error);
+            toast.error(error.response?.data?.message || 'Failed to upload profile picture', { id: 'profile-picture-toast' });
+            if (previewUrl) URL.revokeObjectURL(previewUrl);
+            setNewProfilePicturePreview(null);
+        } finally {
+            e.target.value = '';
         }
-
-        setNewProfilePicture(file);
-        setNewProfilePicturePreview(URL.createObjectURL(file));
-
-        setErrors((prev) => ({
-            ...prev,
-            profilePicture: '',
-        }));
-        e.target.value = '';
     };
     const handleFileUpload = async (
         e: React.ChangeEvent<HTMLInputElement>,
@@ -1841,7 +1859,7 @@ export default function EmployeeProfile() {
 
                                         <div>
                                             <p className="font-semibold text-[14px] text-[#12151C] dark:text-white">
-                                                Profile Picture <span className="text-red-500">*</span>
+                                                Profile Picture <span className="text-[12px] font-normal text-[#717E95] dark:text-gray-400">(use less than 2 MB)</span> <span className="text-red-500">*</span>
                                             </p>
 
                                             <p
@@ -1864,9 +1882,8 @@ export default function EmployeeProfile() {
                                     </div>
 
                                     <div className="flex items-center gap-3">
-                                        {/* Upload only when profile picture does not exist */}
-                                        {isEditing &&
-                                            canEditProfile &&
+                                        {/* Upload button */}
+                                        {canEditProfile &&
                                             !displayedProfilePictureUrl && (
                                                 <button
                                                     type="button"

@@ -137,11 +137,9 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
     // If employee is team manager, grant team management modules if allowed
     if (managerAccess.isTeamManager) {
         const extraModules: string[] = [];
-        if (managerAccess.access.list) extraModules.push('EMPLOYEE');
         if (managerAccess.access.attendance || managerAccess.access.regularization) {
             extraModules.push('EMPLOYEE_ATTENDANCE');
         }
-        if (managerAccess.access.leaveApproval) extraModules.push('EMPLOYEE');
         userModules = Array.from(new Set([...userModules, ...extraModules]));
     }
 
@@ -248,22 +246,20 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                 <nav className="flex-1 px-3 space-y-1 mt-2 overflow-y-auto overflow-x-hidden custom-scrollbar">
                     {menuItems.filter(item => {
                         const isGlobalAdmin = user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'SYSTEM_ADMIN';
+                        if (isGlobalAdmin) return true;
+
+                        // Strict role module access: if this module is unchecked in Access Masters, do not display it!
+                        if (!userModules.includes(item.module)) {
+                            return false;
+                        }
+
                         if (item.module === 'MY_PROFILE') {
-                            return isGlobalAdmin || (userModules.includes('MY_PROFILE') && hasPermission('MY_PROFILE_VIEW'));
+                            return hasPermission('MY_PROFILE_VIEW');
                         }
                         if (item.module === 'EMPLOYEE') {
-                            return (
-                                isGlobalAdmin ||
-                                userModules.includes('EMPLOYEE') ||
-                                userModules.includes('EMPLOYEE_ATTENDANCE') ||
-                                hasPermission('EMPLOYEE_VIEW') ||
-                                hasPermission('LEAVE_APPROVE') ||
-                                hasPermission('ATTENDANCE_APPROVE') ||
-                                hasPermission('ATTENDANCE_REJECT') ||
-                                (managerAccess.isTeamManager && (managerAccess.access.list || managerAccess.access.leaveApproval || managerAccess.access.regularization))
-                            );
+                            return hasPermission('EMPLOYEE_VIEW') || !hasCustomModules;
                         }
-                        return userModules.includes(item.module);
+                        return true;
                     }).map((item) => {
                         const hasChildren = item.children && item.children.length > 0;
                         const isOpen = openMenus.includes(item.label);
@@ -303,26 +299,27 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                                     <div className="space-y-1 ml-4 border-l border-[#E2E6ED] dark:border-gray-800 pl-2 animate-fade-in">
                                         {item.children?.filter(child => {
                                             const isGlobalAdmin = user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'SYSTEM_ADMIN';
+                                            if (isGlobalAdmin) return true;
+
+                                            // If child's module is not in userModules, do not show it
+                                            if (!userModules.includes(child.module)) return false;
 
                                             if (child.label === 'List') {
-                                                return isGlobalAdmin || hasPermission('EMPLOYEE_VIEW') || userModules.includes('EMPLOYEE') || (managerAccess.isTeamManager && managerAccess.access.list);
+                                                return hasPermission('EMPLOYEE_VIEW') || !hasCustomModules;
                                             }
                                             if (child.label === 'Profile Completion') {
-                                                return isGlobalAdmin || hasPermission('EMPLOYEE_VIEW') || userModules.includes('EMPLOYEE');
+                                                return hasPermission('EMPLOYEE_VIEW') || !hasCustomModules;
                                             }
                                             if (child.label === 'Leave Approval') {
-                                                return isGlobalAdmin || hasPermission('LEAVE_APPROVE') || hasPermission('LEAVE_VIEW') || (managerAccess.isTeamManager && managerAccess.access.leaveApproval);
+                                                return hasPermission('LEAVE_APPROVE') || hasPermission('LEAVE_VIEW');
                                             }
                                             if (child.label === 'Correction' || child.label === 'Regularizations') {
-                                                return isGlobalAdmin || hasPermission('ATTENDANCE_APPROVE') || hasPermission('ATTENDANCE_REJECT') || hasPermission('EMPLOYEE_ATTENDANCE_MANAGE') || (managerAccess.isTeamManager && managerAccess.access.regularization);
+                                                return hasPermission('ATTENDANCE_APPROVE') || hasPermission('ATTENDANCE_REJECT') || hasPermission('EMPLOYEE_ATTENDANCE_MANAGE');
                                             }
                                             if (child.label === 'Attendance') {
-                                                return isGlobalAdmin || hasPermission('EMPLOYEE_ATTENDANCE_VIEW') || (managerAccess.isTeamManager && managerAccess.access.attendance);
+                                                return hasPermission('EMPLOYEE_ATTENDANCE_VIEW');
                                             }
-                                            if (child.module === 'EMPLOYEE_ATTENDANCE') {
-                                                return userModules.includes('EMPLOYEE_ATTENDANCE');
-                                            }
-                                            return userModules.includes(child.module);
+                                            return true;
                                         }).map((child) => {
                                             const childActive = isChildActive(child, item.children);
                                             const ChildIcon = child.icon || item.icon;

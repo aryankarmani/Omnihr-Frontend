@@ -914,7 +914,11 @@ export default function ActiveCallWindow() {
                     >
                         <PhoneOff size={17} />
                         <span className="hidden sm:inline">
-                            {activeCall.isGroup ? 'Leave Call' : 'End Call'}
+                            {activeCall.status === 'RINGING' || activeCall.status === 'CONNECTING'
+                                ? 'Cancel Call'
+                                : activeCall.isGroup
+                                    ? 'Leave Call'
+                                    : 'End Call'}
                         </span>
                     </button>
                 </div>

@@ -338,6 +338,8 @@ export default function Attendance() {
 
         const finalReason = reason === 'Other' ? customReason.trim() : reason;
         const isBreakCorrection = reason === 'Break In Correction' || reason === 'Break Out Correction';
+        const isPunchInCorrection = reason === 'Forgot to Punch In';
+        const isPunchOutCorrection = reason === 'Forgot to Punch Out';
 
         const [y, m, d] = regularizeDate.split('-').map(Number);
         const targetDate = new Date(y, m - 1, d);
@@ -351,6 +353,18 @@ export default function Attendance() {
             parsedBreak = parse12hTo24h(breakInputText);
             if (!parsedBreak) {
                 toast.error('Please enter a valid Break Time (e.g., 01:00 PM)');
+                return;
+            }
+        } else if (isPunchInCorrection) {
+            parsedIn = parse12hTo24h(inInputText);
+            if (!parsedIn) {
+                toast.error('Please enter a valid Proposed In Time (e.g., 09:00 AM)');
+                return;
+            }
+        } else if (isPunchOutCorrection) {
+            parsedOut = parse12hTo24h(outInputText);
+            if (!parsedOut) {
+                toast.error('Please enter a valid Proposed Out Time (e.g., 06:00 PM)');
                 return;
             }
         } else {
@@ -406,6 +420,30 @@ export default function Attendance() {
                     proposedBreakEnd: reason === 'Break Out Correction' ? breakTimeStr : undefined,
                     breakTime: breakTimeStr,
                 });
+            } else if (isPunchInCorrection && parsedIn) {
+                const [inH, inM] = parsedIn.split(':').map(Number);
+                const inTimeDate = new Date(y, m - 1, d, inH, inM, 0);
+                const inTimeStr = inTimeDate.toISOString();
+
+                await api.post('/attendance/regularize', {
+                    date: regularizeDate,
+                    reason: finalReason,
+                    correctionType: 'PUNCH_IN',
+                    inTime: inTimeStr,
+                    proposedIn: inTimeStr
+                });
+            } else if (isPunchOutCorrection && parsedOut) {
+                const [outH, outM] = parsedOut.split(':').map(Number);
+                const outTimeDate = new Date(y, m - 1, d, outH, outM, 0);
+                const outTimeStr = outTimeDate.toISOString();
+
+                await api.post('/attendance/regularize', {
+                    date: regularizeDate,
+                    reason: finalReason,
+                    correctionType: 'PUNCH_OUT',
+                    outTime: outTimeStr,
+                    proposedOut: outTimeStr
+                });
             } else if (parsedIn && parsedOut) {
                 // ISO Date strings for proposed times (completely timezone-safe parsing)
                 const [inH, inM] = parsedIn.split(':').map(Number);
@@ -418,6 +456,7 @@ export default function Attendance() {
                 await api.post('/attendance/regularize', {
                     date: regularizeDate,
                     reason: finalReason,
+                    correctionType: 'PUNCH',
                     inTime: inTimeStr,
                     outTime: outTimeStr,
                     proposedIn: inTimeStr,
@@ -1130,6 +1169,56 @@ export default function Attendance() {
                                         }`}>
                                         {breakInputText && parse12hTo24h(breakInputText)
                                             ? `✓ Set: ${format24to12(parse12hTo24h(breakInputText)!)}`
+                                            : 'Format: HH:MM AM/PM'}
+                                    </p>
+                                </div>
+                            ) : reason === 'Forgot to Punch In' ? (
+                                <div>
+                                    <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 uppercase mb-1">Proposed In Time</label>
+                                    <div className="relative">
+                                        <Clock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                        <input
+                                            type="text"
+                                            value={inInputText}
+                                            onChange={(e) => setInInputText(e.target.value)}
+                                            placeholder="09:00 AM"
+                                            className={`w-full pl-9 pr-3 py-2 bg-white dark:bg-[#12151C] border rounded-[6px] outline-none focus:border-[#2C4FD6] transition-all text-[13px] font-medium text-[#12151C] dark:text-white ${inInputText && !parse12hTo24h(inInputText)
+                                                ? 'border-rose-500/60'
+                                                : 'border-[#E2E6ED] dark:border-gray-700'
+                                                }`}
+                                        />
+                                    </div>
+                                    <p className={`text-[10.5px] mt-1 font-semibold ${inInputText && !parse12hTo24h(inInputText)
+                                        ? 'text-rose-500'
+                                        : 'text-gray-400 dark:text-gray-500'
+                                        }`}>
+                                        {inInputText && parse12hTo24h(inInputText)
+                                            ? `✓ Set: ${format24to12(parse12hTo24h(inInputText)!)}`
+                                            : 'Format: HH:MM AM/PM'}
+                                    </p>
+                                </div>
+                            ) : reason === 'Forgot to Punch Out' ? (
+                                <div>
+                                    <label className="block text-xs font-semibold text-[#5B6472] dark:text-gray-300 uppercase mb-1">Proposed Out Time</label>
+                                    <div className="relative">
+                                        <Clock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                        <input
+                                            type="text"
+                                            value={outInputText}
+                                            onChange={(e) => setOutInputText(e.target.value)}
+                                            placeholder="06:00 PM"
+                                            className={`w-full pl-9 pr-3 py-2 bg-white dark:bg-[#12151C] border rounded-[6px] outline-none focus:border-[#2C4FD6] transition-all text-[13px] font-medium text-[#12151C] dark:text-white ${outInputText && !parse12hTo24h(outInputText)
+                                                ? 'border-rose-500/60'
+                                                : 'border-[#E2E6ED] dark:border-gray-700'
+                                                }`}
+                                        />
+                                    </div>
+                                    <p className={`text-[10.5px] mt-1 font-semibold ${outInputText && !parse12hTo24h(outInputText)
+                                        ? 'text-rose-500'
+                                        : 'text-gray-400 dark:text-gray-500'
+                                        }`}>
+                                        {outInputText && parse12hTo24h(outInputText)
+                                            ? `✓ Set: ${format24to12(parse12hTo24h(outInputText)!)}`
                                             : 'Format: HH:MM AM/PM'}
                                     </p>
                                 </div>

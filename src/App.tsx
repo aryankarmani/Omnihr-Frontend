@@ -157,9 +157,9 @@ function AppContent() {
 
                     {/* Protected Routes */}
                     <Route path="/dashboard" element={<ProtectedRoute><DashboardHome /></ProtectedRoute>} />
-                    <Route path="/employee" element={<ProtectedRoute><EmployeeList /></ProtectedRoute>} />
+                    <Route path="/employee" element={<ProtectedRoute module="EMPLOYEE"><EmployeeList /></ProtectedRoute>} />
                     <Route path="/employee/profile-completion" element={<ProtectedRoute module="EMPLOYEE"><ProfileCompletion /></ProtectedRoute>} />
-                    <Route path="/employee/add" element={<ProtectedRoute><AddEmployee /></ProtectedRoute>} />
+                    <Route path="/employee/add" element={<ProtectedRoute module="EMPLOYEE"><AddEmployee /></ProtectedRoute>} />
                     <Route path="/employee/:id" element={<ProtectedRoute><EmployeeProfile /></ProtectedRoute>} />
                     <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
                     <Route path="/employee-attendance/:id" element={<ProtectedRoute><EmployeeAttendanceView /></ProtectedRoute>} />

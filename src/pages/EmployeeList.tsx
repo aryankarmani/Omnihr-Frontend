@@ -6,7 +6,7 @@ import api from '../utils/api';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import { calculateProfileCompletion } from '../utils/profileCompletion';
-// import { getTeams } from '../utils/teamApi';
+import UserAvatar from '../components/common/UserAvatar';
 
 export default function EmployeeList() {
     const navigate = useNavigate();
@@ -472,9 +472,11 @@ export default function EmployeeList() {
                                                     className="w-4 h-4 rounded border-[#D0D5DD] text-[#2C4FD6] focus:ring-[#2C4FD6] cursor-pointer accent-[#2C4FD6]"
                                                 />
                                             </div>
-                                            <div className="w-10 h-10 rounded-full bg-[#EEF1F5] dark:bg-gray-700 text-[#5B6472] dark:text-white font-mono-numbers font-bold text-xs flex items-center justify-center shrink-0 uppercase">
-                                                {initials}
-                                            </div>
+                                            <UserAvatar
+                                                src={profile.avatar || emp.avatar}
+                                                name={rawName}
+                                                size="md"
+                                            />
                                             <div className="min-w-0 flex-1">
                                                 <div className="font-semibold text-[#12151C] dark:text-white text-[14px] truncate capitalize">
                                                     {emp.name || 'Unnamed Employee'}
@@ -606,9 +608,11 @@ export default function EmployeeList() {
                                             </td>
                                             <td className="py-[13px] px-[20px]">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-[#EEF1F5] dark:bg-gray-700 text-[#5B6472] dark:text-white font-mono-numbers font-bold text-xs flex items-center justify-center shrink-0 uppercase">
-                                                        {initials}
-                                                    </div>
+                                                    <UserAvatar
+                                                        src={profile.avatar || emp.avatar}
+                                                        name={rawName}
+                                                        size="sm"
+                                                    />
                                                     <div>
                                                         <div className="emp-name font-semibold text-[#12151C] dark:text-white text-[13.5px] hover:text-[#2C4FD6] dark:hover:text-blue-400 transition-colors capitalize">
                                                             {emp.name || 'Unnamed Employee'}

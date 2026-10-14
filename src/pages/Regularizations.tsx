@@ -17,9 +17,9 @@ import {
   ChevronsRight
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import api from '../utils/api';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
+import UserAvatar from '../components/common/UserAvatar';
 
 interface RegularizationRequest {
   id: string;
@@ -378,9 +378,11 @@ export default function Regularizations() {
                     <tr key={req.id} className="hover:bg-gray-50/60 dark:hover:bg-gray-800/40 transition-colors">
                       <td className="py-[13px] px-[22px]">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-[#EEF1F5] dark:bg-gray-700 text-[#5B6472] dark:text-gray-300 font-bold text-xs flex items-center justify-center shrink-0 uppercase font-mono-numbers">
-                            {initials}
-                          </div>
+                          <UserAvatar
+                            src={req.user?.employeeProfile?.avatar || (req.user as any)?.avatar}
+                            name={name}
+                            size="sm"
+                          />
                           <div>
                             <button
                               onClick={() => navigate(`/employee/${req.user?.id || req.userId}`)}
@@ -408,6 +410,16 @@ export default function Regularizations() {
                             <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 font-semibold text-xs">
                               <Coffee size={12} className="text-amber-600 shrink-0" />
                               <span>Break Out: {formatTime12h(req.proposedBreakEnd || req.proposedOut || req.outTime)}</span>
+                            </div>
+                          ) : req.correctionType === 'PUNCH_IN' || req.reason === 'Forgot to Punch In' || (req.proposedIn && !req.proposedOut) ? (
+                            <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-medium text-xs">
+                              <Clock size={12} />
+                              <span>In: {formatTime12h(req.proposedIn || req.inTime)}</span>
+                            </div>
+                          ) : req.correctionType === 'PUNCH_OUT' || req.reason === 'Forgot to Punch Out' || (req.proposedOut && !req.proposedIn) ? (
+                            <div className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400 font-medium text-xs">
+                              <Clock size={12} />
+                              <span>Out: {formatTime12h(req.proposedOut || req.outTime)}</span>
                             </div>
                           ) : (
                             <>

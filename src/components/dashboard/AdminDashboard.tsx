@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import api from '../../utils/api';
 import HeadcountStats from './HeadcountStats';
 import LiveAttendance from './LiveAttendance';
+import UserAvatar from '../common/UserAvatar';
 
 interface AdminDashboardProps {
     navigate: any;
@@ -291,12 +292,15 @@ export default function AdminDashboard({
                                     className="flex items-center justify-between p-1.5 rounded-[6px] hover:bg-[#F7F8FA] dark:hover:bg-gray-800 transition-all cursor-pointer border border-transparent hover:border-[#E2E6ED]"
                                 >
                                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                        <div className={`w-8 h-8 rounded-full ${item.category === 'LEAVE'
-                                            ? 'bg-[#EEF1F5] dark:bg-gray-700 text-[#5B6472] dark:text-white'
-                                            : 'bg-[#FFF7ED] dark:bg-orange-950/40 text-[#EA580C]'
-                                            } flex items-center justify-center font-mono-numbers font-bold text-xs shrink-0`}>
-                                            {getInitials(item.userName)}
-                                        </div>
+                                        <UserAvatar
+                                            src={item.avatar}
+                                            name={item.userName}
+                                            size="sm"
+                                            bgClassName={item.category === 'LEAVE'
+                                                ? 'bg-[#EEF1F5] dark:bg-gray-700 text-[#5B6472] dark:text-white'
+                                                : 'bg-[#FFF7ED] dark:bg-orange-950/40 text-[#EA580C]'
+                                            }
+                                        />
                                         <div className="min-w-0 flex-1">
                                             <div className="flex items-center gap-1.5">
                                                 <h4 className="text-[13px] font-semibold text-[#12151C] dark:text-white truncate">{item.userName}</h4>
@@ -427,9 +431,11 @@ export default function AdminDashboard({
                                                 >
                                                     <td className="py-[13px] px-[22px] w-[28%]">
                                                         <div className="flex items-center gap-3 min-w-0">
-                                                            <div className="w-8 h-8 rounded-full bg-[#EEF1F5] dark:bg-gray-700 flex items-center justify-center text-[#12151C] dark:text-white font-mono-numbers font-semibold text-xs shrink-0">
-                                                                {getInitials(emp.name)}
-                                                            </div>
+                                                            <UserAvatar
+                                                                src={emp.avatar || emp.employeeProfile?.avatar}
+                                                                name={emp.name}
+                                                                size="sm"
+                                                            />
                                                             <div className="min-w-0 truncate">
                                                                 <span className="text-[13.5px] font-semibold text-[#12151C] dark:text-white block truncate">{emp.name}</span>
                                                                 <span className="text-[11px] text-[#5B6472] dark:text-gray-400 block truncate">{emp.email || '—'}</span>

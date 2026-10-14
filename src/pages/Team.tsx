@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { useEffect } from 'react';
-import { Plus, MoreVertical, Briefcase, UserPlus, X, Trash2, Users, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Plus, MoreVertical, Briefcase, UserPlus, UserMinus, X, Trash2, Users, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useRBAC } from '../hooks/useRBAC';
 import api from '../utils/api';
@@ -15,10 +15,12 @@ import {
     deleteTeam,
     updateTeam
 } from '../utils/teamApi';
+import UserAvatar from '../components/common/UserAvatar';
 
 
 export default function Team() {
     const [employees, setEmployees] = useState<any[]>([]);
+    const [loadingEmployees, setLoadingEmployees] = useState(false);
     const { user, hasPermission } = useAuth();
     const { isAdmin } = useRBAC();
     const navigate = useNavigate();
@@ -45,6 +47,7 @@ export default function Team() {
     const [teamErrors, setTeamErrors] = useState<{ name?: string }>({});
     const [editTeamErrors, setEditTeamErrors] = useState<{ name?: string }>({});
     const [isSubmittingTeam, setIsSubmittingTeam] = useState(false);
+    const [isRemovingMember, setIsRemovingMember] = useState(false);
 
     const [accessControlTeam, setAccessControlTeam] = useState<any>(null);
     const [permissions, setPermissions] = useState({
@@ -117,15 +120,19 @@ export default function Team() {
         }
     }, [showAddMemberModal, selectedTeam, teams]);
 
-    const fetchEmployees = async () => {
+    const fetchEmployees = async (force = false) => {
+        if (!force && employees.length > 0) return;
+        setLoadingEmployees(true);
         try {
-            const res = await api.get('/employee');
+            const res = await api.get('/employee?light=true');
             if (res.data) {
                 setEmployees(res.data);
             }
         } catch (err) {
             console.error("Failed to fetch employees", err);
             setEmployees([]);
+        } finally {
+            setLoadingEmployees(false);
         }
     };
     const fetchTeams = async (page = currentPage, limit = teamsPerPage) => {
@@ -182,13 +189,17 @@ export default function Team() {
     };
     useEffect(() => {
         fetchTeams(currentPage, teamsPerPage);
+        // Pre-fetch employees on mount so opening Add Members is instantaneous
+        fetchEmployees();
     }, [currentPage, teamsPerPage]);
 
     useEffect(() => {
-        if ((showAddMemberModal || showCreateModal) && (canCreateTeams || canManageTeams) && hasPermission('EMPLOYEE_VIEW')) {
-            fetchEmployees();
+        if (showAddMemberModal || showCreateModal) {
+            if (employees.length === 0) {
+                fetchEmployees();
+            }
         }
-    }, [showAddMemberModal, showCreateModal, canCreateTeams, canManageTeams]);
+    }, [showAddMemberModal, showCreateModal]);
     const handleCreateTeam = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!canCreateTeams) {
@@ -385,9 +396,11 @@ export default function Team() {
                                             <div className="border-t border-[#E2E6ED] dark:border-gray-800 my-4"></div>
 
                                             <div className="flex items-center gap-2.5 mb-4">
-                                                <div className="w-7 h-7 rounded-full bg-[#EEF1F5] dark:bg-gray-700 text-[#5B6472] dark:text-white font-mono-numbers font-bold text-[10px] flex items-center justify-center shrink-0 uppercase">
-                                                    {initials}
-                                                </div>
+                                                <UserAvatar
+                                                    src={team.manager?.avatar || team.manager?.employeeProfile?.avatar}
+                                                    name={managerName}
+                                                    size="xs"
+                                                />
                                                 <div>
                                                     <div className="manager-role text-[10.5px] text-[#9AA3B1] dark:text-gray-400 uppercase tracking-[0.04em] leading-none mb-1">MANAGER</div>
                                                     <div className="manager-name text-[13px] font-semibold text-[#12151C] dark:text-white leading-none">
@@ -521,7 +534,27 @@ export default function Team() {
                         </div>
                         <div className="p-6 max-h-[40vh] overflow-y-auto space-y-2.5 custom-scrollbar">
 
-                            {employees.map(emp => {
+                            {loadingEmployees && employees.length === 0 ? (
+                                <div className="space-y-2.5 py-1">
+                                    {[1, 2, 3, 4].map((i) => (
+                                        <div key={i} className="flex items-center justify-between p-3 rounded-[6px] bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-gray-800 animate-pulse">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700" />
+                                                <div className="space-y-1.5">
+                                                    <div className="w-28 h-3 bg-gray-200 dark:bg-gray-700 rounded" />
+                                                    <div className="w-20 h-2 bg-gray-200 dark:bg-gray-700 rounded" />
+                                                </div>
+                                            </div>
+                                            <div className="w-14 h-6 bg-gray-200 dark:bg-gray-700 rounded-[6px]" />
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : employees.length === 0 ? (
+                                <div className="text-center py-8 text-xs text-[#9AA3B1] dark:text-gray-400">
+                                    No employees available to add
+                                </div>
+                            ) : (
+                                employees.map(emp => {
                                 const isSelected = selectedEmployees.includes(emp.id);
                                 const isManager = selectedManager === emp.id;
 
@@ -537,26 +570,33 @@ export default function Team() {
                                         key={emp.id}
                                         className={`flex items-center justify-between p-3 rounded-[6px] transition-all ${cardBgClass}`}
                                     >
-                                        <div>
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    sessionStorage.setItem(
-                                                        'teamModalState',
-                                                        JSON.stringify({
-                                                            modal: 'add-members',
-                                                            teamId: selectedTeam
-                                                        })
-                                                    );
+                                        <div className="flex items-center gap-3">
+                                            <UserAvatar
+                                                src={emp.avatar || emp.employeeProfile?.avatar}
+                                                name={emp.name}
+                                                size="sm"
+                                            />
+                                            <div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        sessionStorage.setItem(
+                                                            'teamModalState',
+                                                            JSON.stringify({
+                                                                modal: 'add-members',
+                                                                teamId: selectedTeam
+                                                            })
+                                                        );
 
-                                                    navigate(`/employee/${emp.id}`);
-                                                }}
-                                                className="font-semibold text-[#12151C] dark:text-white text-[13.5px] hover:text-[#2C4FD6] hover:underline cursor-pointer"
-                                            >
-                                                {emp.name}
-                                            </button>
+                                                        navigate(`/employee/${emp.id}`);
+                                                    }}
+                                                    className="font-semibold text-[#12151C] dark:text-white text-[13.5px] hover:text-[#2C4FD6] hover:underline cursor-pointer"
+                                                >
+                                                    {emp.name}
+                                                </button>
 
-                                            <p className="text-[11.5px] text-[#717E95] dark:text-gray-400">{typeof emp.role === 'object' ? emp.role?.name || 'Employee' : emp.role || 'Employee'}</p>
+                                                <p className="text-[11.5px] text-[#717E95] dark:text-gray-400">{typeof emp.role === 'object' ? emp.role?.name || 'Employee' : emp.role || 'Employee'}</p>
+                                            </div>
                                         </div>
 
                                         <div className="flex items-center gap-2">
@@ -589,7 +629,8 @@ export default function Team() {
                                         </div>
                                     </div>
                                 );
-                            })}
+                            })
+                        )}
 
                         </div>
                         <div className="p-5 border-t border-[#E2E6ED] dark:border-gray-800 flex gap-3">
@@ -812,9 +853,11 @@ export default function Team() {
                                     return (
                                         <div key={emp.id} className="flex items-center justify-between p-3 bg-[#F7F8FA] dark:bg-white/5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-800">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-full bg-[#EEF1F5] dark:bg-gray-700 text-[#5B6472] dark:text-white font-mono-numbers font-bold text-xs flex items-center justify-center shrink-0 uppercase">
-                                                    {emp.name.split(' ').map((n: string) => n[0]).join('')}
-                                                </div>
+                                                <UserAvatar
+                                                    src={emp.avatar || emp.employeeProfile?.avatar}
+                                                    name={emp.name}
+                                                    size="sm"
+                                                />
                                                 <div className="min-w-0 flex-1">
                                                     <div className="flex items-center gap-2 flex-wrap">
                                                         {isAdmin ? (
@@ -851,48 +894,13 @@ export default function Team() {
                                                 </div>
                                             </div>
                                             {canManageTeams && (
-                                        <div className="relative">
-                                            <button
-                                                onClick={() => setConfirmRemove(emp.id)}
-                                                className="text-xs font-semibold text-[#DE350B] hover:underline cursor-pointer transition-all"
-                                            >
-                                                Remove
-                                            </button>
-
-                                            {confirmRemove === emp.id && (
-                                                <div className="absolute right-0 top-6 w-[180px] bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-800 rounded-[6px] p-3 z-50 animate-fade-in">
-
-                                                    <p className="text-xs font-semibold text-[#12151C] dark:text-gray-200 mb-2.5">
-                                                        Remove Employee?
-                                                    </p>
-
-                                                    <div className="flex gap-2">
-                                                        <button
-                                                            onClick={() => setConfirmRemove(null)}
-                                                            className="flex-1 text-xs py-1.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#5B6472] dark:text-gray-300 font-semibold cursor-pointer"
-                                                        >
-                                                            Cancel
-                                                        </button>
-
-                                                        <button
-                                                            onClick={async () => {
-                                                                if (!selectedTeam) return;
-
-                                                                await removeMember(selectedTeam, emp.id);
-                                                                await fetchTeams(currentPage, teamsPerPage);
-
-                                                                setConfirmRemove(null);
-                                                            }}
-                                                            className="flex-1 text-xs py-1.5 rounded-[6px] bg-[#DE350B] text-white font-semibold cursor-pointer"
-                                                        >
-                                                            Remove
-                                                        </button>
-                                                    </div>
-
-                                                </div>
+                                                <button
+                                                    onClick={() => setConfirmRemove(emp)}
+                                                    className="text-xs font-semibold text-[#DE350B] hover:underline cursor-pointer transition-all shrink-0 ml-2"
+                                                >
+                                                    Remove
+                                                </button>
                                             )}
-                                        </div>
-                                    )}
                                         </div>
                                     );
                                 });
@@ -942,6 +950,81 @@ export default function Team() {
                                 className="flex-1 py-2.5 rounded-[6px] bg-[#DE350B] hover:bg-[#b02a08] text-white font-semibold text-[13.5px] transition-all cursor-pointer"
                             >
                                 Yes, Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {confirmRemove && createPortal(
+                <div className="fixed inset-0 z-[9999999] bg-slate-900/30 dark:bg-black/60 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
+                    <div className="bg-white dark:bg-[#12151C] rounded-[6px] border border-[#E2E6ED] dark:border-gray-800 w-full max-w-sm p-6 text-center animate-scale-in">
+                        <div className="w-12 h-12 mx-auto mb-3 bg-[#FBE7E7] dark:bg-red-500/10 rounded-full flex items-center justify-center text-[#DE350B]">
+                            <UserMinus size={24} />
+                        </div>
+                        <h3 className="text-base font-bold text-[#12151C] dark:text-white mb-1">Remove Member?</h3>
+                        <p className="text-xs text-[#5B6472] dark:text-gray-400 mb-5">
+                            Are you sure you want to remove <strong className="text-[#12151C] dark:text-white font-semibold">{confirmRemove.name}</strong> from this team?
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setConfirmRemove(null)}
+                                className="flex-1 py-2.5 rounded-[6px] border border-[#E2E6ED] dark:border-gray-700 bg-white dark:bg-[#12151C] text-[#5B6472] dark:text-gray-300 font-semibold text-[13.5px] hover:bg-gray-50 dark:hover:bg-white/5 transition-all cursor-pointer"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                disabled={isRemovingMember}
+                                onClick={async () => {
+                                    if (!selectedTeam || !confirmRemove || isRemovingMember) return;
+                                    const empId = confirmRemove.id;
+                                    const empName = confirmRemove.name;
+                                    const teamId = selectedTeam;
+                                    setIsRemovingMember(true);
+
+                                    // 1. Instantly close confirmation modal
+                                    setConfirmRemove(null);
+
+                                    // 2. Instantly update UI optimistically
+                                    setTeams((prevTeams) =>
+                                        prevTeams.map((t) => {
+                                            if (t.id === teamId) {
+                                                return {
+                                                    ...t,
+                                                    members: (t.members || []).filter((m: any) => m.id !== empId),
+                                                    manager: t.managerId === empId || t.manager?.id === empId ? null : t.manager,
+                                                    managerId: t.managerId === empId ? null : t.managerId,
+                                                };
+                                            }
+                                            return t;
+                                        })
+                                    );
+
+                                    // 3. Show notification once with fixed ID
+                                    toast.success(`${empName} removed from team`, { id: 'team-member-remove-toast' });
+
+                                    // 4. Perform API call in background and re-sync
+                                    try {
+                                        await removeMember(teamId, empId);
+                                        await fetchTeams(currentPage, teamsPerPage);
+                                    } catch (err: any) {
+                                        toast.error(err.response?.data?.message || 'Failed to remove member', { id: 'team-member-remove-toast' });
+                                        await fetchTeams(currentPage, teamsPerPage);
+                                    } finally {
+                                        setIsRemovingMember(false);
+                                    }
+                                }}
+                                className="flex-1 py-2.5 rounded-[6px] bg-[#DE350B] hover:bg-[#b02a08] text-white font-semibold text-[13.5px] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                {isRemovingMember ? (
+                                    <>
+                                        <Loader2 size={16} className="animate-spin" />
+                                        <span>Removing...</span>
+                                    </>
+                                ) : (
+                                    'Yes, Remove'
+                                )}
                             </button>
                         </div>
                     </div>
