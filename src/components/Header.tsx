@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
     Search, Bell, Menu, User, LayoutGrid, Calendar, Users, FileText, Settings,
-    Sun, Moon, MessageSquare, CheckCheck, PhoneIncoming, AlertCircle, Sparkles, Volume2
+    Sun, Moon, MessageSquare, CheckCheck, PhoneIncoming, AlertCircle, Sparkles, Volume2, X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -32,6 +32,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
         unreadCount,
         desktopPermission,
         requestPermission,
+        testDesktopNotification,
+        bannerDismissed,
+        dismissBanner,
         markAsRead,
         markAllAsRead,
         fetchNotifications
@@ -121,6 +124,18 @@ export default function Header({ onMenuClick }: HeaderProps) {
         searchQuery
     ).slice(0, 5);
 
+    const chatNotifs = notifications.filter(n =>
+        n.type === 'chat' || n.type === 'call' ||
+        n.title?.toLowerCase().includes('message') ||
+        n.title?.toLowerCase().includes('call') ||
+        n.message?.toLowerCase().includes('call')
+    );
+    const hrNotifs = notifications.filter(n =>
+        n.type !== 'chat' && n.type !== 'call' &&
+        !n.title?.toLowerCase().includes('message') &&
+        !n.title?.toLowerCase().includes('call')
+    );
+
     // Filter nav items: Only show items the user has access to
     const filteredNav = searchQuery.trim() === '' ? [] : sortResults(
         navItems.filter(item => {
@@ -134,6 +149,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
             // Fallback module check
             if (!userModules.includes(item.module)) return false;
+            if (item.module === 'CHAT' && user?.hasChatAccess === false) return false;
 
             return item.name.toLowerCase().includes(searchQuery.toLowerCase());
         }),
@@ -309,34 +325,89 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                 )}
                             </div>
 
-                            {/* Windows Desktop Notification Enable Banner */}
-                            {desktopPermission === 'default' && (
-                                <div className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 border border-blue-200 dark:border-blue-800/40 rounded-[8px] flex items-start gap-3">
+                            {/* Windows Desktop Notification Banner */}
+                            {desktopPermission === 'default' && !bannerDismissed && (
+                                <div className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 border border-blue-200 dark:border-blue-800/40 rounded-[8px] flex items-start gap-3 relative">
                                     <div className="w-8 h-8 rounded-full bg-[#2C4FD6] text-white flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
                                         <Bell size={15} />
                                     </div>
-                                    <div className="flex-1 min-w-0">
+                                    <div className="flex-1 min-w-0 pr-6">
                                         <p className="text-xs font-bold text-gray-900 dark:text-white">Windows Desktop Alerts</p>
                                         <p className="text-[11px] text-gray-600 dark:text-gray-300 mt-0.5 leading-snug">
                                             Get instant notifications for chat messages and incoming calls even when minimized.
                                         </p>
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <button
+                                                type="button"
+                                                onClick={requestPermission}
+                                                className="px-3 py-1 bg-[#2C4FD6] hover:bg-blue-700 text-white text-xs font-semibold rounded-[5px] transition-colors shadow-sm cursor-pointer"
+                                            >
+                                                Enable Desktop Alerts
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={dismissBanner}
+                                        title="Dismiss banner"
+                                        className="absolute top-2.5 right-2.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 cursor-pointer"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                </div>
+                            )}
+
+                            {desktopPermission === 'granted' && !bannerDismissed && (
+                                <div className="mt-2.5 px-3 py-2 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/30 rounded-[6px] flex items-center justify-between text-[11px] text-emerald-700 dark:text-emerald-400">
+                                    <span className="flex items-center gap-1.5 font-medium">
+                                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                        Windows desktop notifications active
+                                    </span>
+                                    <div className="flex items-center gap-2">
                                         <button
                                             type="button"
-                                            onClick={requestPermission}
-                                            className="mt-2 px-3 py-1 bg-[#2C4FD6] hover:bg-blue-700 text-white text-xs font-semibold rounded-[5px] transition-colors shadow-sm cursor-pointer"
+                                            onClick={testDesktopNotification}
+                                            className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded cursor-pointer transition-colors shadow-xs"
+                                            title="Click to test Windows desktop notification"
                                         >
-                                            Enable Desktop Alerts
+                                            Test Alert
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={dismissBanner}
+                                            className="text-emerald-700 hover:text-emerald-900 dark:text-emerald-300 p-0.5 cursor-pointer"
+                                            title="Close banner"
+                                        >
+                                            <X size={13} />
                                         </button>
                                     </div>
                                 </div>
                             )}
 
-                            {desktopPermission === 'granted' && (
-                                <div className="mt-2.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/30 rounded-[6px] flex items-center justify-between text-[11px] text-emerald-700 dark:text-emerald-400">
-                                    <span className="flex items-center gap-1.5 font-medium">
-                                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                        Windows desktop notifications active
-                                    </span>
+                            {desktopPermission === 'denied' && !bannerDismissed && (
+                                <div className="mt-2.5 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/30 rounded-[8px] flex items-start gap-2.5 text-[11px] relative">
+                                    <AlertCircle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                                    <div className="flex-1 min-w-0 pr-6">
+                                        <p className="font-bold text-amber-900 dark:text-amber-200 text-xs">Desktop Alerts Blocked</p>
+                                        <p className="text-amber-700 dark:text-amber-300 mt-0.5 leading-snug">
+                                            Click the 🔒 lock icon beside the URL in your browser address bar and change Notifications to "Allow" to receive Windows desktop alerts.
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={testDesktopNotification}
+                                            className="mt-2 px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white font-semibold text-[10px] rounded cursor-pointer transition-colors"
+                                        >
+                                            Check / Retry
+                                        </button>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={dismissBanner}
+                                        title="Dismiss"
+                                        className="absolute top-2.5 right-2.5 text-amber-500 hover:text-amber-700 p-1 cursor-pointer"
+                                    >
+                                        <X size={14} />
+                                    </button>
                                 </div>
                             )}
 
@@ -362,16 +433,18 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                 >
                                     Unread ({unreadCount})
                                 </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setNotifFilter('chat')}
-                                    className={`flex-1 py-1 rounded-[5px] font-semibold transition-all text-center ${notifFilter === 'chat'
-                                        ? 'bg-white dark:bg-gray-800 text-[#2C4FD6] shadow-xs'
-                                        : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
-                                        }`}
-                                >
-                                    Chat & Calls
-                                </button>
+                                {user?.hasChatAccess !== false && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setNotifFilter('chat')}
+                                        className={`flex-1 py-1 rounded-[5px] font-semibold transition-all text-center ${notifFilter === 'chat'
+                                            ? 'bg-white dark:bg-gray-800 text-[#2C4FD6] shadow-xs'
+                                            : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+                                            }`}
+                                    >
+                                        Chat & Calls ({chatNotifs.length})
+                                    </button>
+                                )}
                                 <button
                                     type="button"
                                     onClick={() => setNotifFilter('hr')}
@@ -380,7 +453,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                         : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
                                         }`}
                                 >
-                                    HR
+                                    HR ({hrNotifs.length})
                                 </button>
                             </div>
 

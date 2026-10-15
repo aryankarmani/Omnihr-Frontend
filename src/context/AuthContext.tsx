@@ -16,6 +16,8 @@ interface User {
     forcePasswordChange?: boolean;
     avatar?: string | null;
     profilePicture?: string | null;
+    plan?: string;
+    hasChatAccess?: boolean;
 }
 
 interface AuthContextType {

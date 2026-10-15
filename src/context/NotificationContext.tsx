@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import api from '../utils/api';
 import { initSocketClient, getSocket } from '../services/socket';
+import { useAuth } from './AuthContext';
 import {
     isDesktopNotificationSupported,
     getNotificationPermission,
@@ -28,6 +29,9 @@ interface NotificationContextType {
     chatUnreadCount: number;
     desktopPermission: NotificationPermission | 'unsupported';
     requestPermission: () => Promise<boolean>;
+    testDesktopNotification: () => void;
+    bannerDismissed: boolean;
+    dismissBanner: () => void;
     markAsRead: (id: string) => Promise<void>;
     markAllAsRead: () => Promise<void>;
     fetchNotifications: (silent?: boolean) => Promise<void>;
@@ -37,12 +41,23 @@ interface NotificationContextType {
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const { user, isAuthenticated } = useAuth();
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [unreadCount, setUnreadCount] = useState<number>(0);
     const [chatUnreadCount, setChatUnreadCount] = useState<number>(0);
     const [desktopPermission, setDesktopPermission] = useState<NotificationPermission | 'unsupported'>(
         getNotificationPermission()
     );
+    const [bannerDismissed, setBannerDismissed] = useState<boolean>(() => {
+        return localStorage.getItem('omnihr_dismiss_desktop_banner') === 'true';
+    });
+
+    // Check permission whenever window focuses
+    useEffect(() => {
+        const updatePerm = () => setDesktopPermission(getNotificationPermission());
+        window.addEventListener('focus', updatePerm);
+        return () => window.removeEventListener('focus', updatePerm);
+    }, []);
 
     // Sync unread count
     useEffect(() => {
@@ -97,13 +112,51 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setDesktopPermission(getNotificationPermission());
         if (granted) {
             toast.success('Windows desktop notifications enabled!', { id: 'desktop-notif-success' });
+            playNotificationChime();
             showDesktopNotification({
                 title: 'OmniHR Notifications Enabled',
                 body: 'You will receive real-time alerts for chat messages, incoming calls, and updates.',
                 tag: 'omnihr-welcome',
             });
+        } else if (Notification.permission === 'denied') {
+            toast.error('Desktop notifications are blocked in your browser. Click the lock icon in the URL bar to allow.', { id: 'desktop-notif-denied', duration: 6000 });
         }
         return granted;
+    };
+
+    // Instant test alert
+    const testDesktopNotification = () => {
+        playNotificationChime();
+        const currentPerm = getNotificationPermission();
+        setDesktopPermission(currentPerm);
+
+        if (currentPerm === 'granted') {
+            const n = showDesktopNotification({
+                title: 'OmniHR Desktop Alert (Test)',
+                body: 'Windows desktop notifications are active and working!',
+                tag: `omnihr-test-${Date.now()}`,
+                onClick: () => {
+                    window.focus();
+                }
+            });
+            if (n) {
+                toast.success('Test notification sent to Windows Action Center!', { id: 'test-notif-success' });
+            } else {
+                toast.error('Could not display notification. Check Windows Focus Assist.', { id: 'test-notif-fail' });
+            }
+        } else if (currentPerm === 'denied') {
+            toast.error('Notifications are blocked by your browser. Click the lock icon in your URL bar and change Notifications to "Allow".', {
+                id: 'test-notif-blocked',
+                duration: 7000
+            });
+        } else {
+            handleRequestPermission();
+        }
+    };
+
+    const dismissBanner = () => {
+        setBannerDismissed(true);
+        localStorage.setItem('omnihr_dismiss_desktop_banner', 'true');
     };
 
     const resetChatUnread = () => {
@@ -113,7 +166,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     // Setup Socket listener for real-time notifications
     useEffect(() => {
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-        if (!token) return;
+        if (!token || !isAuthenticated) return;
 
         fetchNotifications(true);
 
@@ -131,6 +184,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
                 link: data.link,
                 tag: `notif-${data.id || Date.now()}`,
                 onClick: () => {
+                    window.focus();
                     if (data.link) {
                         window.location.href = data.link;
                     }
@@ -161,6 +215,21 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
         // 2. Real-time chat & message notifications (Teams-like)
         const handleChatNotification = (data: any) => {
+            // Add to in-app notification center list so Chat & Calls tab shows it
+            setNotifications(prev => [
+                {
+                    id: data.id || `chat-${Date.now()}`,
+                    title: data.title || `${data.senderName || 'Someone'} (OmniHR Chat)`,
+                    message: data.content || 'Sent a new message',
+                    type: 'chat',
+                    unread: true,
+                    link: data.link || '/chat',
+                    date: 'Just now',
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                },
+                ...prev.filter(n => n.id !== data.id)
+            ]);
+
             const currentPath = window.location.pathname;
             const currentSearch = window.location.search;
             const isLookingAtThisChat = currentPath.includes('/chat') &&
@@ -173,7 +242,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
                 const senderName = data.senderName || 'Someone';
                 const channelContext = data.channelName ? ` in #${data.channelName}` : '';
-                const title = `${senderName}${channelContext} (OmniHR Chat)`;
+                const title = data.title || `${senderName}${channelContext} (OmniHR Chat)`;
                 const body = data.content || 'Sent a new message';
 
                 showDesktopNotification({
@@ -214,16 +283,28 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
         // 3. Incoming Call notification
         const handleIncomingCall = (data: any) => {
-            if (document.hidden) {
-                showDesktopNotification({
-                    title: `📞 Incoming Call from ${data.callerName || 'Colleague'}`,
-                    body: `Incoming ${data.callType || 'Voice'} Call on OmniHR. Click to answer.`,
-                    tag: 'incoming-call-alert',
-                    onClick: () => {
-                        window.focus();
-                    }
-                });
-            }
+            setNotifications(prev => [
+                {
+                    id: `call-${data.callId || Date.now()}`,
+                    title: `Incoming ${data.callType || 'Voice'} Call`,
+                    message: `${data.callerName || 'Colleague'} is calling you on OmniHR`,
+                    type: 'call',
+                    unread: true,
+                    link: '/chat',
+                    date: 'Just now',
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                },
+                ...prev
+            ]);
+
+            showDesktopNotification({
+                title: `📞 Incoming Call from ${data.callerName || 'Colleague'}`,
+                body: `Incoming ${data.callType || 'Voice'} Call on OmniHR. Click to answer.`,
+                tag: 'incoming-call-alert',
+                onClick: () => {
+                    window.focus();
+                }
+            });
         };
 
         socket.on('new_notification', handleNewNotification);
@@ -235,7 +316,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
             socket.off('chat_notification', handleChatNotification);
             socket.off('incoming_call', handleIncomingCall);
         };
-    }, [fetchNotifications]);
+    }, [fetchNotifications, isAuthenticated, user?.id]);
 
     return (
         <NotificationContext.Provider
@@ -245,6 +326,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
                 chatUnreadCount,
                 desktopPermission,
                 requestPermission: handleRequestPermission,
+                testDesktopNotification,
+                bannerDismissed,
+                dismissBanner,
                 markAsRead,
                 markAllAsRead,
                 fetchNotifications,
