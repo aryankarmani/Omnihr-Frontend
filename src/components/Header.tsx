@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { Search, Bell, Menu, User, LayoutGrid, Calendar, Users, FileText, Settings, Sun, Moon, MessageSquare } from 'lucide-react';
+import {
+    Search, Bell, Menu, User, LayoutGrid, Calendar, Users, FileText, Settings,
+    Sun, Moon, MessageSquare, CheckCheck, PhoneIncoming, AlertCircle, Sparkles, Volume2
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useNotifications } from '../context/NotificationContext';
 import api, { getMediaUrl } from '../utils/api';
 import { getNotificationRedirectUrl } from '../utils/notificationNavigation';
 import UserAvatar from './common/UserAvatar';
@@ -16,13 +20,22 @@ export default function Header({ onMenuClick }: HeaderProps) {
     const navigate = useNavigate();
     const { theme, toggleTheme } = useTheme();
     const [showNotifications, setShowNotifications] = useState(false);
+    const [notifFilter, setNotifFilter] = useState<'all' | 'unread' | 'chat' | 'hr'>('all');
     const [searchQuery, setSearchQuery] = useState('');
-    const [notifications, setNotifications] = useState<any[]>([]);
     const [employees, setEmployees] = useState<any[]>([]);
-    const [loading, setLoading] = useState(false);
     const { user, updateUser, hasPermission } = useAuth();
     const [userAvatar, setUserAvatar] = useState<string | null>(user?.avatar || (user as any)?.profilePicture || null);
     const [avatarError, setAvatarError] = useState(false);
+
+    const {
+        notifications,
+        unreadCount,
+        desktopPermission,
+        requestPermission,
+        markAsRead,
+        markAllAsRead,
+        fetchNotifications
+    } = useNotifications();
 
     useEffect(() => {
         const currentAvatar = user?.avatar || (user as any)?.profilePicture || null;
@@ -34,18 +47,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
         ? getMediaUrl(userAvatar)
         : null;
 
-    const fetchNotifications = async (silent = false) => {
-        if (!silent) setLoading(true);
-        try {
-            const res = await api.get('/notifications');
-            setNotifications(Array.isArray(res.data) ? res.data : []);
-        } catch (e) {
-            console.error('Failed to fetch notifications:', e);
-            setNotifications([]);
-        } finally {
-            if (!silent) setLoading(false);
-        }
-    };
     const fetchEmployees = async () => {
         if (!hasPermission('EMPLOYEE_VIEW')) return;
         try {
@@ -55,18 +56,12 @@ export default function Header({ onMenuClick }: HeaderProps) {
             console.log(e);
         }
     };
+
     useEffect(() => {
-        fetchNotifications();
+        fetchNotifications(true);
         if (hasPermission('EMPLOYEE_VIEW')) {
             fetchEmployees();
         }
-
-        const handleNewNotification = () => {
-            fetchNotifications(true);
-        };
-
-        window.addEventListener('new-notification-received', handleNewNotification);
-        return () => window.removeEventListener('new-notification-received', handleNewNotification);
     }, []);
 
 
@@ -239,13 +234,16 @@ export default function Header({ onMenuClick }: HeaderProps) {
                         <div
                             onClick={() => {
                                 setShowNotifications(true);
-                                fetchNotifications();
+                                fetchNotifications(true);
                             }}
                             className="p-2 bg-white dark:bg-[#12151C] border border-[#E2E6ED] dark:border-gray-700 rounded-[6px] hover:bg-[#F7F8FA] dark:hover:bg-white/5 cursor-pointer text-[#5B6472] dark:text-gray-300 transition-all relative flex items-center justify-center"
+                            title="Notifications"
                         >
                             <Bell size={18} />
-                            {notifications.some((n: any) => n.unread) && (
-                                <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-[#C13A3A] rounded-full"></span>
+                            {unreadCount > 0 && (
+                                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-[#2C4FD6] text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-sm">
+                                    {unreadCount > 99 ? '99+' : unreadCount}
+                                </span>
                             )}
                         </div>
 
@@ -285,101 +283,188 @@ export default function Header({ onMenuClick }: HeaderProps) {
                         />
 
                         {/* Notification Panel */}
-                        <div className="absolute right-3 sm:right-4 top-16 w-[calc(100vw-1.5rem)] sm:w-[380px] max-h-[80vh] sm:max-h-[550px] bg-white dark:bg-[#12151C] rounded-[6px] shadow-2xl border border-[#E2E6ED] dark:border-gray-800 p-4 sm:p-5 z-20 pointer-events-auto flex flex-col animate-scale-in">
+                        <div className="absolute right-3 sm:right-6 top-16 w-[calc(100vw-1.5rem)] sm:w-[420px] max-h-[85vh] sm:max-h-[620px] bg-white dark:bg-[#12151C] rounded-[10px] shadow-2xl border border-[#E2E6ED] dark:border-gray-800 p-4 sm:p-5 z-20 pointer-events-auto flex flex-col animate-scale-in">
 
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-black text-gray-800 dark:text-white">
-                                    Notifications
-                                </h2>
-                                {notifications.some((n: any) => n.unread) && (
-                                    <span className="px-2.5 py-1 bg-brand-500 text-white text-[10px] font-black rounded-[4px]">
-                                        {notifications.filter((n: any) => n.unread).length} NEW
-                                    </span>
+                            {/* Panel Header */}
+                            <div className="flex items-center justify-between pb-3 border-b border-[#E2E6ED] dark:border-gray-800">
+                                <div className="flex items-center gap-2">
+                                    <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                                        Notifications
+                                    </h2>
+                                    {unreadCount > 0 && (
+                                        <span className="px-2 py-0.5 bg-[#2C4FD6]/10 text-[#2C4FD6] text-[11px] font-black rounded-full">
+                                            {unreadCount} NEW
+                                        </span>
+                                    )}
+                                </div>
+                                {unreadCount > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => markAllAsRead()}
+                                        className="flex items-center gap-1.5 text-xs font-semibold text-[#2C4FD6] hover:text-blue-700 dark:text-blue-400 transition-colors cursor-pointer"
+                                    >
+                                        <CheckCheck size={14} />
+                                        Mark all read
+                                    </button>
                                 )}
                             </div>
 
-                            <div className="space-y-3 overflow-y-auto flex-1 custom-scrollbar pr-1">
-
-                                {loading ? (
-                                    <div className="flex flex-col items-center justify-center py-12 gap-3">
-                                        <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
-                                        <p className="text-sm text-gray-500 font-medium">Fetching updates...</p>
+                            {/* Windows Desktop Notification Enable Banner */}
+                            {desktopPermission === 'default' && (
+                                <div className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 border border-blue-200 dark:border-blue-800/40 rounded-[8px] flex items-start gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-[#2C4FD6] text-white flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+                                        <Bell size={15} />
                                     </div>
-                                ) : notifications.length === 0 ? (
-                                    <div className="text-center py-12">
-                                        <div className="w-16 h-16 bg-gray-100 dark:bg-white/5 rounded-[6px] flex items-center justify-center mx-auto mb-4 text-gray-400">
-                                            <Bell size={24} />
-                                        </div>
-                                        <p className="text-gray-500 font-bold">All caught up!</p>
-                                        <p className="text-xs text-gray-400 mt-1">No new notifications for you.</p>
-                                    </div>
-                                ) : (
-                                    notifications.map((n: any) => (
-                                        <div
-                                            key={n.id}
-                                            onClick={async () => {
-                                                setNotifications(prev =>
-                                                    prev.map(item =>
-                                                        item.id === n.id
-                                                            ? { ...item, unread: false }
-                                                            : item
-                                                    )
-                                                );
-
-                                                try {
-                                                    await api.patch(`/notifications/${n.id}/read`);
-                                                } catch (e) { }
-
-                                                setShowNotifications(false);
-                                                const targetUrl = getNotificationRedirectUrl(n);
-                                                if (targetUrl) {
-                                                    navigate(targetUrl);
-                                                }
-                                            }}
-
-                                            className={`group relative p-4 rounded-[6px] border transition-all cursor-pointer ${n.unread
-                                                ? 'bg-brand-50/50 dark:bg-brand-500/10 border-brand-100 dark:border-brand-500/20'
-                                                : 'bg-white dark:bg-white/5 border-gray-100 dark:border-white/5 hover:border-brand-200 dark:hover:border-brand-500/20'
-                                                }`}
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-bold text-gray-900 dark:text-white">Windows Desktop Alerts</p>
+                                        <p className="text-[11px] text-gray-600 dark:text-gray-300 mt-0.5 leading-snug">
+                                            Get instant notifications for chat messages and incoming calls even when minimized.
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={requestPermission}
+                                            className="mt-2 px-3 py-1 bg-[#2C4FD6] hover:bg-blue-700 text-white text-xs font-semibold rounded-[5px] transition-colors shadow-sm cursor-pointer"
                                         >
-                                            <div className="flex gap-4">
-                                                <div className={`w-10 h-10 rounded-[6px] flex items-center justify-center shrink-0 ${n.type === 'leave' ? 'bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400' :
-                                                    n.type === 'attendance' ? 'bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400' :
-                                                        'bg-brand-100 text-brand-600 dark:bg-brand-500/20 dark:text-brand-400'
-                                                    }`}>
-                                                    {n.type === 'leave' ? <FileText size={20} /> :
-                                                        n.type === 'attendance' ? <Calendar size={20} /> :
-                                                            <Bell size={20} />}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center justify-between gap-2 mb-0.5">
-                                                        <h3 className={`text-sm font-bold truncate min-w-0 ${n.unread ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-300'}`}>
-                                                            {n.title}
-                                                        </h3>
-                                                        <span className="text-[10px] text-gray-400 font-medium whitespace-nowrap shrink-0">{n.time}</span>
-                                                    </div>
-                                                    <p className={`text-xs leading-relaxed break-words ${n.unread ? 'text-gray-700 dark:text-gray-200' : 'text-gray-500 dark:text-gray-400'}`}>
-                                                        {n.message || n.title}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            {n.unread && (
-                                                <div className="absolute top-1.5 right-2 w-2 h-2 bg-brand-500 rounded-full shadow-[0_0_8px_rgba(139,92,246,0.5)]"></div>
-                                            )}
-                                        </div>
-                                    ))
-                                )}
+                                            Enable Desktop Alerts
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
 
+                            {desktopPermission === 'granted' && (
+                                <div className="mt-2.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/30 rounded-[6px] flex items-center justify-between text-[11px] text-emerald-700 dark:text-emerald-400">
+                                    <span className="flex items-center gap-1.5 font-medium">
+                                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                        Windows desktop notifications active
+                                    </span>
+                                </div>
+                            )}
+
+                            {/* Category Filter Tabs */}
+                            <div className="flex items-center gap-1 mt-3 mb-2 p-1 bg-[#F4F6F9] dark:bg-white/5 rounded-[6px] text-xs">
+                                <button
+                                    type="button"
+                                    onClick={() => setNotifFilter('all')}
+                                    className={`flex-1 py-1 rounded-[5px] font-semibold transition-all text-center ${notifFilter === 'all'
+                                        ? 'bg-white dark:bg-gray-800 text-[#2C4FD6] shadow-xs'
+                                        : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+                                        }`}
+                                >
+                                    All ({notifications.length})
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setNotifFilter('unread')}
+                                    className={`flex-1 py-1 rounded-[5px] font-semibold transition-all text-center ${notifFilter === 'unread'
+                                        ? 'bg-white dark:bg-gray-800 text-[#2C4FD6] shadow-xs'
+                                        : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+                                        }`}
+                                >
+                                    Unread ({unreadCount})
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setNotifFilter('chat')}
+                                    className={`flex-1 py-1 rounded-[5px] font-semibold transition-all text-center ${notifFilter === 'chat'
+                                        ? 'bg-white dark:bg-gray-800 text-[#2C4FD6] shadow-xs'
+                                        : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+                                        }`}
+                                >
+                                    Chat & Calls
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setNotifFilter('hr')}
+                                    className={`flex-1 py-1 rounded-[5px] font-semibold transition-all text-center ${notifFilter === 'hr'
+                                        ? 'bg-white dark:bg-gray-800 text-[#2C4FD6] shadow-xs'
+                                        : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+                                        }`}
+                                >
+                                    HR
+                                </button>
                             </div>
 
-                            {notifications.length > 0 && (
-                                <button
-                                    onClick={() => { navigate('/notifications'); setShowNotifications(false); }}
-                                    className="w-full mt-4 py-3 text-xs font-black text-brand-500 hover:text-brand-600 dark:text-brand-400 transition-colors uppercase tracking-widest border-t border-gray-100 dark:border-white/5"
-                                >
-                                    View All Notifications
-                                </button>
-                            )}
+                            <div className="space-y-2 overflow-y-auto flex-1 custom-scrollbar pr-1 mt-1">
+                                {(() => {
+                                    const filtered = notifications.filter(n => {
+                                        if (notifFilter === 'unread') return n.unread;
+                                        const isChat = n.type === 'chat' || n.type === 'call' ||
+                                            n.title?.toLowerCase().includes('message') ||
+                                            n.title?.toLowerCase().includes('call') ||
+                                            n.message?.toLowerCase().includes('call');
+                                        if (notifFilter === 'chat') return isChat;
+                                        if (notifFilter === 'hr') return !isChat;
+                                        return true;
+                                    });
+
+                                    if (filtered.length === 0) {
+                                        return (
+                                            <div className="text-center py-10">
+                                                <div className="w-14 h-14 bg-gray-100 dark:bg-white/5 rounded-full flex items-center justify-center mx-auto mb-3 text-gray-400">
+                                                    <Bell size={22} />
+                                                </div>
+                                                <p className="text-gray-700 dark:text-gray-300 font-bold text-sm">All caught up!</p>
+                                                <p className="text-xs text-gray-400 mt-1">No notifications under this filter.</p>
+                                            </div>
+                                        );
+                                    }
+
+                                    return filtered.map((n: any) => {
+                                        const isChat = n.type === 'chat' || n.title?.toLowerCase().includes('message');
+                                        const isCall = n.type === 'call' || n.title?.toLowerCase().includes('call');
+                                        const isLeave = n.type === 'leave' || n.title?.toLowerCase().includes('leave');
+                                        const isAttendance = n.type === 'attendance' || n.title?.toLowerCase().includes('attendance');
+
+                                        return (
+                                            <div
+                                                key={n.id}
+                                                onClick={async () => {
+                                                    await markAsRead(n.id);
+                                                    setShowNotifications(false);
+                                                    const targetUrl = getNotificationRedirectUrl(n);
+                                                    if (targetUrl) {
+                                                        navigate(targetUrl);
+                                                    }
+                                                }}
+                                                className={`group relative p-3 rounded-[8px] border transition-all cursor-pointer ${n.unread
+                                                    ? 'bg-blue-50/60 dark:bg-[#2C4FD6]/10 border-blue-200/80 dark:border-[#2C4FD6]/30 shadow-xs'
+                                                    : 'bg-white dark:bg-white/5 border-gray-100 dark:border-white/5 hover:border-gray-200 dark:hover:border-white/10 hover:bg-[#F9FAFB] dark:hover:bg-white/[0.07]'
+                                                    }`}
+                                            >
+                                                <div className="flex gap-3">
+                                                    <div className={`w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0 ${
+                                                        isCall ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400' :
+                                                        isChat ? 'bg-blue-100 text-[#2C4FD6] dark:bg-blue-500/20 dark:text-blue-400' :
+                                                        isLeave ? 'bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400' :
+                                                        isAttendance ? 'bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400' :
+                                                        'bg-[#EEF1F5] text-[#5B6472] dark:bg-white/10 dark:text-gray-300'
+                                                    }`}>
+                                                        {isCall ? <PhoneIncoming size={18} /> :
+                                                         isChat ? <MessageSquare size={18} /> :
+                                                         isLeave ? <FileText size={18} /> :
+                                                         isAttendance ? <Calendar size={18} /> :
+                                                         <Bell size={18} />}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center justify-between gap-2 mb-0.5">
+                                                            <h3 className={`text-xs font-bold truncate min-w-0 ${n.unread ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-300'}`}>
+                                                                {n.title}
+                                                            </h3>
+                                                            <span className="text-[10px] text-gray-400 font-medium whitespace-nowrap shrink-0">{n.time || n.date || ''}</span>
+                                                        </div>
+                                                        <p className={`text-xs leading-relaxed break-words line-clamp-2 ${n.unread ? 'text-gray-700 dark:text-gray-200' : 'text-gray-500 dark:text-gray-400'}`}>
+                                                            {n.message || n.title}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                {n.unread && (
+                                                    <div className="absolute top-2 right-2 w-2 h-2 bg-[#2C4FD6] rounded-full shadow-[0_0_6px_rgba(44,79,214,0.6)]"></div>
+                                                )}
+                                            </div>
+                                        );
+                                    });
+                                })()}
+                            </div>
 
                         </div>
                     </div>,

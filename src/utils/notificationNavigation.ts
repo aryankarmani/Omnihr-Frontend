@@ -59,6 +59,11 @@ export function getNotificationRedirectUrl(n: any): string | null {
         return '/attendance';
     }
 
+    // Chat & Calls
+    if (type === 'chat' || type === 'call' || title.includes('message') || title.includes('call from')) {
+        return n.link || '/chat';
+    }
+
     // Leave
     if (type === 'leave' || title.includes('leave') || msg.includes('leave')) {
         if (

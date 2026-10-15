@@ -7,6 +7,7 @@ import {
     CheckSquare, UserCircle, CalendarRange, FileText, MessageSquare, ClipboardCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 import { getMyManagerAccess } from '../utils/teamApi';
@@ -53,6 +54,7 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: SidebarProps) {
     const { user, logout, hasPermission } = useAuth();
+    const { chatUnreadCount } = useNotifications();
     const navigate = useNavigate();
     const location = useLocation();
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -276,15 +278,25 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                                             if (window.innerWidth < 768) onClose();
                                         }
                                     }}
-                                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[6px] transition-all duration-200 ease-in-out group ${active && !hasChildren
+                                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[6px] transition-all duration-200 ease-in-out group relative ${active && !hasChildren
                                         ? 'bg-[#E8ECFC] text-[#2C4FD6] font-semibold border-l-[3.5px] border-[#2C4FD6]'
                                         : 'text-[#5B6472] hover:bg-white/80 hover:text-[#2C4FD6] font-medium'
                                         } ${isCollapsed ? 'justify-center' : ''}`}
                                 >
-                                    <item.icon size={18} className={`flex-shrink-0 transition-colors duration-200 ${(active && !hasChildren) ? 'text-[#2C4FD6]' : 'text-[#5B6472] group-hover:text-[#2C4FD6]'}`} />
+                                    <div className="relative shrink-0 flex items-center justify-center">
+                                        <item.icon size={18} className={`transition-colors duration-200 ${(active && !hasChildren) ? 'text-[#2C4FD6]' : 'text-[#5B6472] group-hover:text-[#2C4FD6]'}`} />
+                                        {isCollapsed && item.label === 'Chat' && chatUnreadCount > 0 && (
+                                            <span className="absolute -top-1 -right-1 w-2 h-2 bg-[#2C4FD6] rounded-full"></span>
+                                        )}
+                                    </div>
                                     {!isCollapsed && (
                                         <>
                                             <span className="text-sm whitespace-nowrap flex-1 text-left">{item.label}</span>
+                                            {item.label === 'Chat' && chatUnreadCount > 0 && (
+                                                <span className="px-1.5 py-0.5 bg-[#2C4FD6] text-white text-[10px] font-black rounded-full leading-none shrink-0 shadow-xs">
+                                                    {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
+                                                </span>
+                                            )}
                                             {hasChildren && (
                                                 <ChevronDown
                                                     size={16}

@@ -46,6 +46,7 @@ const Notifications = lazy(() => import('./pages/Notifications'));
 const Regularizations = lazy(() => import('./pages/Regularizations'));
 const ChatHub = lazy(() => import('./pages/chat/ChatHub'));
 import { CallProvider } from './context/CallContext';
+import { NotificationProvider } from './context/NotificationContext';
 
 // Masters Pages
 const MastersLayout = lazy(() => import('./pages/masters/MastersLayout'));
@@ -119,7 +120,8 @@ function AppContent() {
         <ThemeProvider>
           <SuperAdminAuthProvider>
             <CallProvider>
-              <BrowserRouter>
+              <NotificationProvider>
+                <BrowserRouter>
                 <Suspense fallback={<PageLoader />}>
                   <Routes>
                     <Route path="/" element={<Navigate to="/signin" replace />} />
@@ -187,7 +189,8 @@ function AppContent() {
                   </Routes>
                 </Suspense>
               </BrowserRouter>
-            </CallProvider>
+            </NotificationProvider>
+          </CallProvider>
           </SuperAdminAuthProvider>
           <Toaster
             position="top-right"
