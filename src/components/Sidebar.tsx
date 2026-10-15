@@ -255,6 +255,10 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                             return false;
                         }
 
+                        if (item.module === 'CHAT' && user?.hasChatAccess === false) {
+                            return false;
+                        }
+
                         if (item.module === 'MY_PROFILE') {
                             return hasPermission('MY_PROFILE_VIEW');
                         }
