@@ -22,10 +22,16 @@ import toast from 'react-hot-toast';
 // Lazy loaded modals
 const CreateTeamChannelModal = lazy(() => import('../../components/chat/CreateTeamChannelModal'));
 import AddGroupMembersModal from '../../components/chat/AddGroupMembersModal';
+import { useNotifications } from '../../context/NotificationContext';
 
 export default function ChatHub() {
     const { user, hasPermission } = useAuth();
     const { startCall, startGroupCall, lastLeftCall, rejoinGroupCall, dismissRejoin, onlineUserIds, isUserOnline } = useCall();
+    const { resetChatUnread } = useNotifications();
+
+    useEffect(() => {
+        resetChatUnread();
+    }, [resetChatUnread]);
 
     const [loading, setLoading] = useState(true);
     const [conversations, setConversations] = useState<DirectConversation[]>([]);
