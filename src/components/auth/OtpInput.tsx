@@ -32,6 +32,25 @@ export const OtpInput: React.FC<OtpInputProps> = ({ length = 6, onComplete }) =>
     }
   };
 
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, length);
+    if (!pastedData) return;
+
+    const newOtp = new Array(length).fill("");
+    for (let i = 0; i < pastedData.length; i++) {
+      newOtp[i] = pastedData[i];
+    }
+    setOtp(newOtp);
+
+    const nextIndex = Math.min(pastedData.length, length - 1);
+    inputs.current[nextIndex]?.focus();
+
+    if (pastedData.length === length) {
+      onComplete(pastedData);
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
     if (e.key === "Backspace") {
       if (!otp[index] && index > 0 && inputs.current[index - 1]) {
@@ -53,6 +72,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({ length = 6, onComplete }) =>
           value={data}
           onChange={(e) => handleChange(e.target, index)}
           onKeyDown={(e) => handleKeyDown(e, index)}
+          onPaste={handlePaste}
           className="w-11 sm:w-12 h-13 sm:h-14 text-center text-2xl font-black text-[#12151C] border border-[#E2E6ED] rounded-[6px] bg-[#F8F9FA] focus:border-[#2C4FD6] focus:bg-white focus:ring-2 focus:ring-[#2C4FD6]/15 transition-all outline-none"
           maxLength={1}
         />
