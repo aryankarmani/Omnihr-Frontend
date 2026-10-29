@@ -56,6 +56,7 @@ const processQueue = (error: any, token: string | null = null) => {
 // Add a request interceptor to inject the auth token
 api.interceptors.request.use(
     (config) => {
+        if (typeof window !== 'undefined' && window.location.pathname.startsWith('/complete-profile')) { return config; }
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
@@ -161,7 +162,7 @@ api.interceptors.response.use(
                 if (
                     !isRedirecting &&
                     window.location.pathname !== '/signin' &&
-                    window.location.pathname !== '/login'
+                    window.location.pathname !== '/login' && !window.location.pathname.startsWith('/complete-profile')
                 ) {
                     isRedirecting = true;
                     window.location.replace('/signin');
@@ -202,3 +203,5 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+

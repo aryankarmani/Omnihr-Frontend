@@ -9,7 +9,8 @@ import { useAuth } from '../../context/AuthContext';
 
 export default function OrgMasters() {
     const { user, hasPermission } = useAuth();
-    const canManageMasters = user?.role === 'SUPER_ADMIN' || hasPermission('MASTERS_MANAGE');
+    const roleName = String(user?.role || '').toUpperCase();
+    const canManageMasters = roleName === 'SUPER_ADMIN' || roleName === 'HR_ADMIN' || roleName === 'ADMIN' || roleName === 'SYSTEM_ADMIN' || hasPermission('MASTERS_MANAGE');
     const [activeTab, setActiveTab] = useState('company');
     const [loading, setLoading] = useState(false);
 
@@ -1402,3 +1403,4 @@ export default function OrgMasters() {
         </div>
     );
 }
+
