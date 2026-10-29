@@ -128,9 +128,10 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
 
     // Strictly prioritize accessibleModules saved in database. Only fallback to defaults if not defined.
     const hasCustomModules = Array.isArray(user?.accessibleModules) && user.accessibleModules.length > 0;
+    const isUserAdmin = user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN' || (user?.role as string) === 'SUPER_ADMIN';
     let userModules: string[] = hasCustomModules
         ? [...user!.accessibleModules!]
-        : (user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN' ? adminDefaultModules : employeeDefaultModules);
+        : (isUserAdmin ? adminDefaultModules : []);
 
     // Normalize LOG and TASK keys so both work identically
     if (userModules.includes('TASK') && !userModules.includes('LOG')) userModules.push('LOG');

@@ -95,9 +95,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
     const employeeDefaultModules = ['DASHBOARD', 'ATTENDANCE', 'LEAVE', 'MY_PROFILE', 'CHAT'];
     const hasCustomModules = Array.isArray(user?.accessibleModules) && user.accessibleModules.length > 0;
 
+    const isUserAdmin = user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN' || (user?.role as string) === 'SUPER_ADMIN';
     let userModules: string[] = hasCustomModules
         ? [...user!.accessibleModules!]
-        : (user?.role === 'HR_ADMIN' || (user?.role as string) === 'ADMIN' ? adminDefaultModules : employeeDefaultModules);
+        : (isUserAdmin ? adminDefaultModules : []);
 
     if (userModules.includes('TASK') && !userModules.includes('LOG')) userModules.push('LOG');
     if (userModules.includes('LOG') && !userModules.includes('TASK')) userModules.push('TASK');
