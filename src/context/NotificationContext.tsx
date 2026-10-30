@@ -212,6 +212,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         // 1. Generic HR / System notifications
         const handleNewNotification = (data: any) => {
             const notifId = String(data.id || `notif-${Date.now()}`);
+            if (knownIdsRef.current.has(notifId)) return;
             knownIdsRef.current.add(notifId);
 
             const newItem: NotificationItem = {
@@ -267,19 +268,24 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
         // 2. Real-time chat & message notifications (Teams-like)
         const handleChatNotification = (data: any) => {
+            const notifId = String(data.id || `chat-${Date.now()}`);
+            if (knownIdsRef.current.has(notifId)) return;
+            knownIdsRef.current.add(notifId);
+
             // Add to in-app notification center list so Chat & Calls tab shows it
             setNotifications(prev => [
                 {
-                    id: data.id || `chat-${Date.now()}`,
+                    id: notifId,
                     title: data.title || `${data.senderName || 'Someone'} (OmniHR Chat)`,
-                    message: data.content || 'Sent a new message',
+                    message: data.content || data.message || 'Sent a new message',
                     type: 'chat',
                     unread: true,
                     link: data.link || '/chat',
-                    date: 'Just now',
+                    date: 'Today',
                     time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    createdAt: data.createdAt || new Date().toISOString(),
                 },
-                ...prev.filter(n => n.id !== data.id)
+                ...prev.filter(n => n.id !== notifId)
             ]);
 
             const currentPath = window.location.pathname;
@@ -291,11 +297,12 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
             // If in another tab, minimized, or viewing another section
             if (!isLookingAtThisChat || document.hidden) {
                 setChatUnreadCount(prev => prev + 1);
+                setUnreadCount(prev => prev + 1);
 
                 const senderName = data.senderName || 'Someone';
                 const channelContext = data.channelName ? ` in #${data.channelName}` : '';
                 const title = data.title || `${senderName}${channelContext} (OmniHR Chat)`;
-                const body = data.content || 'Sent a new message';
+                const body = data.content || data.message || 'Sent a new message';
 
                 showDesktopNotification({
                     title,
@@ -363,7 +370,20 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         socket.on('chat_notification', handleChatNotification);
         socket.on('incoming_call', handleIncomingCall);
 
+        // Auto-sync when window receives focus (switching tabs/windows)
+        const handleWindowFocus = () => {
+            fetchNotifications(true);
+        };
+        window.addEventListener('focus', handleWindowFocus);
+
+        // Gentle 30-second background poll as safety net (without spamming network)
+        const pollInterval = setInterval(() => {
+            fetchNotifications(true);
+        }, 30000);
+
         return () => {
+            clearInterval(pollInterval);
+            window.removeEventListener('focus', handleWindowFocus);
             socket.off('new_notification', handleNewNotification);
             socket.off('chat_notification', handleChatNotification);
             socket.off('incoming_call', handleIncomingCall);

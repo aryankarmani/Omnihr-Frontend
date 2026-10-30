@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Calendar,
@@ -15,6 +15,7 @@ import {
 
 import api from '../utils/api';
 import { AttendanceSkeleton } from '../components/common/SkeletonLoaders';
+import { useRealtimeSync } from '../hooks/useRealtimeSync';
 
 type AttendanceStatus =
   | 'Present'
@@ -77,113 +78,115 @@ export default function EmployeeAttendanceView() {
   }, [id]);
 
   // Fetch attendance data
-  useEffect(() => {
-    const fetchHistory = async () => {
-      setLoading(true);
+  const fetchHistory = useCallback(async () => {
+    setLoading(true);
+    try {
+      const year = selectedMonth.getFullYear();
+      const month = selectedMonth.getMonth() + 1;
+
+      // Fetch attendance history
+      const res = await api.get(
+        `/attendance/history?employeeId=${id}&year=${year}&month=${month}`
+      );
+      const historyData: DailyLog[] = res.data;
+      setAttendanceHistory(historyData);
+
+      // Fetch leaves
+      let leavesData: any[] = [];
       try {
-        const year = selectedMonth.getFullYear();
-        const month = selectedMonth.getMonth() + 1;
-
-        // Fetch attendance history
-        const res = await api.get(
-          `/attendance/history?employeeId=${id}&year=${year}&month=${month}`
-        );
-        const historyData: DailyLog[] = res.data;
-        setAttendanceHistory(historyData);
-
-        // Fetch leaves
-        let leavesData: any[] = [];
-        try {
-          const leavesRes = await api.get(`/leave/history?employeeId=${id}`);
-          leavesData = Array.isArray(leavesRes.data) ? leavesRes.data : [];
-          setLeaves(leavesData);
-        } catch {
-          setLeaves([]);
-        }
-
-        // Fetch holidays
-        const holidayRes = await api.get('/masters/holidays');
-        setHolidays(holidayRes.data);
-        const holidayData = holidayRes.data;
-
-        let effectiveJoiningDate = joiningDate;
-        try {
-          const empRes = await api.get(`/employee/${id}`);
-          setEmployeeName(empRes.data.name);
-          const rawWsd = empRes.data.employeeProfile?.workingStartDate;
-          const rawJd = empRes.data.employeeProfile?.joiningDate;
-          const rawCreated = empRes.data.createdAt;
-          let effectiveDateStr = rawWsd || rawJd || rawCreated;
-          if (!rawWsd && rawJd && rawCreated) {
-            const jdDate = new Date(rawJd);
-            const crDate = new Date(rawCreated);
-            // If employee joined before onboarding into software, track from onboarding date
-            effectiveDateStr = jdDate < crDate ? rawCreated : rawJd;
-          }
-          if (effectiveDateStr) {
-            effectiveJoiningDate = new Date(effectiveDateStr);
-            setJoiningDate(effectiveJoiningDate);
-          }
-        } catch {
-          setEmployeeName(`Employee #${id}`);
-        }
-
-        // Stats calculation
-        const newStats = { present: 0, absent: 0, late: 0, holiday: 0 };
-        const daysInMonth = new Date(year, month, 0).getDate();
-        const todayMidnight = new Date();
-        todayMidnight.setHours(0, 0, 0, 0);
-
-        for (let d = 1; d <= daysInMonth; d++) {
-          const currentLoopDate = new Date(year, month - 1, d);
-          currentLoopDate.setHours(0, 0, 0, 0);
-          const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-
-          const isPastDay = currentLoopDate < todayMidnight;
-          const isWeekend = currentLoopDate.getDay() === 0 || currentLoopDate.getDay() === 6;
-          const log = historyData.find((l) => l.date === dateStr);
-          const isBeforeJoining = !log && effectiveJoiningDate && currentLoopDate < new Date(new Date(effectiveJoiningDate).setHours(0, 0, 0, 0));
-          const isHoliday = holidayData.some((h: any) => h.date.split('T')[0] === dateStr);
-          const isApprovedLeave = leavesData.some((l: any) => {
-            if (l.status !== 'APPROVED') return false;
-            const s = l.startDate ? l.startDate.split('T')[0] : '';
-            const e = l.endDate ? l.endDate.split('T')[0] : '';
-            return dateStr >= s && dateStr <= e;
-          });
-
-          // 1. Present & Late counting (including today and worked holidays)
-          if (log) {
-            if (log.status === 'Present' || log.status === 'Late' || log.status === 'Half Day') {
-              newStats.present++;
-            }
-            if (log.status === 'Late') {
-              newStats.late++;
-            }
-          }
-
-          // 2. Absent counting: exactly matches calendar's isAbsent rule
-          const isAbsent = !isBeforeJoining && isPastDay && !isWeekend && !isHoliday && !isApprovedLeave && (!log || log.status === 'Absent');
-          if (isAbsent) {
-            newStats.absent++;
-          }
-        }
-
-        // Total holidays in this month
-        newStats.holiday = holidayData.filter((h: any) => {
-          const hDate = new Date(h.date);
-          return hDate.getMonth() === month - 1 && hDate.getFullYear() === year;
-        }).length;
-
-        setStats(newStats);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
+        const leavesRes = await api.get(`/leave/history?employeeId=${id}`);
+        leavesData = Array.isArray(leavesRes.data) ? leavesRes.data : [];
+        setLeaves(leavesData);
+      } catch {
+        setLeaves([]);
       }
-    };
 
-    fetchHistory();
+      // Fetch holidays
+      const holidayRes = await api.get('/masters/holidays');
+      setHolidays(holidayRes.data);
+      const holidayData = holidayRes.data;
+
+      let effectiveJoiningDate = joiningDate;
+      try {
+        const empRes = await api.get(`/employee/${id}`);
+        setEmployeeName(empRes.data.name);
+        const rawWsd = empRes.data.employeeProfile?.workingStartDate;
+        const rawJd = empRes.data.employeeProfile?.joiningDate;
+        const rawCreated = empRes.data.createdAt;
+        let effectiveDateStr = rawWsd || rawJd || rawCreated;
+        if (!rawWsd && rawJd && rawCreated) {
+          const jdDate = new Date(rawJd);
+          const crDate = new Date(rawCreated);
+          // If employee joined before onboarding into software, track from onboarding date
+          effectiveDateStr = jdDate < crDate ? rawCreated : rawJd;
+        }
+        if (effectiveDateStr) {
+          effectiveJoiningDate = new Date(effectiveDateStr);
+          setJoiningDate(effectiveJoiningDate);
+        }
+      } catch {
+        setEmployeeName(`Employee #${id}`);
+      }
+
+      // Stats calculation
+      const newStats = { present: 0, absent: 0, late: 0, holiday: 0 };
+      const daysInMonth = new Date(year, month, 0).getDate();
+      const todayMidnight = new Date();
+      todayMidnight.setHours(0, 0, 0, 0);
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const currentLoopDate = new Date(year, month - 1, d);
+        currentLoopDate.setHours(0, 0, 0, 0);
+        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+        const isPastDay = currentLoopDate < todayMidnight;
+        const isWeekend = currentLoopDate.getDay() === 0 || currentLoopDate.getDay() === 6;
+        const log = historyData.find((l) => l.date === dateStr);
+        const isBeforeJoining = !log && effectiveJoiningDate && currentLoopDate < new Date(new Date(effectiveJoiningDate).setHours(0, 0, 0, 0));
+        const isHoliday = holidayData.some((h: any) => h.date.split('T')[0] === dateStr);
+        const isApprovedLeave = leavesData.some((l: any) => {
+          if (l.status !== 'APPROVED') return false;
+          const s = l.startDate ? l.startDate.split('T')[0] : '';
+          const e = l.endDate ? l.endDate.split('T')[0] : '';
+          return dateStr >= s && dateStr <= e;
+        });
+
+        // 1. Present & Late counting (including today and worked holidays)
+        if (log) {
+          if (log.status === 'Present' || log.status === 'Late' || log.status === 'Half Day') {
+            newStats.present++;
+          }
+          if (log.status === 'Late') {
+            newStats.late++;
+          }
+        }
+
+        // 2. Absent counting: exactly matches calendar's isAbsent rule
+        const isAbsent = !isBeforeJoining && isPastDay && !isWeekend && !isHoliday && !isApprovedLeave && (!log || log.status === 'Absent');
+        if (isAbsent) {
+          newStats.absent++;
+        }
+      }
+
+      // Total holidays in this month
+      newStats.holiday = holidayData.filter((h: any) => {
+        const hDate = new Date(h.date);
+        return hDate.getMonth() === month - 1 && hDate.getFullYear() === year;
+      }).length;
+
+      setStats(newStats);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   }, [id, selectedMonth]);
+
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
+
+  useRealtimeSync(['attendance_updated', 'regularization_updated', 'leave_updated'], fetchHistory);
 
   const generateCalendarDays = () => {
     const year = selectedMonth.getFullYear();

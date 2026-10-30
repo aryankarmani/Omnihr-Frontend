@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { Plus, MoreVertical, Briefcase, UserPlus, UserMinus, X, Trash2, Users, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useRBAC } from '../hooks/useRBAC';
+import { useRealtimeSync } from '../hooks/useRealtimeSync';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 import {
@@ -192,6 +193,11 @@ export default function Team() {
         // Pre-fetch employees on mount so opening Add Members is instantaneous
         fetchEmployees();
     }, [currentPage, teamsPerPage]);
+
+    useRealtimeSync('employee_roster_updated', () => {
+        fetchTeams(currentPage, teamsPerPage);
+        fetchEmployees(true);
+    });
 
     useEffect(() => {
         if (showAddMemberModal || showCreateModal) {

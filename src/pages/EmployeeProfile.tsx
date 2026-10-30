@@ -8,6 +8,7 @@ import { ArrowLeft, ArrowRight, User, FileText, CreditCard, Download, Briefcase,
 import toast from 'react-hot-toast';
 import api, { getMediaUrl } from '../utils/api';
 import { calculateProfileCompletion } from '../utils/profileCompletion';
+import { useRealtimeSync } from '../hooks/useRealtimeSync';
 import { ProfileSkeleton } from '../components/common/SkeletonLoaders';
 import { downloadFile } from '../utils/fileDownloader';
 import { extractPhoneDigits, formatPhoneNumber } from '../utils/phoneUtils';
@@ -127,6 +128,13 @@ export default function EmployeeProfile() {
             setLoading(false);
         }
     };
+
+    // Real-time sync: refresh profile if not currently in edit mode
+    useRealtimeSync(['employee_roster_updated', 'onboarding_updated'], () => {
+        if (!isEditing) {
+            fetchEmployee();
+        }
+    });
 
     const [customFields, setCustomFields] = useState<any[]>([]);
     const [, setCustomFieldDocToDelete] = useState<string | null>(null);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Search, Filter, Plus, MoreVertical, User, Loader2, Edit, Trash2, Eye, Download, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import { calculateProfileCompletion } from '../utils/profileCompletion';
 import UserAvatar from '../components/common/UserAvatar';
+import { useRealtimeSync } from '../hooks/useRealtimeSync';
 
 export default function EmployeeList() {
     const navigate = useNavigate();
@@ -39,24 +40,27 @@ export default function EmployeeList() {
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(10);
 
-    useEffect(() => {
-        const fetchEmployees = async () => {
-            try {
-                const res = await api.get('/employee');
-                setEmployees(res.data);
-            } catch (error: any) {
-                console.error('Error fetching employees:', error);
-                if (error.response?.status === 403 || error.response?.data?.code === 'PERMISSION_DENIED') {
-                    toast.error("You don't have access to this", { id: 'access-control-denied-toast' });
-                } else {
-                    toast.error('Failed to load employees');
-                }
-            } finally {
-                setLoading(false);
+    const fetchEmployees = useCallback(async () => {
+        try {
+            const res = await api.get('/employee');
+            setEmployees(res.data);
+        } catch (error: any) {
+            console.error('Error fetching employees:', error);
+            if (error.response?.status === 403 || error.response?.data?.code === 'PERMISSION_DENIED') {
+                toast.error("You don't have access to this", { id: 'access-control-denied-toast' });
+            } else {
+                toast.error('Failed to load employees');
             }
-        };
-        fetchEmployees();
+        } finally {
+            setLoading(false);
+        }
     }, []);
+
+    useEffect(() => {
+        fetchEmployees();
+    }, [fetchEmployees]);
+
+    useRealtimeSync(['employee_roster_updated', 'onboarding_updated'], fetchEmployees);
 
     const [masters, setMasters] = useState({
         departments: [] as any[],

@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import api from '../../utils/api';
 import { DashboardSkeleton } from '../common/SkeletonLoaders';
 import AttendanceConfirmModal, { type AttendanceActionType } from '../common/AttendanceConfirmModal';
+import { useRealtimeSync } from '../../hooks/useRealtimeSync';
 
 export default function EmployeeDashboard({ user }: { user?: any }) {
     const navigate = useNavigate();
@@ -74,6 +75,12 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
         window.addEventListener('punch-updated', onPunchUpdated);
         return () => window.removeEventListener('punch-updated', onPunchUpdated);
     }, [fetchEmployeeData]);
+
+    // Live real-time updates for Employee Dashboard
+    useRealtimeSync(
+        ['leave_updated', 'regularization_updated', 'attendance_updated'],
+        fetchEmployeeData
+    );
 
     const executePunch = async () => {
         if (isPunching) return;
