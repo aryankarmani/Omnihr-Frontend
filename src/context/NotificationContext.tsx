@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import api from '../utils/api';
 import { initSocketClient, getSocket } from '../services/socket';
 import { useAuth } from './AuthContext';
@@ -52,6 +52,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return localStorage.getItem('omnihr_dismiss_desktop_banner') === 'true';
     });
 
+    const knownIdsRef = useRef<Set<string>>(new Set());
+    const isInitialLoadRef = useRef<boolean>(true);
+
     // Check permission whenever window focuses
     useEffect(() => {
         const updatePerm = () => setDesktopPermission(getNotificationPermission());
@@ -65,7 +68,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setUnreadCount(count);
     }, [notifications]);
 
-    // Fetch notifications from API
+    // Fetch notifications from API with real-time detection & desktop alert triggering
     const fetchNotifications = useCallback(async (silent = false) => {
         try {
             const token = localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -73,8 +76,42 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
             const res = await api.get('/notifications');
             if (Array.isArray(res.data)) {
-                setNotifications(res.data);
-                const unread = res.data.filter((n: any) => n.unread).length;
+                const formatted: NotificationItem[] = res.data.map((n: any) => ({
+                    id: String(n.id || `notif-${Math.random()}`),
+                    title: n.title || 'OmniHR Notification',
+                    message: n.message || '',
+                    type: n.type || 'system',
+                    unread: !!n.unread,
+                    link: n.link || null,
+                    date: n.date || (n.createdAt ? new Date(n.createdAt).toLocaleDateString() : 'Today'),
+                    time: n.time || (n.createdAt ? new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'),
+                    createdAt: n.createdAt,
+                }));
+
+                // If not initial load, trigger desktop notifications for newly arrived unread items
+                if (!isInitialLoadRef.current) {
+                    const newItems = formatted.filter(item => item.unread && !knownIdsRef.current.has(item.id));
+                    newItems.forEach(newItem => {
+                        showDesktopNotification({
+                            title: newItem.title,
+                            body: newItem.message,
+                            link: newItem.link || undefined,
+                            tag: `notif-${newItem.id}`,
+                            onClick: () => {
+                                window.focus();
+                                if (newItem.link) window.location.href = newItem.link;
+                            }
+                        });
+                    });
+                } else {
+                    isInitialLoadRef.current = false;
+                }
+
+                // Register all current items in knownIds
+                formatted.forEach(n => knownIdsRef.current.add(n.id));
+
+                setNotifications(formatted);
+                const unread = formatted.filter(n => n.unread).length;
                 setUnreadCount(unread);
             }
         } catch (err) {
@@ -174,19 +211,34 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
         // 1. Generic HR / System notifications
         const handleNewNotification = (data: any) => {
-            setNotifications(prev => [data, ...prev.filter(n => n.id !== data.id)]);
+            const notifId = String(data.id || `notif-${Date.now()}`);
+            knownIdsRef.current.add(notifId);
+
+            const newItem: NotificationItem = {
+                id: notifId,
+                title: data.title || 'OmniHR Notification',
+                message: data.message || '',
+                type: data.type || 'system',
+                unread: true,
+                link: data.link || null,
+                date: data.date || 'Today',
+                time: data.time || 'Just now',
+                createdAt: data.createdAt || new Date().toISOString(),
+            };
+
+            setNotifications(prev => [newItem, ...prev.filter(n => n.id !== notifId)]);
             setUnreadCount(prev => prev + 1);
 
             // Trigger Windows desktop notification
             showDesktopNotification({
-                title: data.title || 'OmniHR Notification',
-                body: data.message || '',
-                link: data.link,
-                tag: `notif-${data.id || Date.now()}`,
+                title: newItem.title,
+                body: newItem.message,
+                link: newItem.link || undefined,
+                tag: `notif-${notifId}`,
                 onClick: () => {
                     window.focus();
-                    if (data.link) {
-                        window.location.href = data.link;
+                    if (newItem.link) {
+                        window.location.href = newItem.link;
                     }
                 }
             });
@@ -197,7 +249,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
                     <div
                         onClick={() => {
                             toast.dismiss(t.id);
-                            if (data.link) window.location.href = data.link;
+                            if (newItem.link) window.location.href = newItem.link;
                         }}
                         className="cursor-pointer flex items-start gap-3 py-1"
                     >
@@ -205,8 +257,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
                             HR
                         </div>
                         <div className="min-w-0">
-                            <p className="text-sm font-bold text-gray-900 leading-snug">{data.title}</p>
-                            <p className="text-xs text-gray-500 truncate max-w-xs">{data.message}</p>
+                            <p className="text-sm font-bold text-gray-900 leading-snug">{newItem.title}</p>
+                            <p className="text-xs text-gray-500 truncate max-w-xs">{newItem.message}</p>
                         </div>
                     </div>
                 ), { duration: 5000, position: 'top-right' });
@@ -311,7 +363,13 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         socket.on('chat_notification', handleChatNotification);
         socket.on('incoming_call', handleIncomingCall);
 
+        // Auto-poll every 12 seconds so notifications NEVER require page refresh even if socket briefly disconnects
+        const pollInterval = setInterval(() => {
+            fetchNotifications(true);
+        }, 12000);
+
         return () => {
+            clearInterval(pollInterval);
             socket.off('new_notification', handleNewNotification);
             socket.off('chat_notification', handleChatNotification);
             socket.off('incoming_call', handleIncomingCall);

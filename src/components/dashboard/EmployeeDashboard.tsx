@@ -355,7 +355,7 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
                 </div>
 
                 {/* 2. LEAVE BALANCE */}
-                <div onClick={() => navigate('/leave')} className="p-5 sm:p-6 flex flex-col justify-between hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all group cursor-pointer">
+                <div onClick={() => navigate('/leave', { state: { activeTab: 'MY_LEAVE' } })} className="p-5 sm:p-6 flex flex-col justify-between hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all group cursor-pointer">
                     <div>
                         <div className="flex justify-between items-center mb-3">
                             <span className="kpi-label text-[11px] font-semibold text-[#9AA3B1] uppercase tracking-[.06em]">
@@ -375,7 +375,7 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
-                                navigate('/leave');
+                                navigate('/leave', { state: { activeTab: 'MY_LEAVE' } });
                             }}
                             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[6px] text-xs font-semibold transition-all cursor-pointer"
                         >
@@ -524,7 +524,7 @@ export default function EmployeeDashboard({ user }: { user?: any }) {
                     <div className="pt-4 border-t border-gray-100 dark:border-white/5 mt-4 flex items-center justify-between">
                         <span className="text-xs text-gray-500 dark:text-gray-400">Need time off?</span>
                         <button
-                            onClick={() => navigate('/leave')}
+                            onClick={() => navigate('/leave', { state: { activeTab: 'MY_LEAVE' } })}
                             className="text-xs font-semibold text-[#2C4FD6] dark:text-blue-400 hover:underline cursor-pointer"
                         >
                             Request Leave →

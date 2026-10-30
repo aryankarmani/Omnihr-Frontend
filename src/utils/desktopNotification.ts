@@ -114,6 +114,13 @@ export const showDesktopNotification = ({
             renotify: true,
         };
 
+        // If Service Worker is active, register notification through ServiceWorker for Windows Action Center background delivery
+        if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.ready.then((reg) => {
+                reg.showNotification(title, options);
+            }).catch(() => {});
+        }
+
         const notification = new Notification(title, options);
 
         notification.onclick = (e) => {

@@ -152,10 +152,11 @@ export default function Attendance() {
 
 
             const empRes = await api.get('/employee/me');
+            const rawWsd = empRes.data.employeeProfile?.workingStartDate;
             const rawJd = empRes.data.employeeProfile?.joiningDate;
             const rawCreated = empRes.data.createdAt;
-            let effectiveDateStr = rawJd || rawCreated;
-            if (rawJd && rawCreated) {
+            let effectiveDateStr = rawWsd || rawJd || rawCreated;
+            if (!rawWsd && rawJd && rawCreated) {
                 const jdDate = new Date(rawJd);
                 const crDate = new Date(rawCreated);
                 // If employee joined before onboarding into the software, track from onboarding date
@@ -246,6 +247,14 @@ export default function Attendance() {
         onSuccess: (data) => {
             toast.success(data.message);
             if (data.shift) setCurrentShift(data.shift);
+            try {
+                const userRaw = localStorage.getItem('encalm_user') || sessionStorage.getItem('encalm_user');
+                const parsedUser = userRaw ? JSON.parse(userRaw) : null;
+                if (parsedUser?.id) {
+                    const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+                    localStorage.setItem(`punch_in_prompt_shown_${parsedUser.id}_${todayStr}`, 'true');
+                }
+            } catch (e) {}
             fetchStatusAndPolicy();
             fetchHistoryAndRequests();
             window.dispatchEvent(new Event('punch-updated'));
@@ -395,8 +404,8 @@ export default function Attendance() {
             return;
         }
 
-        if (diffDays < 0) {
-            toast.error('Cannot apply for correction on future dates.');
+        if (diffDays <= 0) {
+            toast.error(diffDays === 0 ? 'Cannot apply for correction on the current day.' : 'Cannot apply for correction on future dates.');
             return;
         }
 
@@ -480,6 +489,23 @@ export default function Attendance() {
     const handleOpenRegularize = (dateStr: string, log?: DailyLog) => {
         const [y, m, d] = dateStr.split('-').map(Number);
         const targetDate = new Date(y, m - 1, d);
+        targetDate.setHours(0, 0, 0, 0);
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const diffDays = Math.round((today.getTime() - targetDate.getTime()) / (1000 * 60 * 60 * 24));
+
+        if (diffDays <= 0) {
+            toast.error(diffDays === 0 ? 'Cannot apply for correction on the current day.' : 'Cannot apply for correction on future dates.');
+            return;
+        }
+
+        const lookbackDays = attendancePolicy?.regularizationDays ?? 3;
+        if (diffDays > lookbackDays) {
+            toast.error(`You can only correct attendance for the past ${lookbackDays} days.`);
+            return;
+        }
+
         if (targetDate.getDay() === 0 || targetDate.getDay() === 6) {
             toast.error('Cannot apply for correction on weekends (Saturday / Sunday)');
             return;
@@ -565,7 +591,8 @@ export default function Attendance() {
             const diffDays = Math.round((todayMidnight.getTime() - targetDate.getTime()) / (1000 * 60 * 60 * 24));
             const lookbackDays = attendancePolicy?.regularizationDays ?? 3;
 
-            const isTargetDayEligible = diffDays > 0 ? (diffDays <= lookbackDays) : (diffDays === 0 && Boolean(log?.inTime));
+            // Only allow correction for past days within lookbackDays (last 3 days). Not allowed for current day (same day) or future dates.
+            const isTargetDayEligible = diffDays > 0 && diffDays <= lookbackDays;
             const isPastDay = targetDate < todayMidnight;
             const isApprovedLeave = !isBeforeJoining && leave && leave.status === 'APPROVED';
 

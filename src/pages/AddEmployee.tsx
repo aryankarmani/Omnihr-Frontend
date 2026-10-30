@@ -129,7 +129,8 @@ export default function AddEmployee() {
             basic: '',
         },
         selectedSalaryComponents: [] as any[],
-        joiningDate: new Date().toISOString().split('T')[0]
+        joiningDate: new Date().toISOString().split('T')[0],
+        workingStartDate: new Date().toISOString().split('T')[0]
     });
 
     const [documents, setDocuments] = useState<Record<string, any>>({
@@ -183,7 +184,15 @@ export default function AddEmployee() {
             }));
         }
 
-        setFormData(prev => ({ ...prev, [name]: value }));
+        if (name === 'joiningDate') {
+            setFormData(prev => ({
+                ...prev,
+                joiningDate: value,
+                workingStartDate: (!prev.workingStartDate || prev.workingStartDate === prev.joiningDate) ? value : prev.workingStartDate
+            }));
+        } else {
+            setFormData(prev => ({ ...prev, [name]: value }));
+        }
     };
 
 
@@ -427,65 +436,77 @@ export default function AddEmployee() {
 
         if (currentStep < 4) {
             setCurrentStep(c => c + 1);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         } else {
-            setLoading(true);
-            try {
-                // Keep original submissionData exactly untouched
-                const submissionData = {
-                    ...formData,
-                    phone: `${countryCode} ${formData.phone}`.trim(),
-                    name: `${formData.firstName} ${formData.lastName}`.trim(),
-                    customFieldValues
-                };
+            handleSubmitEmployee();
+        }
+    };
 
-                const form = new FormData();
+    const handleSubmitEmployee = async () => {
+        setLoading(true);
+        try {
+            const submissionData = {
+                ...formData,
+                phone: `${countryCode} ${formData.phone}`.trim(),
+                name: `${formData.firstName} ${formData.lastName}`.trim(),
+                customFieldValues
+            };
 
-                form.append("data", JSON.stringify(submissionData));
+            const form = new FormData();
+            form.append("data", JSON.stringify(submissionData));
 
-                if (documents.aadhaar) {
-                    form.append("aadhaar", documents.aadhaar);
-                }
-
-                if (documents.pan) {
-                    form.append("pan", documents.pan);
-                }
-
-                if (documents.degree) {
-                    form.append("degree", documents.degree);
-                }
-
-
-                // Append custom field files (both PERSONAL_DETAILS and DOCUMENT_VAULT)
-                if (profilePicture) {
-                    form.append('profilePicture', profilePicture);
-                }
-                Object.entries(customFieldFiles).forEach(([fieldId, file]) => {
-                    if (file) {
-                        form.append(`custom-file-${fieldId}`, file);
-                    }
-                });
-
-                await api.post('/employee', form, {
-                    headers: {
-                        "Content-Type": "multipart/form-data",
-                    },
-                });
-                toast.success('Employee Onboarded Successfully!');
-                navigate('/employee');
-            } catch (error: any) {
-                console.error('Onboarding error:', error);
-                const msg = error.response?.data?.message || 'Failed to onboard employee';
-                toast.error(msg);
-                if (msg.toLowerCase().includes('email')) {
-                    setCurrentStep(1);
-                    setErrors((prev: any) => ({
-                        ...prev,
-                        email: msg
-                    }));
-                }
-            } finally {
-                setLoading(false);
+            if (documents.aadhaar) {
+                form.append("aadhaar", documents.aadhaar);
             }
+
+            if (documents.pan) {
+                form.append("pan", documents.pan);
+            }
+
+            if (documents.degree) {
+                form.append("degree", documents.degree);
+            }
+
+            if (profilePicture) {
+                form.append('profilePicture', profilePicture);
+            }
+            Object.entries(customFieldFiles).forEach(([fieldId, file]) => {
+                if (file) {
+                    form.append(`custom-file-${fieldId}`, file);
+                }
+            });
+
+            await api.post('/employee', form, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            });
+            toast.success('Employee Onboarded Successfully!');
+            navigate('/employee');
+        } catch (error: any) {
+            console.error('Onboarding error:', error);
+            const msg = error.response?.data?.message || 'Failed to onboard employee';
+            toast.error(msg);
+            if (msg.toLowerCase().includes('email')) {
+                setCurrentStep(1);
+                setErrors((prev: any) => ({
+                    ...prev,
+                    email: msg
+                }));
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSkip = () => {
+        if (loading) return;
+        setErrors({});
+        if (currentStep < 4) {
+            setCurrentStep(c => c + 1);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+            handleSubmitEmployee();
         }
     };
 
@@ -660,6 +681,23 @@ export default function AddEmployee() {
                                 {errors.joiningDate && (
                                     <p className="text-red-500 text-xs mt-1 ml-1">{errors.joiningDate}</p>
                                 )}
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">
+                                    Working Start Date *
+                                </label>
+
+                                <input
+                                    type="date"
+                                    name="workingStartDate"
+                                    value={formData.workingStartDate || formData.joiningDate}
+                                    onChange={handleInputChange}
+                                    className="w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] outline-none text-[#12151C] dark:text-white text-sm font-medium"
+                                />
+                                <p className="text-[11px] text-[#9AA3B1] dark:text-gray-400 ml-1">
+                                    Attendance tracking starts from this date (auto-synced with Date of Joining).
+                                </p>
                             </div>
 
                             <div className="space-y-2">
@@ -1536,21 +1574,33 @@ export default function AddEmployee() {
                     >
                         {currentStep === 1 ? 'Cancel' : 'Back'}
                     </button>
-                    <button
-                        onClick={handleNext}
-                        disabled={loading}
-                        className="flex items-center gap-2 px-7 py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[8px] transition-all font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none cursor-pointer"
-                    >
-                        {loading ? (
-                            <>
-                                <Loader2 size={18} className="animate-spin" /> Processing...
-                            </>
-                        ) : (
-                            <>
-                                {currentStep === 4 ? 'Complete Onboarding' : 'Next Step'} <ChevronRight size={18} />
-                            </>
+                    <div className="flex items-center gap-3">
+                        {currentStep > 1 && (
+                            <button
+                                type="button"
+                                onClick={handleSkip}
+                                disabled={loading}
+                                className="px-5 py-2.5 rounded-[8px] border border-gray-300 dark:border-gray-700 text-[#5B6472] dark:text-gray-300 font-semibold hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer text-sm"
+                            >
+                                {currentStep === 4 ? 'Skip & Complete' : 'Skip'}
+                            </button>
                         )}
-                    </button>
+                        <button
+                            onClick={handleNext}
+                            disabled={loading}
+                            className="flex items-center gap-2 px-7 py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[8px] transition-all font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none cursor-pointer"
+                        >
+                            {loading ? (
+                                <>
+                                    <Loader2 size={18} className="animate-spin" /> Processing...
+                                </>
+                            ) : (
+                                <>
+                                    {currentStep === 4 ? 'Complete Onboarding' : 'Next Step'} <ChevronRight size={18} />
+                                </>
+                            )}
+                        </button>
+                    </div>
                 </div>
             </div>
             {confirmDeleteDoc && createPortal(

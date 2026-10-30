@@ -29,12 +29,16 @@ export default function PunchInPromptModal() {
                 clearTimeout(timerRef.current);
                 timerRef.current = null;
             }
+            if (user?.id) {
+                const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+                localStorage.setItem(`punch_in_prompt_shown_${user.id}_${todayStr}`, 'true');
+            }
             setIsOpen(false);
         };
 
         window.addEventListener('punch-updated', onPunchUpdated);
         return () => window.removeEventListener('punch-updated', onPunchUpdated);
-    }, []);
+    }, [user?.id]);
 
     // Check punch status and trigger 3-second popup once per day
     useEffect(() => {
@@ -60,8 +64,13 @@ export default function PunchInPromptModal() {
 
                 const { isPunchedIn, punchOutTime, canPunchIn } = statusRes.data || {};
 
-                // If user is already punched in, already completed shift, or not yet in punch-in window, do not prompt
-                if (isPunchedIn || punchOutTime || canPunchIn === false) {
+                // If user is already punched in or already completed shift, mark as completed for today so we NEVER prompt again
+                if (isPunchedIn || punchOutTime) {
+                    localStorage.setItem(storageKey, 'true');
+                    return;
+                }
+
+                if (canPunchIn === false) {
                     return;
                 }
 
@@ -75,7 +84,11 @@ export default function PunchInPromptModal() {
                         if (isCancelled) return;
 
                         const latest = latestStatus.data || {};
-                        if (latest.isPunchedIn || latest.punchOutTime || latest.canPunchIn === false) {
+                        if (latest.isPunchedIn || latest.punchOutTime) {
+                            localStorage.setItem(storageKey, 'true');
+                            return;
+                        }
+                        if (latest.canPunchIn === false) {
                             return;
                         }
 
@@ -111,6 +124,10 @@ export default function PunchInPromptModal() {
         try {
             const res = await api.post('/attendance/punch', { action: 'PUNCH_IN' });
             toast.success(res.data?.message || 'Punched in successfully!');
+            if (user?.id) {
+                const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+                localStorage.setItem(`punch_in_prompt_shown_${user.id}_${todayStr}`, 'true');
+            }
             setIsOpen(false);
             // Notify other components (dashboards, attendance page) to refresh immediately
             window.dispatchEvent(new Event('punch-updated'));
@@ -119,6 +136,10 @@ export default function PunchInPromptModal() {
             const msg = error.response?.data?.message || error.message || 'Failed to punch in';
             toast.error(msg);
             if (msg.toLowerCase().includes('already')) {
+                if (user?.id) {
+                    const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+                    localStorage.setItem(`punch_in_prompt_shown_${user.id}_${todayStr}`, 'true');
+                }
                 setIsOpen(false);
             }
         } finally {

@@ -110,10 +110,11 @@ export default function EmployeeAttendanceView() {
         try {
           const empRes = await api.get(`/employee/${id}`);
           setEmployeeName(empRes.data.name);
+          const rawWsd = empRes.data.employeeProfile?.workingStartDate;
           const rawJd = empRes.data.employeeProfile?.joiningDate;
           const rawCreated = empRes.data.createdAt;
-          let effectiveDateStr = rawJd || rawCreated;
-          if (rawJd && rawCreated) {
+          let effectiveDateStr = rawWsd || rawJd || rawCreated;
+          if (!rawWsd && rawJd && rawCreated) {
             const jdDate = new Date(rawJd);
             const crDate = new Date(rawCreated);
             // If employee joined before onboarding into software, track from onboarding date
