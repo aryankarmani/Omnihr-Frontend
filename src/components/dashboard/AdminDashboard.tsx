@@ -479,6 +479,9 @@ export default function AdminDashboard({
                                                             } else if (type === 'WEEKEND' || text.toLowerCase().includes('weekend')) {
                                                                 badgeClass = "bg-[#F3F4F6] text-[#6B7280] dark:bg-gray-800 dark:text-gray-400";
                                                                 dotColor = "bg-[#6B7280]";
+                                                            } else if (type === 'YET_TO_JOIN' || text.toLowerCase().includes('yet to join')) {
+                                                                badgeClass = "bg-[#EDE9FE] text-[#7C3AED] dark:bg-purple-950/50 dark:text-purple-300";
+                                                                dotColor = "bg-[#7C3AED]";
                                                             }
 
                                                             return (

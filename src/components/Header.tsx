@@ -327,7 +327,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                             </div>
 
                             {/* Windows Desktop Notification Banner */}
-                            {desktopPermission === 'default' && !bannerDismissed && (
+                            {desktopPermission === 'default' && (
                                 <div className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 border border-blue-200 dark:border-blue-800/40 rounded-[8px] flex items-start gap-3 relative">
                                     <div className="w-8 h-8 rounded-full bg-[#2C4FD6] text-white flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
                                         <Bell size={15} />
@@ -335,7 +335,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                     <div className="flex-1 min-w-0 pr-6">
                                         <p className="text-xs font-bold text-gray-900 dark:text-white">Windows Desktop Alerts</p>
                                         <p className="text-[11px] text-gray-600 dark:text-gray-300 mt-0.5 leading-snug">
-                                            Get instant notifications for chat messages and incoming calls even when minimized.
+                                            Get instant notifications for chat messages, attendance, and team updates even when minimized.
                                         </p>
                                         <div className="flex items-center gap-2 mt-2">
                                             <button
@@ -347,18 +347,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                             </button>
                                         </div>
                                     </div>
-                                    <button
-                                        type="button"
-                                        onClick={dismissBanner}
-                                        title="Dismiss banner"
-                                        className="absolute top-2.5 right-2.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 cursor-pointer"
-                                    >
-                                        <X size={14} />
-                                    </button>
                                 </div>
                             )}
 
-                            {desktopPermission === 'granted' && !bannerDismissed && (
+                            {desktopPermission === 'granted' && (
                                 <div className="mt-2.5 px-3 py-2 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/30 rounded-[6px] flex items-center justify-between text-[11px] text-emerald-700 dark:text-emerald-400">
                                     <span className="flex items-center gap-1.5 font-medium">
                                         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -373,19 +365,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                         >
                                             Test Alert
                                         </button>
-                                        <button
-                                            type="button"
-                                            onClick={dismissBanner}
-                                            className="text-emerald-700 hover:text-emerald-900 dark:text-emerald-300 p-0.5 cursor-pointer"
-                                            title="Close banner"
-                                        >
-                                            <X size={13} />
-                                        </button>
                                     </div>
                                 </div>
                             )}
 
-                            {desktopPermission === 'denied' && !bannerDismissed && (
+                            {desktopPermission === 'denied' && (
                                 <div className="mt-2.5 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/30 rounded-[8px] flex items-start gap-2.5 text-[11px] relative">
                                     <AlertCircle size={16} className="text-amber-600 shrink-0 mt-0.5" />
                                     <div className="flex-1 min-w-0 pr-6">
@@ -401,14 +385,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
                                             Check / Retry
                                         </button>
                                     </div>
-                                    <button
-                                        type="button"
-                                        onClick={dismissBanner}
-                                        title="Dismiss"
-                                        className="absolute top-2.5 right-2.5 text-amber-500 hover:text-amber-700 p-1 cursor-pointer"
-                                    >
-                                        <X size={14} />
-                                    </button>
                                 </div>
                             )}
 

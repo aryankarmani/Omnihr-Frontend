@@ -156,6 +156,16 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
         const pathMatches = location.pathname === path || (path !== '/' && path !== '/dashboard' && location.pathname.startsWith(path + '/'));
         if (!pathMatches) return false;
 
+        // Special handling for /leave tabs
+        if (path === '/leave') {
+            const queryTab = new URLSearchParams(location.search).get('tab');
+            const currentTab = location.state?.activeTab || (queryTab === 'APPROVALS' || queryTab === 'MY_LEAVE' ? queryTab : null) || 'MY_LEAVE';
+            if (state && state.activeTab) {
+                return currentTab === state.activeTab;
+            }
+            return currentTab === 'MY_LEAVE';
+        }
+
         // If a specific state is required for this menu item
         if (state && state.activeTab) {
             return location.state?.activeTab === state.activeTab;
@@ -170,6 +180,13 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
     };
 
     const isChildActive = (child: { path: string; state?: any }, siblings?: { path: string; state?: any }[]) => {
+        // Special handling for /leave
+        if (child.path === '/leave' && child.state && child.state.activeTab) {
+            const queryTab = new URLSearchParams(location.search).get('tab');
+            const currentTab = location.state?.activeTab || (queryTab === 'APPROVALS' || queryTab === 'MY_LEAVE' ? queryTab : null) || 'MY_LEAVE';
+            return location.pathname === '/leave' && currentTab === child.state.activeTab;
+        }
+
         // If a specific state is required for this child
         if (child.state && child.state.activeTab) {
             return location.pathname === child.path && location.state?.activeTab === child.state.activeTab;

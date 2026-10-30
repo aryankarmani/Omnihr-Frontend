@@ -98,7 +98,8 @@ export default function CompleteProfile() {
             basic: '',
         },
         selectedSalaryComponents: [] as any[],
-        joiningDate: new Date().toISOString().split('T')[0]
+        joiningDate: new Date().toISOString().split('T')[0],
+        workingStartDate: new Date().toISOString().split('T')[0]
     });
 
     const [documents, setDocuments] = useState<Record<string, any>>({
@@ -193,6 +194,7 @@ export default function CompleteProfile() {
                     departmentId: init.departmentId || (depts[0]?.id ? String(depts[0].id) : ''),
                     designationId: init.designationId || (desigs[0]?.id ? String(desigs[0].id) : ''),
                     joiningDate: init.joiningDate || prev.joiningDate,
+                    workingStartDate: init.workingStartDate || init.joiningDate || prev.workingStartDate,
                     pan: init.pan || prev.pan,
                     aadhaar: init.aadhaar || prev.aadhaar,
                     uan: init.uan || prev.uan,
@@ -236,7 +238,15 @@ export default function CompleteProfile() {
                 [name]: ''
             }));
         }
-        setFormData(prev => ({ ...prev, [name]: value }));
+        if (name === 'joiningDate') {
+            setFormData(prev => ({
+                ...prev,
+                joiningDate: value,
+                workingStartDate: (!prev.workingStartDate || prev.workingStartDate === prev.joiningDate) ? value : prev.workingStartDate
+            }));
+        } else {
+            setFormData(prev => ({ ...prev, [name]: value }));
+        }
     };
 
     const handleBasicSalaryChange = (value: string) => {
@@ -453,76 +463,93 @@ export default function CompleteProfile() {
             setCurrentStep(c => c + 1);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } else {
-            // STEP 4: Documents are optional during onboarding
-            // Verify no duplicate files uploaded across documents if uploaded
-            const uploadedCheckList = [
-                { name: 'Aadhaar Card', file: documents.aadhaar },
-                { name: 'PAN Card', file: documents.pan },
-                { name: 'Highest Qualification Degree', file: documents.degree }
-            ].filter(d => d.file);
+            handleSubmitProfile();
+        }
+    };
 
-            for (let i = 0; i < uploadedCheckList.length; i++) {
-                for (let j = i + 1; j < uploadedCheckList.length; j++) {
-                    if (
-                        uploadedCheckList[i].file.name === uploadedCheckList[j].file.name &&
-                        uploadedCheckList[i].file.size === uploadedCheckList[j].file.size
-                    ) {
-                        toast.error(`Cannot upload the same file for "${uploadedCheckList[i].name}" and "${uploadedCheckList[j].name}". Please upload unique documents.`);
-                        return;
-                    }
+    const handleSubmitProfile = async () => {
+        if (submitting) return;
+
+        // STEP 4: Documents are optional during onboarding
+        // Verify no duplicate files uploaded across documents if uploaded
+        const uploadedCheckList = [
+            { name: 'Aadhaar Card', file: documents.aadhaar },
+            { name: 'PAN Card', file: documents.pan },
+            { name: 'Highest Qualification Degree', file: documents.degree }
+        ].filter(d => d.file);
+
+        for (let i = 0; i < uploadedCheckList.length; i++) {
+            for (let j = i + 1; j < uploadedCheckList.length; j++) {
+                if (
+                    uploadedCheckList[i].file.name === uploadedCheckList[j].file.name &&
+                    uploadedCheckList[i].file.size === uploadedCheckList[j].file.size
+                ) {
+                    toast.error(`Cannot upload the same file for "${uploadedCheckList[i].name}" and "${uploadedCheckList[j].name}". Please upload unique documents.`);
+                    return;
                 }
             }
+        }
 
-            // SUBMIT ALL DATA
-            setSubmitting(true);
-            try {
-                const submissionData = {
-                    ...formData,
-                    token,
-                    phone: `${countryCode} ${formData.phone}`.trim(),
-                    name: `${formData.firstName} ${formData.lastName}`.trim(),
-                    customFieldValues
-                };
+        // SUBMIT ALL DATA
+        setSubmitting(true);
+        try {
+            const submissionData = {
+                ...formData,
+                token,
+                phone: `${countryCode} ${formData.phone}`.trim(),
+                name: `${formData.firstName} ${formData.lastName}`.trim(),
+                customFieldValues
+            };
 
-                const form = new FormData();
-                form.append("token", token);
-                form.append("data", JSON.stringify(submissionData));
+            const form = new FormData();
+            form.append("token", token);
+            form.append("data", JSON.stringify(submissionData));
 
-                if (documents.aadhaar) {
-                    form.append("aadhaar", documents.aadhaar);
-                }
-                if (documents.pan) {
-                    form.append("pan", documents.pan);
-                }
-                if (documents.degree) {
-                    form.append("degree", documents.degree);
-                }
-                if (profilePicture) {
-                    form.append('profilePicture', profilePicture);
-                }
-
-                Object.entries(customFieldFiles).forEach(([fieldId, file]) => {
-                    if (file) {
-                        form.append(`custom-file-${fieldId}`, file);
-                    }
-                });
-
-                await api.post('/employee/public-onboard', form, {
-                    headers: {
-                        "Content-Type": "multipart/form-data",
-                    },
-                });
-
-                setSubmitted(true);
-                toast.success('Employee Profile Submitted Successfully!');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            } catch (error: any) {
-                console.error('Onboarding submission error:', error);
-                const msg = error.response?.data?.message || 'Failed to submit onboarding profile';
-                toast.error(msg);
-            } finally {
-                setSubmitting(false);
+            if (documents.aadhaar) {
+                form.append("aadhaar", documents.aadhaar);
             }
+            if (documents.pan) {
+                form.append("pan", documents.pan);
+            }
+            if (documents.degree) {
+                form.append("degree", documents.degree);
+            }
+            if (profilePicture) {
+                form.append('profilePicture', profilePicture);
+            }
+
+            Object.entries(customFieldFiles).forEach(([fieldId, file]) => {
+                if (file) {
+                    form.append(`custom-file-${fieldId}`, file);
+                }
+            });
+
+            await api.post('/employee/public-onboard', form, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            });
+
+            setSubmitted(true);
+            toast.success('Employee Profile Submitted Successfully!');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } catch (error: any) {
+            console.error('Onboarding submission error:', error);
+            const msg = error.response?.data?.message || 'Failed to submit onboarding profile';
+            toast.error(msg);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleSkip = () => {
+        if (submitting) return;
+        setErrors({});
+        if (currentStep < 4) {
+            setCurrentStep(c => c + 1);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+            handleSubmitProfile();
         }
     };
 
@@ -783,6 +810,22 @@ export default function CompleteProfile() {
                                         className={`w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border ${errors.joiningDate ? 'border-red-500' : 'border-[#E2E6ED] dark:border-white/10'} rounded-[8px] focus:ring-2 focus:ring-[#2C4FD6]/20 focus:border-[#2C4FD6] outline-none text-[#12151C] dark:text-white text-sm font-medium transition-all cursor-pointer`}
                                     />
                                     {errors.joiningDate && <p className="text-red-500 text-xs ml-1 font-medium">{errors.joiningDate}</p>}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-medium text-[#5B6472] dark:text-gray-300 uppercase tracking-wider ml-1">
+                                        Working Start Date *
+                                    </label>
+                                    <input
+                                        type="date"
+                                        name="workingStartDate"
+                                        value={formData.workingStartDate || formData.joiningDate}
+                                        onChange={handleInputChange}
+                                        className="w-full px-4 py-3 bg-[#F7F8FA] dark:bg-white/5 border border-[#E2E6ED] dark:border-white/10 rounded-[8px] outline-none text-[#12151C] dark:text-white text-sm font-medium"
+                                    />
+                                    <p className="text-[11px] text-[#9AA3B1] dark:text-gray-400 ml-1">
+                                        Attendance tracking starts from this date (auto-synced with Date of Joining).
+                                    </p>
                                 </div>
 
                                 <div className="space-y-2">
@@ -1465,22 +1508,34 @@ export default function CompleteProfile() {
                         >
                             {currentStep === 1 ? 'Cancel Onboarding' : 'Back'}
                         </button>
-                        <button
-                            type="button"
-                            onClick={handleNext}
-                            disabled={submitting}
-                            className="flex items-center gap-2 px-7 py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[8px] transition-all font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                        >
-                            {submitting ? (
-                                <>
-                                    <Loader2 size={18} className="animate-spin" /> Submitting Details...
-                                </>
-                            ) : (
-                                <>
-                                    {currentStep === 4 ? 'Complete Onboarding' : 'Next Step'} <ChevronRight size={18} />
-                                </>
+                        <div className="flex items-center gap-3">
+                            {currentStep > 1 && (
+                                <button
+                                    type="button"
+                                    onClick={handleSkip}
+                                    disabled={submitting}
+                                    className="px-5 py-2.5 rounded-[8px] border border-gray-300 dark:border-gray-700 text-[#5B6472] dark:text-gray-300 font-semibold hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer text-sm"
+                                >
+                                    {currentStep === 4 ? 'Skip & Complete' : 'Skip'}
+                                </button>
                             )}
-                        </button>
+                            <button
+                                type="button"
+                                onClick={handleNext}
+                                disabled={submitting}
+                                className="flex items-center gap-2 px-7 py-2.5 bg-[#2C4FD6] hover:bg-[#203FB4] text-white rounded-[8px] transition-all font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                            >
+                                {submitting ? (
+                                    <>
+                                        <Loader2 size={18} className="animate-spin" /> Submitting Details...
+                                    </>
+                                ) : (
+                                    <>
+                                        {currentStep === 4 ? 'Complete Onboarding' : 'Next Step'} <ChevronRight size={18} />
+                                    </>
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

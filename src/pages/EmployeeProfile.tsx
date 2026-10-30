@@ -522,6 +522,7 @@ export default function EmployeeProfile() {
                 phone: combinedPhone,
                 dob: employee.employeeProfile?.dob,
                 joiningDate: employee.employeeProfile?.joiningDate,
+                workingStartDate: employee.employeeProfile?.workingStartDate || employee.employeeProfile?.joiningDate,
                 bloodGroup: employee.employeeProfile?.bloodGroup,
                 address: employee.employeeProfile?.address,
                 location: employee.employeeProfile?.location,
@@ -693,6 +694,7 @@ export default function EmployeeProfile() {
                 phone: combinedPhone,
                 dob: employee.employeeProfile?.dob,
                 joiningDate: employee.employeeProfile?.joiningDate,
+                workingStartDate: employee.employeeProfile?.workingStartDate || employee.employeeProfile?.joiningDate,
                 bloodGroup: employee.employeeProfile?.bloodGroup,
                 address: employee.employeeProfile?.address,
                 location: employee.employeeProfile?.location,
@@ -2169,6 +2171,26 @@ export default function EmployeeProfile() {
                                             {profile.joiningDate
                                                 ? new Date(profile.joiningDate).toLocaleDateString('en-IN')
                                                 : 'N/A'}
+                                        </p>
+                                    )}
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[11px] font-semibold text-[#9AA3B1] uppercase tracking-[.06em] block">
+                                        WORKING START DATE
+                                    </label>
+
+                                    {isEditing && canEditEmploymentDetails ? (
+                                        <input
+                                            type="date"
+                                            value={profile.workingStartDate ? profile.workingStartDate.split('T')[0] : (profile.joiningDate ? profile.joiningDate.split('T')[0] : '')}
+                                            onChange={(e) => handleInputChange('workingStartDate', e.target.value)}
+                                            className="w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-[6px] outline-none"
+                                        />
+                                    ) : (
+                                        <p className="text-[13.5px] font-semibold text-[#12151C] dark:text-white">
+                                            {profile.workingStartDate
+                                                ? new Date(profile.workingStartDate).toLocaleDateString('en-IN')
+                                                : (profile.joiningDate ? new Date(profile.joiningDate).toLocaleDateString('en-IN') : 'N/A')}
                                         </p>
                                     )}
                                 </div>
