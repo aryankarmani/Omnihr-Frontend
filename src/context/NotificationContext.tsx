@@ -363,13 +363,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         socket.on('chat_notification', handleChatNotification);
         socket.on('incoming_call', handleIncomingCall);
 
-        // Auto-poll every 12 seconds so notifications NEVER require page refresh even if socket briefly disconnects
-        const pollInterval = setInterval(() => {
-            fetchNotifications(true);
-        }, 12000);
-
         return () => {
-            clearInterval(pollInterval);
             socket.off('new_notification', handleNewNotification);
             socket.off('chat_notification', handleChatNotification);
             socket.off('incoming_call', handleIncomingCall);
