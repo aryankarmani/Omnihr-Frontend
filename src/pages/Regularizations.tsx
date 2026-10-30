@@ -21,6 +21,7 @@ import { createPortal } from 'react-dom';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import UserAvatar from '../components/common/UserAvatar';
+import { useRealtimeSync } from '../hooks/useRealtimeSync';
 
 interface RegularizationRequest {
   id: string;
@@ -101,6 +102,8 @@ export default function Regularizations() {
   useEffect(() => {
     fetchRequests();
   }, []);
+
+  useRealtimeSync('regularization_updated', fetchRequests);
 
   const handleApproveConfirm = async () => {
     if (!approvingItem || submittingApprove) return;

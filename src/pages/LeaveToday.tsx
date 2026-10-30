@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useRealtimeSync } from '../hooks/useRealtimeSync';
 import { Search, Filter, Calendar, Mail, Loader2, ArrowLeft, UserMinus, LayoutGrid, List, Eye, XCircle, Clock, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
@@ -32,60 +33,63 @@ export default function LeaveToday() {
         status: 'All'
     });
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                // 1. Fetch Leave History, Employees, and Holidays in parallel
-                const [leaveRes, empRes, holidayRes] = await Promise.all([
-                    api.get('/leave/history?all=true'),
-                    api.get('/employee'),
-                    api.get('/masters/holidays').catch(() => ({ data: [] }))
-                ]);
+    const fetchLeaveTodayData = useCallback(async () => {
+        try {
+            // 1. Fetch Leave History, Employees, and Holidays in parallel
+            const [leaveRes, empRes, holidayRes] = await Promise.all([
+                api.get('/leave/history?all=true'),
+                api.get('/employee'),
+                api.get('/masters/holidays').catch(() => ({ data: [] }))
+            ]);
 
-                const now = new Date();
-                const today = now.toISOString().split('T')[0];
-                const localToday = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            const now = new Date();
+            const today = now.toISOString().split('T')[0];
+            const localToday = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-                const holidaysList = holidayRes.data || [];
-                const foundHoliday = holidaysList.find((h: any) => {
-                    const hDate = String(h.date).split('T')[0];
-                    return hDate === today || hDate === localToday;
-                });
+            const holidaysList = holidayRes.data || [];
+            const foundHoliday = holidaysList.find((h: any) => {
+                const hDate = String(h.date).split('T')[0];
+                return hDate === today || hDate === localToday;
+            });
 
-                setTodayHoliday(foundHoliday || null);
+            setTodayHoliday(foundHoliday || null);
 
-                // If today is an official holiday, company operations are closed and leave tracking is paused
-                if (foundHoliday) {
-                    setEmployeesOnLeave([]);
-                    return;
-                }
-
-                const employeesList = empRes.data || [];
-
-                // 3. Filter and Merge data
-                const onLeaveToday = (leaveRes.data || []).filter((leave: any) => {
-                    const start = new Date(leave.startDate).toISOString().split('T')[0];
-                    const end = new Date(leave.endDate).toISOString().split('T')[0];
-                    return today >= start && today <= end && leave.status === 'APPROVED';
-                }).map((leave: any) => {
-                    // Find the matching employee in the full list using userId
-                    const fullEmp = employeesList.find((e: any) => e.id === leave.userId);
-                    return {
-                        ...leave,
-                        fullEmployee: fullEmp // This contains email, id, profile
-                    };
-                });
-
-                setEmployeesOnLeave(onLeaveToday);
-            } catch (error) {
-                console.error('Error fetching leave data:', error);
-                toast.error('Failed to load leave data');
-            } finally {
-                setLoading(false);
+            // If today is an official holiday, company operations are closed and leave tracking is paused
+            if (foundHoliday) {
+                setEmployeesOnLeave([]);
+                return;
             }
-        };
-        fetchData();
+
+            const employeesList = empRes.data || [];
+
+            // 3. Filter and Merge data
+            const onLeaveToday = (leaveRes.data || []).filter((leave: any) => {
+                const start = new Date(leave.startDate).toISOString().split('T')[0];
+                const end = new Date(leave.endDate).toISOString().split('T')[0];
+                return today >= start && today <= end && leave.status === 'APPROVED';
+            }).map((leave: any) => {
+                // Find the matching employee in the full list using userId
+                const fullEmp = employeesList.find((e: any) => e.id === leave.userId);
+                return {
+                    ...leave,
+                    fullEmployee: fullEmp // This contains email, id, profile
+                };
+            });
+
+            setEmployeesOnLeave(onLeaveToday);
+        } catch (error) {
+            console.error('Error fetching leave data:', error);
+            toast.error('Failed to load leave data');
+        } finally {
+            setLoading(false);
+        }
     }, []);
+
+    useEffect(() => {
+        fetchLeaveTodayData();
+    }, [fetchLeaveTodayData]);
+
+    useRealtimeSync(['leave_updated', 'employee_roster_updated'], fetchLeaveTodayData);
 
     const applyFilters = () => {
         setAppliedFilters(filters);

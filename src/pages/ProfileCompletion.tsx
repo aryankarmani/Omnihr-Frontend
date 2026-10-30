@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import api from '../utils/api';
 import ReviewOnboardingModal from '../components/ReviewOnboardingModal';
+import { useRealtimeSync } from '../hooks/useRealtimeSync';
 
 interface InviteRow {
     id: string | number;
@@ -99,6 +100,8 @@ export default function ProfileCompletion() {
     useEffect(() => {
         fetchInvites();
     }, []);
+
+    useRealtimeSync('onboarding_updated', fetchInvites);
 
     const validateRowEmail = async (index: number, emailVal?: string): Promise<boolean> => {
         const emailToCheck = (emailVal !== undefined ? emailVal : rows[index]?.email || '').trim().toLowerCase();

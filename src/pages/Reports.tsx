@@ -1,7 +1,8 @@
  
 import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { FileText, TrendingUp, Users, Calendar, ChevronDown, Clock, DollarSign } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { useRealtimeSync } from '../hooks/useRealtimeSync';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
@@ -71,23 +72,25 @@ export default function Reports() {
         }
     };
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const res1 = await api.get('/reports/dashboard', { params: { period } });
-                const res2 = await api.get('/reports/attendance', { params: { period } });
-                const res3 = await api.get('/reports/payroll', { params: { period } });
+    const fetchReportsData = useCallback(async () => {
+        try {
+            const res1 = await api.get('/reports/dashboard', { params: { period } });
+            const res2 = await api.get('/reports/attendance', { params: { period } });
+            const res3 = await api.get('/reports/payroll', { params: { period } });
 
-                setStats(res1.data || {});
-                setAttendanceData(res2.data?.data || res2.data || []);
-                setPayrollData(res3.data?.data || res3.data || []);
-            } catch (err) {
-                console.error('Reports API error:', err);
-            }
-        };
-
-        fetchData();
+            setStats(res1.data || {});
+            setAttendanceData(res2.data?.data || res2.data || []);
+            setPayrollData(res3.data?.data || res3.data || []);
+        } catch (err) {
+            console.error('Reports API error:', err);
+        }
     }, [period]);
+
+    useEffect(() => {
+        fetchReportsData();
+    }, [fetchReportsData]);
+
+    useRealtimeSync(['attendance_updated', 'leave_updated', 'employee_roster_updated'], fetchReportsData);
 
     // Calculate dynamic department payroll percentages
     const totalPayrollAmount = payrollData.reduce((sum, item) => sum + (Number(item.value) || 0), 0);

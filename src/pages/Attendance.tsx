@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom';
 import { AttendanceSkeleton } from '../components/common/SkeletonLoaders';
 import { useAuth } from '../context/AuthContext';
 import AttendanceConfirmModal, { type AttendanceActionType } from '../components/common/AttendanceConfirmModal';
+import { useRealtimeSync } from '../hooks/useRealtimeSync';
 
 // Types for Attendance Data
 type AttendanceStatus = 'Present' | 'Absent' | 'Late' | 'Half Day' | 'Holiday' | 'Weekend' | 'Pending' | 'Leave' | 'Leave (Pending)';
@@ -238,6 +239,15 @@ export default function Attendance() {
     useEffect(() => {
         fetchHistoryAndRequests();
     }, [selectedMonth, joiningDate]);
+
+    // Live real-time updates for Attendance page
+    useRealtimeSync(
+        ['attendance_updated', 'regularization_updated', 'leave_updated'],
+        () => {
+            fetchStatusAndPolicy();
+            fetchHistoryAndRequests();
+        }
+    );
 
     const punchMutation = useMutation({
         mutationFn: async (action?: 'PUNCH_IN' | 'PUNCH_OUT') => {

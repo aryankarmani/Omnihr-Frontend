@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { createPortal } from 'react-dom';
 import { TableSkeleton } from '../components/common/SkeletonLoaders';
 import UserAvatar from '../components/common/UserAvatar';
+import { useRealtimeSync } from '../hooks/useRealtimeSync';
 
 export const formatTime12h = (timeStr?: string) => {
     if (!timeStr) return '';
@@ -149,7 +150,7 @@ export default function Leave() {
     //     fetchManagerTeam();
     // }, [user]);
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setLoading(true);
         try {
             const requests = [
@@ -246,11 +247,13 @@ export default function Leave() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [canSeeApprovals]);
 
     useEffect(() => {
         fetchData();
-    }, [canSeeApprovals]);
+    }, [fetchData]);
+
+    useRealtimeSync('leave_updated', fetchData);
 
     const handleLeaveTypeChange = (type: string) => {
         setLeaveType(type);
