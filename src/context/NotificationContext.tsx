@@ -370,20 +370,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         socket.on('chat_notification', handleChatNotification);
         socket.on('incoming_call', handleIncomingCall);
 
-        // Auto-sync when window receives focus (switching tabs/windows)
-        const handleWindowFocus = () => {
-            fetchNotifications(true);
-        };
-        window.addEventListener('focus', handleWindowFocus);
-
-        // Gentle 30-second background poll as safety net (without spamming network)
-        const pollInterval = setInterval(() => {
-            fetchNotifications(true);
-        }, 30000);
-
         return () => {
-            clearInterval(pollInterval);
-            window.removeEventListener('focus', handleWindowFocus);
             socket.off('new_notification', handleNewNotification);
             socket.off('chat_notification', handleChatNotification);
             socket.off('incoming_call', handleIncomingCall);
